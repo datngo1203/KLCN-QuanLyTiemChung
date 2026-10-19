@@ -1,0 +1,305 @@
+:root {
+  --navy: #173b59;
+  --blue: #6258ce;
+  --blue-dark: #4f48b6;
+  --blue-soft: #f0efff;
+  --ink: #203b53;
+  --muted: #71869a;
+  --line: #e3eaf1;
+  --surface: #f7f9fd;
+  --mint: #e9f7f2;
+  --green: #168875;
+  --amber: #b36c19;
+  --purple: #6258ce;
+  --purple-soft: #f2efff;
+  --teal: #168875;
+  --teal-soft: #e9f7f2;
+  --coral: #c85e58;
+  --coral-soft: #fff0ed;
+  --gold: #b36c19;
+  --gold-soft: #fff4e5;
+}
+
+.announcement {
+  background: linear-gradient(100deg, #173b59 0%, #464394 58%, #176b68 100%);
+}
+
+.brand-mark {
+  background: linear-gradient(145deg, #766de0, #4f81d3);
+  color: #fff;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: #efedff;
+  color: #5148b6;
+}
+
+.button.primary {
+  background: linear-gradient(115deg, #6258ce, #397fc2);
+  box-shadow: 0 5px 14px #6258ce26;
+}
+
+.button.primary:hover {
+  background: linear-gradient(115deg, #5148b6, #2769aa);
+}
+
+.text-button,
+.eyebrow,
+.card-kicker {
+  color: #5e58be;
+}
+
+.hero h1 em {
+  color: #168875;
+}
+
+.hero-art {
+  background: radial-gradient(ellipse at 50% 65%, #e5f5f2 0, #eff5ff 58%, #f4f0ff 100%);
+}
+
+.art-sun {
+  background: #f8e5b6;
+}
+
+.art-cross {
+  color: #7468d7;
+}
+
+.person-body {
+  background: #459b91;
+}
+
+.tiny-icon.blue {
+  background: #f0efff;
+  color: #6258ce;
+}
+
+.trust-strip {
+  background: linear-gradient(90deg, #f7f5ff, #f3fbf8 52%, #fff9ef);
+}
+
+.trust-items span:nth-child(4n + 1) i,
+.service-card:nth-child(4n + 1) .service-icon,
+.catalog-card:nth-child(4n + 1) .catalog-art span {
+  color: #6258ce;
+  background-color: #f0efff;
+}
+
+.trust-items span:nth-child(4n + 2) i,
+.service-card:nth-child(4n + 2) .service-icon,
+.catalog-card:nth-child(4n + 2) .catalog-art span {
+  color: #168875;
+  background-color: #e9f7f2;
+}
+
+.trust-items span:nth-child(4n + 3) i,
+.service-card:nth-child(4n + 3) .service-icon,
+.catalog-card:nth-child(4n + 3) .catalog-art span {
+  color: #b36c19;
+  background-color: #fff4e5;
+}
+
+.service-card:nth-child(3n + 1),
+.catalog-card:nth-child(3n + 1) {
+  border-top: 3px solid #8a7ee0;
+}
+
+.service-card:nth-child(3n + 2),
+.catalog-card:nth-child(3n + 2) {
+  border-top: 3px solid #65b8a4;
+}
+
+.service-card:nth-child(3n),
+.catalog-card:nth-child(3n) {
+  border-top: 3px solid #e7b766;
+}
+
+.catalog-art.art-0 {
+  background: linear-gradient(135deg, #efedff, #dfe5ff);
+}
+
+.catalog-art.art-1 {
+  background: linear-gradient(135deg, #e6f8f2, #cdeee2);
+}
+
+.catalog-art.art-2 {
+  background: linear-gradient(135deg, #fff5e4, #f5e5c8);
+}
+
+.catalog-art.art-0 span {
+  color: #6258ce;
+}
+
+.catalog-art.art-1 span {
+  color: #168875;
+}
+
+.catalog-art.art-2 span {
+  color: #b36c19;
+}
+
+.process-section {
+  background: linear-gradient(120deg, #f5f3ff, #f3faf8 58%, #fff9ef);
+}
+
+.process-step:nth-child(4n + 1) {
+  border-top: 3px solid #8a7ee0;
+}
+
+.process-step:nth-child(4n + 2) {
+  border-top: 3px solid #65b8a4;
+}
+
+.process-step:nth-child(4n + 3) {
+  border-top: 3px solid #e7b766;
+}
+
+.process-step:nth-child(4n) {
+  border-top: 3px solid #e49387;
+}
+
+.process-step:nth-child(4n + 1) .step-number,
+.process-step:nth-child(4n + 1) .step-icon {
+  color: #6258ce;
+}
+
+.process-step:nth-child(4n + 2) .step-number,
+.process-step:nth-child(4n + 2) .step-icon {
+  color: #168875;
+}
+
+.process-step:nth-child(4n + 3) .step-number,
+.process-step:nth-child(4n + 3) .step-icon {
+  color: #b36c19;
+}
+
+.process-step:nth-child(4n) .step-number,
+.process-step:nth-child(4n) .step-icon {
+  color: #c85e58;
+}
+
+.support-banner {
+  background: linear-gradient(105deg, #e9f7f2, #efedff 70%, #fff5e7);
+}
+
+.support-icon {
+  color: #6258ce;
+  box-shadow: 0 4px 12px #6258ce1c;
+}
+
+.pending-badge {
+  background: #fff4df;
+  color: #97601c;
+}
+
+.pending-badge > span {
+  background: #d79232;
+}
+
+.filter-tabs,
+.schedule-tabs {
+  background: #f1efff;
+}
+
+.filter-tab.selected,
+.schedule-tab.active {
+  color: #5148b6;
+  box-shadow: 0 2px 8px #6258ce20;
+}
+
+.payment-steps {
+  background: linear-gradient(100deg, #f4f2ff, #f1faf7);
+}
+
+.payment-steps b {
+  color: #5148b6;
+}
+
+.form-card h2 > span {
+  background: #efedff;
+  color: #5148b6;
+}
+
+.form-card:nth-child(2) h2 > span {
+  background: #e9f7f2;
+  color: #168875;
+}
+
+.form-card:nth-child(3) h2 > span {
+  background: #fff4e5;
+  color: #a76418;
+}
+
+.invoice-total strong,
+.offer-discount,
+.offer-code b,
+.offer-modal-discount {
+  color: #5148b6;
+}
+
+.offer-spark {
+  background: #efedff;
+  color: #6258ce;
+}
+
+.offer-status {
+  background: #e9f7f2;
+  color: #14775f;
+}
+
+.disease-card:nth-child(3n + 1) .disease-icon {
+  background: #efedff;
+  color: #6258ce;
+}
+
+.disease-card:nth-child(3n + 2) .disease-icon {
+  background: #e9f7f2;
+  color: #168875;
+}
+
+.disease-card:nth-child(3n) .disease-icon {
+  background: #fff4e5;
+  color: #a76418;
+}
+
+.demo-record:nth-child(3n + 1) {
+  border-left: 3px solid #8a7ee0;
+}
+
+.demo-record:nth-child(3n + 2) {
+  border-left: 3px solid #65b8a4;
+}
+
+.demo-record:nth-child(3n) {
+  border-left: 3px solid #e7b766;
+}
+
+.record-date b {
+  color: #6258ce;
+}
+
+.record-main .pending-badge {
+  background: #eaf4ff;
+  color: #2869a4;
+}
+
+.toast {
+  background: linear-gradient(105deg, #34336f, #216f79);
+}
+
+.site-footer {
+  background: #faf9ff;
+}
+
+@media (max-width: 700px) {
+  .trust-items {
+    background: transparent;
+  }
+
+  .trust-items span:nth-child(4n + 1) i,
+  .trust-items span:nth-child(4n + 2) i,
+  .trust-items span:nth-child(4n + 3) i {
+    background: transparent;
+  }
+}

@@ -1,0 +1,6 @@
+# Chỉ dùng username đã được xác minh. Bổ sung Bảo/Quý khi có username và quyền repo.
+/contracts/ @datngo1203
+/database/ @datngo1203
+/backend/src/TiemChung.Contracts/ @datngo1203
+/backend/src/TiemChung.Infrastructure/ @datngo1203
+/.github/ @datngo1203

@@ -1,0 +1,231 @@
+@startuml
+title SƠ ĐỒ LỚP MỨC PHÂN TÍCH - HỆ THỐNG QUẢN LÝ TIÊM CHỦNG
+left to right direction
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName Arial
+skinparam nodesep 45
+skinparam ranksep 65
+skinparam class {
+  BackgroundColor #FFFDEB
+  BorderColor #333333
+  ArrowColor #333333
+}
+hide circle
+
+  class "Nhân viên" as NhanVien {
+    maNhanVien
+    hoTen
+    CCCD
+    soDienThoai
+    email
+    boPhan
+    chucDanh
+    trangThai
+    capNhatThongTin()
+  }
+  class "Tài khoản" as TaiKhoan {
+    tenDangNhap
+    matKhau
+    trangThai
+    dangNhap()
+    dangXuat()
+    doiMatKhau()
+  }
+  class "Quyền hạn" as QuyenHan {
+    maQuyen
+    tenQuyen
+    moTa
+  }
+  class "Khách hàng" as KhachHang {
+    maKhachHang
+    hoTen
+    CCCD
+    soDienThoai
+    email
+    capNhatThongTin()
+    quanLyNguoiDuocTiem()
+  }
+  class "Người được tiêm" as NguoiDuocTiem {
+    maNguoiDuocTiem
+    hoTen
+    CCCD [0..1]
+    ngaySinh
+    gioiTinh
+    quanHeVoiKhachHang
+    capNhatHoSo()
+    xemLichSuTiem()
+  }
+  NhanVien -- "0..1" TaiKhoan
+  TaiKhoan "0..*" -- "0..*" QuyenHan
+  KhachHang -- "0..*" NguoiDuocTiem
+
+  class "Đăng ký dịch vụ" as DangKyDichVu {
+    maDangKy
+    ngayDangKy
+    hinhThucTiem
+    thoiGianDuKien
+    trangThai
+    taoDangKy()
+    capNhatDangKy()
+  }
+  class "Chi tiết vắc xin lẻ" as CTVacXin {
+    soLuong
+    giaTaiThoiDiemDangKy
+  }
+  class "Chi tiết gói vắc xin" as CTGoiVacXin {
+    soLuongGoi
+    giaTaiThoiDiemDangKy
+  }
+  class "Thanh toán" as ThanhToan {
+    maThanhToan
+    soTien
+    phuongThuc
+    thoiDiem
+    loaiThanhToan
+    trangThai
+    thucHienThanhToan()
+    xacNhanThanhToan()
+  }
+  class "Khuyến mãi" as KhuyenMai {
+    maKhuyenMai
+    tenKhuyenMai
+    noiDung
+    thoiGianApDung
+    mucUuDai
+  }
+  KhachHang -- "0..*" DangKyDichVu
+  NguoiDuocTiem -- "0..*" DangKyDichVu
+  DangKyDichVu *-- "0..*" CTVacXin
+  DangKyDichVu *-- "0..*" CTGoiVacXin
+  CTVacXin "0..*" -->  VacXin
+  CTGoiVacXin "0..*" -->  GoiVacXin
+  DangKyDichVu -- "0..*" ThanhToan
+  KhuyenMai "0..1" -- "0..*" DangKyDichVu
+
+  class "Loại tiêm chủng" as LoaiTiemChung {
+    maLoaiTiemChung
+    tenLoaiTiemChung
+    moTa
+  }
+  class "Loại vắc xin" as LoaiVacXin {
+    maLoaiVacXin
+    tenLoaiVacXin
+    moTa
+    capNhatLoai()
+  }
+  class "Bệnh" as Benh {
+    maBenh
+    tenBenh
+    moTa
+  }
+  class "Vắc xin" as VacXin {
+    maVacXin
+    tenVacXin
+    nhaSanXuat
+    xuatXu
+    lieuLuong
+    theTich
+    phanUngSauTiem
+    gia
+    trangThai
+    traCuuThongTin()
+  }
+  class "Gói vắc xin" as GoiVacXin {
+    maGoi
+    tenGoi
+    giaGoi
+    trangThai
+    kiemTraKhaDung()
+  }
+  class "Lô vắc xin" as LoVacXin {
+    soLo
+    ngaySanXuat
+    hanSuDung
+    soLuongBanDau
+    soLuongTon
+    trangThai
+    kiemTraHanDung()
+    capNhatTonKho()
+  }
+  class "Biến động kho" as BienDongKho {
+    maBienDong
+    loaiBienDong
+    soLuong
+    thoiDiem
+    ghiNhanNhap()
+    ghiNhanXuat()
+  }
+  LoaiVacXin -- "0..*" VacXin
+  LoaiTiemChung -- "0..*" VacXin
+  VacXin "0..*" -- "1..*" Benh
+  GoiVacXin "0..*" -- "1..*" VacXin
+  VacXin -- "0..*" LoVacXin
+  LoVacXin -- "0..*" BienDongKho
+
+  class "Chỉ định tiêm" as ChiDinhTiem {
+    maChiDinh
+    ketQuaChiDinh
+    thoiGian
+    ghiChu
+    xacNhanChiDinh()
+  }
+  class "Phiếu khám sàng lọc" as PhieuKhamSangLoc {
+    maPhieuKham
+    chiSoSinhTon
+    tienSuBenhLy
+    ketLuan
+    lyDoHoan
+    ghiNhanKetQua()
+    ketLuanSangLoc()
+  }
+  class "Mũi tiêm" as MuiTiem {
+    maMuiTiem
+    thoiDiemTiem
+    viTriTiem
+    trangThai
+    ghiNhanMuiTiem()
+  }
+  class "Theo dõi sau tiêm" as TheoDoiSauTiem {
+    maTheoDoi
+    tinhTrang
+    mucDoPhanUng
+    huongXuTri
+    thoiDiem
+    capNhatTinhTrang()
+    ghiNhanPhanUng()
+  }
+  class "Lịch hẹn tiêm" as LichHenTiem {
+    maLichHen
+    thoiGianHen
+    diemTiem
+    trangThai
+    doiLich()
+    huyLich()
+  }
+  class "Nhắc lịch" as NhacLich {
+    maNhacLich
+    kenhGui
+    thoiDiemGui
+    trangThai
+    guiNhacLich()
+  }
+  class "Hàng đợi vắc xin" as HangDoiVacXin {
+    thoiDiemVaoHang
+    trangThai
+  }
+  ChiDinhTiem "0..*" -->  VacXin
+  PhieuKhamSangLoc -- "0..*" ChiDinhTiem
+  DangKyDichVu -- "0..*" PhieuKhamSangLoc
+  NguoiDuocTiem -- "0..*" PhieuKhamSangLoc
+  NguoiDuocTiem -- "0..*" MuiTiem
+  LoVacXin -- "0..*" MuiTiem
+  MuiTiem -- "0..1" TheoDoiSauTiem
+  NguoiDuocTiem -- "0..*" LichHenTiem
+  LichHenTiem -- "0..*" NhacLich
+  DangKyDichVu -- "0..*" HangDoiVacXin
+  HangDoiVacXin "0..*" -->  VacXin
+
+@enduml

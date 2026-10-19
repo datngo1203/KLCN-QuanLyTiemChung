@@ -1,0 +1,60 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFFDF4
+  BorderColor #5B6573
+  ArrowColor #5B6573
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #425466
+}
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 16
+skinparam nodesep 40
+skinparam ranksep 38
+
+actor "Khách hàng" as Customer
+
+rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG\n(Windows + Website)" {
+  usecase "Tra cứu vắc xin\nvà dịch vụ" as UC_Search
+  usecase "Quản lý hồ sơ khách hàng\nvà người được tiêm" as UC_Profile
+  usecase "Đăng ký dịch vụ\ntiêm chủng" as UC_Register
+  usecase "Khám sàng lọc và\nghi nhận chỉ định" as UC_Screen
+  usecase "Ghi nhận thanh toán" as UC_Payment
+  usecase "Ghi nhận mũi tiêm\nvà theo dõi sau tiêm" as UC_Vaccinate
+  usecase "Tra cứu lịch và\nlịch sử tiêm" as UC_History
+  usecase "Quản lý lịch tiêm\nvà nhắc lịch" as UC_Schedule
+  usecase "Quản lý danh mục vắc xin,\nloại tiêm và gói vắc xin" as UC_Catalog
+  usecase "Quản lý nhập kho\nvà tồn vắc xin" as UC_Inventory
+  usecase "Quản lý tài khoản\nvà phân quyền" as UC_Account
+}
+
+actor "Nhân viên tiếp nhận" as Reception
+actor "Bác sĩ" as Doctor
+actor "Thu ngân" as Cashier
+actor "Điều dưỡng" as Nurse
+actor "Nhân viên kho" as Warehouse
+actor "Nhân viên CSKH" as Support
+actor "Quản trị viên" as Admin
+
+Customer -- UC_Search
+Customer -- UC_Register
+Customer -- UC_Payment
+Customer -- UC_History
+Customer -- UC_Schedule
+UC_Profile -- Reception
+UC_Register -- Reception
+UC_Screen -- Doctor
+UC_Payment -- Cashier
+UC_Vaccinate -- Nurse
+UC_Inventory -- Warehouse
+UC_Schedule -- Support
+UC_Catalog -- Admin
+UC_Account -- Admin
+
+@enduml

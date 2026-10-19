@@ -1,0 +1,23 @@
+name: Công việc
+description: Chức năng hoặc bước tích hợp
+title: '[TASK] '
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Người phụ trách
+      placeholder: Bảo / Quý / Đạt
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Phạm vi và nguồn nghiệp vụ
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kết quả và cách kiểm chứng
+    validations:
+      required: true

@@ -1,0 +1,111 @@
+<ui:FluentWindow x:Class="TiemChung.Desktop.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Tiêm chủng | Hệ thống trung tâm" Height="820" Width="1360" FontFamily="Segoe UI"
+                 MinHeight="620" MinWidth="980" Background="#F8F9FF"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowStartupLocation="CenterScreen">
+    <DockPanel LastChildFill="True">
+        <ui:TitleBar DockPanel.Dock="Top" Title="Tiêm chủng | Hệ thống trung tâm"
+                     ShowMinimize="True" ShowMaximize="True" ShowClose="True" CanMaximize="True"
+                     Background="White" />
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="232" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#EEF3FF">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Top" Margin="20,22,18,22">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="38" Height="38" CornerRadius="12" Background="#2563EB">
+                            <TextBlock Text="✚" Foreground="#9DD7D3" FontSize="21" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Margin="11,1,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="TIÊM CHỦNG" Foreground="#0B1C30" FontSize="13" FontWeight="Bold" />
+                            <TextBlock Text="HỆ THỐNG TRUNG TÂM" Foreground="#64748B" FontSize="9" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Bottom" Margin="17,12,17,18">
+                    <ui:Button Content="Kiểm tra API" Click="CheckApi_Click" HorizontalAlignment="Stretch" />
+                    <Border Height="1" Background="#C3C6D7" Margin="2,0,2,14" />
+                </StackPanel>
+                <ScrollViewer x:Name="NavigationScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="NavigationStack" Width="{Binding ElementName=NavigationScrollViewer, Path=ViewportWidth}">
+                        <StackPanel.Resources>
+                            <Style TargetType="{x:Type ui:Button}" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                <Setter Property="Margin" Value="12,2" />
+                                <Setter Property="Padding" Value="13,10" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Foreground" Value="#44546A" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                            </Style>
+                        </StackPanel.Resources>
+                        <TextBlock Text="TÁC NGHIỆP" Foreground="#64748B" FontSize="9" FontWeight="Bold" Margin="21,0,0,9" />
+                        <ui:Button Content="Tổng quan" Tag="A01" Click="Navigate_Click" Background="#E9E7FF" Foreground="#5148B8" />
+                        <ui:Button Content="Khám sàng lọc" Tag="A02" Click="Navigate_Click" />
+                        <ui:Button Content="Khách hàng &amp; người được tiêm" Tag="A03" Click="Navigate_Click">
+                            <ui:Button.ContentTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ui:Button.ContentTemplate>
+                        </ui:Button>
+                        <ui:Button Content="Danh mục tiêm chủng" Tag="A04" Click="Navigate_Click" />
+                        <ui:Button Content="Nhập kho vắc xin" Tag="A05" Click="Navigate_Click" />
+                        <ui:Button Content="Thực hiện tiêm" Tag="A06" Click="Navigate_Click" />
+                        <ui:Button Content="Đăng ký dịch vụ" Tag="A07" Click="Navigate_Click" />
+                        <ui:Button Content="Thanh toán" Tag="A08" Click="Navigate_Click" />
+                        <ui:Button Content="Lịch tiêm &amp; nhắc lịch" Tag="A09" Click="Navigate_Click" />
+                        <TextBlock Text="KHO &amp; QUẢN TRỊ" Foreground="#64748B" FontSize="9" FontWeight="Bold" Margin="21,18,0,9" />
+                        <ui:Button Content="Khuyến mãi &amp; ưu đãi" Tag="A10" Click="Navigate_Click" />
+                        <ui:Button Content="Thống kê &amp; báo cáo" Tag="A11" Click="Navigate_Click" />
+                        <ui:Button Content="Tài khoản &amp; phân quyền" Tag="A12" Click="Navigate_Click" />
+                        <ui:Button Content="Đăng nhập nội bộ" Tag="A13" Click="Navigate_Click" />
+                        <ui:Button Content="Đổi mật khẩu" Tag="A14" Click="Navigate_Click" Margin="12,2,12,12" />
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="78" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="White" BorderBrush="#E6EDF3" BorderThickness="0,0,0,1" Padding="22,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="BreadcrumbText" Text="HỆ THỐNG / TỔNG QUAN" Foreground="#64748B" FontSize="9" FontWeight="Bold" />
+                        <TextBlock x:Name="PageTitle" Text="Tổng quan" Foreground="#0B1C30" FontSize="20" FontWeight="Bold" Margin="0,5,0,0" />
+                    </StackPanel>
+                    <TextBox x:Name="MenuSearch" Grid.Column="1" Height="36" VerticalContentAlignment="Center" Padding="11,5" BorderBrush="#DFE8EF" Background="#F9FBFD" TextChanged="Search_TextChanged" ToolTip="Tìm màn hình trong menu" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:Button Content="Thông báo" Click="Notification_Click" Margin="12,0,0,0" Padding="14,8" Background="#F1F6FA" Foreground="#3C6485" />
+                        <ui:Button Content="Đăng xuất" Click="Logout_Click" Margin="8,0,0,0" Padding="14,8" Background="#F1F6FA" Foreground="#3C6485" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="22,20,22,30">
+                    <Border x:Name="FeedbackBanner" Visibility="Collapsed" Background="#E9F4FC" BorderBrush="#CFE6F6" BorderThickness="1" CornerRadius="9" Padding="13,10" Margin="0,0,0,14">
+                        <TextBlock x:Name="FeedbackText" Foreground="#285F88" FontSize="12" TextWrapping="Wrap" />
+                    </Border>
+                    <StackPanel x:Name="ScreenContent" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+    </DockPanel>
+</ui:FluentWindow>

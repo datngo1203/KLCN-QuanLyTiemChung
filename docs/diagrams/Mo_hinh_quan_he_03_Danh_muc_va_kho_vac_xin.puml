@@ -1,0 +1,98 @@
+@startuml
+left to right direction
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam nodesep 35
+skinparam ranksep 45
+skinparam entity {
+  BackgroundColor #FFFDEB
+  BorderColor #333333
+}
+title MÔ HÌNH QUAN HỆ - DANH MỤC VÀ KHO VẮC XIN
+
+entity "VacXin_Benh" as VacXinBenh {
+    * MaVacXin : INT <<PK, FK>>
+    * MaBenh : INT <<PK, FK>>
+  }
+
+entity "LoaiTiemChung" as LoaiTiemChung {
+    * MaLoaiTiemChung : INT <<PK>>
+    --
+    TenLoaiTiemChung : NVARCHAR(120)
+    MoTa : NVARCHAR(500)
+  }
+
+entity "LoVacXin" as LoVacXin {
+    * SoLo : NVARCHAR(80) <<PK>>
+    --
+    MaVacXin : INT <<FK>>
+    NgaySanXuat : DATE
+    HanSuDung : DATE
+    SoLuongBanDau : INT
+    SoLuongTon : INT
+    TrangThai : NVARCHAR(30)
+  }
+
+entity "LoaiVacXin" as LoaiVacXin {
+    * MaLoaiVacXin : INT <<PK>>
+    --
+    TenLoaiVacXin : NVARCHAR(120)
+    MoTa : NVARCHAR(500)
+  }
+
+entity "VacXin" as VacXin {
+    * MaVacXin : INT <<PK>>
+    --
+    MaLoaiVacXin : INT <<FK>>
+    MaLoaiTiemChung : INT <<FK>>
+    TenVacXin : NVARCHAR(150)
+    NhaSanXuat : NVARCHAR(150)
+    XuatXu : NVARCHAR(100)
+    LieuLuong : NVARCHAR(100)
+    TheTich : DECIMAL(10,2)
+    PhanUngSauTiem : NVARCHAR(1000)
+    Gia : DECIMAL(18,2)
+    TrangThai : NVARCHAR(30)
+  }
+
+entity "GoiVacXin_VacXin" as GoiVacXinVacXin {
+    * MaGoi : INT <<PK, FK>>
+    * MaVacXin : INT <<PK, FK>>
+    SoLuong : INT
+  }
+
+entity "Benh" as Benh {
+    * MaBenh : INT <<PK>>
+    --
+    TenBenh : NVARCHAR(150)
+    MoTa : NVARCHAR(500)
+  }
+
+entity "BienDongKho" as BienDongKho {
+    * MaBienDong : INT <<PK>>
+    --
+    SoLo : NVARCHAR(80) <<FK>>
+    MaNhanVien : INT <<FK>>
+    LoaiBienDong : NVARCHAR(30)
+    SoLuong : INT
+    ThoiDiem : DATETIME2
+  }
+
+entity "GoiVacXin" as GoiVacXin {
+    * MaGoi : INT <<PK>>
+    --
+    TenGoi : NVARCHAR(150)
+    GiaGoi : DECIMAL(18,2)
+    TrangThai : NVARCHAR(30)
+  }
+
+LoaiVacXin ||--o{ VacXin
+LoaiTiemChung ||--o{ VacXin
+VacXin ||--o{ VacXinBenh
+Benh ||--o{ VacXinBenh
+GoiVacXin ||--o{ GoiVacXinVacXin
+VacXin ||--o{ GoiVacXinVacXin
+VacXin ||--o{ LoVacXin
+LoVacXin ||--o{ BienDongKho
+@enduml

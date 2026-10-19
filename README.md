@@ -1,0 +1,68 @@
+# KLCN090 · Hệ thống quản lý tiêm chủng
+
+Khung dùng chung cho Bảo, Quý, Đạt: **Website React + ứng dụng Windows WPF + Mobile Flutter → ASP.NET Core Web API → SQL Server**.
+
+Repo khởi tạo ngày 19/10/2026. Mobile được bổ sung theo yêu cầu mới của nhóm, giữ cả Website và Windows theo đề cương gốc. Đây là nền để phát triển khóa luận; chưa phải hệ thống quản lý tiêm chủng đã hoàn thiện.
+
+## Bắt đầu
+
+```powershell
+git clone https://github.com/datngo1203/KLCN-QuanLyTiemChung.git
+cd KLCN-QuanLyTiemChung
+powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+```
+
+Mở các terminal riêng:
+
+```powershell
+# Backend: http://localhost:5080 — chưa cần SQL khi chạy Development
+dotnet run --project backend/src/TiemChung.Api
+# Website: http://localhost:5173
+npm --prefix apps/web run dev
+# Windows: Windows + .NET 10 SDK
+dotnet run --project apps/windows/TiemChung.Desktop.csproj
+# Mobile: Android emulator + Flutter (xem docs/setup.md cho thiết bị thật/iOS)
+cd apps/mobile
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
+```
+
+Windows đang kế thừa giao diện mô phỏng `admin / 123`; không dùng tài khoản đó làm xác thực backend. Website/Windows có nút **Kiểm tra API** để thử kết nối thật. Các form nghiệp vụ vẫn dùng trạng thái cục bộ. Mobile đọc danh mục từ API mẫu; đăng ký/lịch/hồ sơ thật thuộc backlog.
+
+## Phân công
+
+| Thành viên | Đầu mối giao diện | Module backend và tích hợp |
+|---|---|---|
+| Diệp Nguyễn Gia Bảo | `apps/web` | Hồ sơ, đăng ký, thanh toán, ưu đãi |
+| Nguyễn Ngọc Quý | `apps/mobile` | Lịch, lịch sử tiêm, nhắc lịch, theo dõi sau tiêm |
+| Ngô Thành Đạt | `apps/windows` | Danh mục, kho, khám/chỉ định, tài khoản/phân quyền; nền API/DB/CI |
+
+Đây là phân công khởi tạo để nhóm bắt đầu; chi tiết phạm vi và người review ở [docs/team.md](docs/team.md). Mỗi người làm cả phần API liên quan đến module mình, không dồn toàn bộ backend cho một thành viên.
+
+## Cấu trúc
+
+```text
+apps/web/                    React + Vite; kế thừa UI đã làm
+apps/windows/                C# WPF + WPF UI; kế thừa UI đã làm
+apps/mobile/                 Flutter Android/iOS
+backend/src/TiemChung.Api/    HTTP API, OpenAPI, CORS, xử lý lỗi
+backend/src/TiemChung.Domain/ thực thể và quy tắc nghiệp vụ
+backend/src/TiemChung.Infrastructure/ EF Core + SQL Server + migrations
+backend/src/TiemChung.Contracts/ DTO dùng chung .NET
+backend/tests/               unit tests và API smoke tests
+contracts/                   danh sách endpoint và mẫu gọi HTTP
+database/                    lược đồ SQL sinh từ migration
+docs/                        phạm vi, phân công, roadmap, UML, hướng dẫn
+scripts/                     cài dependencies, chạy và kiểm tra
+infra/                       Docker Compose cho API + SQL Server phát triển
+.github/                     CI, mẫu issue/PR, Dependabot
+```
+
+## Đọc tiếp
+
+- [Cài đặt và chạy](docs/setup.md), [phân công và cách làm Git](docs/team.md), [backlog](docs/backlog.md).
+- [Phạm vi và quyết định nghiệp vụ](docs/project-context.md), [kiến trúc](docs/architecture.md), [hợp đồng API](contracts/README.md).
+- [Database](database/README.md), [kiểm thử](docs/testing.md), [trạng thái kiểm chứng](docs/status.md).
+- [UML tham khảo](docs/diagrams/README.md), [nguồn và nguồn gốc giao diện](docs/source-map.md).
+- [Giới hạn bảo mật trước khi triển khai](SECURITY.md), [cách đóng góp](CONTRIBUTING.md).
+
+Backend công khai hiện chỉ có `/health`, `/api/v1/catalog/vaccines`, `/api/v1/modules`. OpenAPI Development: `/openapi/v1.json`. Các endpoint nghiệp vụ còn lại trong contracts là **kế hoạch**, chưa có thực thi. API tắt dữ liệu mẫu khi chạy Production; không có tài khoản demo ở backend.

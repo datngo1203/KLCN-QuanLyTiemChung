@@ -1,0 +1,42 @@
+{
+  "info": {
+    "name": "KLCN090 starter",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Catalog",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/catalog/vaccines?search=A"
+      }
+    },
+    {
+      "name": "Modules",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/modules"
+      }
+    },
+    {
+      "name": "OpenAPI",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/openapi/v1.json"
+      }
+    }
+  ]
+}

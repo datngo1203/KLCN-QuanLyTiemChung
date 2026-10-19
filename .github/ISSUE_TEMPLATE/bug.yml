@@ -1,0 +1,14 @@
+name: Lỗi
+description: Lỗi có thể tái hiện
+title: '[BUG] '
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Nền tảng, bước tái hiện, kết quả mong muốn và thực tế
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Ảnh/log đã loại thông tin cá nhân và bí mật

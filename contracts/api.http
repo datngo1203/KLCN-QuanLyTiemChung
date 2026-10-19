@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5080
+
+### API liveness
+GET {{baseUrl}}/health
+
+### Danh mục dùng chung
+GET {{baseUrl}}/api/v1/catalog/vaccines?search=A
+
+### Module và đầu mối
+GET {{baseUrl}}/api/v1/modules
+
+### OpenAPI ở Development
+GET {{baseUrl}}/openapi/v1.json
