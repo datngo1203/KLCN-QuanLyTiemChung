@@ -1,17 +1,23 @@
+# Đổi giới hạn từ 0 lên 1 hoặc 2 khi nhóm muốn nhận PR nâng phiên bản tự động.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /apps/web
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: nuget
     directory: /backend
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: nuget
     directory: /apps/windows
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: pub
     directory: /apps/mobile
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0

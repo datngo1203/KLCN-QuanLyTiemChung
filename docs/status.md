@@ -9,10 +9,12 @@
 | Database | 27 thực thể/mapping EF Core, migration InitialCreate và SQL sinh idempotent; model sinh DDL được; chưa chạy lên SQL Server thật |
 | NuGet | Sau khi cập nhật dependency Pkcs, kiểm tra package trực tiếp và gián tiếp không báo lỗ hổng đã biết từ nguồn NuGet tại thời điểm kiểm tra |
 | Kết nối HTTP | Gọi thật localhost:5080: health OK, danh mục demo lọc trả 1 mục, OpenAPI trả JSON; test CORS origin web pass |
-| GitHub Actions | Có job backend/web/Windows/mobile; kết quả từ xa sẽ kiểm tra sau khi push |
+| GitHub Actions | Có job backend/web/Windows/mobile; [lần kiểm tra code khởi tạo fab544a](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/39232542082), [develop](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/39232543473). Xem kết quả trực tiếp trong Actions. Các bổ sung tài liệu không thay code dùng commit skip CI để tránh build lại không cần thiết. |
 
 Windows/Website vẫn dùng state cho form nghiệp vụ; login admin/123 trên Windows là mô phỏng. Khung chưa có backend login, thanh toán/ghi kho/ghi hồ sơ thật hoặc kênh gửi nhắc lịch thật. Lịch/hồ sơ mobile là màn khung. Không xem test qua là nghiệp vụ hoàn chỉnh.
 
-Chưa kiểm chứng: chạy migration/transaction trên SQL Server, Docker Compose runtime (Docker daemon chưa chạy), build/chạy Android trên thiết bị, build/ký iOS trên macOS, review giao diện đầy đủ và kiểm thử quyền. CI có bước build Android debug để kiểm tra từ xa.
+Chưa kiểm chứng: chạy migration/transaction trên SQL Server, Docker Compose runtime (cấu hình đã validate, Docker daemon chưa chạy), chạy Android trên thiết bị, build/ký iOS trên macOS, review giao diện đầy đủ và kiểm thử quyền. CI có bước build Android debug; kết quả nằm ở các liên kết phía trên.
 
 Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Đã biết GitHub Đạt; chưa có username Bảo/Quý để mời/gán assignee. Thông tin tiến độ nằm ở tài liệu mới này; `ui-checklist-inherited.md` phản ánh lịch sử đợt UI cũ.
+
+Đã tạo 13 issue và 3 milestone; liên kết ở [bảng công việc](task-board.md). Theo yêu cầu, username sẽ bổ sung sau. GitHub không hỗ trợ bảo vệ nhánh cho repo private với gói hiện tại; review hiện theo quy ước nhóm. Có mẫu Dependabot, nhưng PR nâng phiên bản tự động tạm tắt (giới hạn 0), nhóm có thể bật sau khi bắt đầu tích hợp.

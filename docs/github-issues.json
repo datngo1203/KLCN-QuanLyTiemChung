@@ -1,0 +1,80 @@
+[
+  {
+    "number": 1,
+    "owner": "Đạt",
+    "code": "F01",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/1"
+  },
+  {
+    "number": 2,
+    "owner": "Bảo",
+    "code": "B01",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/2"
+  },
+  {
+    "number": 3,
+    "owner": "Bảo",
+    "code": "B02",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/3"
+  },
+  {
+    "number": 4,
+    "owner": "Bảo",
+    "code": "B03",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/4"
+  },
+  {
+    "number": 5,
+    "owner": "Đạt",
+    "code": "D01",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/5"
+  },
+  {
+    "number": 6,
+    "owner": "Đạt",
+    "code": "D02",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/6"
+  },
+  {
+    "number": 7,
+    "owner": "Đạt",
+    "code": "D03",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/7"
+  },
+  {
+    "number": 8,
+    "owner": "Quý",
+    "code": "Q01",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/8"
+  },
+  {
+    "number": 9,
+    "owner": "Quý",
+    "code": "Q02",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/9"
+  },
+  {
+    "number": 10,
+    "owner": "Quý",
+    "code": "Q03",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/10"
+  },
+  {
+    "number": 11,
+    "owner": "Bảo",
+    "code": "B04",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/11"
+  },
+  {
+    "number": 12,
+    "owner": "Đạt",
+    "code": "D04",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/12"
+  },
+  {
+    "number": 13,
+    "owner": "Cả nhóm",
+    "code": "T01",
+    "url": "https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/13"
+  }
+]

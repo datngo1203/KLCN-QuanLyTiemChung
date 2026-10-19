@@ -29,3 +29,7 @@ git push -u origin feature/bao-registration
 ```
 
 GitHub Issues là nguồn việc; docs/backlog.md là bản nhóm chức năng. Chưa đặt deadline giả hoặc xem phân công này là đã được các thành viên xác nhận. Repo không tự gửi tin nhắn hoặc mời ai khi thiếu username.
+
+## Trạng thái bảo vệ nhánh
+
+Đã thử bật yêu cầu review và các kiểm tra CI cho main/develop ngày 19/10/2026. GitHub trả 403 vì gói tài khoản hiện tại không hỗ trợ branch protection cho repository private. Repo được giữ private; quy tắc review phía trên là thỏa thuận nhóm, chưa được GitHub cưỡng chế. Không tự chuyển repo public để mở tính năng này.
