@@ -1,4 +1,4 @@
-# Chỉ dùng username đã được xác minh. Bổ sung Bảo/Quý khi có username và quyền repo.
+# Bảo/Quý đã có username; thêm CODEOWNERS sau khi họ được cấp quyền ghi.
 /contracts/ @datngo1203
 /database/ @datngo1203
 /backend/src/TiemChung.Contracts/ @datngo1203

@@ -1,14 +1,14 @@
 # Phân công khởi tạo và Git
 
-| Thành viên | Sở hữu chính | Backend theo nghiệp vụ | Review chéo |
-|---|---|---|---|
-| Bảo — Diệp Nguyễn Gia Bảo | apps/web; hồ sơ/đăng ký/thu ngân/ưu đãi ở Windows khi nối module | Customers, Recipients, Registrations, Payments, Promotions | Quý review web/luồng khách hàng; Đạt review tiền/quyền/schema |
-| Quý — Nguyễn Ngọc Quý | apps/mobile; lịch/nhắc/lịch sử/theo dõi ở Windows khi nối module | Appointments, Reminders, History, Aftercare | Bảo review mobile/luồng khách hàng; Đạt review dữ liệu y tế/quyền |
-| Đạt — Ngô Thành Đạt | apps/windows; nền API/DB/CI | Catalog, Inventory, Clinical, Identity, Reports | Bảo hoặc Quý review contract/schema; Quý review ghi nhận tiêm/lịch sử |
+| Thành viên | GitHub | Sở hữu chính | Backend theo nghiệp vụ | Review chéo |
+|---|---|---|---|---|
+| Bảo — Diệp Nguyễn Gia Bảo | `giabao9373` | apps/web; hồ sơ/đăng ký/thu ngân/ưu đãi ở Windows khi nối module | Customers, Recipients, Registrations, Payments, Promotions | Quý review web/luồng khách hàng; Đạt review tiền/quyền/schema |
+| Quý — Nguyễn Ngọc Quý | `ngocquydev` | apps/mobile; lịch/nhắc/lịch sử/theo dõi ở Windows khi nối module | Appointments, Reminders, History, Aftercare | Bảo review mobile/luồng khách hàng; Đạt review dữ liệu y tế/quyền |
+| Đạt — Ngô Thành Đạt | `datngo1203` | apps/windows; nền API/DB/CI | Catalog, Inventory, Clinical, Identity, Reports | Bảo hoặc Quý review contract/schema; Quý review ghi nhận tiêm/lịch sử |
 
 Đạt là đầu mối tích hợp, không có nghĩa Đạt phải viết toàn bộ backend/Windows. Bảo/Quý thực hiện API và Windows module tương ứng; thống nhất vùng màn hình trước khi chỉnh cùng một file code-behind. Chia issue theo chức năng có đầu vào, kết quả và cách kiểm chứng rõ ràng.
 
-Username chủ repo đã xác minh: `datngo1203` (Đạt). Username Bảo/Quý chưa có, nên chưa mời cộng tác hoặc gán assignee bằng cách đoán. Tên người phụ trách được ghi ngay trong issue; bổ sung GitHub Settings → Collaborators khi có username. CODEOWNERS tạm chỉ đặt reviewer cho các phần dùng chung, không gán nhầm người cho từng ứng dụng.
+Các username do nhóm cung cấp: `giabao9373` (Bảo), `ngocquydev` (Quý), `datngo1203` (Đạt). GitHub hiện trả quyền đọc cho Bảo và Quý; việc gán issue yêu cầu quyền phù hợp nên các issue của hai bạn chưa có assignee. Chỉ chủ repo có thể nâng quyền trong Settings → Collaborators; sau khi quyền được cập nhật, gán Bảo vào #2–#4 và #11, Quý vào #8–#10. CODEOWNERS chưa gắn hai bạn vì GitHub yêu cầu quyền ghi để thực thi yêu cầu review.
 
 ## Nhánh và review
 
@@ -32,4 +32,4 @@ GitHub Issues là nguồn việc; docs/backlog.md là bản nhóm chức năng. 
 
 ## Trạng thái bảo vệ nhánh
 
-Đã thử bật yêu cầu review và các kiểm tra CI cho main/develop ngày 19/10/2026. GitHub trả 403 vì gói tài khoản hiện tại không hỗ trợ branch protection cho repository private. Repo được giữ private; quy tắc review phía trên là thỏa thuận nhóm, chưa được GitHub cưỡng chế. Không tự chuyển repo public để mở tính năng này.
+Ngày 19/10/2026, đã thử bật yêu cầu review và kiểm tra CI khi repo còn private; GitHub trả 403 do giới hạn gói tài khoản. Repo đã được chủ repo chuyển sang public ngày 20/10/2026 theo yêu cầu. Chưa kiểm tra lại branch protection sau khi đổi visibility; hiện không tuyên bố nhánh đã được bảo vệ. Quy tắc review phía trên là thỏa thuận nhóm cho tới khi xác minh cấu hình trên GitHub.

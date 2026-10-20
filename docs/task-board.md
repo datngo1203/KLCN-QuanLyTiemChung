@@ -1,6 +1,6 @@
 # Bảng công việc GitHub
 
-Mỗi issue có phạm vi, điều kiện hoàn tất, nhãn người phụ trách và milestone. Username Bảo/Quý chưa có nên nhãn owner ghi phân công; chưa gán nhầm assignee.
+Mỗi issue có phạm vi, điều kiện hoàn tất, nhãn người phụ trách và milestone. Username: Bảo `giabao9373`, Quý `ngocquydev`, Đạt `datngo1203`. GitHub chưa cho gán Bảo/Quý làm assignee do quyền hiện tại; issue vẫn có nhãn owner và người phụ trách trong nội dung.
 
 | Mã | Người phụ trách | Issue |
 |---|---|---|

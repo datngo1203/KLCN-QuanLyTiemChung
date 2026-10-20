@@ -15,6 +15,6 @@ Windows/Website vẫn dùng state cho form nghiệp vụ; login admin/123 trên 
 
 Chưa kiểm chứng: chạy migration/transaction trên SQL Server, Docker Compose runtime (cấu hình đã validate, Docker daemon chưa chạy), chạy Android trên thiết bị, build/ký iOS trên macOS, review giao diện đầy đủ và kiểm thử quyền. CI có bước build Android debug; kết quả nằm ở các liên kết phía trên.
 
-Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Đã biết GitHub Đạt; chưa có username Bảo/Quý để mời/gán assignee. Thông tin tiến độ nằm ở tài liệu mới này; `ui-checklist-inherited.md` phản ánh lịch sử đợt UI cũ.
+Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Username nhóm đã cung cấp: Đạt `datngo1203`, Bảo `giabao9373`, Quý `ngocquydev`. GitHub hiện chỉ trả quyền đọc cho Bảo/Quý; thử gán issue chưa được lưu do tài khoản không đủ quyền assignee. Chưa tự thay đổi mức quyền cộng tác. Thông tin tiến độ nằm ở tài liệu mới này; `ui-checklist-inherited.md` phản ánh lịch sử đợt UI cũ.
 
-Đã tạo 13 issue và 3 milestone; liên kết ở [bảng công việc](task-board.md). Theo yêu cầu, username sẽ bổ sung sau. GitHub không hỗ trợ bảo vệ nhánh cho repo private với gói hiện tại; review hiện theo quy ước nhóm. Có mẫu Dependabot, nhưng PR nâng phiên bản tự động tạm tắt (giới hạn 0), nhóm có thể bật sau khi bắt đầu tích hợp.
+Đã tạo 13 issue và 3 milestone; liên kết ở [bảng công việc](task-board.md). Repo hiện public theo yêu cầu ngày 20/10/2026. Branch protection chưa được kiểm tra lại sau khi repo chuyển public; xem [phân công](team.md). Có mẫu Dependabot, nhưng PR nâng phiên bản tự động tạm tắt (giới hạn 0), nhóm có thể bật sau khi bắt đầu tích hợp.
