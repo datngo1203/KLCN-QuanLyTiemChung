@@ -5,9 +5,9 @@ import 'package:tiem_chung_mobile/core/api_client.dart';
 
 class FakeCatalog implements CatalogRepository {
   @override
-  Future<List<Vaccine>> getVaccines() async => [
-    const Vaccine(id: 1, name: 'Vắc xin mẫu A', price: 450000),
-  ];
+  Future<List<Vaccine>> getVaccines({String? search}) async => [
+        const Vaccine(id: 1, name: 'Vắc xin mẫu A', price: 450000),
+      ];
 }
 
 void main() {

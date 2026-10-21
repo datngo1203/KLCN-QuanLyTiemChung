@@ -1,39 +1,45 @@
 import 'package:flutter/material.dart';
 
-import 'core/api_client.dart';
-import 'features/catalog/catalog_page.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/app_theme.dart';
+import 'features/catalog/data/repositories/catalog_repository_impl.dart';
+import 'features/catalog/domain/repositories/catalog_repository.dart';
+import 'features/catalog/presentation/screens/catalog_screen.dart';
+import 'features/profile/presentation/screens/profile_screen.dart';
+import 'features/schedule/presentation/screens/schedule_screen.dart';
 
 class TiemChungApp extends StatelessWidget {
   const TiemChungApp({super.key, this.repository});
+
   final CatalogRepository? repository;
+
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Tiêm chủng',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff2563eb)),
-      scaffoldBackgroundColor: const Color(0xfff8f9ff),
-    ),
-    home: HomePage(repository: repository),
-  );
+        title: 'Trung tâm Tiêm chủng',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: HomePage(repository: repository),
+      );
 }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, this.repository});
+
   final CatalogRepository? repository;
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
-  ApiClient? _ownedClient;
+  CatalogRepositoryImpl? _ownedClient;
   late final CatalogRepository _repository;
+
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? (_ownedClient = ApiClient());
+    _repository = widget.repository ?? (_ownedClient = CatalogRepositoryImpl());
   }
 
   @override
@@ -43,66 +49,123 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Tiêm chủng')),
-    body: IndexedStack(
-      index: _index,
-      children: [
-        CatalogPage(repository: _repository),
-        const FeatureShell(
-          icon: Icons.calendar_month,
-          title: 'Lịch tiêm',
-          detail: 'Lịch hẹn sẽ có sau khi kết nối hồ sơ và đăng nhập.',
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primaryLight),
+              ),
+              child: const Icon(
+                Icons.local_hospital_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Trung tâm Tiêm chủng',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 11,
+                      color: AppColors.secondary,
+                    ),
+                    SizedBox(width: 2),
+                    Text(
+                      'Cơ sở 1 • TP. Hồ Chí Minh',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
-        const FeatureShell(
-          icon: Icons.person_outline,
-          title: 'Hồ sơ',
-          detail: 'Hồ sơ và đăng nhập đang được phát triển.',
-        ),
-      ],
-    ),
-    bottomNavigationBar: NavigationBar(
-      selectedIndex: _index,
-      onDestinationSelected: (value) => setState(() => _index = value),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.vaccines_outlined),
-          label: 'Danh mục',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.calendar_month_outlined),
-          label: 'Lịch tiêm',
-        ),
-        NavigationDestination(icon: Icon(Icons.person_outline), label: 'Hồ sơ'),
-      ],
-    ),
-  );
-}
-
-class FeatureShell extends StatelessWidget {
-  const FeatureShell({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
-  final IconData icon;
-  final String title;
-  final String detail;
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48),
-          const SizedBox(height: 16),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(detail, textAlign: TextAlign.center),
+        actions: [
+          IconButton(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_outlined, size: 24),
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Bạn có 1 thông báo nhắc lịch tiêm chủng sắp tới.'),
+                  backgroundColor: AppColors.primaryDark,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
         ],
       ),
-    ),
-  );
+      body: IndexedStack(
+        index: _index,
+        children: [
+          CatalogScreen(repository: _repository),
+          const ScheduleScreen(),
+          const ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (value) => setState(() => _index = value),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.vaccines_outlined),
+            selectedIcon: Icon(Icons.vaccines_rounded),
+            label: 'Danh mục',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Lịch tiêm',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Hồ sơ',
+          ),
+        ],
+      ),
+    );
+  }
 }
