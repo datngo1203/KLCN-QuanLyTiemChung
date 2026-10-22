@@ -9,7 +9,7 @@ public sealed class SampleAuthService : IAuthService
     {
         await Task.Delay(350, cancellationToken);
         if (!UseSampleData)
-            return new(false, "", "Chưa có dịch vụ xác thực backend. Vui lòng thử lại sau.");
+            return new(false, "", "Chưa có dịch vụ xác thực. Vui lòng thử lại sau.");
         if (userName.Equals("invalid", StringComparison.OrdinalIgnoreCase))
             return new(false, "", "Tên đăng nhập hoặc mật khẩu không đúng.");
         if (userName.Equals("locked", StringComparison.OrdinalIgnoreCase))
@@ -17,6 +17,6 @@ public sealed class SampleAuthService : IAuthService
         if (userName.Equals("offline", StringComparison.OrdinalIgnoreCase))
             return new(false, "", "Không kết nối được dịch vụ xác thực. Kiểm tra mạng rồi thử lại.");
         // Sample-only: accept non-empty credentials so the shell can be previewed without a real identity API.
-        return new(true, userName, "Đăng nhập mẫu thành công. Backend chưa có xác thực.");
+        return new(true, userName, "Đăng nhập mẫu thành công. Chưa xác thực với máy chủ.");
     }
 }

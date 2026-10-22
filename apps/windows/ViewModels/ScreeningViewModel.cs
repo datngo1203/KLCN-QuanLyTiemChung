@@ -69,10 +69,13 @@ public sealed class ScreeningViewModel : ViewModelBase
 
     // TODO: Bind the reviewed clinical permission from the authenticated shell session.
     public bool CanSaveScreening => true;
+    // Explicit clinician checkbox; text matches only suggest a review and never set this flag.
     public bool IsDangerousAllergy { get => _isDangerousAllergy; set { if (Set(ref _isDangerousAllergy, value)) { SafetyConfirmationStep = 0; RefreshValidation(); } } }
     public int SafetyConfirmationStep { get => _safetyConfirmationStep; private set { if (Set(ref _safetyConfirmationStep, value)) { OnPropertyChanged(nameof(SafetyConfirmationLabel)); ConfirmSafetyCommand.NotifyCanExecuteChanged(); RefreshValidation(); } } }
     public string SafetyConfirmationLabel => SafetyConfirmationStep == 0 ? "Xác nhận đã đọc cảnh báo" : "Xác nhận lần hai";
     public bool NeedsSafetyConfirmation => IsDangerousAllergy && SafetyConfirmationStep < 2;
+    public bool HasDangerousAllergySuggestion => DangerousAllergyKeywords.FindMatch(AllergyHistory) is not null;
+    public bool HasAllergySafetyAlert => IsDangerousAllergy || HasDangerousAllergySuggestion;
     public bool IsEligible => Conclusion == "Đủ điều kiện";
     public bool IsDeferred => Conclusion == "Tạm hoãn";
     public bool IsContraindicated => Conclusion == "Chống chỉ định";
@@ -119,9 +122,9 @@ public sealed class ScreeningViewModel : ViewModelBase
     public string IndicationsError => Conclusion == "Đủ điều kiện" && Indications.Count == 0
         ? "Cần ít nhất một chỉ định khi đủ điều kiện."
         : Conclusion == "Đủ điều kiện" && Indications.Any(x => x.Vaccine is null) ? "Chọn vắc xin cho mọi dòng chỉ định." : "";
-    public string AllergyAlertText => string.IsNullOrWhiteSpace(AllergyHistory)
-        ? "Tiền sử dị ứng chưa được nhập hoặc đánh giá. Không diễn giải ô trống là không dị ứng."
-        : "Đã khai báo tiền sử dị ứng. Bác sĩ cần đánh giá trước khi đưa ra kết luận.";
+    public string AllergyAlertText => IsDangerousAllergy
+        ? "Đã đánh dấu thủ công nguy cơ dị ứng; cần bác sĩ đánh giá trước khi đưa ra kết luận."
+        : $"Gợi ý từ khóa “{DangerousAllergyKeywords.FindMatch(AllergyHistory)}” cần bác sĩ đánh giá. Đây chỉ là gợi ý, không tự đổi kết luận.";
     public bool AreIndicationsEnabled => HasSelection && Conclusion == "Đủ điều kiện";
     public bool VitalsAreValid => PulseError.Length == 0 && SystolicError.Length == 0 && DiastolicError.Length == 0 && TemperatureError.Length == 0;
     public bool IsFormValid => HasSelection && VitalsAreValid && AllergyError.Length == 0 && ConclusionError.Length == 0 &&
@@ -133,7 +136,12 @@ public sealed class ScreeningViewModel : ViewModelBase
     private bool SetDraft(ref string field, string value, [CallerMemberName] string? propertyName = null)
     {
         if (!Set(ref field, value, propertyName)) return false;
-        if (propertyName == nameof(AllergyHistory)) SafetyConfirmationStep = 0;
+        if (propertyName == nameof(AllergyHistory))
+        {
+            SafetyConfirmationStep = 0;
+            OnPropertyChanged(nameof(HasDangerousAllergySuggestion));
+            OnPropertyChanged(nameof(HasAllergySafetyAlert));
+        }
         if (propertyName == nameof(Conclusion) && Conclusion != "Đủ điều kiện") Indications.Clear();
         IsDirty = true; DraftChanged();
         return true;
@@ -149,7 +157,7 @@ public sealed class ScreeningViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(PulseError)); OnPropertyChanged(nameof(SystolicError)); OnPropertyChanged(nameof(DiastolicError));
         OnPropertyChanged(nameof(TemperatureError)); OnPropertyChanged(nameof(TemperatureSuggestion)); OnPropertyChanged(nameof(AllergyError));
-        OnPropertyChanged(nameof(AllergyAlertText));
+        OnPropertyChanged(nameof(AllergyAlertText)); OnPropertyChanged(nameof(HasDangerousAllergySuggestion)); OnPropertyChanged(nameof(HasAllergySafetyAlert));
         OnPropertyChanged(nameof(ConclusionError)); OnPropertyChanged(nameof(DeferReasonError)); OnPropertyChanged(nameof(IndicationsError));
         OnPropertyChanged(nameof(AreIndicationsEnabled)); OnPropertyChanged(nameof(IsEligible)); OnPropertyChanged(nameof(IsDeferred)); OnPropertyChanged(nameof(IsContraindicated)); OnPropertyChanged(nameof(NeedsDeferReason)); OnPropertyChanged(nameof(NeedsSafetyConfirmation)); OnPropertyChanged(nameof(VitalsAreValid)); OnPropertyChanged(nameof(IsFormValid));
         OnPropertyChanged(nameof(CanSave)); OnPropertyChanged(nameof(ValidationSummary));

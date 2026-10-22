@@ -41,3 +41,13 @@ key.properties
 .DS_Store
 Thumbs.db
 artifacts/
+
+# UI review captures and local capture output
+docs/ui-review/
+.review/
+.capture/
+.tmp/
+
+# Keep PNG assets only under app Assets directories
+*.png
+!apps/**/Assets/**/*.png

@@ -14,6 +14,6 @@ public sealed class SampleChangePasswordService : IChangePasswordService
             return Task.FromResult(new ChangePasswordResult(false, "Mật khẩu hiện tại không chính xác."));
 
         return Task.FromResult(new ChangePasswordResult(true,
-            "Đã kiểm tra biểu mẫu mẫu. Backend chưa có xác thực hoặc đổi mật khẩu thật."));
+            "Đã kiểm tra biểu mẫu mẫu. Chưa có dịch vụ xác thực hoặc đổi mật khẩu thật."));
     }
 }

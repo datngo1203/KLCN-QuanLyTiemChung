@@ -1,5 +1,35 @@
 # Trạng thái khung — 19/10/2026
 
+## Kiểm kê UI Windows trước hoàn thiện — 2026-10-22
+
+| Màn | Hiện trạng / service mặc định | XAML |
+|---|---|---|
+| Login | Form đăng nhập; `SampleAuthService`, chưa xác thực API | `LoginWindow.xaml` |
+| A01 | Dashboard có lọc/ngày/chỉ số; `SampleDashboardService`, dữ liệu mẫu | `OverviewView.xaml` |
+| A02 | Form khám/validation/chỉ định; `SampleScreeningService`, chưa lưu API | `ScreeningView.xaml` |
+| A03 | Hồ sơ khách hàng/người tiêm, thao tác mẫu; `SampleProfilesService` | `ProfilesView.xaml` |
+| A04 | Danh mục/vắc xin/gói, thao tác mẫu; `SampleCatalogService` | `CatalogView.xaml` |
+| A05 | Lô/tồn/biến động, thao tác mẫu; `SampleInventoryService` | `InventoryView.xaml` |
+| A06 | Tiêm/theo dõi, dữ liệu mẫu; `SampleVaccinationService` | `VaccinationView.xaml` |
+| A07 | Đăng ký dịch vụ, thao tác mẫu; `SampleRegistrationService` | `RegistrationView.xaml` |
+| A08 | Thanh toán nhiều lần, thao tác mẫu; `SamplePaymentService` | `PaymentView.xaml` |
+| A09 | Lịch/nhắc, thao tác mẫu; `SampleAppointmentService` | `AppointmentView.xaml` |
+| A10 | Ưu đãi, thao tác mẫu; `SamplePromotionService` | `PromotionView.xaml` |
+| A11 | Báo cáo/xuất mô phỏng; `SampleReportService` | `ReportView.xaml` |
+| A12 | Nhân viên/tài khoản/quyền mẫu; `SampleAccountService` | `AccountView.xaml` |
+| A13 | Chưa có View/service; nút tài khoản chỉ hiện phản hồi | Chưa có |
+| A14 | Đổi mật khẩu mô phỏng; `SampleChangePasswordService` | `ChangePasswordView.xaml` |
+
+Lệch hiện trạng ghi nhận trước sửa: menu đang đưa A14 vào nhóm, A13 chưa là popover; A02 chưa có phát hiện từ khóa dị ứng nguy hiểm; một số nhãn kỹ thuật, hardcode màu/cỡ chữ và AutomationProperties cần rà theo yêu cầu lượt này. Clinical Neutral đã khớp bảng token màu Design Spec trong `Colors.xaml`; không cần đổi màu. Ngoại trừ health check của A01, các luồng nghiệp vụ Windows trên dùng dữ liệu/service mẫu, chưa ghi API thật.
+
+## Tích hợp UI Windows và lưu ảnh review — 2026-10-22
+
+- Nhánh `ui/windows-redesign` được tạo từ `origin/main`. Nội dung code của `ui/docs` (PR #18), `ui/themes` (#19), `ui/phase3` (#22), A03/A07/A08 (#23), sửa review phase3 (#24), A04/A05/A10 (#25), Login/A06/A09/A11/A12/A14 (#26) đã được tích hợp vào `main`; so sánh cây file không thấy code mới cần cherry-pick. Giữ nguyên bản Design Spec, Plan và status hiện có trên `main`.
+- Không đưa ảnh hoặc `REVIEW.md` từ review pack vào nhánh hợp nhất. Trước lượt gỡ, nhánh có 89 PNG theo dõi: 56 ảnh review, 9 sơ đồ, 23 icon ứng dụng và 1 ảnh web. Đã gỡ 56 ảnh review khỏi Git index; bản cục bộ vẫn còn trong `docs/ui-review/` (được ignore). Còn 33 PNG được theo dõi.
+- Bỏ qua `docs/ui-review/` và `.review/` trong Git; script `Capture-UiReview.ps1` mặc định lưu ảnh vào `.review/`.
+- Kiểm tra sau thay đổi: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore` thành công, 0 warning/0 error; `git diff --check` sạch. Script capture được kiểm tra cú pháp PowerShell, chưa chạy UI capture trong phiên này.
+- Gỡ 56 PNG review khỏi theo dõi theo duyệt; sửa ghi chú ảnh thành “ảnh lưu cục bộ” và rà liên kết ảnh trong `docs/*.md`, gồm link A02 cũ đã hỏng. Bản ảnh cục bộ được giữ nguyên.
+
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
@@ -124,4 +154,8 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 - **3.5:** kiểm tra mạch 40–200, nhiệt độ 35–42, tâm thu > tâm trương; thông báo lỗi cạnh trường. Không áp thêm giới hạn huyết áp ngoài quan hệ tâm thu > tâm trương được yêu cầu.
 - **3.6:** các trường bị giao diện cũ bỏ quên đã có vị trí nhập/hiển thị tương ứng. `MaNhanVien`, `MaPhieuKham`, ID catalog thật và timestamp vẫn chờ phiên/API; không cho người dùng nhập actor tùy ý.
 - Reuse các style `CE.*`; chỉ bổ sung `CE.Alert.Safety` trong `Themes/Cards.xaml`. Không sửa backend, contract, schema hoặc XAML `_Legacy/`.
-- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp [ảnh toàn màn hình A02](screenshots/a02-screen.png) ở trạng thái form Sample hợp lệ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp ảnh toàn màn hình A02 ở trạng thái form Sample hợp lệ; ảnh lưu cục bộ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+
+## Hoàn thiện Windows UI trên ui/windows-redesign — 2026-10-22
+
+- Clinical Neutral đã khớp token; menu ngang tại 1366 DIP, drawer dưới 1240 DIP; A13 được giữ làm popover tài khoản và A14 mở từ đó. A02 có 20/20 ô nhập/nút đặt tên trợ năng; harness STA ngoài repo đạt 4/4 kiểm tra validation và gợi ý dị ứng không tự đổi kết luận. Grep ViewsV2/Themes/Screens không còn các màu/cỡ chữ mục tiêu; `#66000000` chỉ còn trong token overlay cục bộ. Release build đạt 0 warning/0 error; backend đạt 11/11. Web lint/build và Flutter analyze/test chưa chạy được do thiếu oxlint, vite, flutter trong môi trường.
