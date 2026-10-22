@@ -130,4 +130,4 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 
 - Từ develop f188084, chỉ ignore/capture/quy trình bằng chứng; không mang UI hoặc commit tài liệu local vào nhánh này. Giữ 56 ảnh lịch sử cùng blob và link status cũ.
 - Parser PowerShell, hai lần ValidateOnly, kiểm ignore asset/capture và diff ảnh đạt; script ghi viewport/manifest mỗi run riêng, A13/A14 đi qua tài khoản. [Lệnh và giới hạn](status-pr27-capture.md).
-- Chưa chạy PrintWindow/UIA/Gallery hoặc DPI thực; không coi ValidateOnly là kiểm capture native. UI #29 có build/render riêng. Cần reviewer độc lập, giữ #27 và các PR thay thế Draft.
+- Script 9eefc68 + host UI c239041: PrintWindow/UIA 22 ảnh native đạt ở DPI 120 (125%), gồm A01–A14 và A02/A12/A13/A14 hẹp/rộng; manifest/ảnh đã commit. Chưa kiểm Gallery/Login capture, DPI 100/150%, bàn phím vật lý/multi-monitor. UI #29 có build/render riêng. Cần reviewer độc lập, giữ #27 và các PR thay thế Draft.

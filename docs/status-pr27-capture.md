@@ -12,6 +12,8 @@ Owner Windows/capture: Đạt; Bảo hoặc Quý review độc lập. Nhánh t�
 
 ## Kiểm tra
 
+Script `9eefc68`, host UI build từ `c239041`: capture native/UIA đạt cả 14 màn mặc định và A02/A12/A13/A14 ở hai kích thước bổ sung, tổng 22 ảnh. [Manifest mặc định](ui-review/pr27-capture/default/manifest.json), [hẹp](ui-review/pr27-capture/narrow/manifest.json), [rộng](ui-review/pr27-capture/wide/manifest.json) ghi SHA script/checkout và hash binary/ảnh. Host tạm dùng cùng App resources và ShellViewModel, mở thẳng shell mẫu, không chạy Login production. DPI cửa sổ thực là 120 (125%); default 1366×775 px, hẹp bị min-size thành 1225×775 px (980×620 DIP), rộng 1800×1000 px (1440×800 DIP). Đã xem ảnh native A13, A12 hẹp và A02 rộng; ảnh giữ nguyên viền native kể cả vùng đen frame, không crop. Chưa nghiệm thu toàn bộ checklist DPI 125%.
+
 PowerShell parser đạt; `-ValidateOnly` chạy hai lần tạo hai thư mục/manifest độc lập; kiểm `git check-ignore --no-index` chỉ capture local được ignore; `git diff --check` sạch. So sánh tree/blob ảnh lịch sử với develop không có thay đổi. Không sửa source app nên Windows build/54 checks của #29 không được quy thành QA script.
 
 Lệnh từ gốc repo (PowerShell 7):
@@ -24,4 +26,4 @@ Lệnh từ gốc repo (PowerShell 7):
 ./scripts/ui-capture/Capture-UiReview.ps1 -ScreenIds 12,13,14 -WidthPixels 980 -HeightPixels 620
 ```
 
-Chưa kiểm chứng capture native/PrintWindow, UI Automation điều hướng trên app đang chạy, Gallery host, DPI 100/125/150%, nhiều màn hình, mọi trạng thái lỗi/rỗng. A13/A14 cần UI #29; trên develop nền cũ có thể dừng với manifest failed, không báo hoàn tất. Reviewer cần chạy script trên binary build từ head UI đã ghi, kiểm ảnh không đen và đúng màn; parser/ValidateOnly không thay được các kiểm tra này.
+Chưa kiểm chứng Gallery host, Login capture, DPI 100/150%, nhiều màn hình, bàn phím vật lý, mọi trạng thái lỗi/rỗng hoặc cuộn trang. Capture viewport/UIA không thay kiểm thao tác y tế/ghi dữ liệu. A13/A14 cần UI #29; trên develop nền cũ có thể dừng với manifest failed, không báo hoàn tất. Reviewer chạy lại trên binary app build từ head UI đã ghi, kiểm đúng màn và phần cuộn; trạng thái form A02/A12 chi tiết nằm trong harness UI #29. Script fail nếu navigation chưa đóng tìm kiếm. Dùng -CurrentViewport -StateName A02-error để chụp fixture hiện tại mà không điều hướng hoặc sửa dữ liệu.
