@@ -203,11 +203,17 @@
         <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="30" Background="{StaticResource CE.Neutral.Background}"
               Visibility="{Binding IsProfileOpen, Converter={StaticResource BoolVisibility}}">
             <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0" Focusable="False" AutomationProperties.Name="Đóng menu tài khoản" />
-            <Border Style="{StaticResource CE.Card}" Width="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0">
+            <Border Style="{StaticResource CE.Card}" Width="330" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0"
+                    AutomationProperties.Name="Thông tin phiên" AutomationProperties.AutomationId="A13.SessionPopover">
                 <StackPanel>
-                    <TextBlock Text="{Binding CurrentUserDisplayName}" Style="{StaticResource CE.SectionHeading}" Margin="8,0,0,4" />
-                    <TextBlock Text="Phiên đăng nhập cục bộ" Style="{StaticResource CE.Caption}" Margin="8,0,0,12" />
-                    <Button Content="Thông tin phiên" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenProfileCommand}" />
+                    <TextBlock Text="Thông tin phiên" Style="{StaticResource CE.SectionHeading}" Margin="8,0,0,8" />
+                    <TextBlock Text="Tên" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding CurrentUserDisplayName}" Style="{StaticResource CE.Body}" Margin="8,0,0,8" />
+                    <TextBlock Text="Chức danh" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding Accounts.CurrentSessionJobTitle}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="8,0,0,8" />
+                    <TextBlock Text="Quyền trong phiên" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding Accounts.CurrentSessionPermissionDisplay}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="8,0,0,12" />
+                    <Border Style="{StaticResource CE.Badge.Sample}" HorizontalAlignment="Left" Margin="8,0,0,8"><TextBlock Text="{Binding Accounts.DataSourceLabel}"/></Border>
                     <Button Content="Đổi mật khẩu" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenPasswordCommand}" />
                     <Separator Margin="0,8" />
                     <Button Content="Đăng xuất" Style="{StaticResource CE.Button.Primary}" Command="{Binding SignOutCommand}" />
