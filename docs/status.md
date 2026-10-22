@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## Sửa góp ý review phase3 PR #22 — 2026-10-22
+
+- Nhánh `ui/phase3-review-fixes` xử lý 5 góp ý: bỏ khởi tạo kép `StartupUri`/shell; chuyển nguyên cột kết luận/chỉ định A02 khi thu hẹp; điều hướng nhóm đơn đến màn của nhóm; tải lại snapshot A01 (bảng, luồng, chỉ số) theo cùng khoảng ngày và đặt số liệu về 0 khi rỗng; bind nhãn nguồn A02.
+- Kiểm tra Release build 0 warning/error và harness WPF STA tạm ngoài repo cho 5 luồng đều PASS; ảnh A01/A02, lệnh và giới hạn tại [status riêng](status-phase3-review-fixes.md). Chưa kiểm tra đăng nhập thủ công, DPI/màn hình hoặc backend thật.
+
 ## Quy trình UI Windows và phân công tài liệu — 2026-10-22
 
 - Nhánh `ui/docs` bổ sung `docs/ui-workflow.md` làm tài liệu bắt buộc đầu phiên UI; Plan ghi Đạt làm toàn bộ UI Windows, Bảo/Quý phụ trách API module tương ứng. Design Spec bổ sung `SegmentedButton` và `Card clickable`; không sửa code, contract, schema hoặc tài liệu nguồn.

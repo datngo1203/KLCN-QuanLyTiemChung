@@ -24,7 +24,12 @@ public sealed class ShellViewModel : ViewModelBase
         Registration = new RegistrationViewModel();
         Payment = new PaymentViewModel();
         CurrentView = NavigationRegistry.CreatePage("A01", this);
-        SelectGroupCommand = new RelayCommand(p => { if (p is NavigationGroup group) { SelectedGroup = group; IsNavigationOpen = false; } });
+        SelectGroupCommand = new RelayCommand(p =>
+        {
+            if (p is not NavigationGroup group) return;
+            if (group.Screens.Count == 1) Navigate(group.Screens[0].Id);
+            else { SelectedGroup = group; IsNavigationOpen = false; }
+        });
         NavigateCommand = new RelayCommand(p => { if (p is NavigationItem item) Navigate(item.Id); });
         ToggleNavigationCommand = new RelayCommand(_ => { IsNavigationOpen = !IsNavigationOpen; IsSearchOpen = false; IsProfileOpen = false; });
         ToggleSearchCommand = new RelayCommand(_ => { IsSearchOpen = !IsSearchOpen; IsNavigationOpen = false; IsProfileOpen = false; });

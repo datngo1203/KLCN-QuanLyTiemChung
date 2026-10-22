@@ -12,7 +12,7 @@
                 <TextBlock Text="CHUYÊN MÔN / A02" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Primary}" />
                 <TextBlock Text="Khám sàng lọc &amp; chỉ định" Style="{StaticResource CE.Heading}" Margin="0,4" />
                 <TextBlock Text="Bàn khám theo lượt và ghi nhận chỉ định" Style="{StaticResource CE.Caption}" />
-                <Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left" Margin="0,8,0,0"><TextBlock Text="Dữ liệu mẫu" /></Border>
+                <Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left" Margin="0,8,0,0"><TextBlock Text="{Binding DataSourceLabel}" /></Border>
             </StackPanel>
             <Grid x:Name="Workspace">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="320" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -99,7 +99,7 @@
                                     <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding DoctorNote, UpdateSourceTrigger=PropertyChanged}" Height="64" AutomationProperties.Name="Ghi chú bác sĩ" />
                                 </StackPanel>
                             </Border>
-                                                        <StackPanel Grid.Column="2">
+                                                        <StackPanel x:Name="ClinicalPanel" Grid.Column="2">
                                 <Border Style="{StaticResource CE.Card}" Margin="0,0,0,16"><StackPanel>
                                     <TextBlock Text="Kết luận" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
                                     <UniformGrid Columns="3">

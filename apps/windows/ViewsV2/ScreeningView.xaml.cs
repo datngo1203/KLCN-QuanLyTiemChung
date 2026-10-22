@@ -18,8 +18,9 @@ public partial class ScreeningView : UserControl
         DetailPanel.Margin = compact ? new Thickness(0, 16, 0, 0) : new Thickness(0);
         ClinicalColumns.ColumnDefinitions[1].Width = compact ? new GridLength(0) : new GridLength(16);
         ClinicalColumns.ColumnDefinitions[2].Width = compact ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        IndicationCard.SetValue(Grid.ColumnProperty, compact ? 0 : 2);
-        IndicationCard.SetValue(Grid.RowProperty, compact ? 1 : 0);
-        IndicationCard.Margin = compact ? new Thickness(0, 16, 0, 0) : new Thickness(0);
+        ClinicalPanel.SetValue(Grid.ColumnProperty, compact ? 0 : 2);
+        ClinicalPanel.SetValue(Grid.RowProperty, compact ? 1 : 0);
+        ClinicalPanel.SetValue(Grid.ColumnSpanProperty, compact ? 3 : 1);
+        ClinicalPanel.Margin = compact ? new Thickness(0, 16, 0, 0) : new Thickness(0);
     }
 }

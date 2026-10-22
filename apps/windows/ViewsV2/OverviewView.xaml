@@ -151,6 +151,7 @@
                     <Border Style="{StaticResource CE.Card}">
                         <StackPanel>
                             <TextBlock Text="Tóm tắt hoạt động" Style="{StaticResource CE.SectionHeading}" />
+                            <TextBlock Text="Khoảng ngày này chưa có dữ liệu; các chỉ số đang bằng 0." Style="{StaticResource CE.Caption}" Margin="0,6,0,12" Visibility="{Binding HasNoPeriodData, Converter={StaticResource BoolVisibility}}" TextWrapping="Wrap" />
 
                             <ItemsControl ItemsSource="{Binding Metrics}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate><DataTemplate>
