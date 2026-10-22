@@ -8,6 +8,8 @@ param(
     [ValidateRange(480,4320)][int]$HeightPixels = 768,
     [switch]$IncludeLogin,
     [switch]$CaptureGallery,
+    [switch]$CurrentViewport,
+    [ValidatePattern('^[a-zA-Z0-9_-]+$')][string]$StateName = 'current-state',
     [switch]$ValidateOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -43,11 +45,15 @@ using System;
 using System.Runtime.InteropServices;
 public static class UiReviewNative {
  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left,Top,Right,Bottom; }
+ [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X,Y; }
  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h,out RECT r);
  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int w,int hgt,uint flags);
  [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
  [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr value);
+ [DllImport("user32.dll")] public static extern bool ScreenToClient(IntPtr h,ref POINT p);
+ [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h,uint msg,IntPtr w,IntPtr l);
+ [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
 }
 '@
     }
@@ -105,6 +111,7 @@ public static class UiReviewNative {
     [void][UiReviewNative]::GetWindowRect($windowHandle,[ref]$rect)
     if (-not [UiReviewNative]::SetWindowPos($windowHandle,[IntPtr]::Zero,$rect.Left,$rect.Top,$WidthPixels,$HeightPixels,0x0014)) { throw 'Không đổi được kích thước cửa sổ.' }
     Start-Sleep -Milliseconds 400
+    if ($CurrentViewport) { Save-Viewport $StateName; $manifest.status='completed'; return }
     if ($CaptureGallery) {
         if ($process.MainWindowTitle -notmatch 'Gallery|Thư viện') { throw 'Cần mở Gallery bằng host WPF riêng, rồi truyền -TargetProcessId.' }
         Save-Viewport 'Gallery-current-viewport'; $manifest.status='completed'; return
@@ -127,23 +134,39 @@ public static class UiReviewNative {
         } else {
             $screen = $screens[$id]
             # The function search avoids drawer scrolling and hidden duplicate button names.
-            Invoke-Button 'Tìm chức năng'
             $condition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'Tên hoặc mã chức năng')
             $search = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+            if (-not $search -or $search.Current.IsOffscreen) {
+                Invoke-Button 'Tìm chức năng'
+                $search = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+            }
             if (-not $search) { throw 'Không tìm được ô tìm chức năng.' }
             ([System.Windows.Automation.ValuePattern]$search.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)).SetValue(('A{0:00}' -f $id))
             Start-Sleep -Milliseconds 200
-            # Locate the exact screen ID text inside a search result, then its button ancestor.
-            $idCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,('A{0:00}' -f $id))
-            $idText = @($root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$idCondition)) |
-                Where-Object { -not $_.Current.IsOffscreen } | Select-Object -First 1
-            $match = $idText
-            for ($level=0; $match -and $match.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button -and $level -lt 8; $level++) {
-                $match = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($match)
+            # Companion UI names result buttons with the screen code for stable accessibility.
+            $match = Find-Button ('A{0:00}' -f $id)
+            if ($match) {
+                ([System.Windows.Automation.InvokePattern]$match.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+            } else {
+                # WPF ItemsControl can expose only the item peer, hiding its templated button.
+                # Use the single filtered result's observed rectangle, never guessed coordinates.
+                $items = @($root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                    [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::DataItem))) |
+                    Where-Object { -not $_.Current.IsOffscreen -and $_.Current.Name -like ('NavigationItem {{ Id = A{0:00},*' -f $id) }
+                if (@($items).Count -ne 1) { throw "Không tìm được duy nhất kết quả A$id." }
+                $bounds = $items[0].Current.BoundingRectangle
+                if ($bounds.Width -le 0 -or $bounds.Height -le 0) { throw 'Kết quả không có vùng click.' }
+                $point = [UiReviewNative+POINT]::new()
+                $point.X=[int]($bounds.X+$bounds.Width/2); $point.Y=[int]($bounds.Y+$bounds.Height/2)
+                [void][UiReviewNative]::SetCursorPos($point.X,$point.Y)
+                if (-not [UiReviewNative]::ScreenToClient($windowHandle,[ref]$point)) { throw 'ScreenToClient thất bại.' }
+                $packed=[IntPtr]([int64](($point.Y -band 0xffff) -shl 16) -bor ($point.X -band 0xffff))
+                [void][UiReviewNative]::SendMessage($windowHandle,0x0200,[IntPtr]::Zero,$packed)
+                [void][UiReviewNative]::SendMessage($windowHandle,0x0201,[IntPtr]1,$packed)
+                [void][UiReviewNative]::SendMessage($windowHandle,0x0202,[IntPtr]::Zero,$packed)
             }
-            if (-not $match -or $match.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button) { throw "Không tìm được kết quả A$id." }
-            ([System.Windows.Automation.InvokePattern]$match.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
             Start-Sleep -Milliseconds 300
+            if (-not $search.Current.IsOffscreen) { throw "Điều hướng A$id chưa đóng tìm kiếm; không chụp nhầm màn." }
         }
         Save-Viewport ('A{0:00}-current-viewport' -f $id)
         if ($id -eq 13) { Invoke-Button 'Đóng menu tài khoản' }
