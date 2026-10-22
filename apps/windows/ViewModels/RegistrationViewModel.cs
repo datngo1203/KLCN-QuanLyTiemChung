@@ -30,7 +30,7 @@ public sealed class RegistrationViewModel : ViewModelBase
     public ObservableCollection<RegistrationRecord> Registrations { get; }
     public ObservableCollection<RegistrationLine> Lines { get; }
     public IReadOnlyList<string> InjectionTypes { get; } = ["Tại trung tâm", "Tại nhà"];
-    public IReadOnlyList<string> Promotions { get; } = ["Không áp dụng", "Mã ưu đãi mẫu — chờ tính từ API"];
+    public IReadOnlyList<string> Promotions { get; } = ["Không áp dụng", "Mã ưu đãi mẫu — chờ dịch vụ xác định"];
     public RelayCommand AddLineCommand { get; }
     public RelayCommand RemoveLineCommand { get; }
     public RelayCommand ThemVaoHangDoiCommand { get; }
@@ -83,7 +83,7 @@ public sealed class RegistrationViewModel : ViewModelBase
         {
             TimeSpan.TryParseExact(TimeText, @"hh\:mm", CultureInfo.InvariantCulture, out var time);
             var record = _service.SaveRegistration(new(0, Customer!.Id, Recipient!.Id, Customer.Name, Recipient.Name, InjectionType, PlannedDate!.Value.Date.Add(time), Lines.ToArray(), Promotion == "Không áp dụng" ? null : Promotion, Subtotal, "Chờ khám"));
-            Registrations.Add(record); Lines.Clear(); Feedback = $"Đã tạo {record.Code} trên dữ liệu mẫu; chưa ghi API.";
+            Registrations.Add(record); Lines.Clear(); Feedback = $"Đã tạo {record.Code} trên dữ liệu mẫu; chưa ghi lên máy chủ.";
         }
         catch (Exception e) { Feedback = e.Message; }
         finally { _isSaving = false; Refresh(); }

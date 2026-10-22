@@ -8,9 +8,11 @@
         Width="1440" Height="900" MinWidth="980" MinHeight="620"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
         Background="{StaticResource CE.Canvas}" FontFamily="{StaticResource CE.FontFamily}"
-        Foreground="{StaticResource CE.Text}" FontSize="14"
+        Foreground="{StaticResource CE.Text}" Style="{DynamicResource CE.Screen.MainWindowText}"
         Language="vi-VN" UseLayoutRounding="True" SizeChanged="Window_SizeChanged" Closed="Window_Closed">
     <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/ScreenTokens.xaml"/></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolVisibility" />
         <Style x:Key="GroupButton" TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
             <Setter Property="Margin" Value="4,0" />
@@ -21,6 +23,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Key="K" Modifiers="Control" Command="{Binding ToggleSearchCommand}" />
@@ -43,7 +46,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
                     <Border Style="{StaticResource CE.Badge.Neutral}" Margin="0,0,12,0">
-                        <ui:SymbolIcon Symbol="HeartPulse24" FontSize="24" />
+                        <ui:SymbolIcon Symbol="HeartPulse24" Style="{StaticResource CE.Screen.MainWindowIcon}" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="TIÊM CHỦNG" FontWeight="Bold" Foreground="{StaticResource CE.Text}" />
@@ -140,8 +143,12 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,0,0,20">
-                                        <TextBlock Text="{Binding Title}" Style="{StaticResource CE.Caption}" Margin="8,0,0,8" />
-                                        <ItemsControl ItemsSource="{Binding Screens}">
+                                        <TextBlock x:Name="GroupHeading" Text="{Binding Title}" Style="{StaticResource CE.Caption}" Margin="8,0,0,8" />
+                                        <Button x:Name="SingleGroupButton" Content="{Binding Title}" Style="{StaticResource CE.Button.Secondary}" Margin="0,2"
+                                                HorizontalContentAlignment="Left" Visibility="Collapsed"
+                                                Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding SingleScreen}" />
+                                        <ItemsControl x:Name="GroupItems" ItemsSource="{Binding Screens}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Button Content="{Binding Title}" Style="{StaticResource CE.Button.Secondary}" Margin="0,2"
@@ -151,6 +158,13 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Screens.Count}" Value="1">
+                                        <Setter TargetName="GroupHeading" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="GroupItems" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="SingleGroupButton" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -189,11 +203,17 @@
         <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="30" Background="{StaticResource CE.Neutral.Background}"
               Visibility="{Binding IsProfileOpen, Converter={StaticResource BoolVisibility}}">
             <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0" Focusable="False" AutomationProperties.Name="Đóng menu tài khoản" />
-            <Border Style="{StaticResource CE.Card}" Width="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0">
+            <Border Style="{StaticResource CE.Card}" Width="330" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0"
+                    AutomationProperties.Name="Thông tin phiên" AutomationProperties.AutomationId="A13.SessionPopover">
                 <StackPanel>
-                    <TextBlock Text="{Binding CurrentUserDisplayName}" Style="{StaticResource CE.SectionHeading}" Margin="8,0,0,4" />
-                    <TextBlock Text="Phiên đăng nhập cục bộ" Style="{StaticResource CE.Caption}" Margin="8,0,0,12" />
-                    <Button Content="Thông tin phiên" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenProfileCommand}" />
+                    <TextBlock Text="Thông tin phiên" Style="{StaticResource CE.SectionHeading}" Margin="8,0,0,8" />
+                    <TextBlock Text="Tên" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding CurrentUserDisplayName}" Style="{StaticResource CE.Body}" Margin="8,0,0,8" />
+                    <TextBlock Text="Chức danh" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding Accounts.CurrentSessionJobTitle}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="8,0,0,8" />
+                    <TextBlock Text="Quyền trong phiên" Style="{StaticResource CE.Caption}" Margin="8,0,0,2" />
+                    <TextBlock Text="{Binding Accounts.CurrentSessionPermissionDisplay}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="8,0,0,12" />
+                    <Border Style="{StaticResource CE.Badge.Sample}" HorizontalAlignment="Left" Margin="8,0,0,8"><TextBlock Text="{Binding Accounts.DataSourceLabel}"/></Border>
                     <Button Content="Đổi mật khẩu" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenPasswordCommand}" />
                     <Separator Margin="0,8" />
                     <Button Content="Đăng xuất" Style="{StaticResource CE.Button.Primary}" Command="{Binding SignOutCommand}" />

@@ -82,7 +82,7 @@ public sealed class ReportViewModel : ViewModelBase
     private void Export(string format)
     {
         if (!CanExport) return;
-        Feedback = $"Xuất {format} là giao diện mẫu; TODO nối chức năng xuất file thật.";
+        Feedback = $"Xuất {format} chưa được kết nối; chưa tạo tệp.";
     }
 
     private void ClearSnapshot()

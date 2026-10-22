@@ -4,7 +4,10 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              x:Name="Overview" Language="vi-VN" SizeChanged="View_SizeChanged">
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/ScreenTokens.xaml"/></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        </ResourceDictionary>
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,24">
         <StackPanel>
@@ -109,7 +112,7 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Giờ" Binding="{Binding TimeLabel}" Width="65" />
                                     <DataGridTemplateColumn Header="Người được tiêm" Width="*" MinWidth="170">
-                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding RecipientName}" TextWrapping="Wrap" /><TextBlock Text="{Binding Id}" FontSize="11" Foreground="{StaticResource CE.SecondaryText}" Margin="0,4,0,0" /></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding RecipientName}" TextWrapping="Wrap" /><TextBlock Text="{Binding Id}" Style="{StaticResource CE.Screen.OverviewId}" Foreground="{StaticResource CE.SecondaryText}" Margin="0,4,0,0" /></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Nội dung" Binding="{Binding Description}" Width="150" />
                                     <DataGridTemplateColumn Header="Trạng thái" Width="145"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left"><TextBlock Text="{Binding Status}"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
@@ -124,7 +127,7 @@
                             <Border Background="{StaticResource CE.Surface}" Margin="1,42,1,1" Padding="20"
                                     Visibility="{Binding HasNoResults, Converter={StaticResource BoolVisibility}}">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Search24" Foreground="{StaticResource CE.SecondaryText}" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,12" />
+                                    <ui:SymbolIcon Symbol="Search24" Foreground="{StaticResource CE.SecondaryText}" Style="{StaticResource CE.Screen.OverviewEmptyIcon}" HorizontalAlignment="Center" Margin="0,0,0,12" />
                                     <TextBlock Text="Không có kết quả phù hợp" Style="{StaticResource CE.SectionHeading}" TextAlignment="Center" />
                                     <TextBlock Text="Thử đổi khoảng ngày hoặc xóa bộ lọc." Style="{StaticResource CE.Caption}" TextAlignment="Center" Margin="0,8,0,0" />
                                 </StackPanel>
@@ -180,7 +183,7 @@
                             </Style>
                         </Border.Style>
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối API" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối dịch vụ" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
                             <TextBlock Text="{Binding ApiStatus}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding ApiCheckedAt}" Style="{StaticResource CE.Caption}" Margin="0,6,0,12" />
                             <Button Content="Kiểm tra kết nối" Command="{Binding CheckApiCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" />
