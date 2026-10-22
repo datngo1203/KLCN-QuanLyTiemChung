@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > Tài liệu này là kế hoạch triển khai; dữ liệu/hành vi đối chiếu [Screen Spec](desktop-screen-specs.md), màu và style đối chiếu [Design Spec](design/design-spec-clinical-emerald.md), tiến độ đối chiếu [status.md](status.md).
-> Khi context bị compact hoặc bắt đầu phiên mới, đọc file này trước để khôi phục toàn bộ ngữ cảnh.
+> Khi context bị compact hoặc bắt đầu phiên mới, đọc file này và [quy trình UI](ui-workflow.md) trước khi tiếp tục.
 
 ## Mục tiêu
 
@@ -141,22 +141,22 @@ Menu rộng gồm cấp 1 là nhóm ngang, cấp 2 là màn trong nhóm; dưới
 
 Login nằm ngoài menu. A13 Thông tin phiên và A14 Đổi mật khẩu nằm trong menu tài khoản (hiện chỉ phản hồi UI); không phải mục nhóm. Hiện A01 và A02 mở View mới; các mục khác chưa triển khai và chỉ trả phản hồi, không chuyển về giao diện cũ.
 
-| Mã | Tên | Owner module | Mức ưu tiên | Ghi chú |
+| Mã | Tên | Owner (Backend / UI Windows) | Mức ưu tiên | Ghi chú |
 |---|---|---|---|---|
-| Login | Đăng nhập | Đạt (F01) | **P0** | Sẽ nối API Login thật sau |
-| A01 | Tổng quan / Dashboard | Đạt | P0 | KPI cards, bộ lọc Từ ngày/Đến ngày, lịch hẹn và trạng thái xử lý |
-| A02 | Khám sàng lọc & Chỉ định | Đạt (D03) | **P0** | Hàng đợi, form khám, quyết định chỉ định/hoãn |
-| A03 | Khách hàng & Người được tiêm | Bảo (B01) | P0 | Tabs KH/Người tiêm, CRUD, tìm kiếm |
-| A04 | Danh mục tiêm chủng | Đạt (D01) | **P0** | Tabs Loại tiêm/Vắc xin/Gói, CRUD |
-| A05 | Kho & lô vắc xin | Đạt (D02) | **P0** | Bảng lô, nhập lô, biến động kho |
-| A06 | Thực hiện tiêm chủng | Đạt (D03) | **P0** | Quy trình tiêm, ghi nhận mũi tiêm |
-| A07 | Đăng ký dịch vụ | Bảo (B02) | P0 | 5 bước tiếp nhận, danh sách đăng ký |
-| A08 | Thanh toán dịch vụ | Bảo (B03) | P0 | Phiếu thanh toán, đặt cọc/trả góp |
-| A09 | Lịch tiêm & Nhắc lịch | Quý (Q01) | P0 | Lịch hẹn trong ngày, gửi nhắc |
-| A10 | Khuyến mãi & Ưu đãi | Bảo (B04) | P1 | Chương trình, điều kiện |
-| A11 | Thống kê & Báo cáo | Đạt (D04) | P1 | Chỉ số, lọc thời gian, xuất báo cáo |
-| A12 | Tài khoản & Phân quyền | Đạt (F01) | **P0** | Tabs Nhân viên/Tài khoản/Quyền bổ sung; dropdown đúng một chức danh |
-| A14 | Đổi mật khẩu | Đạt (F01) | P1 | Form đổi mật khẩu |
+| Login | Đăng nhập | Backend: Đạt / UI Windows: Đạt (F01) | **P0** | Sẽ nối API Login thật sau |
+| A01 | Tổng quan / Dashboard | Backend: Đạt / UI Windows: Đạt | P0 | KPI cards, bộ lọc Từ ngày/Đến ngày, lịch hẹn và trạng thái xử lý |
+| A02 | Khám sàng lọc & Chỉ định | Backend: Đạt / UI Windows: Đạt (D03) | **P0** | Hàng đợi, form khám, quyết định chỉ định/hoãn |
+| A03 | Khách hàng & Người được tiêm | Backend: Bảo / UI Windows: Đạt (B01) | P0 | Tabs KH/Người tiêm, CRUD, tìm kiếm |
+| A04 | Danh mục tiêm chủng | Backend: Đạt / UI Windows: Đạt (D01) | **P0** | Tabs Loại tiêm/Vắc xin/Gói, CRUD |
+| A05 | Kho & lô vắc xin | Backend: Đạt / UI Windows: Đạt (D02) | **P0** | Bảng lô, nhập lô, biến động kho |
+| A06 | Thực hiện tiêm chủng | Backend: Đạt / UI Windows: Đạt (D03) | **P0** | Quy trình tiêm, ghi nhận mũi tiêm |
+| A07 | Đăng ký dịch vụ | Backend: Bảo / UI Windows: Đạt (B02) | P0 | 5 bước tiếp nhận, danh sách đăng ký |
+| A08 | Thanh toán dịch vụ | Backend: Bảo / UI Windows: Đạt (B03) | P0 | Phiếu thanh toán, đặt cọc/trả góp |
+| A09 | Lịch tiêm & Nhắc lịch | Backend: Quý / UI Windows: Đạt (Q01) | P0 | Lịch hẹn trong ngày, gửi nhắc |
+| A10 | Khuyến mãi & Ưu đãi | Backend: Bảo / UI Windows: Đạt (B04) | P1 | Chương trình, điều kiện |
+| A11 | Thống kê & Báo cáo | Backend: Đạt / UI Windows: Đạt (D04) | P1 | Chỉ số, lọc thời gian, xuất báo cáo |
+| A12 | Tài khoản & Phân quyền | Backend: Đạt / UI Windows: Đạt (F01) | **P0** | Tabs Nhân viên/Tài khoản/Quyền bổ sung; dropdown đúng một chức danh |
+| A14 | Đổi mật khẩu | Backend: Đạt / UI Windows: Đạt (F01) | P1 | Form đổi mật khẩu |
 
 > [!NOTE]
 > Screen Spec ghi A13 là Thông tin phiên hiện tại. Giữ yêu cầu chức năng này trong menu tài khoản; việc có trang riêng hay chỉ panel phiên cần chốt khi triển khai. Login vẫn là cửa sổ riêng.
@@ -244,7 +244,7 @@ A04 chỉ sửa nhóm trường của quyền hiệu lực: `BacSi` với `QuanL
 - [ ] **2.8** Build + chạy toàn bộ 7 trang Đạt sở hữu — kiểm tra navigation, layout, responsive
 - [ ] **2.9** Commit: `feat(windows): implement core pages (dashboard, catalog, inventory, screening, vaccination, accounts, reports)`
 
-### Phase 3: Các trang cho Bảo và Quý nối
+### Phase 3: Đạt dựng UI cho các module API của Bảo và Quý
 - [ ] **3.1** A03 Hồ sơ khách hàng — khách hàng/người tiêm; đối chiếu Screen Spec + kiểm tra trường hợp biên + chụp trạng thái lỗi.
 - [ ] **3.2** A07 Đăng ký dịch vụ — danh sách/form; đối chiếu Screen Spec + kiểm tra trường hợp biên + chụp trạng thái lỗi.
 - [ ] **3.3** A08 Thanh toán — danh sách phiếu/trạng thái; đối chiếu Screen Spec + kiểm tra trường hợp biên + chụp trạng thái lỗi.
@@ -295,3 +295,4 @@ Khi bắt đầu phiên mới hoặc sau `/compact`:
 | 2026-10-22 | Đối chiếu hiện trạng ViewsV2/ViewModels/Themes và menu ngang hai cấp; cập nhật tên menu, màu tương phản/cảnh báo/trạng thái/vô hiệu, Phase 4.5 và bước QA từng màn; nêu 5 vai trò lệch ChucDanh cùng 2 phương án chưa chọn. |
 | 2026-10-22 | Theo yêu cầu mới, giữ sáu ChucDanh và áp dụng bảng ánh xạ nhiệm vụ sang chức danh + quyền bổ sung; thay tab Vai trò bằng Quyền bổ sung. Liệt kê 11 mã quyền logic cần seed backend, phân biệt MaQuyen int; cấm Giám đốc quản lý tài khoản và không mặc định Admin toàn quyền. Rà Vai trò đủ 14 màn trong Screen Spec, thêm ma trận 14 × 6 đánh dấu mọi ô là đề xuất chờ duyệt. |
 | 2026-10-22 | Người dùng duyệt Phương án 1 và toàn bộ 78 ô ma trận 13 màn, bỏ Login công khai. Chốt chức danh là quyền mặc định, mã quyền là phần cấp thêm; admin kỹ thuật seed đủ quyền, Giám đốc không có QuanLyTaiKhoan. Bổ sung endpoint đọc hẹp A02/A06/A07/A08, thẻ chuyển hướng A01, ghi chú quyền thanh toán và API kiểm tra mọi endpoint ghi; Phase 1 thêm MainViewModel/ShellViewModel nhận chức danh + quyền và chỉ hiện menu được phép. Tách A04 theo QuanLyDanhMucChuyenMon/QuanLyDanhMucGia, cập nhật danh sách seed thành 12 mã quyền. |
+| 2026-10-22 | Chốt Đạt làm toàn bộ UI Windows, Bảo/Quý phụ trách API module tương ứng; thêm quy trình bắt buộc `docs/ui-workflow.md` và làm rõ cột Owner theo Backend/UI. |

@@ -107,6 +107,9 @@
 * **Badge / Tab / danh sách**:
   * `Badge` có nhãn trạng thái bằng chữ và màu ngữ nghĩa; không dùng màu làm dấu hiệu duy nhất. `Tab` có trạng thái thường, chọn, hover, focus và vô hiệu; tab chọn dùng nền `#ECFDF5`, chữ `#047857` và chỉ báo rõ nét.
   * Hàng danh sách được chọn dùng nền `#ECFDF5`, viền/chỉ báo `#047857`; focus bàn phím phải nhìn thấy và độc lập với hover. Hàng vô hiệu/hết hạn giữ nhãn tương ứng, không bị nhầm với hàng được chọn.
+* **SegmentedButton / Card clickable**:
+  * `SegmentedButton` nhóm các lựa chọn loại trừ nhau; phần chọn có nền và nhãn rõ, hỗ trợ focus bàn phím và trạng thái vô hiệu.
+  * `Card clickable` có hover, focus, nhãn đích và vùng bấm rõ; khi không được phép mở đích thì làm mờ, vô hiệu cả chuột lẫn bàn phím và giữ tên thẻ để người dùng thấy tác vụ tồn tại.
 
 ---
 

@@ -1,5 +1,11 @@
 # Trạng thái khung — 19/10/2026
 
+## Quy trình UI Windows và phân công tài liệu — 2026-10-22
+
+- Nhánh `ui/docs` bổ sung `docs/ui-workflow.md` làm tài liệu bắt buộc đầu phiên UI; Plan ghi Đạt làm toàn bộ UI Windows, Bảo/Quý phụ trách API module tương ứng. Design Spec bổ sung `SegmentedButton` và `Card clickable`; không sửa code, contract, schema hoặc tài liệu nguồn.
+- Kiểm tra: rà liên kết/tệp tài liệu, `git diff --check` và kiểm tra phạm vi file thay đổi. Các kiểm tra build/test trong `docs/testing.md` và ảnh UI không chạy cho lượt chỉ sửa tài liệu; CI của PR cần xem sau khi mở, chưa được xem là đạt.
+- Tài liệu về quyền, seed và endpoint chỉ là đặc tả; backend và UI chưa được kiểm chứng thực thi. Các tệp chưa theo dõi của `ui/phase3` được giữ nguyên, không đưa vào commit tài liệu.
+
 ## Chốt tài liệu vai trò, ma trận và token UI — 2026-10-22
 
 - Trên nhánh `ui/docs`, ghi nhận Phương án 1 với sáu chức danh, 12 mã quyền logic cần backend seed, ma trận A01–A12/A14 gồm 78 ô ĐÃ DUYỆT; Login công khai. A04 tách quyền chuyên môn/giá theo nhóm trường, A12 dùng tab Quyền bổ sung. Đây là đặc tả, chưa có seed hoặc kiểm tra quyền chạy thật.
