@@ -186,16 +186,16 @@
                                    Visibility="{Binding HasNoSearchResults, Converter={StaticResource BoolVisibility}}" />
                     </StackPanel>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding SearchResults}">
-                            <ItemsControl.ItemTemplate>
+                        <ListView ItemsSource="{Binding SearchResults}" Style="{StaticResource CE.ListView}">
+                            <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Button AutomationProperties.Name="{Binding Id}" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Margin="0,2"
                                             Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
                                         <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Id}" Width="48" /><TextBlock Text="{Binding Title}" /></StackPanel>
                                     </Button>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                            </ListView.ItemTemplate>
+                        </ListView>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
