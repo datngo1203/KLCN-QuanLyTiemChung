@@ -189,7 +189,7 @@
                         <ItemsControl ItemsSource="{Binding SearchResults}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Button Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Margin="0,2"
+                                    <Button AutomationProperties.Name="{Binding Id}" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Margin="0,2"
                                             Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
                                         <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Id}" Width="48" /><TextBlock Text="{Binding Title}" /></StackPanel>
                                     </Button>
