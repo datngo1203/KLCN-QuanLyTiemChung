@@ -170,7 +170,7 @@ public sealed class AccountViewModel : ViewModelBase
     private void ResetPassword()
     {
         if (!CanResetPassword || SelectedAccount is null) return;
-        Feedback = _service.ResetPassword(SelectedAccount.UserName) ? "Đã mô phỏng đặt lại mật khẩu; chưa nối dịch vụ Identity." : "Không thể đặt lại mật khẩu tài khoản này.";
+        Feedback = _service.ResetPassword(SelectedAccount.UserName) ? "Đã minh họa đặt lại mật khẩu; chưa có dịch vụ xác thực thật." : "Không thể đặt lại mật khẩu tài khoản này.";
     }
     private void AssignPermissions()
     {
@@ -178,7 +178,7 @@ public sealed class AccountViewModel : ViewModelBase
         var codes = PermissionOptions.Where(x => x.IsSelected).Select(x => x.Code).ToArray();
         if (!_service.AssignPermissions(SelectedAccount.UserName, codes)) { Feedback = "Không thể gán quyền cho tài khoản hiện tại."; return; }
         SelectedAccount.SetPermissions(codes);
-        Feedback = "Đã cập nhật quyền mẫu; chưa có seed/kiểm tra quyền thật ở backend.";
+        Feedback = "Đã cập nhật quyền mẫu; chưa có dữ liệu quyền xác thực từ máy chủ.";
     }
     private void RefreshCommands()
     {

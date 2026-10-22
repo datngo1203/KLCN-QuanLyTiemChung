@@ -9,7 +9,7 @@
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,24">
         <StackPanel>
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="CHUYÊN MÔN / A02" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Primary}" />
+                <TextBlock Text="CHUYÊN MÔN" AutomationProperties.AutomationId="A02.Breadcrumb" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Primary}" />
                 <TextBlock Text="Khám sàng lọc &amp; chỉ định" Style="{StaticResource CE.Heading}" Margin="0,4" />
                 <TextBlock Text="Bàn khám theo lượt và ghi nhận chỉ định" Style="{StaticResource CE.Caption}" />
                 <Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left" Margin="0,8,0,0"><TextBlock Text="{Binding DataSourceLabel}" /></Border>

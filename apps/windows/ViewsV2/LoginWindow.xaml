@@ -27,7 +27,7 @@
                 </Border>
                 <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CE.Caption}" Margin="0,12,0,0" TextWrapping="Wrap"/>
                 <Border Style="{StaticResource CE.Badge}" HorizontalAlignment="Left" Margin="0,14,0,0" Padding="8,4">
-                    <TextBlock Text="Dữ liệu mẫu · TODO nối xác thực API" Style="{StaticResource CE.Caption}"/>
+                    <TextBlock Text="Dữ liệu mẫu · chưa xác thực với máy chủ" Style="{StaticResource CE.Caption}"/>
                 </Border>
                 <DockPanel Margin="0,22,0,0">
                     <Button Content="Thoát" Command="{Binding ExitCommand}" Style="{StaticResource CE.Button.Secondary}" DockPanel.Dock="Left"/>

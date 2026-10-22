@@ -183,7 +183,7 @@
                             </Style>
                         </Border.Style>
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối API" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối dịch vụ" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
                             <TextBlock Text="{Binding ApiStatus}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding ApiCheckedAt}" Style="{StaticResource CE.Caption}" Margin="0,6,0,12" />
                             <Button Content="Kiểm tra kết nối" Command="{Binding CheckApiCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" />
