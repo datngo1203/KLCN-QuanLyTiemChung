@@ -1,22 +1,23 @@
 # Trạng thái Themes — 2026-10-22
 
-Nhánh `ui/themes` từ `main` sau `git fetch origin`, `git switch main`, `git pull --ff-only`. Phạm vi code: `apps/windows/Themes/` và `apps/windows/App.xaml` để nạp resource. `_Gallery.xaml` là cửa sổ thử độc lập, không có mục trong menu chính. Không sửa màn hình, ViewModel, service, API, contract hoặc schema.
+Nhánh `ui/themes`, PR #19. Lượt này đổi phong cách sang **Clinical Neutral**. Phạm vi thay đổi: `docs/design/design-spec-clinical-emerald.md` (giữ tên tệp), `apps/windows/Themes/`, ảnh gallery trong `docs/ui-review/ui-themes/` và báo cáo này. Không sửa màn hình, ViewModel, API, contract hoặc schema; các tệp chưa theo dõi khác trong working tree được giữ nguyên.
 
 ## Đã làm
 
-- Token Clinical Emerald, chữ và các kiểu ô nhập, lựa chọn, nút, icon, bảng, danh sách, badge, alert, menu hai cấp, tab, card, segmented button và toast.
-- `TextBox` dùng `Tag` làm placeholder; biểu mẫu dùng `Validation.ErrorTemplate` để hiện nội dung lỗi bên dưới khi binding tạo lỗi. Các điều khiển có style vô hiệu, hover và focus; trạng thái lỗi có viền đỏ nhạt.
-- Gallery có dữ liệu minh họa giả, các trạng thái chính và ảnh chụp [phần trên](ui-review/ui-themes/gallery.png), [phần dưới](ui-review/ui-themes/gallery-bottom.png). Không đưa gallery vào menu.
+- Design Spec là nguồn màu duy nhất cho `Themes/Colors.xaml`: Canvas trung tính, viền mảnh, chữ rõ, Brand `#0B6B57`, năm nhóm ngữ nghĩa Neutral/Info/Success/Warning/Danger.
+- Ô nhập/nút cao 32px; bảng cao 36px; góc bo control/badge 4px, card/khung 6px; không bóng, không nền mint/pill/tím. Badge có kiểu nền nhạt và biến thể chấm màu + chữ; Safety alert có vạch đỏ 4px.
+- Menu/Tab active gạch chân; SegmentedButton phẳng; nút Danger dạng viền, nút xác nhận xóa đặc riêng. Icon outline 1,5px/16px. DatePicker có `Language=vi-VN`, gợi ý “Chọn ngày” và icon lịch cùng bộ.
+- Gallery độc lập có “Bảng + bộ lọc” với 5 hàng minh họa, thanh công cụ, phân trang; thêm các component và trạng thái. Dữ liệu chỉ là minh họa giả, không có thông tin người thật, gallery không vào menu chính.
 
 ## Kiểm chứng
 
 - `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release`: **đạt, 0 warning, 0 error**.
-- Nạp gallery bằng WPF `XamlReader` với resource từ các tệp theme, render bằng `RenderTargetBitmap`, xem lại hai PNG. Kích thước ảnh dưới 500 KB/tệp.
-- `git diff --check`: đạt.
+- Nạp gallery bằng WPF `XamlReader` với resource theme, render bằng `RenderTargetBitmap`, xem lại [ảnh phần trên](ui-review/ui-themes/gallery.png) và [ảnh phần dưới](ui-review/ui-themes/gallery-bottom.png). Ảnh lần lượt 98.361 và 75.093 byte, dưới 500 KB/tệp.
+- Tính tương phản từ mã màu: Neutral 6,56:1; Info 6,16:1; Success 6,81:1; Warning 6,84:1; Danger 5,91:1. Chữ trắng trên Primary thường/hover/pressed: 6,45:1 / 8,64:1 / 11,10:1.
+- `git diff --check`: đạt sau khi chuẩn hóa cuối tệp.
 
 ## Chưa kiểm chứng / giới hạn
 
-- Chưa chạy quy trình nghiệp vụ ở các màn hiện có, chưa kiểm tra DPI/kích thước nhỏ hoặc thao tác bằng bàn phím với tất cả component.
-- Gallery cho thấy chú thích lỗi tĩnh; chưa có ViewModel/binding phát sinh lỗi thật. `Validation.ErrorTemplate` cần được xác nhận khi nối từng màn.
-- Resource định danh `CE.*` được cung cấp để màn áp dụng dần; không thay đổi style mặc định của màn hiện tại ngoài việc nạp dictionary.
-- Màu nút Primary `#047857` với chữ trắng có tỷ lệ tương phản theo Design Spec khoảng 5,5:1; chưa đo render tự động các trạng thái hover/pressed/disabled.
+- Gallery là dữ liệu và trạng thái minh họa; thanh lọc/phân trang không nối dữ liệu hay command nghiệp vụ. Chưa kiểm tra DPI, cửa sổ nhỏ, toàn bộ thao tác bàn phím hoặc validation binding thật của từng màn.
+- Bảng “Bảng + bộ lọc” trong gallery là bản minh họa bố cục. Phần DataGrid/ListView riêng ở cuối gallery dùng style theme thật để kiểm tra hàng chọn và header.
+- Không khẳng định các màn hiện có đã dùng hết style mới; các màn phải áp `CE.*` khi được chỉnh trong phạm vi riêng.

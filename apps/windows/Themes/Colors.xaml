@@ -1,15 +1,48 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <Color x:Key="CE.CanvasColor">#F6FAF7</Color><SolidColorBrush x:Key="CE.Canvas" Color="{StaticResource CE.CanvasColor}"/>
-  <SolidColorBrush x:Key="CE.Surface" Color="#FFFFFF"/><SolidColorBrush x:Key="CE.Text" Color="#1E293B"/>
-  <SolidColorBrush x:Key="CE.Muted" Color="#64748B"/><SolidColorBrush x:Key="CE.Placeholder" Color="#94A3B8"/>
-  <SolidColorBrush x:Key="CE.Border" Color="#CBD5D1"/><SolidColorBrush x:Key="CE.BorderHover" Color="#94AFA4"/>
-  <SolidColorBrush x:Key="CE.Primary" Color="#047857"/><SolidColorBrush x:Key="CE.PrimaryHover" Color="#065F46"/>
-  <SolidColorBrush x:Key="CE.PrimaryTint" Color="#ECFDF5"/><SolidColorBrush x:Key="CE.Focus" Color="#10B981"/>
-  <SolidColorBrush x:Key="CE.DisabledBackground" Color="#F1F5F9"/><SolidColorBrush x:Key="CE.DisabledBorder" Color="#CBD5E1"/>
-  <SolidColorBrush x:Key="CE.Error" Color="#B91C1C"/><SolidColorBrush x:Key="CE.ErrorBorder" Color="#FCA5A5"/>
+  <!-- Design Spec is the only source for these palette values. Keep aliases for existing CE.* consumers. -->
+  <SolidColorBrush x:Key="CE.Canvas" Color="#F4F6F8"/>
+  <SolidColorBrush x:Key="CE.Surface" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="CE.OnPrimary" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="CE.CardBorder" Color="#E3E8ED"/>
+  <SolidColorBrush x:Key="CE.Border" Color="#BCC5CE"/>
+  <SolidColorBrush x:Key="CE.BorderHover" Color="#7A8794"/>
+  <SolidColorBrush x:Key="CE.TableHeader" Color="#EEF1F4"/>
+  <SolidColorBrush x:Key="CE.Text" Color="#1B2733"/>
+  <SolidColorBrush x:Key="CE.SecondaryText" Color="#4A5866"/>
+  <SolidColorBrush x:Key="CE.Muted" Color="#7A8794"/>
+  <SolidColorBrush x:Key="CE.Placeholder" Color="#7A8794"/>
+  <SolidColorBrush x:Key="CE.Primary" Color="#0B6B57"/>
+  <SolidColorBrush x:Key="CE.PrimaryHover" Color="#095646"/>
+  <SolidColorBrush x:Key="CE.PrimaryPressed" Color="#074437"/>
+  <SolidColorBrush x:Key="CE.Focus" Color="#0B6B57"/>
+  <SolidColorBrush x:Key="CE.Selected" Color="#E8F0EE"/>
+  <SolidColorBrush x:Key="CE.Hover" Color="#F8FAFB"/>
+  <SolidColorBrush x:Key="CE.DisabledBackground" Color="#F1F3F5"/>
+  <SolidColorBrush x:Key="CE.DisabledBorder" Color="#BCC5CE"/>
+  <SolidColorBrush x:Key="CE.Neutral.Foreground" Color="#4A5866"/>
+  <SolidColorBrush x:Key="CE.Neutral.Background" Color="#F1F3F5"/>
+  <SolidColorBrush x:Key="CE.Neutral.Accent" Color="#7A8794"/>
+  <SolidColorBrush x:Key="CE.Info.Foreground" Color="#1D4ED8"/>
+  <SolidColorBrush x:Key="CE.Info.Background" Color="#EFF6FF"/>
+  <SolidColorBrush x:Key="CE.Info.Accent" Color="#2563EB"/>
+  <SolidColorBrush x:Key="CE.Success.Foreground" Color="#166534"/>
+  <SolidColorBrush x:Key="CE.Success.Background" Color="#F0FDF4"/>
+  <SolidColorBrush x:Key="CE.Success.Accent" Color="#16A34A"/>
+  <SolidColorBrush x:Key="CE.Warning.Foreground" Color="#92400E"/>
+  <SolidColorBrush x:Key="CE.Warning.Background" Color="#FFFBEB"/>
+  <SolidColorBrush x:Key="CE.Warning.Accent" Color="#D97706"/>
+  <SolidColorBrush x:Key="CE.Danger.Foreground" Color="#B91C1C"/>
+  <SolidColorBrush x:Key="CE.Danger.Background" Color="#FEF2F2"/>
+  <SolidColorBrush x:Key="CE.Danger.Accent" Color="#DC2626"/>
+  <SolidColorBrush x:Key="CE.Error" Color="#B91C1C"/>
+  <SolidColorBrush x:Key="CE.ErrorBorder" Color="#DC2626"/>
   <SolidColorBrush x:Key="CE.DangerBackground" Color="#FEF2F2"/>
-  <SolidColorBrush x:Key="CE.Warning" Color="#92400E"/><SolidColorBrush x:Key="CE.WarningBackground" Color="#FFFBEB"/>
-  <SolidColorBrush x:Key="CE.Info" Color="#1D4ED8"/><SolidColorBrush x:Key="CE.InfoBackground" Color="#EFF6FF"/>
-  <SolidColorBrush x:Key="CE.Success" Color="#166534"/><SolidColorBrush x:Key="CE.SuccessBackground" Color="#F0FDF4"/>
-  <SolidColorBrush x:Key="CE.NeutralBackground" Color="#F1F5F9"/>
+  <SolidColorBrush x:Key="CE.Warning" Color="#92400E"/>
+  <SolidColorBrush x:Key="CE.WarningBackground" Color="#FFFBEB"/>
+  <SolidColorBrush x:Key="CE.Info" Color="#1D4ED8"/>
+  <SolidColorBrush x:Key="CE.InfoBackground" Color="#EFF6FF"/>
+  <SolidColorBrush x:Key="CE.Success" Color="#166534"/>
+  <SolidColorBrush x:Key="CE.SuccessBackground" Color="#F0FDF4"/>
+  <SolidColorBrush x:Key="CE.NeutralBackground" Color="#F1F3F5"/>
+  <SolidColorBrush x:Key="CE.PrimaryTint" Color="#E8F0EE"/>
 </ResourceDictionary>
