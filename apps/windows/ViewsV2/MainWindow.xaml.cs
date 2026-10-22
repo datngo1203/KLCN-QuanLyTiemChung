@@ -7,6 +7,8 @@ namespace TiemChung.Desktop.ViewsV2;
 
 public partial class MainWindow : Window
 {
+    private const double CompactNavigationThresholdDip = 1240;
+
     public static readonly DependencyProperty IsCompactProperty = DependencyProperty.Register(
         nameof(IsCompact), typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
     public bool IsCompact { get => (bool)GetValue(IsCompactProperty); private set => SetValue(IsCompactProperty, value); }
@@ -33,7 +35,7 @@ public partial class MainWindow : Window
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        IsCompact = e.NewSize.Width < 1240;
+        IsCompact = e.NewSize.Width < CompactNavigationThresholdDip;
         if (!IsCompact && DataContext is ShellViewModel vm) vm.IsNavigationOpen = false;
     }
 

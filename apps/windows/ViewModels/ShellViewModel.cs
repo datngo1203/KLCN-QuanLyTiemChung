@@ -123,5 +123,8 @@ public sealed class ShellViewModel : ViewModelBase
     private void ClosePanels() { IsNavigationOpen = false; IsSearchOpen = false; IsProfileOpen = false; }
 }
 
-public sealed record NavigationGroup(string Title, IReadOnlyList<NavigationItem> Screens);
+public sealed record NavigationGroup(string Title, IReadOnlyList<NavigationItem> Screens)
+{
+    public NavigationItem? SingleScreen => Screens.Count == 1 ? Screens[0] : null;
+}
 public sealed record NavigationItem(string Id, string Title);
