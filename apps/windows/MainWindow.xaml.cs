@@ -38,7 +38,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         ("A10", "Khuyến mãi & Ưu đãi", "Quản lý chương trình ưu đãi"),
         ("A11", "Thống kê & Báo cáo", "Tổng hợp hoạt động "),
         ("A12", "Tài khoản & Phân quyền", "Danh sách tài khoản và vai trò minh họa"),
-        ("A13", "Đăng nhập nội bộ", "Mô phỏng cục bộ · tài khoản admin / 123"),
+        ("A13", "Đăng nhập nội bộ", "Mô phỏng cục bộ · dữ liệu minh họa"),
         ("A14", "Đổi mật khẩu", "Biểu mẫu minh họa · không thay đổi mật khẩu thật")
     ];
 
@@ -53,7 +53,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         Hide();
         Dispatcher.BeginInvoke(() =>
         {
-            var login = new DemoLoginWindow();
+            var login = new ViewsV2.LoginWindow(new ViewModels.LoginViewModel(new Services.SampleAuthService()));
             if (login.ShowDialog() == true)
             {
                 _demoUser = login.UserName;
@@ -90,7 +90,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private void Logout_Click(object sender, RoutedEventArgs e)
     {
         Hide();
-        var login = new DemoLoginWindow();
+        var login = new ViewsV2.LoginWindow(new ViewModels.LoginViewModel(new Services.SampleAuthService()));
         if (login.ShowDialog() == true)
         {
             _demoUser = login.UserName;
@@ -407,7 +407,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         {
             var stack = new StackPanel();
             stack.Children.Add(PendingBox($"Tài khoản hiện tại: {_demoUser}. Bộ dữ liệu đang dùng là dữ liệu minh họa."));
-            stack.Children.Add(ActionRow("Đăng xuất", () => Logout_Click(this, new RoutedEventArgs()), "Thông tin đăng nhập demo", () => ShowFeedback("Tài khoản: admin · Mật khẩu: 123 · chỉ dùng trong bản demo.")));
+            stack.Children.Add(ActionRow("Đăng xuất", () => Logout_Click(this, new RoutedEventArgs()), "Thông tin đăng nhập demo", () => ShowFeedback("Thông tin đăng nhập demo không còn được hiển thị trong giao diện này.")));
             return stack;
         });
     }
@@ -765,68 +765,4 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
 
     private static SolidColorBrush Brush(string hex) => new((Color)ColorConverter.ConvertFromString(hex));
-}
-
-internal sealed class DemoLoginWindow : Window
-{
-    private readonly TextBox _userBox;
-    private readonly PasswordBox _passwordBox;
-    private readonly TextBlock _feedback;
-
-    public string UserName { get; private set; } = "admin";
-
-    public DemoLoginWindow()
-    {
-        Title = "Đăng nhập | Tiêm chủng";
-        FontFamily = new FontFamily("Segoe UI");
-        Width = 780;
-        Height = 500;
-        MinWidth = 720;
-        MinHeight = 470;
-        ResizeMode = ResizeMode.NoResize;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F5F8FB"));
-
-        var root = new Grid();
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.95, GridUnitType.Star) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.05, GridUnitType.Star) });
-        var brand = new Border { Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#173D62")), Padding = new Thickness(35) };
-        var brandStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        brandStack.Children.Add(new TextBlock { Text = "✚", FontSize = 46, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9DD7D3")), Margin = new Thickness(0, 0, 0, 14) });
-        brandStack.Children.Add(new TextBlock { Text = "TIÊM CHỦNG", FontSize = 25, FontWeight = FontWeights.Bold, Foreground = Brushes.White });
-        brandStack.Children.Add(new TextBlock { Text = "HỆ THỐNG QUẢN LÝ TRUNG TÂM", FontSize = 11, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#AAC1D5")), Margin = new Thickness(0, 8, 0, 0) });
-        brand.Child = brandStack;
-        root.Children.Add(brand);
-
-        var form = new StackPanel { Margin = new Thickness(40, 38, 40, 28), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(form, 1);
-        form.Children.Add(new TextBlock { Text = "Chào mừng trở lại", FontSize = 24, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#193A58")) });
-        form.Children.Add(new TextBlock { Text = "Đăng nhập để tiếp tục.", FontSize = 12, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#72869A")), Margin = new Thickness(0, 7, 0, 22) });
-        form.Children.Add(new TextBlock { Text = "Tài khoản", FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#49647A")), Margin = new Thickness(0, 0, 0, 6) });
-        _userBox = new TextBox { Text = "admin", Height = 38, Padding = new Thickness(10, 7, 10, 7), VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 14) };
-        form.Children.Add(_userBox);
-        form.Children.Add(new TextBlock { Text = "Mật khẩu", FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#49647A")), Margin = new Thickness(0, 0, 0, 6) });
-        _passwordBox = new PasswordBox { Password = "123", Height = 38, Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 12) };
-        form.Children.Add(_passwordBox);
-        _feedback = new TextBlock { Text = "", FontSize = 11, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B6F95")), Margin = new Thickness(0, 0, 0, 13) };
-        form.Children.Add(_feedback);
-        var signIn = new Wpf.Ui.Controls.Button { Content = "Đăng nhập", Height = 40, HorizontalAlignment = HorizontalAlignment.Stretch, Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")), Foreground = Brushes.White, FontWeight = FontWeights.SemiBold };
-        signIn.Click += (_, _) => TrySignIn();
-        form.Children.Add(signIn);
-        root.Children.Add(form);
-        Content = root;
-        _passwordBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) TrySignIn(); };
-    }
-
-    private void TrySignIn()
-    {
-        if (_userBox.Text.Trim() == "admin" && _passwordBox.Password == "123")
-        {
-            UserName = _userBox.Text.Trim();
-            DialogResult = true;
-            return;
-        }
-        _feedback.Text = "Tài khoản hoặc mật khẩu chưa đúng.";
-        _feedback.Foreground = Brushes.Firebrick;
-    }
 }

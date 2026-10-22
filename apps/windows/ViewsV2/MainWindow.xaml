@@ -1,0 +1,204 @@
+<Window x:Class="TiemChung.Desktop.ViewsV2.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels"
+        xmlns:views="clr-namespace:TiemChung.Desktop.ViewsV2"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        x:Name="Shell" Title="Tiêm chủng | Hệ thống trung tâm"
+        Width="1440" Height="900" MinWidth="980" MinHeight="620"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
+        Background="{StaticResource CE.Canvas}" FontFamily="{StaticResource CE.FontFamily}"
+        Foreground="{StaticResource CE.Text}" FontSize="14"
+        Language="vi-VN" UseLayoutRounding="True" SizeChanged="Window_SizeChanged" Closed="Window_Closed">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+        <Style x:Key="GroupButton" TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Padding" Value="12,8" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource Self}}" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource CE.Focus}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="K" Modifiers="Control" Command="{Binding ToggleSearchCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding ClosePanelsCommand}" />
+    </Window.InputBindings>
+    <Grid x:Name="Root" Background="{StaticResource CE.Canvas}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Border Background="{StaticResource CE.Surface}" BorderBrush="{StaticResource CE.CardBorder}"
+                BorderThickness="0,0,0,1" Padding="24,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <Border Style="{StaticResource CE.Badge.Neutral}" Margin="0,0,12,0">
+                        <ui:SymbolIcon Symbol="HeartPulse24" FontSize="24" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="TIÊM CHỦNG" FontWeight="Bold" Foreground="{StaticResource CE.Text}" />
+                        <TextBlock Text="Hệ thống trung tâm" Style="{StaticResource CE.Caption}" Margin="0,3,0,0" />
+                    </StackPanel>
+                </StackPanel>
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding NavigationGroups}" VerticalAlignment="Center">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompact, ElementName=Shell}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Title}" Style="{StaticResource GroupButton}"
+                                    Command="{Binding DataContext.SelectGroupCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="CompactMenuButton" Command="{Binding ToggleNavigationCommand}" ToolTip="Chức năng"
+                            AutomationProperties.Name="Mở danh sách chức năng" Margin="0,0,8,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Primary}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCompact, ElementName=Shell}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Navigation24" Margin="0,0,8,0" /><TextBlock Text="Chức năng" /></StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource CE.Button.Secondary}" Command="{Binding ToggleSearchCommand}"
+                            ToolTip="Tìm chức năng (Ctrl+K)" AutomationProperties.Name="Tìm chức năng" Margin="0,0,8,0">
+                        <ui:SymbolIcon Symbol="Search24" />
+                    </Button>
+                    <Button Style="{StaticResource CE.Button.Primary}" Command="{Binding ToggleProfileCommand}"
+                            ToolTip="Tài khoản và phiên hiện tại" AutomationProperties.Name="Mở menu tài khoản">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Person24" Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding CurrentUserDisplayName}" MaxWidth="140" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Background="{StaticResource CE.Surface}" Padding="24,8"
+                Visibility="{Binding HasSecondaryMenu, Converter={StaticResource BoolVisibility}}"
+                BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding SelectedGroup.Title}" Style="{StaticResource CE.Caption}"
+                           VerticalAlignment="Center" Margin="0,0,20,0" />
+                <ItemsControl ItemsSource="{Binding SelectedGroup.Screens}">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Title}" Margin="0,0,8,0" Style="{StaticResource CE.Button.Secondary}"
+                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+        <Border Grid.Row="2" Style="{StaticResource CE.Badge.Info}" Margin="24,12,24,0"
+                Visibility="{Binding HasFeedback, Converter={StaticResource BoolVisibility}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Đóng" Style="{StaticResource CE.Button.Secondary}" Command="{Binding DismissFeedbackCommand}" Margin="12,0,0,0" />
+                <TextBlock Text="{Binding FeedbackMessage}" Style="{StaticResource CE.Body}" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        <ContentControl Grid.Row="3" Content="{Binding CurrentView}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+
+        <!-- Local overlays are real UI state; they never open unfinished business screens. -->
+        <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="10" Background="{StaticResource CE.Neutral.Background}"
+              Visibility="{Binding IsNavigationOpen, Converter={StaticResource BoolVisibility}}">
+            <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0"
+                    Focusable="False" AutomationProperties.Name="Đóng danh sách chức năng" />
+            <Border Width="320" HorizontalAlignment="Left" Background="{StaticResource CE.Surface}" Padding="20">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+                        <Button DockPanel.Dock="Right" Content="Đóng" Style="{StaticResource CE.Button.Secondary}" Command="{Binding ClosePanelsCommand}" />
+                        <TextBlock Text="Chức năng" Style="{StaticResource CE.SectionHeading}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding NavigationGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,20">
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource CE.Caption}" Margin="8,0,0,8" />
+                                        <ItemsControl ItemsSource="{Binding Screens}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Title}" Style="{StaticResource CE.Button.Secondary}" Margin="0,2"
+                                                            HorizontalContentAlignment="Left"
+                                                            Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="20" Background="{StaticResource CE.Neutral.Background}"
+              Visibility="{Binding IsSearchOpen, Converter={StaticResource BoolVisibility}}">
+            <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0" Focusable="False" AutomationProperties.Name="Đóng tìm kiếm" />
+            <Border Style="{StaticResource CE.Card}" Width="560" MaxHeight="480" VerticalAlignment="Top" Margin="0,24,0,0">
+                <DockPanel>
+                    <Button DockPanel.Dock="Bottom" Content="Đóng tìm kiếm · Esc" Style="{StaticResource CE.Button.Secondary}" Command="{Binding ClosePanelsCommand}" Margin="0,12,0,0" />
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Tìm chức năng" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12" />
+                        <TextBox x:Name="FunctionSearch" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}"
+                                 AutomationProperties.Name="Tên hoặc mã chức năng" Margin="0,0,0,12" />
+                        <TextBlock Text="Không tìm thấy chức năng phù hợp." Style="{StaticResource CE.Caption}"
+                                   Visibility="{Binding HasNoSearchResults, Converter={StaticResource BoolVisibility}}" />
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding SearchResults}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Margin="0,2"
+                                            Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Id}" Width="48" /><TextBlock Text="{Binding Title}" /></StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="30" Background="{StaticResource CE.Neutral.Background}"
+              Visibility="{Binding IsProfileOpen, Converter={StaticResource BoolVisibility}}">
+            <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0" Focusable="False" AutomationProperties.Name="Đóng menu tài khoản" />
+            <Border Style="{StaticResource CE.Card}" Width="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding CurrentUserDisplayName}" Style="{StaticResource CE.SectionHeading}" Margin="8,0,0,4" />
+                    <TextBlock Text="Phiên đăng nhập cục bộ" Style="{StaticResource CE.Caption}" Margin="8,0,0,12" />
+                    <Button Content="Thông tin phiên" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenProfileCommand}" />
+                    <Button Content="Đổi mật khẩu" Style="{StaticResource CE.Button.Secondary}" HorizontalContentAlignment="Left" Command="{Binding OpenPasswordCommand}" />
+                    <Separator Margin="0,8" />
+                    <Button Content="Đăng xuất" Style="{StaticResource CE.Button.Primary}" Command="{Binding SignOutCommand}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
