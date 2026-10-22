@@ -1,6 +1,7 @@
 # KLCN090 — quy tắc làm việc
 
 Đọc README, docs/project-context.md, docs/team.md, docs/status.md trước khi sửa.
+Mỗi phiên làm giao diện Windows phải đọc docs/ui-workflow.md trước khi sửa.
 Phạm vi hiện tại: Website React, Windows WPF, Mobile Flutter; dùng chung ASP.NET Core API và SQL Server.
 Không sửa tài liệu gốc/ảnh tham chiếu để hợp thức hóa nghiệp vụ. docs/diagrams là bản chụp mô hình tham khảo; thay đổi phải giải thích trong PR.
 Mỗi nhân viên có đúng một chức danh; đăng ký có thể gồm vắc xin lẻ và gói; hỗ trợ nhiều lần thanh toán/đặt cọc/trả góp.

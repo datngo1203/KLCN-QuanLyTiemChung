@@ -26,7 +26,7 @@ cd apps/mobile
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
 ```
 
-Windows đang kế thừa giao diện mô phỏng `admin / 123`; không dùng tài khoản đó làm xác thực backend. Website/Windows có nút **Kiểm tra API** để thử kết nối thật. Các form nghiệp vụ vẫn dùng trạng thái cục bộ. Mobile đọc danh mục từ API mẫu; đăng ký/lịch/hồ sơ thật thuộc backlog.
+Windows dùng `IAuthService`/`SampleAuthService` để trình diễn giao diện đăng nhập; backend hiện chưa có xác thực và không có tài khoản mật khẩu cố định trong UI. Website/Windows có nút **Kiểm tra API** để thử kết nối thật. Các form nghiệp vụ vẫn dùng trạng thái cục bộ. Mobile đọc danh mục từ API mẫu; đăng ký/lịch/hồ sơ thật thuộc backlog.
 
 ## Phân công
 

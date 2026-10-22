@@ -1,0 +1,39 @@
+<Window x:Class="TiemChung.Desktop.ViewsV2.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Đăng nhập | Tiêm chủng" Width="900" Height="560" MinWidth="760" MinHeight="500"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize" Background="{StaticResource CE.Canvas}">
+    <Window.Resources><BooleanToVisibilityConverter x:Key="Vis"/></Window.Resources>
+    <Grid Margin="28">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
+        <Border Background="{StaticResource CE.Primary}" CornerRadius="6" Padding="36">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="✚" FontSize="38" Foreground="White" Margin="0,0,0,18"/>
+                <TextBlock Text="TIÊM CHỦNG" FontSize="26" FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock Text="HỆ THỐNG QUẢN LÝ TRUNG TÂM" FontSize="12" Foreground="White" Margin="0,8,0,0"/>
+                <TextBlock Text="Quản lý quy trình tiêm chủng tại trung tâm" FontSize="14" Foreground="White" TextWrapping="Wrap" Margin="0,30,0,0"/>
+            </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Style="{StaticResource CE.Card}" Margin="20,0,0,0" Padding="34">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Chào mừng trở lại" Style="{StaticResource CE.Heading}"/>
+                <TextBlock Text="Đăng nhập để tiếp tục." Style="{StaticResource CE.Caption}" Margin="0,8,0,22"/>
+                <TextBlock Text="Tên đăng nhập" Style="{StaticResource CE.Body}" Margin="0,0,0,6"/>
+                <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" IsEnabled="{Binding IsNotBusy}" AutomationProperties.Name="Tên đăng nhập"/>
+                <TextBlock Text="Mật khẩu" Style="{StaticResource CE.Body}" Margin="0,16,0,6"/>
+                <PasswordBox x:Name="PasswordInput" Style="{StaticResource CE.PasswordBox}" IsEnabled="{Binding IsNotBusy}" PasswordChanged="PasswordInput_PasswordChanged" AutomationProperties.Name="Mật khẩu"/>
+                <Border Background="{StaticResource CE.Danger.Background}" BorderBrush="{StaticResource CE.Danger.Accent}" BorderThickness="1" CornerRadius="4" Margin="0,14,0,0" Padding="10" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
+                    <TextBlock Text="{Binding ErrorMessage}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Foreground="{StaticResource CE.Danger.Foreground}"/>
+                </Border>
+                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource CE.Caption}" Margin="0,12,0,0" TextWrapping="Wrap"/>
+                <Border Style="{StaticResource CE.Badge}" HorizontalAlignment="Left" Margin="0,14,0,0" Padding="8,4">
+                    <TextBlock Text="Dữ liệu mẫu · TODO nối xác thực API" Style="{StaticResource CE.Caption}"/>
+                </Border>
+                <DockPanel Margin="0,22,0,0">
+                    <Button Content="Thoát" Command="{Binding ExitCommand}" Style="{StaticResource CE.Button.Secondary}" DockPanel.Dock="Left"/>
+                    <Button Content="Đăng nhập" Command="{Binding LoginCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Right" MinWidth="132" IsDefault="True"/>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
