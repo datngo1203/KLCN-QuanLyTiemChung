@@ -8,9 +8,11 @@
         Width="1440" Height="900" MinWidth="980" MinHeight="620"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
         Background="{StaticResource CE.Canvas}" FontFamily="{StaticResource CE.FontFamily}"
-        Foreground="{StaticResource CE.Text}" FontSize="14"
+        Foreground="{StaticResource CE.Text}" Style="{DynamicResource CE.Screen.MainWindowText}"
         Language="vi-VN" UseLayoutRounding="True" SizeChanged="Window_SizeChanged" Closed="Window_Closed">
     <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/ScreenTokens.xaml"/></ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolVisibility" />
         <Style x:Key="GroupButton" TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
             <Setter Property="Margin" Value="4,0" />
@@ -21,6 +23,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Key="K" Modifiers="Control" Command="{Binding ToggleSearchCommand}" />
@@ -43,7 +46,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
                     <Border Style="{StaticResource CE.Badge.Neutral}" Margin="0,0,12,0">
-                        <ui:SymbolIcon Symbol="HeartPulse24" FontSize="24" />
+                        <ui:SymbolIcon Symbol="HeartPulse24" Style="{StaticResource CE.Screen.MainWindowIcon}" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="TIÊM CHỦNG" FontWeight="Bold" Foreground="{StaticResource CE.Text}" />
