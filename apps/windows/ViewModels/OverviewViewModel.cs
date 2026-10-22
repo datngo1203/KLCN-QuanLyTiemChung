@@ -22,16 +22,21 @@ public sealed class OverviewViewModel : ViewModelBase
     private string _apiCheckedAt = "Chưa có lần kiểm tra";
     private bool _isCheckingApi;
     private bool? _apiHealthy;
+    private IReadOnlyList<OverviewStage> _stages;
+    private IReadOnlyList<OverviewMetric> _metrics;
+    private bool _hasPeriodData;
 
     public OverviewViewModel(Action<string> navigate, IDashboardService? dashboardService = null)
     {
         _navigate = navigate;
         _dashboardService = dashboardService ?? new SampleDashboardService();
-        WorkItems = new ObservableCollection<OverviewWorkItem>(_dashboardService.GetWorkItems(DateTime.Today));
+        var initialSnapshot = _dashboardService.GetSnapshot(DateTime.Today, DateTime.Today);
+        WorkItems = new ObservableCollection<OverviewWorkItem>(initialSnapshot.WorkItems);
         WorkItemsView = CollectionViewSource.GetDefaultView(WorkItems);
         WorkItemsView.Filter = MatchesFilters;
-        Stages = _dashboardService.GetStages();
-        Metrics = _dashboardService.GetMetrics();
+        _stages = initialSnapshot.Stages;
+        _metrics = initialSnapshot.Metrics;
+        _hasPeriodData = initialSnapshot.WorkItems.Count > 0;
         RefreshCommand = new RelayCommand(_ => Refresh(), _ => HasValidPeriod);
         ClearFiltersCommand = new RelayCommand(_ => { SearchText = ""; ActiveStage = ""; FromDate = DateTime.Today; ToDate = DateTime.Today; Refresh(); });
         SelectWorkModeCommand = new RelayCommand(p => { WorkMode = p as string ?? "Lịch hẹn"; });
@@ -45,8 +50,10 @@ public sealed class OverviewViewModel : ViewModelBase
 
     public ObservableCollection<OverviewWorkItem> WorkItems { get; }
     public ICollectionView WorkItemsView { get; }
-    public IReadOnlyList<OverviewStage> Stages { get; }
-    public IReadOnlyList<OverviewMetric> Metrics { get; }
+    public IReadOnlyList<OverviewStage> Stages => _stages;
+    public IReadOnlyList<OverviewMetric> Metrics => _metrics;
+    public bool HasPeriodData => _hasPeriodData;
+    public bool HasNoPeriodData => !_hasPeriodData;
     public RelayCommand RefreshCommand { get; }
     public RelayCommand ClearFiltersCommand { get; }
     public RelayCommand SelectWorkModeCommand { get; }
@@ -82,7 +89,24 @@ public sealed class OverviewViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(HasValidPeriod)); OnPropertyChanged(nameof(PeriodError)); OnPropertyChanged(nameof(PeriodLabel));
         RefreshCommand.NotifyCanExecuteChanged();
+        LoadPeriodData();
         ApplyFilters();
+    }
+
+    private void LoadPeriodData()
+    {
+        var snapshot = HasValidPeriod
+            ? _dashboardService.GetSnapshot(FromDate!.Value.Date, ToDate!.Value.Date)
+            : OverviewSampleData.CreateEmptySnapshot();
+        WorkItems.Clear();
+        foreach (var item in snapshot.WorkItems) WorkItems.Add(item);
+        _stages = snapshot.Stages;
+        _metrics = snapshot.Metrics;
+        _hasPeriodData = snapshot.WorkItems.Count > 0;
+        OnPropertyChanged(nameof(Stages));
+        OnPropertyChanged(nameof(Metrics));
+        OnPropertyChanged(nameof(HasPeriodData));
+        OnPropertyChanged(nameof(HasNoPeriodData));
     }
 
     private bool MatchesFilters(object candidate) => candidate is OverviewWorkItem row && HasValidPeriod &&
@@ -98,6 +122,7 @@ public sealed class OverviewViewModel : ViewModelBase
 
     private void Refresh()
     {
+        LoadPeriodData();
         ApplyFilters();
         RefreshMessage = $"Đã áp dụng bộ lọc lúc {DateTime.Now:HH:mm:ss}.";
     }

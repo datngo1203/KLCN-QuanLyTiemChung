@@ -6,15 +6,17 @@ namespace TiemChung.Desktop.Services;
 public interface IDashboardService
 {
     bool UseSampleData { get; set; }
-    IReadOnlyList<OverviewWorkItem> GetWorkItems(DateTime day);
-    IReadOnlyList<OverviewStage> GetStages();
-    IReadOnlyList<OverviewMetric> GetMetrics();
+    OverviewSnapshot GetSnapshot(DateTime from, DateTime to);
 }
+
+public sealed record OverviewSnapshot(
+    IReadOnlyList<OverviewWorkItem> WorkItems,
+    IReadOnlyList<OverviewStage> Stages,
+    IReadOnlyList<OverviewMetric> Metrics);
 
 public sealed class SampleDashboardService : IDashboardService
 {
     public bool UseSampleData { get; set; } = true;
-    public IReadOnlyList<OverviewWorkItem> GetWorkItems(DateTime day) => UseSampleData ? OverviewSampleData.CreateWorkItems(day) : [];
-    public IReadOnlyList<OverviewStage> GetStages() => UseSampleData ? OverviewSampleData.CreateStages() : [];
-    public IReadOnlyList<OverviewMetric> GetMetrics() => UseSampleData ? OverviewSampleData.CreateMetrics() : [];
+    public OverviewSnapshot GetSnapshot(DateTime from, DateTime to) =>
+        UseSampleData ? OverviewSampleData.CreateSnapshot(from, to) : OverviewSampleData.CreateEmptySnapshot();
 }
