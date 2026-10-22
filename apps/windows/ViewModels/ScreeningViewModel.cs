@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Data;
+using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels.Samples;
 
 namespace TiemChung.Desktop.ViewModels;
@@ -26,12 +27,14 @@ public sealed class ScreeningViewModel : ViewModelBase
     private bool _isDirty;
     private bool _isDangerousAllergy;
     private int _safetyConfirmationStep;
+    private readonly IScreeningService _screeningService;
 
-    public ScreeningViewModel()
+    public ScreeningViewModel(IScreeningService? screeningService = null)
     {
-        Queue = new ObservableCollection<ScreeningQueueSample>(ScreeningSampleData.CreateQueue());
+        _screeningService = screeningService ?? new SampleScreeningService();
+        Queue = new ObservableCollection<ScreeningQueueSample>(_screeningService.GetQueue());
         Queue.CollectionChanged += (_, _) => { if (SelectedEncounter is not null && !Queue.Contains(SelectedEncounter)) { IsDirty = false; SelectedEncounter = null; ResetDraft(); Feedback = ""; } RefreshFilter(); };
-        VaccineCatalog = ScreeningSampleData.CreateVaccineCatalog();
+        VaccineCatalog = _screeningService.GetVaccineCatalog();
         QueueView = CollectionViewSource.GetDefaultView(Queue);
         QueueView.Filter = MatchesFilter;
         Indications = new ObservableCollection<ScreeningIndicationDraft>();
@@ -74,7 +77,7 @@ public sealed class ScreeningViewModel : ViewModelBase
     public bool IsDeferred => Conclusion == "Tạm hoãn";
     public bool IsContraindicated => Conclusion == "Chống chỉ định";
     public bool NeedsDeferReason => Conclusion is "Tạm hoãn" or "Chống chỉ định";
-    public string DataSourceLabel => "Dữ liệu mẫu";
+    public string DataSourceLabel => _screeningService.UseSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
     public string SearchText { get => _searchText; set { if (Set(ref _searchText, value)) RefreshFilter(); } }
     public string StatusFilter { get => _statusFilter; set { if (Set(ref _statusFilter, value)) RefreshFilter(); } }
     public bool HasNoQueueResults => Queue.Count > 0 && QueueView.IsEmpty;
