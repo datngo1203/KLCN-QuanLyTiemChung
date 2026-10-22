@@ -23,6 +23,9 @@ public sealed class ShellViewModel : ViewModelBase
         Profiles = new ProfilesViewModel();
         Registration = new RegistrationViewModel();
         Payment = new PaymentViewModel();
+        Catalog = new CatalogViewModel();
+        Inventory = new InventoryViewModel();
+        Promotion = new PromotionViewModel();
         CurrentView = NavigationRegistry.CreatePage("A01", this);
         SelectGroupCommand = new RelayCommand(p =>
         {
@@ -54,6 +57,9 @@ public sealed class ShellViewModel : ViewModelBase
     public ProfilesViewModel Profiles { get; }
     public RegistrationViewModel Registration { get; }
     public PaymentViewModel Payment { get; }
+    public CatalogViewModel Catalog { get; }
+    public InventoryViewModel Inventory { get; }
+    public PromotionViewModel Promotion { get; }
     private object _currentView = null!;
     public object CurrentView { get => _currentView; private set => Set(ref _currentView, value); }
     public string CurrentUserDisplayName { get => _currentUserDisplayName; private set => Set(ref _currentUserDisplayName, value); }
