@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TiemChung.Api;
 using TiemChung.Contracts;
 using TiemChung.Infrastructure.Data;
 
@@ -38,11 +39,15 @@ app.MapGet("/api/v1/catalog/vaccines", async (string? search, TiemChungDbContext
         .Select(v => new VaccineDto(v.MaVacXin, v.TenVacXin, v.NhaSanXuat, v.XuatXu, v.Gia)).ToListAsync(ct);
     return Results.Ok(new VaccineListResponse("database", items));
 }).WithName("ListVaccines").WithDescription("Danh mục công khai; tối đa 100 mục. Dữ liệu Development là mẫu.");
+
 app.MapGet("/api/v1/modules", () => new ModuleDto[] {
-    new("reception", "Hồ sơ, đăng ký, thanh toán, ưu đãi", "Bảo", "planned"),
+    new("reception", "Hồ sơ, đăng ký, thanh toán, ưu đãi", "Bảo", "in_progress"),
     new("followup", "Lịch, lịch sử, nhắc lịch, theo dõi", "Quý", "planned"),
     new("operations", "Danh mục, kho, khám, tài khoản", "Đạt", "planned")
 }).WithName("ListModules");
+
+app.MapProfileEndpoints();
+
 app.Run();
 
 public partial class Program { }
