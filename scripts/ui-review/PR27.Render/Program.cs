@@ -81,16 +81,3 @@ class Review
  static IEnumerable<T> Find<T>(DependencyObject root) where T:DependencyObject
  { for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++){var c=VisualTreeHelper.GetChild(root,i);if(c is T item)yield return item;foreach(var child in Find<T>(c))yield return child;} }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
