@@ -29,6 +29,7 @@ public static class NavigationRegistry
         "A09" => new AppointmentView { DataContext = shell.Appointments },
         "A11" => new ReportView { DataContext = shell.Reports },
         "A12" => new AccountView { DataContext = shell.Accounts },
+        "A14" => new ChangePasswordView { DataContext = shell.ChangePassword },
         _ => new PlaceholderView { DataContext = new PlaceholderViewModel(Groups.SelectMany(g => g.Screens).First(s => s.Id == id)) }
     };
 }
