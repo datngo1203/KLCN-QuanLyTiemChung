@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## Mobile kế thừa PR #21 — 23/10/2026
+
+- Gói sửa riêng giữ owner Quý; tích hợp develop, xử lý dữ liệu API trung thực, không sửa backend/contract/schema. Cần Bảo/Đạt review chéo, không merge.
+- [Kết quả theo SHA và giới hạn kiểm chứng](status-mobile-review.md). Các dòng kiểm tra mobile cũ bên dưới là lịch sử, không đại diện gói này.
+
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
@@ -55,6 +60,7 @@
 | Phần | Trạng thái thực tế |
 |---|---|
 | Web React | Có UI kế thừa, client HTTP và nút kiểm tra API; lint/build pass tại máy khởi tạo |
+| Mobile Flutter (PR #21, lịch sử) | Feature-first/Dio và UI mẫu; ghi nhận tác giả analyze/3 tests, chưa xem là kiểm chứng gói sửa. Khẳng định GSP/y tế/tồn kho được sửa trong gói review hiện tại. |
 | Windows WPF | Shell + A01 và A02 trong ViewsV2; A02 có validation sinh tồn/kết luận và chỉ định Sample, chưa lưu API. Release build 21/10/2026 pass, 0 cảnh báo/lỗi; đã chụp ảnh toàn màn hình. Chưa hoàn tất các màn còn lại hoặc kiểm tra DPI |
 | Mobile Flutter | Có Android/iOS project, navigation, màn danh mục đọc API, API client; analyze pass và 3 tests pass ở máy khởi tạo lẫn GitHub Actions; bước build Android APK debug trên CI đã pass |
 | Backend | API health/catalog/modules, OpenAPI, CORS và Problem Details; 11 tests pass |

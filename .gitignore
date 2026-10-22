@@ -41,3 +41,4 @@ key.properties
 .DS_Store
 Thumbs.db
 artifacts/
+.agents/
