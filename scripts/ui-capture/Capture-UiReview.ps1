@@ -54,12 +54,19 @@ public static class UiReviewNative {
     # Use physical coordinates for GetWindowRect/SetWindowPos; restore caller context in finally.
     $oldDpiContext = [UiReviewNative]::SetThreadDpiAwarenessContext([IntPtr](-4))
     if ($oldDpiContext -eq [IntPtr]::Zero) { throw 'Không đặt được DPI context cho capture.' }
-    if ($TargetProcessId) { $candidates = @(Get-Process -Id $TargetProcessId | Where-Object MainWindowHandle) }
-    else { $candidates = @(Get-Process TiemChung.Desktop -ErrorAction SilentlyContinue | Where-Object MainWindowHandle) }
+    if ($TargetProcessId) { $candidates = @(Get-Process -Id $TargetProcessId) }
+    else { $candidates = @(Get-Process TiemChung.Desktop -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero }) }
     if ($candidates.Count -ne 1) { throw 'Cần đúng một cửa sổ ứng dụng; dùng -TargetProcessId khi có nhiều host.' }
     $process = $candidates[0]
+    for ($attempt=0; $attempt -lt 20; $attempt++) {
+        $process.Refresh()
+        $windowHandle = $process.MainWindowHandle
+        if ($windowHandle -ne [IntPtr]::Zero) { break }
+        Start-Sleep -Milliseconds 100
+    }
+    if ($windowHandle -eq [IntPtr]::Zero) { throw 'Process chưa có cửa sổ hiển thị sau 2 giây.' }
     $manifest.process = @{ id=$process.Id; title=$process.MainWindowTitle; path=$process.Path; executableSha256=(Get-FileHash -LiteralPath $process.Path).Hash }
-    $root = [System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+    $root = [System.Windows.Automation.AutomationElement]::FromHandle($windowHandle)
     function Find-Button([string]$Name) {
         $condition = [System.Windows.Automation.AndCondition]::new(
             [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button),
@@ -74,7 +81,7 @@ public static class UiReviewNative {
         Start-Sleep -Milliseconds 300
     }
     function Save-Viewport([string]$Name) {
-        $handle = $process.MainWindowHandle
+        $handle = $windowHandle
         $rect = [UiReviewNative+RECT]::new()
         if (-not [UiReviewNative]::GetWindowRect($handle,[ref]$rect)) { throw 'GetWindowRect thất bại.' }
         $width = $rect.Right-$rect.Left; $height = $rect.Bottom-$rect.Top
@@ -95,8 +102,8 @@ public static class UiReviewNative {
         if ($item.Length -ge 500KB) { throw "Ảnh vượt 500 KB, cần curator xử lý riêng: $path" }
     }
     $rect = [UiReviewNative+RECT]::new()
-    [void][UiReviewNative]::GetWindowRect($process.MainWindowHandle,[ref]$rect)
-    if (-not [UiReviewNative]::SetWindowPos($process.MainWindowHandle,[IntPtr]::Zero,$rect.Left,$rect.Top,$WidthPixels,$HeightPixels,0x0014)) { throw 'Không đổi được kích thước cửa sổ.' }
+    [void][UiReviewNative]::GetWindowRect($windowHandle,[ref]$rect)
+    if (-not [UiReviewNative]::SetWindowPos($windowHandle,[IntPtr]::Zero,$rect.Left,$rect.Top,$WidthPixels,$HeightPixels,0x0014)) { throw 'Không đổi được kích thước cửa sổ.' }
     Start-Sleep -Milliseconds 400
     if ($CaptureGallery) {
         if ($process.MainWindowTitle -notmatch 'Gallery|Thư viện') { throw 'Cần mở Gallery bằng host WPF riêng, rồi truyền -TargetProcessId.' }
