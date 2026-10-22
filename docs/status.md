@@ -1,5 +1,12 @@
 # Trạng thái khung — 19/10/2026
 
+## Tích hợp UI Windows và lưu ảnh review — 2026-10-22
+
+- Nhánh `ui/windows-redesign` được tạo từ `origin/main`. Nội dung code của `ui/docs` (PR #18), `ui/themes` (#19), `ui/phase3` (#22), A03/A07/A08 (#23), sửa review phase3 (#24), A04/A05/A10 (#25), Login/A06/A09/A11/A12/A14 (#26) đã được tích hợp vào `main`; so sánh cây file không thấy code mới cần cherry-pick. Giữ nguyên bản Design Spec, Plan và status hiện có trên `main`.
+- Không đưa ảnh hoặc `REVIEW.md` từ review pack vào nhánh hợp nhất. `main` hiện còn 88 PNG đã theo dõi ngoài `apps/**/Assets/` (56 ảnh review, 9 sơ đồ, 23 icon ứng dụng); lượt này chỉ ghi nhận, không xóa các ảnh đã có.
+- Bỏ qua `docs/ui-review/` và `.review/` trong Git; script `Capture-UiReview.ps1` mặc định lưu ảnh vào `.review/`.
+- Kiểm tra sau thay đổi: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore` thành công, 0 warning/0 error; `git diff --check` sạch. Script capture được kiểm tra cú pháp PowerShell, chưa chạy UI capture trong phiên này.
+
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
