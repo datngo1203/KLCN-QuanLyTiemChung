@@ -15,11 +15,11 @@ class TiemChungApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Trung tâm Tiêm chủng',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: HomePage(repository: repository),
-      );
+    title: 'Trung tâm Tiêm chủng',
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.lightTheme,
+    home: HomePage(repository: repository),
+  );
 }
 
 class HomePage extends StatefulWidget {
@@ -90,7 +90,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     SizedBox(width: 2),
                     Text(
-                      'Cơ sở 1 • TP. Hồ Chí Minh',
+                      'Chưa có dữ liệu cơ sở',
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -126,10 +126,14 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Bạn có 1 thông báo nhắc lịch tiêm chủng sắp tới.'),
+                  content: const Text(
+                    'Mô phỏng thông báo; chưa kết nối dịch vụ nhắc lịch.',
+                  ),
                   backgroundColor: AppColors.primaryDark,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               );
             },

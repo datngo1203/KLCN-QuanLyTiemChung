@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/aftercare_record.dart';
 import '../../domain/models/appointment.dart';
@@ -14,7 +15,8 @@ class ScheduleScreen extends StatefulWidget {
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProviderStateMixin {
+class _ScheduleScreenState extends State<ScheduleScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   static const List<Appointment> _upcomingAppointments = [
@@ -73,7 +75,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
     observationDurationMinutes: 30,
     status: 'observing',
     temperature: 36.8,
-    doctorNotes: 'Bé tỉnh táo, không quấy khóc, vết tiêm khô ráo, nhiệt độ bình thường.',
+    doctorNotes:
+        'Bé tỉnh táo, không quấy khóc, vết tiêm khô ráo, nhiệt độ bình thường.',
   );
 
   final List<VaccineReminder> _reminders = [
@@ -159,7 +162,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildSymptomChip('Sốt nhẹ (< 38.5°C)'),
+                _buildSymptomChip('Biểu hiện mẫu'),
                 _buildSymptomChip('Sưng đau tại vết tiêm'),
                 _buildSymptomChip('Quấy khóc / Khó chịu'),
                 _buildSymptomChip('Bỏ bú / Biếng ăn'),
@@ -172,7 +175,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Đã gửi thông tin phản ứng sau tiêm tới Bác sĩ phụ trách.'),
+                    content: Text(
+                      'Mô phỏng; chưa gửi báo cáo tới API hoặc bác sĩ.',
+                    ),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -208,11 +213,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline_rounded, size: 20, color: AppColors.primary),
+              Icon(
+                Icons.info_outline_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Lịch hẹn sẽ có sau khi kết nối hồ sơ và đăng nhập. Hiện hiển thị dữ liệu lịch tiêm mẫu tham khảo.',
+                  'Lịch hẹn sẽ có sau khi kết nối hồ sơ và đăng nhập. DỮ LIỆU MẪU hư cấu; chưa lưu hoặc gửi nhắc thật.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.primaryDark,
@@ -244,8 +253,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
             ),
             labelColor: AppColors.primaryDark,
             unselectedLabelColor: AppColors.textSecondary,
-            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            labelStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
             tabs: const [
               Tab(text: 'Sắp tới (2)'),
               Tab(text: 'Lịch sử (2)'),
@@ -264,9 +279,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 itemCount: _upcomingAppointments.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  return AppointmentCard(appointment: _upcomingAppointments[index]);
+                  return AppointmentCard(
+                    appointment: _upcomingAppointments[index],
+                  );
                 },
               ),
 
@@ -274,9 +292,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 itemCount: _historyAppointments.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  return AppointmentCard(appointment: _historyAppointments[index]);
+                  return AppointmentCard(
+                    appointment: _historyAppointments[index],
+                  );
                 },
               ),
 
@@ -303,20 +324,29 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.health_and_safety_outlined, size: 20, color: AppColors.secondary),
+                            Icon(
+                              Icons.health_and_safety_outlined,
+                              size: 20,
+                              color: AppColors.secondary,
+                            ),
                             SizedBox(width: 8),
                             Text(
-                              'Cẩm nang theo dõi 24–48h tại nhà',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              'Hướng dẫn (chưa tích hợp)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
                         SizedBox(height: 10),
                         Text(
-                          '• Phản ứng thông thường: Sốt nhẹ dưới 38.5°C, đau nhẹ chỗ tiêm. Cho uống nhiều nước, mặc đồ thoáng mát.\n'
-                          '• Không tự ý đắp thuốc, chanh, khoai tây lên vết tiêm.\n'
-                          '• Dấu hiệu cần đến bệnh viện ngay: Sốt cao > 39°C không hạ, co giật, khó thở, thở rít, phát ban toàn thân hoặc khóc thét kéo dài.',
-                          style: TextStyle(fontSize: 12, height: 1.5, color: AppColors.textSecondary),
+                          'Chờ bổ sung theo đề cương và nội dung chuyên môn được duyệt.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.5,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -328,19 +358,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 itemCount: _reminders.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final reminder = _reminders[index];
                   return ReminderCard(
                     reminder: reminder,
                     onToggle: (enabled) {
                       setState(() {
-                        _reminders[index] = reminder.copyWith(isEnabled: enabled);
+                        _reminders[index] = reminder.copyWith(
+                          isEnabled: enabled,
+                        );
                       });
                     },
                     onChangeChannel: (newChannel) {
                       setState(() {
-                        _reminders[index] = reminder.copyWith(channel: newChannel);
+                        _reminders[index] = reminder.copyWith(
+                          channel: newChannel,
+                        );
                       });
                     },
                   );

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../domain/models/aftercare_record.dart';
 
 class AftercareCard extends StatelessWidget {
-  const AftercareCard({
-    super.key,
-    required this.record,
-    this.onReportSymptom,
-  });
+  const AftercareCard({super.key, required this.record, this.onReportSymptom});
 
   final AftercareRecord record;
   final VoidCallback? onReportSymptom;
@@ -75,10 +72,14 @@ class AftercareCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: record.isObservingAtClinic ? AppColors.primarySoft : AppColors.surfaceSubtle,
+                color: record.isObservingAtClinic
+                    ? AppColors.primarySoft
+                    : AppColors.surfaceSubtle,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: record.isObservingAtClinic ? AppColors.primaryLight : AppColors.border,
+                  color: record.isObservingAtClinic
+                      ? AppColors.primaryLight
+                      : AppColors.border,
                 ),
               ),
               child: Column(
@@ -92,7 +93,9 @@ class AftercareCard extends StatelessWidget {
                           Icon(
                             Icons.local_hospital_outlined,
                             size: 16,
-                            color: record.isObservingAtClinic ? AppColors.primaryDark : AppColors.textSecondary,
+                            color: record.isObservingAtClinic
+                                ? AppColors.primaryDark
+                                : AppColors.textSecondary,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -100,7 +103,9 @@ class AftercareCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: record.isObservingAtClinic ? AppColors.primaryDark : AppColors.textPrimary,
+                              color: record.isObservingAtClinic
+                                  ? AppColors.primaryDark
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ],
@@ -110,7 +115,9 @@ class AftercareCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: record.isObservingAtClinic ? AppColors.primaryDark : AppColors.textSecondary,
+                          color: record.isObservingAtClinic
+                              ? AppColors.primaryDark
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -122,7 +129,9 @@ class AftercareCard extends StatelessWidget {
                       value: record.progress,
                       backgroundColor: AppColors.border,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        record.progress >= 1.0 ? AppColors.success : AppColors.primary,
+                        record.progress >= 1.0
+                            ? AppColors.success
+                            : AppColors.primary,
                       ),
                       minHeight: 6,
                     ),
@@ -133,7 +142,10 @@ class AftercareCard extends StatelessWidget {
                     children: [
                       Text(
                         'Nhiệt độ hiện tại: ${record.temperature}°C (Bình thường)',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       Text(
                         record.remainingMinutes > 0
@@ -142,7 +154,9 @@ class AftercareCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: record.remainingMinutes > 0 ? AppColors.warning : AppColors.success,
+                          color: record.remainingMinutes > 0
+                              ? AppColors.warning
+                              : AppColors.success,
                         ),
                       ),
                     ],
@@ -156,7 +170,11 @@ class AftercareCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.verified_user_outlined, size: 16, color: AppColors.secondary),
+                const Icon(
+                  Icons.verified_user_outlined,
+                  size: 16,
+                  color: AppColors.secondary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -184,7 +202,10 @@ class AftercareCard extends StatelessWidget {
                     label: const Text('Báo triệu chứng'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -194,10 +215,14 @@ class AftercareCard extends StatelessWidget {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Đang kết nối Bác sĩ trực cấp cứu sau tiêm: 1900 6868...'),
+                          content: const Text(
+                            'Mô phỏng; chưa kết nối dịch vụ tư vấn.',
+                          ),
                           backgroundColor: AppColors.error,
                           behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       );
                     },
@@ -206,7 +231,10 @@ class AftercareCard extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.error,
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),

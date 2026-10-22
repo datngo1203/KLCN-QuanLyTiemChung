@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../domain/models/patient_profile.dart';
@@ -57,11 +58,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 20, color: AppColors.primary),
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Hồ sơ và đăng nhập đang được phát triển. Dữ liệu bên dưới là giao diện hồ sơ tiêm chủng điện tử.',
+                    'Hồ sơ và đăng nhập đang được phát triển. DỮ LIỆU MẪU hư cấu, không phải hồ sơ API.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.primaryDark,
@@ -156,7 +161,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Tính năng thêm người thân sẽ khả dụng khi kết nối module Hồ sơ.'),
+                          content: Text(
+                            'Tính năng thêm người thân sẽ khả dụng khi kết nối module Hồ sơ.',
+                          ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -174,7 +181,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return ChoiceChip(
                   label: Text(member.fullName),
                   selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedMemberIndex = index),
+                  onSelected: (_) =>
+                      setState(() => _selectedMemberIndex = index),
                   selectedColor: AppColors.primary,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textPrimary,
@@ -221,7 +229,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         letterSpacing: 1.1,
                       ),
                     ),
-                    Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 28),
+                    Icon(
+                      Icons.qr_code_2_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -300,11 +312,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _MenuItem(
                   icon: Icons.payments_outlined,
                   title: 'Lịch sử thanh toán & đặt cọc',
-                  subtitle: 'Theo dõi các đợt thanh toán và trả góp gói vắc xin',
+                  subtitle:
+                      'Theo dõi các đợt thanh toán và trả góp gói vắc xin',
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Tính năng quản lý thanh toán sẽ liên kết với Backend.'),
+                        content: Text(
+                          'Tính năng quản lý thanh toán sẽ liên kết với Backend.',
+                        ),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -321,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _MenuItem(
                   icon: Icons.headset_mic_outlined,
                   title: 'Tổng đài tư vấn & Hotline',
-                  subtitle: '1900 6868 (8:00 - 20:00 hàng ngày)',
+                  subtitle: 'Chờ bổ sung theo đề cương',
                   onTap: () {},
                 ),
                 const Divider(),

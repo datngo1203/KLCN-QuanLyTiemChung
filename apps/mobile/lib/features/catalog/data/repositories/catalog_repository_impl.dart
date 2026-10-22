@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:dio/dio.dart';
+
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_exceptions.dart';
 import '../../../../core/network/dio_client.dart';
@@ -9,7 +11,8 @@ import '../models/vaccine_model.dart';
 
 class CatalogRepositoryImpl implements CatalogRepository {
   CatalogRepositoryImpl({DioClient? dioClient, Dio? dio})
-    : _dioClient = dioClient ?? (dio != null ? DioClient(dio: dio) : DioClient());
+    : _dioClient =
+          dioClient ?? (dio != null ? DioClient(dio: dio) : DioClient());
 
   final DioClient _dioClient;
 
@@ -30,7 +33,8 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       if (response.statusCode != 200) {
         throw ApiException(
-          message: 'Không tải được danh mục vắc xin (HTTP ${response.statusCode}).',
+          message:
+              'Không tải được danh mục vắc xin (HTTP ${response.statusCode}).',
           statusCode: response.statusCode,
         );
       }
@@ -40,24 +44,26 @@ class CatalogRepositoryImpl implements CatalogRepository {
         rawData = jsonDecode(rawData);
       }
 
-      List<dynamic> itemsList;
-      if (rawData is Map<String, dynamic> && rawData.containsKey('items')) {
-        itemsList = rawData['items'] as List<dynamic>;
-      } else if (rawData is List<dynamic>) {
-        itemsList = rawData;
-      } else {
-        itemsList = [];
+      if (rawData is! Map<String, dynamic> || rawData['items'] is! List) {
+        throw const FormatException('Thiếu danh sách items');
       }
-
-      return itemsList
-          .map((item) => VaccineModel.fromJson(item as Map<String, dynamic>))
-          .toList();
+      final source = rawData['source'];
+      if (source != null && source is! String) {
+        throw const FormatException('Nguồn không hợp lệ');
+      }
+      final items = (rawData['items'] as List).map((item) {
+        if (item is! Map<String, dynamic>) {
+          throw const FormatException('Bản ghi không hợp lệ');
+        }
+        return VaccineModel.fromJson(item, source: source as String?);
+      }).toList();
+      return CatalogResult(items, source: source as String?);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(
-        message: 'Lỗi xử lý dữ liệu: $e',
+        message: 'Dữ liệu danh mục từ API không hợp lệ. Vui lòng thử lại.',
         originalError: e,
       );
     }

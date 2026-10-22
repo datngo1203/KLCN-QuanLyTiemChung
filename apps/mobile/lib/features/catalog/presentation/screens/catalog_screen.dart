@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_constants.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_search_field.dart';
 import '../../../../core/widgets/empty_state_view.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../domain/models/vaccine.dart';
 import '../../domain/repositories/catalog_repository.dart';
-import '../widgets/category_filter_bar.dart';
 import '../widgets/vaccine_card.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -21,7 +20,13 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   late Future<List<Vaccine>> _future;
   String _searchQuery = '';
-  int _categoryIndex = 0;
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -39,7 +44,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Future<void> _handleRefresh() async {
     _loadVaccines();
-    await _future;
+    try {
+      await _future;
+    } catch (_) {
+      /* FutureBuilder hiển thị lỗi. */
+    }
   }
 
   void _onSearchChanged(String query) {
@@ -47,29 +56,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
       _searchQuery = query;
       _loadVaccines();
     });
-  }
-
-  List<Vaccine> _applyCategoryFilter(List<Vaccine> items) {
-    if (_categoryIndex == 0) return items;
-    final catName = AppConstants.catalogCategories[_categoryIndex].toLowerCase();
-
-    return items.where((v) {
-      final name = v.name.toLowerCase();
-      final target = (v.targetGroup ?? '').toLowerCase();
-      if (catName.contains('trẻ em')) {
-        return name.contains('trẻ') || target.contains('trẻ') || name.contains('6 trong 1');
-      }
-      if (catName.contains('người lớn')) {
-        return name.contains('lớn') || target.contains('lớn') || name.contains('hpv') || name.contains('cúm');
-      }
-      if (catName.contains('thai')) {
-        return name.contains('uốn ván') || name.contains('bạch hầu') || target.contains('thai');
-      }
-      if (catName.contains('gói')) {
-        return name.contains('gói');
-      }
-      return true;
-    }).toList();
   }
 
   @override
@@ -84,17 +70,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppSearchField(
-                hintText: 'Tìm vắc xin, bệnh phòng ngừa...',
+                hintText: 'Tìm tên vắc xin...',
+                controller: _searchController,
                 onChanged: _onSearchChanged,
               ),
               const SizedBox(height: 12),
-              CategoryFilterBar(
-                categories: AppConstants.catalogCategories,
-                selectedIndex: _categoryIndex,
-                onSelect: (index) {
-                  setState(() => _categoryIndex = index);
-                },
-              ),
             ],
           ),
         ),
@@ -117,24 +97,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
               if (snapshot.hasError) {
                 final error = snapshot.error;
                 return ErrorView(
-                  message: error?.toString() ?? 'Chưa tải được danh mục. Kiểm tra kết nối API.',
+                  message:
+                      error?.toString() ??
+                      'Chưa tải được danh mục. Kiểm tra kết nối API.',
                   onRetry: _loadVaccines,
                 );
               }
 
               final rawItems = snapshot.data ?? [];
-              final filteredItems = _applyCategoryFilter(rawItems);
+              final filteredItems = rawItems;
+              final sourceLabel = rawItems is CatalogResult
+                  ? rawItems.sourceLabel
+                  : 'Nguồn chưa xác định';
 
               if (filteredItems.isEmpty) {
                 return EmptyStateView(
                   icon: Icons.search_off_rounded,
-                  title: 'Không tìm thấy vắc xin phù hợp',
+                  title: '$sourceLabel: Không tìm thấy vắc xin phù hợp',
                   description: _searchQuery.isNotEmpty
-                      ? 'Không có kết quả cho từ khóa "$_searchQuery". Bạn hãy thử tìm kiếm tên bệnh hoặc nhà sản xuất.'
+                      ? 'Không có kết quả cho từ khóa "$_searchQuery". Bạn hãy thử tìm kiếm tên vắc xin.'
                       : 'Chưa có vắc xin trong danh mục này.',
-                  actionLabel: _searchQuery.isNotEmpty ? 'Xóa tìm kiếm' : 'Tải lại',
+                  actionLabel: _searchQuery.isNotEmpty
+                      ? 'Xóa tìm kiếm'
+                      : 'Tải lại',
                   onAction: () {
                     if (_searchQuery.isNotEmpty) {
+                      _searchController.clear();
                       _onSearchChanged('');
                     } else {
                       _loadVaccines();
@@ -167,8 +155,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               color: AppColors.textSecondary,
                             ),
                           ),
-                          const Text(
-                            'Đảm bảo tiêu chuẩn GSP',
+                          Text(
+                            sourceLabel,
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.secondary,

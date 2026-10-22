@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tiem_chung_mobile/core/api_client.dart';
@@ -49,6 +50,72 @@ void main() {
           statusMessage: 'Service Unavailable',
         );
       }),
+    );
+    addTearDown(api.close);
+    await expectLater(api.getVaccines(), throwsException);
+  });
+  for (final payload in [
+    '{}',
+    '[]',
+    '{"items":null}',
+    '{"items":[null]}',
+    '{"items":[{"id":"1","name":"A"}]}',
+    '{"items":[{"id":1,"name":""}]}',
+    '{"items":[{"id":1,"name":"A","price":-1}]}',
+    '{"items":[{"id":1,"name":"A","origin":42}]}',
+    'not json',
+  ]) {
+    test('Rejects malformed payload: $payload', () async {
+      final api = ApiClient(
+        adapter: MockDioAdapter(
+          (_) async => ResponseBody.fromString(payload, 200),
+        ),
+      );
+      addTearDown(api.close);
+      await expectLater(api.getVaccines(), throwsException);
+    });
+  }
+  test(
+    'Missing optional fields stay unknown; medical extras are not trusted',
+    () {
+      final v = VaccineModel.fromJson({
+        'id': 1,
+        'name': 'HPV',
+        'inStock': true,
+        'scheduleSummary': 'invented',
+      });
+      expect(v.price, isNull);
+      expect(v.manufacturer, isNull);
+      expect(v.origin, isNull);
+      expect(v.inStock, isNull);
+      expect(v.scheduleSummary, isNull);
+      expect(v.targetGroup, isNull);
+      expect(v.diseasePrevention, isNull);
+      expect(v.formattedPrice, 'Chưa có giá');
+    },
+  );
+  for (final source in ['demo', 'database', 'other']) {
+    test('Preserves source for empty results: $source', () async {
+      final api = ApiClient(
+        adapter: MockDioAdapter(
+          (_) async =>
+              ResponseBody.fromString('{"source":"$source","items":[]}', 200),
+        ),
+      );
+      addTearDown(api.close);
+      final result = await api.getVaccines();
+      expect(result, isEmpty);
+      expect((result as CatalogResult).source, source);
+    });
+  }
+  test('Network timeout is an error without sample fallback', () async {
+    final api = ApiClient(
+      adapter: MockDioAdapter(
+        (options) async => throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionTimeout,
+        ),
+      ),
     );
     addTearDown(api.close);
     await expectLater(api.getVaccines(), throwsException);

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../domain/models/vaccine.dart';
 import 'vaccine_detail_sheet.dart';
 
 class VaccineCard extends StatelessWidget {
-  const VaccineCard({
-    super.key,
-    required this.vaccine,
-    this.onTap,
-  });
+  const VaccineCard({super.key, required this.vaccine, this.onTap});
 
   final Vaccine vaccine;
   final VoidCallback? onTap;
@@ -33,6 +30,7 @@ class VaccineCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(vaccine.sourceLabel),
                 // Top row: Icon + Name + Badge
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,14 +77,17 @@ class VaccineCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    AppBadge.success(text: 'Có sẵn'),
+                    const AppBadge(text: 'Chưa có tồn kho'),
                   ],
                 ),
 
                 if (vaccine.diseasePrevention != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceSubtle,
                       borderRadius: BorderRadius.circular(8),
@@ -128,7 +129,7 @@ class VaccineCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Giá niêm yết',
+                          'Giá từ danh mục',
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textMuted,
@@ -149,7 +150,9 @@ class VaccineCard extends StatelessWidget {
                     Row(
                       children: [
                         TextButton.icon(
-                          onPressed: onTap ?? () => VaccineDetailSheet.show(context, vaccine),
+                          onPressed:
+                              onTap ??
+                              () => VaccineDetailSheet.show(context, vaccine),
                           icon: const Text(
                             'Chi tiết',
                             style: TextStyle(
@@ -164,7 +167,10 @@ class VaccineCard extends StatelessWidget {
                             color: AppColors.primary,
                           ),
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),

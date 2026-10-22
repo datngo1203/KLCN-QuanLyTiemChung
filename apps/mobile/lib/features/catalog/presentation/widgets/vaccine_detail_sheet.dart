@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../domain/models/vaccine.dart';
@@ -22,9 +23,7 @@ class VaccineDetailSheet extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
 
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: mediaQuery.size.height * 0.85,
-      ),
+      constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.85),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -68,13 +67,8 @@ class VaccineDetailSheet extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 4,
                         children: [
-                          AppBadge.success(text: 'Còn hàng', icon: Icons.check_circle_outline),
-                          const AppBadge(
-                            text: 'Chuẩn GSP (2-8°C)',
-                            icon: Icons.ac_unit_rounded,
-                            backgroundColor: Color(0xFFF0FDF4),
-                            textColor: Color(0xFF15803D),
-                          ),
+                          const AppBadge(text: 'Chưa có dữ liệu tồn kho'),
+                          AppBadge(text: vaccine.sourceLabel),
                         ],
                       ),
                     ],
@@ -129,14 +123,17 @@ class VaccineDetailSheet extends StatelessWidget {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: AppColors.primaryLight),
                           ),
                           child: const Text(
-                            'Trả góp 0% / Đặt cọc',
+                            'Chưa có chính sách',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -153,28 +150,35 @@ class VaccineDetailSheet extends StatelessWidget {
                   _InfoSection(
                     icon: Icons.business_rounded,
                     title: 'Nhà sản xuất & Xuất xứ',
-                    content: '${vaccine.manufacturer ?? "Đang cập nhật"} (${vaccine.origin ?? "Việt Nam"})',
+                    content:
+                        '${vaccine.manufacturer ?? "Đang cập nhật"} (${vaccine.origin ?? "Chưa có xuất xứ"})',
                   ),
                   const SizedBox(height: 14),
 
                   _InfoSection(
                     icon: Icons.shield_outlined,
                     title: 'Bệnh phòng ngừa',
-                    content: vaccine.diseasePrevention ?? 'Phòng ngừa các bệnh theo phác đồ quy chuẩn y tế.',
+                    content:
+                        vaccine.diseasePrevention ??
+                        'API chưa cung cấp. Chờ bổ sung theo đề cương.',
                   ),
                   const SizedBox(height: 14),
 
                   _InfoSection(
                     icon: Icons.people_outline_rounded,
                     title: 'Đối tượng khuyến nghị',
-                    content: vaccine.targetGroup ?? 'Trẻ em và người lớn theo chỉ định bác sĩ khám sàng lọc.',
+                    content:
+                        vaccine.targetGroup ??
+                        'API chưa cung cấp. Chờ bổ sung theo đề cương.',
                   ),
                   const SizedBox(height: 14),
 
                   _InfoSection(
                     icon: Icons.calendar_today_outlined,
                     title: 'Phác đồ tiêm tham khảo',
-                    content: vaccine.scheduleSummary ?? 'Bác sĩ sẽ tư vấn phác đồ chi tiết tại phòng khám sàng lọc trước tiêm.',
+                    content:
+                        vaccine.scheduleSummary ??
+                        'API chưa cung cấp. Chờ bổ sung theo đề cương.',
                   ),
                   const SizedBox(height: 14),
 
@@ -186,12 +190,19 @@ class VaccineDetailSheet extends StatelessWidget {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Giá đã bao gồm phí khám sàng lọc trước tiêm và theo dõi phản ứng 30 phút sau tiêm.',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            'API chưa cung cấp phạm vi dịch vụ trong giá.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ],
@@ -204,7 +215,12 @@ class VaccineDetailSheet extends StatelessWidget {
 
           // Footer action
           Container(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + mediaQuery.padding.bottom),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              12 + mediaQuery.padding.bottom,
+            ),
             decoration: const BoxDecoration(
               color: AppColors.surface,
               border: Border(top: BorderSide(color: AppColors.border)),
@@ -217,15 +233,19 @@ class VaccineDetailSheet extends StatelessWidget {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Đã chọn ${vaccine.name}. Vui lòng chuyển sang tab "Lịch tiêm" để đặt hẹn.'),
+                          content: Text(
+                            'Chưa có API đăng ký; chưa tạo lịch hẹn cho ${vaccine.name}.',
+                          ),
                           backgroundColor: AppColors.primaryDark,
                           behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       );
                     },
                     icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                    label: const Text('Đăng ký tiêm chủng'),
+                    label: const Text('Đăng ký (chưa tích hợp)'),
                   ),
                 ),
               ],

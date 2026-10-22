@@ -2,28 +2,36 @@ class Vaccine {
   const Vaccine({
     required this.id,
     required this.name,
-    required this.price,
+    this.price,
+    this.source,
     this.manufacturer,
     this.origin,
     this.diseasePrevention,
     this.targetGroup,
     this.scheduleSummary,
-    this.inStock = true,
+    this.inStock,
   });
 
   final int id;
   final String name;
-  final double price;
+  final double? price;
+  final String? source;
+  String get sourceLabel => source == "demo"
+      ? "API: Dữ liệu mẫu"
+      : source == "database"
+      ? "API: Cơ sở dữ liệu"
+      : "API: Nguồn chưa xác định";
   final String? manufacturer;
   final String? origin;
   final String? diseasePrevention;
   final String? targetGroup;
   final String? scheduleSummary;
-  final bool inStock;
+  final bool? inStock;
 
   /// Format price in Vietnamese Dong (e.g. 450.000 đ)
   String get formattedPrice {
-    final intPrice = price.round();
+    if (price == null) return 'Chưa có giá';
+    final intPrice = price!.round();
     final str = intPrice.toString();
     final buffer = StringBuffer();
     int count = 0;
