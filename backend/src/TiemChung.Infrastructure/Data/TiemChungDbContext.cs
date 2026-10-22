@@ -7,6 +7,15 @@ public sealed class TiemChungDbContext(DbContextOptions<TiemChungDbContext> opti
 {
     public DbSet<VacXin> Vaccines => Set<VacXin>();
 
+    public DbSet<KhachHang> Customers => Set<KhachHang>();
+    public DbSet<NguoiDuocTiem> Recipients => Set<NguoiDuocTiem>();
+    public DbSet<DangKyDichVu> Registrations => Set<DangKyDichVu>();
+    public DbSet<ChiTietVacXinLe> RegistrationVaccineItems => Set<ChiTietVacXinLe>();
+    public DbSet<ChiTietGoiVacXin> RegistrationPackageItems => Set<ChiTietGoiVacXin>();
+    public DbSet<HangDoiVacXin> VaccineWaitlists => Set<HangDoiVacXin>();
+    public DbSet<ThanhToan> Payments => Set<ThanhToan>();
+    public DbSet<KhuyenMai> Promotions => Set<KhuyenMai>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         var nhanvien = model.Entity<NhanVien>();

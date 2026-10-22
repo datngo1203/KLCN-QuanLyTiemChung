@@ -1,0 +1,235 @@
+using Microsoft.EntityFrameworkCore;
+using TiemChung.Contracts;
+using TiemChung.Domain.Entities;
+using TiemChung.Infrastructure.Data;
+
+namespace TiemChung.Api;
+
+public static class ProfileEndpoints
+{
+    public static IEndpointRouteBuilder MapProfileEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/v1").WithTags("Profiles");
+
+        // GET /api/v1/customers
+        group.MapGet("/customers", async (string? search, TiemChungDbContext db, CancellationToken ct) =>
+        {
+            var query = db.Customers.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(c =>
+                    c.HoTen.Contains(keyword) ||
+                    c.SoDienThoai.Contains(keyword) ||
+                    c.CCCD.Contains(keyword));
+            }
+
+            var items = await query
+                .OrderByDescending(c => c.MaKhachHang)
+                .Take(100)
+                .Select(c => new CustomerDto(c.MaKhachHang, c.HoTen, c.CCCD, c.SoDienThoai, c.Email))
+                .ToListAsync(ct);
+
+            return Results.Ok(new CustomerListResponse(items));
+        }).WithName("ListCustomers");
+
+        // POST /api/v1/customers
+        group.MapPost("/customers", async (CreateCustomerRequest req, TiemChungDbContext db, CancellationToken ct) =>
+        {
+            var errors = ValidateCustomer(req);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+            var normalizedCccd = req.IdentityNumber.Trim();
+            var cccdExists = await db.Customers.AnyAsync(c => c.CCCD == normalizedCccd, ct);
+            if (cccdExists)
+            {
+                return Results.Problem(
+                    title: "Trùng lặp dữ liệu",
+                    detail: "Số CCCD này đã tồn tại trong hồ sơ khách hàng.",
+                    statusCode: StatusCodes.Status409Conflict);
+            }
+
+            var entity = new KhachHang
+            {
+                HoTen = req.FullName.Trim(),
+                CCCD = normalizedCccd,
+                SoDienThoai = req.PhoneNumber.Trim(),
+                Email = req.Email.Trim()
+            };
+
+            db.Customers.Add(entity);
+            await db.SaveChangesAsync(ct);
+
+            var dto = new CustomerDto(entity.MaKhachHang, entity.HoTen, entity.CCCD, entity.SoDienThoai, entity.Email);
+            return Results.Created($"/api/v1/customers/{dto.Id}", dto);
+        }).WithName("CreateCustomer");
+
+        // GET /api/v1/recipients
+        group.MapGet("/recipients", async (int? customerId, string? search, TiemChungDbContext db, CancellationToken ct) =>
+        {
+            var query = db.Recipients.AsNoTracking().AsQueryable();
+
+            if (customerId.HasValue)
+            {
+                query = query.Where(r => r.MaKhachHang == customerId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(r => r.HoTen.Contains(keyword) || (r.CCCD != null && r.CCCD.Contains(keyword)));
+            }
+
+            var items = await query
+                .OrderByDescending(r => r.MaNguoiDuocTiem)
+                .Take(100)
+                .Select(r => new RecipientDto(
+                    r.MaNguoiDuocTiem,
+                    r.MaKhachHang,
+                    r.HoTen,
+                    r.CCCD,
+                    r.NgaySinh,
+                    r.GioiTinh,
+                    r.QuanHeVoiKhachHang))
+                .ToListAsync(ct);
+
+            return Results.Ok(new RecipientListResponse(items));
+        }).WithName("ListRecipients");
+
+        // POST /api/v1/recipients
+        group.MapPost("/recipients", async (CreateRecipientRequest req, TiemChungDbContext db, CancellationToken ct) =>
+        {
+            var errors = ValidateRecipient(req.FullName, req.IdentityNumber, req.DateOfBirth, req.Gender, req.RelationshipToCustomer);
+            if (req.CustomerId <= 0)
+            {
+                errors["customerId"] = ["Mã khách hàng bảo trợ phải là số nguyên dương."];
+            }
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+            var customerExists = await db.Customers.AnyAsync(c => c.MaKhachHang == req.CustomerId, ct);
+            if (!customerExists)
+            {
+                return Results.Problem(
+                    title: "Không tìm thấy khách hàng",
+                    detail: $"Không tồn tại khách hàng bảo trợ với mã {req.CustomerId}.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            var entity = new NguoiDuocTiem
+            {
+                MaKhachHang = req.CustomerId,
+                HoTen = req.FullName.Trim(),
+                CCCD = string.IsNullOrWhiteSpace(req.IdentityNumber) ? null : req.IdentityNumber.Trim(),
+                NgaySinh = req.DateOfBirth,
+                GioiTinh = req.Gender.Trim(),
+                QuanHeVoiKhachHang = req.RelationshipToCustomer.Trim()
+            };
+
+            db.Recipients.Add(entity);
+            await db.SaveChangesAsync(ct);
+
+            var dto = new RecipientDto(
+                entity.MaNguoiDuocTiem,
+                entity.MaKhachHang,
+                entity.HoTen,
+                entity.CCCD,
+                entity.NgaySinh,
+                entity.GioiTinh,
+                entity.QuanHeVoiKhachHang);
+
+            return Results.Created($"/api/v1/recipients/{dto.Id}", dto);
+        }).WithName("CreateRecipient");
+
+        // PUT /api/v1/recipients/{id}
+        group.MapPut("/recipients/{id:int}", async (int id, UpdateRecipientRequest req, TiemChungDbContext db, CancellationToken ct) =>
+        {
+            var errors = ValidateRecipient(req.FullName, req.IdentityNumber, req.DateOfBirth, req.Gender, req.RelationshipToCustomer);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+            var entity = await db.Recipients.FirstOrDefaultAsync(r => r.MaNguoiDuocTiem == id, ct);
+            if (entity is null)
+            {
+                return Results.Problem(
+                    title: "Không tìm thấy người được tiêm",
+                    detail: $"Không tồn tại hồ sơ người tiêm với mã {id}.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
+            entity.HoTen = req.FullName.Trim();
+            entity.CCCD = string.IsNullOrWhiteSpace(req.IdentityNumber) ? null : req.IdentityNumber.Trim();
+            entity.NgaySinh = req.DateOfBirth;
+            entity.GioiTinh = req.Gender.Trim();
+            entity.QuanHeVoiKhachHang = req.RelationshipToCustomer.Trim();
+
+            await db.SaveChangesAsync(ct);
+
+            var dto = new RecipientDto(
+                entity.MaNguoiDuocTiem,
+                entity.MaKhachHang,
+                entity.HoTen,
+                entity.CCCD,
+                entity.NgaySinh,
+                entity.GioiTinh,
+                entity.QuanHeVoiKhachHang);
+
+            return Results.Ok(dto);
+        }).WithName("UpdateRecipient");
+
+        return app;
+    }
+
+    private static Dictionary<string, string[]> ValidateCustomer(CreateCustomerRequest req)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(req.FullName) || req.FullName.Trim().Length > 150)
+            errors["fullName"] = ["Họ tên khách hàng là bắt buộc và tối đa 150 ký tự."];
+
+        var cccd = req.IdentityNumber?.Trim() ?? string.Empty;
+        if (cccd.Length != 12 || !cccd.All(char.IsDigit))
+            errors["identityNumber"] = ["CCCD phải gồm đúng 12 chữ số."];
+
+        var phone = req.PhoneNumber?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(phone) || phone.Length > 15 || !phone.All(char.IsDigit))
+            errors["phoneNumber"] = ["Số điện thoại không hợp lệ (chỉ chứa chữ số, tối đa 15 ký tự)."];
+
+        var email = req.Email?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254 || !email.Contains('@'))
+            errors["email"] = ["Email không hợp lệ."];
+
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateRecipient(
+        string fullName,
+        string? identityNumber,
+        DateOnly dateOfBirth,
+        string gender,
+        string relationship)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Trim().Length > 150)
+            errors["fullName"] = ["Họ tên người tiêm là bắt buộc và tối đa 150 ký tự."];
+
+        if (!string.IsNullOrWhiteSpace(identityNumber))
+        {
+            var cccd = identityNumber.Trim();
+            if (cccd.Length != 12 || !cccd.All(char.IsDigit))
+                errors["identityNumber"] = ["CCCD (nếu nhập) phải gồm đúng 12 chữ số."];
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (dateOfBirth > today)
+            errors["dateOfBirth"] = ["Ngày sinh không được lớn hơn ngày hiện tại."];
+
+        if (string.IsNullOrWhiteSpace(gender) || gender.Trim().Length > 20)
+            errors["gender"] = ["Giới tính là bắt buộc và tối đa 20 ký tự."];
+
+        if (string.IsNullOrWhiteSpace(relationship) || relationship.Trim().Length > 50)
+            errors["relationshipToCustomer"] = ["Quan hệ với khách hàng là bắt buộc và tối đa 50 ký tự."];
+
+        return errors;
+    }
+}
