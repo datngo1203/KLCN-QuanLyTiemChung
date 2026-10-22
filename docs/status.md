@@ -155,3 +155,7 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 - **3.6:** các trường bị giao diện cũ bỏ quên đã có vị trí nhập/hiển thị tương ứng. `MaNhanVien`, `MaPhieuKham`, ID catalog thật và timestamp vẫn chờ phiên/API; không cho người dùng nhập actor tùy ý.
 - Reuse các style `CE.*`; chỉ bổ sung `CE.Alert.Safety` trong `Themes/Cards.xaml`. Không sửa backend, contract, schema hoặc XAML `_Legacy/`.
 - Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp ảnh toàn màn hình A02 ở trạng thái form Sample hợp lệ; ảnh lưu cục bộ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+
+## Hoàn thiện Windows UI trên ui/windows-redesign — 2026-10-22
+
+- Clinical Neutral đã khớp token; menu ngang tại 1366 DIP, drawer dưới 1240 DIP; A13 được giữ làm popover tài khoản và A14 mở từ đó. A02 có 20/20 ô nhập/nút đặt tên trợ năng; harness STA ngoài repo đạt 4/4 kiểm tra validation và gợi ý dị ứng không tự đổi kết luận. Grep ViewsV2/Themes/Screens không còn các màu/cỡ chữ mục tiêu; `#66000000` chỉ còn trong token overlay cục bộ. Release build đạt 0 warning/0 error; backend đạt 11/11. Web lint/build và Flutter analyze/test chưa chạy được do thiếu oxlint, vite, flutter trong môi trường.
