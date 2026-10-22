@@ -1,0 +1,194 @@
+<UserControl x:Class="TiemChung.Desktop.ViewsV2.OverviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             x:Name="Overview" Language="vi-VN" SizeChanged="View_SizeChanged">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisibility" />
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,24">
+        <StackPanel>
+            <WrapPanel Margin="0,0,0,20">
+                <StackPanel Margin="0,0,28,16">
+                    <TextBlock Text="KHÔNG GIAN LÀM VIỆC" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Primary}" />
+                    <TextBlock Text="Tổng quan" Style="{StaticResource CE.Heading}" Margin="0,4,0,4" />
+                    <TextBlock Text="Theo dõi công việc và lịch hẹn trong ngày" Style="{StaticResource CE.Caption}" />
+                </StackPanel>
+                <StackPanel Margin="0,0,0,12" VerticalAlignment="Center">
+                    <WrapPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Từ ngày" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" />
+                            <DatePicker x:Name="FromDatePicker" SelectedDate="{Binding FromDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.DatePicker}"
+                                        Width="155" AutomationProperties.Name="Ngày bắt đầu" />
+                        </StackPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Đến ngày" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" />
+                            <DatePicker SelectedDate="{Binding ToDate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.DatePicker}"
+                                        Width="155" AutomationProperties.Name="Ngày kết thúc" />
+                        </StackPanel>
+                        <Button Content="Làm mới" Command="{Binding RefreshCommand}" Style="{StaticResource CE.Button.Primary}" VerticalAlignment="Bottom" />
+                    </WrapPanel>
+                    <TextBlock Text="{Binding PeriodError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" />
+                </StackPanel>
+            </WrapPanel>
+            <DockPanel Margin="0,0,0,12">
+                <Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Warning}" ToolTip="Các số liệu và hồ sơ đang dùng để xem trước giao diện.">
+                    <TextBlock Text="Dữ liệu mẫu" FontWeight="SemiBold" />
+                </Border>
+                <TextBlock Text="Luồng xử lý" Style="{StaticResource CE.SectionHeading}" VerticalAlignment="Center" />
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding Stages}" Margin="-6,0,-6,20">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid>
+                            <UniformGrid.Style>
+                                <Style TargetType="UniformGrid">
+                                    <Setter Property="Columns" Value="4" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCompact, ElementName=Overview}" Value="True"><Setter Property="Columns" Value="2" /></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </UniformGrid.Style>
+                        </UniformGrid>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding DataContext.ChuyenHuongNhanhCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}" Margin="6" Padding="16" HorizontalContentAlignment="Stretch">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Primary}">
+                                    <Setter Property="Background" Value="{StaticResource CE.Surface}" /><Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{StaticResource CE.Selected}"/><Setter Property="BorderBrush" Value="{StaticResource CE.Primary}"/></Trigger></Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Label}" Style="{StaticResource CE.Caption}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.SecondaryText}" Margin="0,6,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><Border Style="{StaticResource CE.Badge.Neutral}"><TextBlock Text="{Binding SampleCount, TargetNullValue=—}" Style="{StaticResource CE.SectionHeading}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><TextBlock Text="→" Style="{StaticResource CE.SectionHeading}" Foreground="{StaticResource CE.Primary}" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid x:Name="Workspace">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition>
+                        <ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="20" /><Style.Triggers><DataTrigger Binding="{Binding IsCompact, ElementName=Overview}" Value="True"><Setter Property="Width" Value="0" /></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style>
+                    </ColumnDefinition>
+                    <ColumnDefinition>
+                        <ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="310" /><Style.Triggers><DataTrigger Binding="{Binding IsCompact, ElementName=Overview}" Value="True"><Setter Property="Width" Value="0" /></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style>
+                    </ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Border Style="{StaticResource CE.Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Cần xử lý trong phạm vi" Style="{StaticResource CE.SectionHeading}" />
+                        <TextBlock Text="{Binding PeriodLabel}" Style="{StaticResource CE.Caption}" Margin="0,6,0,16" />
+                        <WrapPanel Margin="0,0,0,16">
+                            <ToggleButton Content="Lịch hẹn" Style="{StaticResource CE.Menu.Level1}" Margin="0,0,8,8"
+                                          IsChecked="{Binding IsAppointmentMode, Mode=OneWay}" Command="{Binding SelectWorkModeCommand}" CommandParameter="Lịch hẹn" />
+                            <ToggleButton Content="Công việc theo trạng thái" Style="{StaticResource CE.Menu.Level1}" Margin="0,0,0,8"
+                                          IsChecked="{Binding IsTaskMode, Mode=OneWay}" Command="{Binding SelectWorkModeCommand}" CommandParameter="Công việc" />
+                        </WrapPanel>
+                        <TextBlock Text="Tìm tên, mã hồ sơ hoặc dịch vụ" Style="{StaticResource CE.Caption}" Margin="0,0,0,6" />
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}"
+                                 AutomationProperties.Name="Tìm tên, mã hồ sơ hoặc dịch vụ" ToolTip="Tìm tên, mã hồ sơ hoặc dịch vụ" Margin="0,0,0,12" />
+                        <DockPanel Margin="0,0,0,12">
+                            <Button DockPanel.Dock="Right" Content="Xóa lọc" Command="{Binding ClearFiltersCommand}" Style="{StaticResource CE.Button.Secondary}" />
+                            <TextBlock Text="{Binding ResultLabel}" Style="{StaticResource CE.Caption}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <Grid MinHeight="260">
+                            <DataGrid x:Name="WorkTable" ItemsSource="{Binding WorkItemsView}" Style="{StaticResource CE.DataGrid}"
+                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                      CanUserReorderColumns="False" SelectionMode="Single" MinHeight="260" MaxHeight="400"
+                                      AutomationProperties.Name="Danh sách lịch hẹn và công việc mẫu">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Giờ" Binding="{Binding TimeLabel}" Width="65" />
+                                    <DataGridTemplateColumn Header="Người được tiêm" Width="*" MinWidth="170">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding RecipientName}" TextWrapping="Wrap" /><TextBlock Text="{Binding Id}" FontSize="11" Foreground="{StaticResource CE.SecondaryText}" Margin="0,4,0,0" /></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Nội dung" Binding="{Binding Description}" Width="150" />
+                                    <DataGridTemplateColumn Header="Trạng thái" Width="145"><DataGridTemplateColumn.CellTemplate><DataTemplate><Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left"><TextBlock Text="{Binding Status}"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="" Width="65">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                            <Button Content="Mở" Style="{StaticResource CE.Button.Secondary}" Padding="6" MinHeight="32"
+                                                    Command="{Binding DataContext.OpenWorkItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                        </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <Border Background="{StaticResource CE.Surface}" Margin="1,42,1,1" Padding="20"
+                                    Visibility="{Binding HasNoResults, Converter={StaticResource BoolVisibility}}">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="Search24" Foreground="{StaticResource CE.SecondaryText}" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,12" />
+                                    <TextBlock Text="Không có kết quả phù hợp" Style="{StaticResource CE.SectionHeading}" TextAlignment="Center" />
+                                    <TextBlock Text="Thử đổi khoảng ngày hoặc xóa bộ lọc." Style="{StaticResource CE.Caption}" TextAlignment="Center" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <WrapPanel Margin="0,16,0,0">
+                            <Button Content="Mở màn xử lý trạng thái" Command="{Binding OpenStageCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,0,8" />
+                        </WrapPanel>
+                        <TextBlock Text="{Binding RefreshMessage}" Style="{StaticResource CE.Caption}" />
+                    </StackPanel>
+                </Border>
+                <StackPanel x:Name="SummaryPanel">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Grid.Column" Value="2" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompact, ElementName=Overview}" Value="True">
+                                    <Setter Property="Grid.Column" Value="0" /><Setter Property="Grid.Row" Value="1" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" /><Setter Property="Margin" Value="0,20,0,0" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Border Style="{StaticResource CE.Card}">
+                        <StackPanel>
+                            <TextBlock Text="Tóm tắt hoạt động" Style="{StaticResource CE.SectionHeading}" />
+
+                            <ItemsControl ItemsSource="{Binding Metrics}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <StackPanel Margin="0,0,8,16">
+                                        <TextBlock Text="{Binding Label}" Style="{StaticResource CE.Caption}" />
+                                        <TextBlock Text="{Binding Value}" Style="{StaticResource CE.Heading}" Margin="0,4,0,4" />
+                                        <TextBlock Text="{Binding Description}" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.SecondaryText}" />
+                                    </StackPanel>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Border Margin="0,20,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource CE.Card}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ApiHealthy}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource CE.Selected}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource CE.CardBorder}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ApiHealthy}" Value="False">
+                                        <Setter Property="Background" Value="{StaticResource CE.Warning.Background}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource CE.Warning.Accent}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối API" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
+                            <TextBlock Text="{Binding ApiStatus}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ApiCheckedAt}" Style="{StaticResource CE.Caption}" Margin="0,6,0,12" />
+                            <Button Content="Kiểm tra kết nối" Command="{Binding CheckApiCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" />
+                            <TextBlock Text="Kiểm tra phản hồi từ dịch vụ." Style="{StaticResource CE.Caption}" Margin="0,12,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <TextBlock Text="{Binding DataSourceLabel}" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.SecondaryText}" Margin="0,20,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
