@@ -27,6 +27,7 @@ public sealed class ShellViewModel : ViewModelBase
         Inventory = new InventoryViewModel();
         Promotion = new PromotionViewModel();
         Vaccination = new VaccinationViewModel();
+        Appointments = new AppointmentViewModel();
         CurrentView = NavigationRegistry.CreatePage("A01", this);
         SelectGroupCommand = new RelayCommand(p =>
         {
@@ -62,6 +63,7 @@ public sealed class ShellViewModel : ViewModelBase
     public InventoryViewModel Inventory { get; }
     public PromotionViewModel Promotion { get; }
     public VaccinationViewModel Vaccination { get; }
+    public AppointmentViewModel Appointments { get; }
     private object _currentView = null!;
     public object CurrentView { get => _currentView; private set => Set(ref _currentView, value); }
     public string CurrentUserDisplayName { get => _currentUserDisplayName; private set => Set(ref _currentUserDisplayName, value); }

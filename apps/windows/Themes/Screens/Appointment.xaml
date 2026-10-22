@@ -1,0 +1,9 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="A09.StatusBadge" TargetType="Border" BasedOn="{StaticResource CE.Badge.Warning}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding DisplayStatus}" Value="Quá hạn"><Setter Property="Background" Value="{StaticResource CE.Danger.Background}"/><Setter Property="TextElement.Foreground" Value="{StaticResource CE.Danger.Foreground}"/></DataTrigger>
+            <DataTrigger Binding="{Binding DisplayStatus}" Value="Đã đến"><Setter Property="Background" Value="{StaticResource CE.Success.Background}"/><Setter Property="TextElement.Foreground" Value="{StaticResource CE.Success.Foreground}"/></DataTrigger>
+            <DataTrigger Binding="{Binding DisplayStatus}" Value="Hủy hẹn"><Setter Property="Background" Value="{StaticResource CE.Neutral.Background}"/><Setter Property="TextElement.Foreground" Value="{StaticResource CE.Neutral.Foreground}"/></DataTrigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

@@ -26,6 +26,7 @@ public static class NavigationRegistry
         "A05" => new InventoryView { DataContext = shell.Inventory },
         "A10" => new PromotionView { DataContext = shell.Promotion },
         "A06" => new VaccinationView { DataContext = shell.Vaccination },
+        "A09" => new AppointmentView { DataContext = shell.Appointments },
         _ => new PlaceholderView { DataContext = new PlaceholderViewModel(Groups.SelectMany(g => g.Screens).First(s => s.Id == id)) }
     };
 }
