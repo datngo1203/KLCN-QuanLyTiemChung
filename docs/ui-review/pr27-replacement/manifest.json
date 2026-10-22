@@ -1,0 +1,129 @@
+{
+  "kind": "Synthetic WPF RenderTargetBitmap 96 DPI; content arranged at 1366x768 or 980x620 DIP. Not a native viewport screenshot or physical DPI test.",
+  "files": [
+    {
+      "bytes": 97903,
+      "file": "A01-normal.png",
+      "sha256": "804918E4A9EED79F47C47ADFF35FBE4181394BDDE7EAFBEDF1E3D8254111D72F"
+    },
+    {
+      "bytes": 32491,
+      "file": "A02-empty.png",
+      "sha256": "7BCA81FC7C063C1021A1495612A10218D9EE28E24E8F6E480CE7860905FE677C"
+    },
+    {
+      "bytes": 94759,
+      "file": "A02-error.png",
+      "sha256": "7748EF0A44661FC7AD0AF0DB5AF0F38D13B8A822C09FBA52C20171EA8675E1D5"
+    },
+    {
+      "bytes": 97462,
+      "file": "A02-hint.png",
+      "sha256": "501E995D999847ED66DB3A5D8091B95660DDA78D3AFA779D58B03067EEEEC4A4"
+    },
+    {
+      "bytes": 56205,
+      "file": "A02-normal.png",
+      "sha256": "A132AC85AF0B6EA9405A1584888C40DC086F172DD46E4E917F68FF9635D1E56A"
+    },
+    {
+      "bytes": 74115,
+      "file": "A04-normal.png",
+      "sha256": "9E50945D578B74FFD8BE41DD62DDB7A13D1583E01AFDFD860656C6E4C8067EF6"
+    },
+    {
+      "bytes": 60992,
+      "file": "A05-normal.png",
+      "sha256": "54BACE420957BF395E896F2C526D650D7DAC654A3B88B2D5EFF6B311B1095C6D"
+    },
+    {
+      "bytes": 63135,
+      "file": "A07-normal.png",
+      "sha256": "C86262F2EFD3BA68C6CA0D51592CAFA8FAF502DC8DE9482A480763E56F98F27D"
+    },
+    {
+      "bytes": 74002,
+      "file": "A11-normal.png",
+      "sha256": "FAC3962517AFE1D2997B67055EE452F4C62118F7E7D41302F1199464F8620D39"
+    },
+    {
+      "bytes": 63850,
+      "file": "A12-empty.png",
+      "sha256": "0FA212D4EA3D2DB5481BF5EB13F6839EB3C1EDF3A8EE7AB01D4304F57352F98B"
+    },
+    {
+      "bytes": 81657,
+      "file": "A12-error.png",
+      "sha256": "FB96F048A50B054CF16EFAFE5D9A0D3374CB923B1A7229D5FA6968572006E652"
+    },
+    {
+      "bytes": 57549,
+      "file": "A12-narrow.png",
+      "sha256": "487BD99AB91425A3AB9D8AF5DA773ABF2B83166D5228E7708D2DB3C153A6270D"
+    },
+    {
+      "bytes": 79865,
+      "file": "A12-normal.png",
+      "sha256": "98A90D450451ED8037415872B426688C73224A1E50A3122CE194793AB82DAAA6"
+    },
+    {
+      "bytes": 71544,
+      "file": "A12-permissions.png",
+      "sha256": "AC2381F2DF5DFC9E6F18BBC24ECDA6D576B07971A41397CB8EEFD338992304BC"
+    },
+    {
+      "bytes": 36171,
+      "file": "A13-no-source.png",
+      "sha256": "24E009B9A75F834482267742A1597D70191F09D2D8B955CC48BFD6F050004B1A"
+    },
+    {
+      "bytes": 36437,
+      "file": "A13-sample.png",
+      "sha256": "3E5E466146A04763F679B409B7693AB504A7678B8982D29D86D20C6C79099FC7"
+    },
+    {
+      "bytes": 41424,
+      "file": "A14-empty.png",
+      "sha256": "2ACFC65A9B9CFEEF3949F8C60D6B28307AD8A328F456A9E6E5CF5286071DD9F3"
+    },
+    {
+      "bytes": 41424,
+      "file": "A14-error.png",
+      "sha256": "2ACFC65A9B9CFEEF3949F8C60D6B28307AD8A328F456A9E6E5CF5286071DD9F3"
+    },
+    {
+      "bytes": 30158,
+      "file": "A14-no-source.png",
+      "sha256": "6799BB0918D18C779871912F8D2DB379BF5B2E8ACDA973518B0CAB48F96E3BAC"
+    },
+    {
+      "bytes": 41424,
+      "file": "A14-normal.png",
+      "sha256": "2ACFC65A9B9CFEEF3949F8C60D6B28307AD8A328F456A9E6E5CF5286071DD9F3"
+    },
+    {
+      "bytes": 44185,
+      "file": "A14-service-error.png",
+      "sha256": "EF0A07A3C7957E5285721FAD1C8234D21B79B043D496C1701661EB9AC57E5462"
+    },
+    {
+      "bytes": 28197,
+      "file": "login-normal.png",
+      "sha256": "FEE7D326C004C06975DDC2566B3FE4E51400A4110B969370D3FB040DFBDA4A14"
+    },
+    {
+      "bytes": 32530,
+      "file": "shell-drawer.png",
+      "sha256": "8BCC58E3B3DD3BDBEAB92669134CF0F73B3ADDBE469E7D88FABE124F231CF616"
+    },
+    {
+      "bytes": 33668,
+      "file": "shell-narrow.png",
+      "sha256": "EA8CE8654113EC1463C23C0B8E8695926A7F9B2AFCA7E2415FA144742A51061D"
+    }
+  ],
+  "command": "dotnet run --project scripts/ui-review/PR27.Render/Review.csproj -c Release",
+  "time": "2026-10-23T01:55:57.6609377+07:00",
+  "baseSha": "f188084389a0033b856594632ae2c6495b29e248",
+  "codeSha": "d47a0ee9e63a23e57c23368f424cb3b0b00e5993"
+}
