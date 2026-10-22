@@ -10,6 +10,7 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed class OverviewViewModel : ViewModelBase
 {
     private readonly TiemChungApiClient _apiClient = new();
+    private readonly IDashboardService _dashboardService;
     private readonly Action<string> _navigate;
     private DateTime? _fromDate = DateTime.Today;
     private DateTime? _toDate = DateTime.Today;
@@ -22,14 +23,15 @@ public sealed class OverviewViewModel : ViewModelBase
     private bool _isCheckingApi;
     private bool? _apiHealthy;
 
-    public OverviewViewModel(Action<string> navigate)
+    public OverviewViewModel(Action<string> navigate, IDashboardService? dashboardService = null)
     {
         _navigate = navigate;
-        WorkItems = new ObservableCollection<OverviewWorkItem>(OverviewSampleData.CreateWorkItems(DateTime.Today));
+        _dashboardService = dashboardService ?? new SampleDashboardService();
+        WorkItems = new ObservableCollection<OverviewWorkItem>(_dashboardService.GetWorkItems(DateTime.Today));
         WorkItemsView = CollectionViewSource.GetDefaultView(WorkItems);
         WorkItemsView.Filter = MatchesFilters;
-        Stages = OverviewSampleData.CreateStages();
-        Metrics = OverviewSampleData.CreateMetrics();
+        Stages = _dashboardService.GetStages();
+        Metrics = _dashboardService.GetMetrics();
         RefreshCommand = new RelayCommand(_ => Refresh(), _ => HasValidPeriod);
         ClearFiltersCommand = new RelayCommand(_ => { SearchText = ""; ActiveStage = ""; FromDate = DateTime.Today; ToDate = DateTime.Today; Refresh(); });
         SelectWorkModeCommand = new RelayCommand(p => { WorkMode = p as string ?? "Lịch hẹn"; });
@@ -55,8 +57,8 @@ public sealed class OverviewViewModel : ViewModelBase
     public RelayCommand OpenWorkItemCommand { get; }
     public RelayCommand OpenStageCommand { get; }
     public RelayCommand CheckApiCommand { get; }
-    public bool IsSampleData => true;
-    public string DataSourceLabel => "Dữ liệu mẫu";
+    public bool IsSampleData => _dashboardService.UseSampleData;
+    public string DataSourceLabel => IsSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
     public DateTime? FromDate { get => _fromDate; set { if (Set(ref _fromDate, value)) PeriodChanged(); } }
     public DateTime? ToDate { get => _toDate; set { if (Set(ref _toDate, value)) PeriodChanged(); } }
     public bool HasValidPeriod => FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date <= ToDate.Value.Date;
