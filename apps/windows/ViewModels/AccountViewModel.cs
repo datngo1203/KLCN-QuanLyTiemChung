@@ -56,6 +56,38 @@ public sealed class AccountViewModel : ViewModelBase
     public RelayCommand AssignPermissionsCommand { get; }
 
     public string DataSourceLabel => _service.UseSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
+    public string CurrentSessionJobTitle
+    {
+        get
+        {
+            if (!_service.UseSampleData) return "Chưa có chức danh từ dịch vụ xác thực.";
+            var account = Accounts.FirstOrDefault(x => x.UserName.Equals(_currentUser, StringComparison.OrdinalIgnoreCase));
+            var employee = account is null ? null : Employees.FirstOrDefault(x => x.Id == account.EmployeeId);
+            var title = employee?.JobTitle switch
+            {
+                "BacSi" => "Bác sĩ",
+                "DieuDuong" => "Điều dưỡng",
+                "ThuNgan" => "Thu ngân",
+                "LeTan" => "Lễ tân",
+                "ThuKho" => "Thủ kho",
+                "Admin" => "Quản trị viên",
+                _ => null
+            };
+            return title is null ? "Chưa có chức danh trong dữ liệu mẫu." : $"{title} (dữ liệu mẫu)";
+        }
+    }
+    public string CurrentSessionPermissionDisplay
+    {
+        get
+        {
+            if (!_service.UseSampleData) return "Chưa có quyền được cung cấp từ dịch vụ xác thực.";
+            var account = Accounts.FirstOrDefault(x => x.UserName.Equals(_currentUser, StringComparison.OrdinalIgnoreCase));
+            if (account is null) return "Chưa có dữ liệu quyền trong phiên mẫu.";
+            return account.AdditionalPermissions.Count == 0
+                ? "Chưa có quyền xác thực; dữ liệu mẫu không cấp quyền bổ sung cho phiên này."
+                : $"Quyền bổ sung mẫu: {string.Join(", ", account.AdditionalPermissions)}. Quyền xác thực chưa được tải.";
+        }
+    }
     // TODO: Bind account-management permission from the authenticated shell session when available.
     public bool CanManageAccounts => true;
     public bool HasNoEmployees => Employees.Count == 0;
@@ -72,6 +104,8 @@ public sealed class AccountViewModel : ViewModelBase
             _service.UseSampleData = value;
             Reload();
             OnPropertyChanged(nameof(DataSourceLabel));
+            OnPropertyChanged(nameof(CurrentSessionJobTitle));
+            OnPropertyChanged(nameof(CurrentSessionPermissionDisplay));
         }
     }
 
@@ -132,6 +166,7 @@ public sealed class AccountViewModel : ViewModelBase
             PermissionOptions.Add(option);
         }
         OnPropertyChanged(nameof(HasNoEmployees)); OnPropertyChanged(nameof(HasNoAccounts)); OnPropertyChanged(nameof(HasNoPermissions));
+        OnPropertyChanged(nameof(CurrentSessionJobTitle)); OnPropertyChanged(nameof(CurrentSessionPermissionDisplay));
         SelectedEmployee = null; SelectedAccount = null; EmployeeForAccount = Employees.FirstOrDefault(x => !Accounts.Any(a => a.EmployeeId == x.Id));
         ClearEmployee();
         UserName = "";
@@ -170,7 +205,7 @@ public sealed class AccountViewModel : ViewModelBase
     private void ResetPassword()
     {
         if (!CanResetPassword || SelectedAccount is null) return;
-        Feedback = _service.ResetPassword(SelectedAccount.UserName) ? "Đã mô phỏng đặt lại mật khẩu; chưa nối dịch vụ Identity." : "Không thể đặt lại mật khẩu tài khoản này.";
+        Feedback = _service.ResetPassword(SelectedAccount.UserName) ? "Đã minh họa đặt lại mật khẩu; chưa có dịch vụ xác thực thật." : "Không thể đặt lại mật khẩu tài khoản này.";
     }
     private void AssignPermissions()
     {
@@ -178,7 +213,7 @@ public sealed class AccountViewModel : ViewModelBase
         var codes = PermissionOptions.Where(x => x.IsSelected).Select(x => x.Code).ToArray();
         if (!_service.AssignPermissions(SelectedAccount.UserName, codes)) { Feedback = "Không thể gán quyền cho tài khoản hiện tại."; return; }
         SelectedAccount.SetPermissions(codes);
-        Feedback = "Đã cập nhật quyền mẫu; chưa có seed/kiểm tra quyền thật ở backend.";
+        Feedback = "Đã cập nhật quyền mẫu; chưa có dữ liệu quyền xác thực từ máy chủ.";
     }
     private void RefreshCommands()
     {

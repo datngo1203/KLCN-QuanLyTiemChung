@@ -42,7 +42,6 @@ public sealed class ShellViewModel : ViewModelBase
         ToggleNavigationCommand = new RelayCommand(_ => { IsNavigationOpen = !IsNavigationOpen; IsSearchOpen = false; IsProfileOpen = false; });
         ToggleSearchCommand = new RelayCommand(_ => { IsSearchOpen = !IsSearchOpen; IsNavigationOpen = false; IsProfileOpen = false; });
         ToggleProfileCommand = new RelayCommand(_ => { IsProfileOpen = !IsProfileOpen; IsNavigationOpen = false; IsSearchOpen = false; });
-        OpenProfileCommand = new RelayCommand(_ => { IsProfileOpen = false; ShowFeedback($"Tài khoản đang thao tác: {CurrentUserDisplayName}. Trang phiên A13 chưa triển khai trong đợt này."); });
         OpenPasswordCommand = new RelayCommand(_ => Navigate("A14"));
         SignOutCommand = new RelayCommand(_ => { ClosePanels(); SignOutRequested?.Invoke(this, EventArgs.Empty); });
         DismissFeedbackCommand = new RelayCommand(_ => FeedbackMessage = "");
@@ -87,7 +86,6 @@ public sealed class ShellViewModel : ViewModelBase
     public RelayCommand ToggleNavigationCommand { get; }
     public RelayCommand ToggleSearchCommand { get; }
     public RelayCommand ToggleProfileCommand { get; }
-    public RelayCommand OpenProfileCommand { get; }
     public RelayCommand OpenPasswordCommand { get; }
     public RelayCommand SignOutCommand { get; }
     public RelayCommand DismissFeedbackCommand { get; }
@@ -109,6 +107,15 @@ public sealed class ShellViewModel : ViewModelBase
 
     private void Navigate(string id)
     {
+        if (id == "A14")
+        {
+            ClosePanels();
+            SelectedGroup = new NavigationGroup("Tài khoản", []);
+            SelectedScreen = new NavigationItem("A14", "Đổi mật khẩu");
+            CurrentView = NavigationRegistry.CreatePage(id, this);
+            FeedbackMessage = "";
+            return;
+        }
         var group = NavigationGroups.FirstOrDefault(g => g.Screens.Any(s => s.Id == id));
         if (group is null) return;
         ClosePanels();
@@ -123,5 +130,8 @@ public sealed class ShellViewModel : ViewModelBase
     private void ClosePanels() { IsNavigationOpen = false; IsSearchOpen = false; IsProfileOpen = false; }
 }
 
-public sealed record NavigationGroup(string Title, IReadOnlyList<NavigationItem> Screens);
+public sealed record NavigationGroup(string Title, IReadOnlyList<NavigationItem> Screens)
+{
+    public NavigationItem? SingleScreen => Screens.Count == 1 ? Screens[0] : null;
+}
 public sealed record NavigationItem(string Id, string Title);

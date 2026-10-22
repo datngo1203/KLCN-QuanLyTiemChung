@@ -1,0 +1,56 @@
+PASS A01-normal render <500KB
+PASS A01 navigation
+PASS A02-normal render <500KB
+PASS A02 navigation
+PASS A04-normal render <500KB
+PASS A04 navigation
+PASS A05-normal render <500KB
+PASS A05 navigation
+PASS A07-normal render <500KB
+PASS A07 navigation
+PASS A11-normal render <500KB
+PASS A11 navigation
+PASS A12-normal render <500KB
+PASS A12 navigation
+PASS A14-normal render <500KB
+PASS A14 navigation
+PASS login-normal render <500KB
+PASS A02 hint never sets flag/conclusion
+PASS A02 valid draft
+PASS A02-hint render <500KB
+PASS A02 manual flag blocks save
+PASS A02 first confirmation
+PASS A02 second confirmation
+PASS A02 history edit resets confirmation
+PASS A02 invalid pulse
+PASS A02-error render <500KB
+PASS A02 sample off no keyword logic
+PASS A02-empty render <500KB
+PASS A12 cannot modify current account security
+PASS A12 other sample account permissions
+PASS A12-permissions render <500KB
+PASS A12 invalid citizen id
+PASS A12-error render <500KB
+PASS A12 sample off
+PASS A12-empty render <500KB
+PASS A13-no-source render <500KB
+PASS A13 sample job title
+PASS A13-sample render <500KB
+PASS A13 opens A14 and closes overlay
+PASS A14 mismatch
+PASS A14-error render <500KB
+PASS A14 sample failure feedback
+PASS A14-service-error render <500KB
+PASS A14 no source rejects operation
+PASS A14-no-source render <500KB
+PASS A14 cancel clears secret
+PASS A14-empty render <500KB
+PASS shell-narrow render <500KB
+WIDTH requested=980 actual=980 compact=True
+PASS 980 DIP compact navigation
+PASS shell-drawer render <500KB
+PASS drawer navigation closes panel
+PASS A12-narrow render <500KB
+PASS signout event closes overlay
+PASS new session resets identity/password/navigation
+TOTAL 54 PASS; offscreen 96-DPI render, no physical keyboard/DPI/E2E claims
