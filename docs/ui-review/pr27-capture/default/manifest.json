@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "sourceSha": "9eefc681ff69f23a3ea9838262a708bd09867fad",
+  "sourceDirty": [],
+  "startedUtc": "2026-10-22T19:04:48.6068739Z",
+  "command": "'@; $t=$t.Substring(0,$start)+$replace+[Environment]::NewLine+$t.Substring($end); $start=$t.IndexOf('    $screens = @{'); $end=$t.IndexOf('    foreach ($id', $start); $t=$t.Substring(0,$start)+$t.Substring($end); $t=$t.Replace('            $screen = $screens[$id]'+[Environment]::NewLine,'').Replace('            $screen = $screens[$id]'+\"`n\",''); $t=[regex]::Replace($t,'(?m)^.*(struct POINT|extern bool ScreenToClient|extern IntPtr SendMessage|extern bool SetCursorPos).*(\\r?\\n)',''); [IO.File]::WriteAllText((Join-Path (Get-Location) $p),$t); git add scripts/ui-capture/Capture-UiReview.ps1; git diff --cached --check; git commit -m \"fix(capture): use verified accessible search actions only\"; $captureId=[int](Get-Content .review/host-process.txt); ./scripts/ui-capture/Capture-UiReview.ps1 -TargetProcessId $captureId",
+  "kind": "Native window viewport, physical pixels; no crop, normalization or stitching",
+  "requestedPixels": {
+    "width": 1366,
+    "height": 768
+  },
+  "captureScriptSha256": "736D07C39EAC144F8E574773375CD615D89EF5BAAA2DEBDDD90ED3E6B402C9B6",
+  "results": [
+    {
+      "utc": "2026-10-22T19:04:50.7620114Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A01-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "A2466840ACC8CBA68B7564D4F6F79E7A4A628B8FC09D18524E100249C7772129",
+      "bytes": 51877
+    },
+    {
+      "utc": "2026-10-22T19:04:52.1525680Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A02-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "B952D28E825CBFB0CDAAD106E4D6ECF97CDF2EB0AB67FFD12195138562EF48A9",
+      "bytes": 47093
+    },
+    {
+      "utc": "2026-10-22T19:04:53.3712255Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A03-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "E77164C63553B26A247B7480A82A9299086224D72DC678E312526359BA97BF3E",
+      "bytes": 52037
+    },
+    {
+      "utc": "2026-10-22T19:04:54.5365605Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A04-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "EBE017241DF78AE384162A4C89F6841BEA6FAB6118AB0F11A94B17620DD8DCAC",
+      "bytes": 65495
+    },
+    {
+      "utc": "2026-10-22T19:04:55.8421501Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A05-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "582249DB0B8011BFB9517631E136942FDDE0F1779778C78433B15BC8745DB76D",
+      "bytes": 46838
+    },
+    {
+      "utc": "2026-10-22T19:04:57.0916394Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A06-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "ADC2299F4184A34556D0A8B29332CEEA2A2E9671F116AA6B5309E40754504EBF",
+      "bytes": 58656
+    },
+    {
+      "utc": "2026-10-22T19:04:58.2632880Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A07-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "4C080C2879BB885DB7F2DB64A71F180A65209F2F775B95BC4191898F68DB392E",
+      "bytes": 54563
+    },
+    {
+      "utc": "2026-10-22T19:04:59.4533283Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A08-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "D3ECFEBBF6E8C06B4467D7B4977379ED6961024E0DD798B6448E9F7FA28C323C",
+      "bytes": 49790
+    },
+    {
+      "utc": "2026-10-22T19:05:00.6128097Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A09-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "AE8EC8C9DFCE0F58CF3FE2E3FD7F43709D2EB4E8E06ACAA59314BA2ED3BE7576",
+      "bytes": 69940
+    },
+    {
+      "utc": "2026-10-22T19:05:01.8572490Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A10-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "B5CFB7FF55C45C400B1CAEC444BB7D5262AEEC33AFCECD69F5E279DDB4C13BC4",
+      "bytes": 54240
+    },
+    {
+      "utc": "2026-10-22T19:05:03.1223244Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A11-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "7793B3FB18BADF10282EC08604C1602CF021456E6E9FF468E7F4C5BAEA433A90",
+      "bytes": 53854
+    },
+    {
+      "utc": "2026-10-22T19:05:04.3700147Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A12-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "36185A03C351C3951316D558F57758BFC739FE4F4BDD43EAD4621417C323E40C",
+      "bytes": 78200
+    },
+    {
+      "utc": "2026-10-22T19:05:04.8241665Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A13-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "E8E24B408D62905A9856AE0783C60C8F21D26120C6C48D6EC5A812FB810D14FB",
+      "bytes": 33879
+    },
+    {
+      "utc": "2026-10-22T19:05:06.1285285Z",
+      "widthPixels": 1366,
+      "dpi": 120,
+      "file": "A14-current-viewport.png",
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "inferredWidthDip": 1092.8,
+      "sha256": "9E3BBB42BFDCE97D4C2856468EDF055526CE8D5C9AD742380E38289BF94F2E06",
+      "bytes": 40448
+    }
+  ],
+  "status": "completed",
+  "error": null,
+  "limits": [
+    "No automatic error/empty states; states require separate reviewed fixtures.",
+    "Recorded window DPI is metadata, not a 100/125/150 percent QA sweep.",
+    "Source SHA describes checkout, not proof that the running executable was built from it.",
+    "A13/A14 require the companion UI package. Gallery requires an already open gallery host.",
+    "Local .review output is not reviewer-accessible until curated evidence is committed or attached."
+  ],
+  "process": {
+    "title": "Tiêm chủng | Hệ thống trung tâm",
+    "path": "D:\\Projects\\KLCN-QuanLyTiemChung\\.review\\pr27-harness\\bin\\Release\\net10.0-windows\\Review.exe",
+    "executableSha256": "1F2108B545CE02027677B103EF70BF35C297AF86749658010ACE9E3796C6C7BE",
+    "id": 13836
+  },
+  "finishedUtc": "2026-10-22T19:05:06.1315255Z"
+}

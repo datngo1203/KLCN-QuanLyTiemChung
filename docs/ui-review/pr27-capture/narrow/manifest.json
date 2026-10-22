@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "sourceSha": "9eefc681ff69f23a3ea9838262a708bd09867fad",
+  "sourceDirty": [],
+  "startedUtc": "2026-10-22T19:05:10.3111988Z",
+  "command": "$captureId=[int](Get-Content .review/host-process.txt); ./scripts/ui-capture/Capture-UiReview.ps1 -TargetProcessId $captureId -ScreenIds 2,12,13,14 -WidthPixels 980 -HeightPixels 620; $parseErrors=$null; $tokens=$null; [void][Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'scripts/ui-capture/Capture-UiReview.ps1'),[ref]$tokens,[ref]$parseErrors); if($parseErrors.Count){throw 'Parse failed'}; git diff --check",
+  "kind": "Native window viewport, physical pixels; no crop, normalization or stitching",
+  "requestedPixels": {
+    "width": 980,
+    "height": 620
+  },
+  "captureScriptSha256": "736D07C39EAC144F8E574773375CD615D89EF5BAAA2DEBDDD90ED3E6B402C9B6",
+  "results": [
+    {
+      "sha256": "AC71A44C2F229C0CAB4A187F16C40327DE9F32EB87200CBE4A36ADC82D938824",
+      "file": "A02-current-viewport.png",
+      "bytes": 46150,
+      "inferredWidthDip": 980.0,
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "widthPixels": 1225,
+      "dpi": 120,
+      "utc": "2026-10-22T19:05:12.1051740Z"
+    },
+    {
+      "sha256": "2FAB4D50EC0F6400248C3185242A765AABEB67B9CB02156AFE5A477C050D867B",
+      "file": "A12-current-viewport.png",
+      "bytes": 73756,
+      "inferredWidthDip": 980.0,
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "widthPixels": 1225,
+      "dpi": 120,
+      "utc": "2026-10-22T19:05:13.5248647Z"
+    },
+    {
+      "sha256": "6F0F09AD73D0E8245FDB8A5A1BD3CF3D9BEB051601E765AFA2CFA5AFEDC20752",
+      "file": "A13-current-viewport.png",
+      "bytes": 33213,
+      "inferredWidthDip": 980.0,
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "widthPixels": 1225,
+      "dpi": 120,
+      "utc": "2026-10-22T19:05:14.0805146Z"
+    },
+    {
+      "sha256": "9655FA91B2B89C0ECB4AFA983F27071ABC98312603247BD87C1564417A4F8C88",
+      "file": "A14-current-viewport.png",
+      "bytes": 38629,
+      "inferredWidthDip": 980.0,
+      "inferredHeightDip": 620.0,
+      "heightPixels": 775,
+      "widthPixels": 1225,
+      "dpi": 120,
+      "utc": "2026-10-22T19:05:15.4943289Z"
+    }
+  ],
+  "status": "completed",
+  "error": null,
+  "limits": [
+    "No automatic error/empty states; states require separate reviewed fixtures.",
+    "Recorded window DPI is metadata, not a 100/125/150 percent QA sweep.",
+    "Source SHA describes checkout, not proof that the running executable was built from it.",
+    "A13/A14 require the companion UI package. Gallery requires an already open gallery host.",
+    "Local .review output is not reviewer-accessible until curated evidence is committed or attached."
+  ],
+  "process": {
+    "title": "Tiêm chủng | Hệ thống trung tâm",
+    "executableSha256": "1F2108B545CE02027677B103EF70BF35C297AF86749658010ACE9E3796C6C7BE",
+    "id": 13836,
+    "path": "D:\\Projects\\KLCN-QuanLyTiemChung\\.review\\pr27-harness\\bin\\Release\\net10.0-windows\\Review.exe"
+  },
+  "finishedUtc": "2026-10-22T19:05:15.5019826Z"
+}

@@ -125,3 +125,9 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 - **3.6:** các trường bị giao diện cũ bỏ quên đã có vị trí nhập/hiển thị tương ứng. `MaNhanVien`, `MaPhieuKham`, ID catalog thật và timestamp vẫn chờ phiên/API; không cho người dùng nhập actor tùy ý.
 - Reuse các style `CE.*`; chỉ bổ sung `CE.Alert.Safety` trong `Themes/Cards.xaml`. Không sửa backend, contract, schema hoặc XAML `_Legacy/`.
 - Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp [ảnh toàn màn hình A02](screenshots/a02-screen.png) ở trạng thái form Sample hợp lệ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+
+## Gói housekeeping thay thế PR #27 — 23/10/2026
+
+- Từ develop f188084, chỉ ignore/capture/quy trình bằng chứng; không mang UI hoặc commit tài liệu local vào nhánh này. Giữ 56 ảnh lịch sử cùng blob và link status cũ.
+- Parser PowerShell, hai lần ValidateOnly, kiểm ignore asset/capture và diff ảnh đạt; script ghi viewport/manifest mỗi run riêng, A13/A14 đi qua tài khoản. [Lệnh và giới hạn](status-pr27-capture.md).
+- Script 9eefc68 + host UI c239041: PrintWindow/UIA 22 ảnh native đạt ở DPI 120 (125%), gồm A01–A14 và A02/A12/A13/A14 hẹp/rộng; manifest/ảnh đã commit. Chưa kiểm Gallery/Login capture, DPI 100/150%, bàn phím vật lý/multi-monitor. UI #29 có build/render riêng. Cần reviewer độc lập, giữ #27 và các PR thay thế Draft.
