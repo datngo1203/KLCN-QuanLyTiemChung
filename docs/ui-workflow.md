@@ -25,7 +25,7 @@
 
 1. Đối chiếu từng trường, command, trạng thái và kiểm tra dữ liệu với Screen Spec; ghi trường hợp biên và chức năng còn thiếu vào file status riêng của nhóm/màn.
 2. Build phần Windows theo [hướng dẫn kiểm thử](testing.md). Chạy màn, chụp PNG trạng thái bình thường, lỗi và rỗng; ảnh dưới 500 KB mỗi tệp, không có thông tin người thật.
-3. Lưu ảnh tại `docs/ui-review/<tên-nhánh>/`; ghi lệnh, kết quả build, cách chụp và các giới hạn kiểm chứng vào status riêng. Không đánh dấu đã tích hợp API hoặc phân quyền khi chỉ dùng Sample.
+3. Lưu ảnh tuyển chọn tại `docs/ui-review/<tên-nhánh>/`; ghi lệnh, SHA code, kết quả build, cách chụp và các giới hạn kiểm chứng vào status riêng. Script có thể lưu bản chạy thô tại `.review/run-<thời gian>-<GUID>/`, nhưng local không thay bằng chứng reviewer truy cập được: commit ảnh dưới 500 KB kèm manifest hoặc gắn attachment bền vào PR. Giữ 56 ảnh lịch sử và link cũ; chưa duyệt chuyển/xóa chúng. Phân biệt render synthetic, viewport native và ảnh ghép; pixel/DIP/DPI phải ghi đúng loại, không suy kiểm DPI từ kích thước ảnh. Không đánh dấu đã tích hợp API hoặc phân quyền khi chỉ dùng Sample.
 4. Commit riêng cho từng màn, chỉ add các file thuộc màn và tài liệu kiểm chứng tương ứng.
 
 ## Git và PR

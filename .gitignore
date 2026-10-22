@@ -41,3 +41,8 @@ key.properties
 .DS_Store
 Thumbs.db
 artifacts/
+
+# Local review runs only. Curated docs/ui-review evidence remains tracked.
+/.review/
+/.capture/
+/.tmp/
