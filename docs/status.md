@@ -61,10 +61,8 @@
 |---|---|
 | Web React | Có UI kế thừa, client HTTP và nút kiểm tra API; lint/build pass tại máy khởi tạo |
 | Mobile Flutter (PR #21, lịch sử) | Feature-first/Dio và UI mẫu; ghi nhận tác giả analyze/3 tests, chưa xem là kiểm chứng gói sửa. Khẳng định GSP/y tế/tồn kho được sửa trong gói review hiện tại. |
-
 | Windows WPF | Shell + A01 và A02 trong ViewsV2; A02 có validation sinh tồn/kết luận và chỉ định Sample, chưa lưu API. Release build 21/10/2026 pass, 0 cảnh báo/lỗi; đã chụp ảnh toàn màn hình. Chưa hoàn tất các màn còn lại hoặc kiểm tra DPI |
 | Mobile Flutter | Có Android/iOS project, navigation, màn danh mục đọc API, API client; analyze pass và 3 tests pass ở máy khởi tạo lẫn GitHub Actions; bước build Android APK debug trên CI đã pass |
-
 | Backend | API health/catalog/modules, OpenAPI, CORS và Problem Details; 11 tests pass |
 | Database | 27 thực thể/mapping EF Core, migration InitialCreate và SQL sinh idempotent; model sinh DDL được; chưa chạy lên SQL Server thật |
 | NuGet | Sau khi cập nhật dependency Pkcs, kiểm tra package trực tiếp và gián tiếp không báo lỗ hổng đã biết từ nguồn NuGet tại thời điểm kiểm tra |
