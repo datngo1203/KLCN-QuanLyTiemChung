@@ -20,7 +20,7 @@
 | A13 | Chưa có View/service; nút tài khoản chỉ hiện phản hồi | Chưa có |
 | A14 | Đổi mật khẩu mô phỏng; `SampleChangePasswordService` | `ChangePasswordView.xaml` |
 
-Lệch hiện trạng ghi nhận trước sửa: Clinical Neutral trong `Colors.xaml` còn khác token Design Spec; menu đang đưa A14 vào nhóm, A13 chưa là popover; A02 chưa có phát hiện từ khóa dị ứng nguy hiểm; một số nhãn kỹ thuật, hardcode màu/cỡ chữ và AutomationProperties cần rà theo yêu cầu lượt này. Ngoại trừ health check của A01, các luồng nghiệp vụ Windows trên dùng dữ liệu/service mẫu, chưa ghi API thật.
+Lệch hiện trạng ghi nhận trước sửa: menu đang đưa A14 vào nhóm, A13 chưa là popover; A02 chưa có phát hiện từ khóa dị ứng nguy hiểm; một số nhãn kỹ thuật, hardcode màu/cỡ chữ và AutomationProperties cần rà theo yêu cầu lượt này. Clinical Neutral đã khớp bảng token màu Design Spec trong `Colors.xaml`; không cần đổi màu. Ngoại trừ health check của A01, các luồng nghiệp vụ Windows trên dùng dữ liệu/service mẫu, chưa ghi API thật.
 
 ## Tích hợp UI Windows và lưu ảnh review — 2026-10-22
 
