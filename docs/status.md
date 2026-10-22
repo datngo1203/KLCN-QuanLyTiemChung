@@ -3,9 +3,10 @@
 ## Tích hợp UI Windows và lưu ảnh review — 2026-10-22
 
 - Nhánh `ui/windows-redesign` được tạo từ `origin/main`. Nội dung code của `ui/docs` (PR #18), `ui/themes` (#19), `ui/phase3` (#22), A03/A07/A08 (#23), sửa review phase3 (#24), A04/A05/A10 (#25), Login/A06/A09/A11/A12/A14 (#26) đã được tích hợp vào `main`; so sánh cây file không thấy code mới cần cherry-pick. Giữ nguyên bản Design Spec, Plan và status hiện có trên `main`.
-- Không đưa ảnh hoặc `REVIEW.md` từ review pack vào nhánh hợp nhất. `main` hiện còn 88 PNG đã theo dõi ngoài `apps/**/Assets/` (56 ảnh review, 9 sơ đồ, 23 icon ứng dụng); lượt này chỉ ghi nhận, không xóa các ảnh đã có.
+- Không đưa ảnh hoặc `REVIEW.md` từ review pack vào nhánh hợp nhất. Trước lượt gỡ, nhánh có 89 PNG theo dõi: 56 ảnh review, 9 sơ đồ, 23 icon ứng dụng và 1 ảnh web. Đã gỡ 56 ảnh review khỏi Git index; bản cục bộ vẫn còn trong `docs/ui-review/` (được ignore). Còn 33 PNG được theo dõi.
 - Bỏ qua `docs/ui-review/` và `.review/` trong Git; script `Capture-UiReview.ps1` mặc định lưu ảnh vào `.review/`.
 - Kiểm tra sau thay đổi: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore` thành công, 0 warning/0 error; `git diff --check` sạch. Script capture được kiểm tra cú pháp PowerShell, chưa chạy UI capture trong phiên này.
+- Gỡ 56 PNG review khỏi theo dõi theo duyệt; sửa ghi chú ảnh thành “ảnh lưu cục bộ” và rà liên kết ảnh trong `docs/*.md`, gồm link A02 cũ đã hỏng. Bản ảnh cục bộ được giữ nguyên.
 
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
@@ -131,4 +132,4 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 - **3.5:** kiểm tra mạch 40–200, nhiệt độ 35–42, tâm thu > tâm trương; thông báo lỗi cạnh trường. Không áp thêm giới hạn huyết áp ngoài quan hệ tâm thu > tâm trương được yêu cầu.
 - **3.6:** các trường bị giao diện cũ bỏ quên đã có vị trí nhập/hiển thị tương ứng. `MaNhanVien`, `MaPhieuKham`, ID catalog thật và timestamp vẫn chờ phiên/API; không cho người dùng nhập actor tùy ý.
 - Reuse các style `CE.*`; chỉ bổ sung `CE.Alert.Safety` trong `Themes/Cards.xaml`. Không sửa backend, contract, schema hoặc XAML `_Legacy/`.
-- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp [ảnh toàn màn hình A02](screenshots/a02-screen.png) ở trạng thái form Sample hợp lệ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp ảnh toàn màn hình A02 ở trạng thái form Sample hợp lệ; ảnh lưu cục bộ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
