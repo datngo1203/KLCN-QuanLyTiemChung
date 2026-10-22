@@ -22,6 +22,7 @@ public sealed class ShellViewModel : ViewModelBase
         Screening = new ScreeningViewModel();
         Profiles = new ProfilesViewModel();
         Registration = new RegistrationViewModel();
+        Payment = new PaymentViewModel();
         CurrentView = NavigationRegistry.CreatePage("A01", this);
         SelectGroupCommand = new RelayCommand(p => { if (p is NavigationGroup group) { SelectedGroup = group; IsNavigationOpen = false; } });
         NavigateCommand = new RelayCommand(p => { if (p is NavigationItem item) Navigate(item.Id); });
@@ -47,6 +48,7 @@ public sealed class ShellViewModel : ViewModelBase
     public ScreeningViewModel Screening { get; }
     public ProfilesViewModel Profiles { get; }
     public RegistrationViewModel Registration { get; }
+    public PaymentViewModel Payment { get; }
     private object _currentView = null!;
     public object CurrentView { get => _currentView; private set => Set(ref _currentView, value); }
     public string CurrentUserDisplayName { get => _currentUserDisplayName; private set => Set(ref _currentUserDisplayName, value); }
