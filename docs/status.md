@@ -4,7 +4,7 @@
 |---|---|
 | Web React | Có UI kế thừa, client HTTP và nút kiểm tra API; lint/build pass tại máy khởi tạo |
 | Windows WPF | Có UI kế thừa, client HTTP và nút kiểm tra API; Release build pass, 0 cảnh báo/lỗi; chưa bấm thử lại toàn bộ UI |
-| Mobile Flutter | Có Android/iOS project, navigation, màn danh mục đọc API, API client; analyze pass và 3 tests pass ở máy khởi tạo lẫn GitHub Actions; bước build Android APK debug trên CI đã pass |
+| Mobile Flutter | Đã chuyển sang Feature-First và Dio (thay thế http); thiết kế lại giao diện chuẩn y tế: Danh mục vắc xin & chi tiết GSP, Lịch tiêm 4 tab (Sắp tới, Lịch sử, Theo dõi sau tiêm 30p, Nhắc lịch), Sổ tiêm chủng điện tử (xem chi tiết docs/mobile-ui.md); analyze pass và 3 tests pass |
 | Backend | API health/catalog/modules, OpenAPI, CORS và Problem Details; 11 tests pass |
 | Database | 27 thực thể/mapping EF Core, migration InitialCreate và SQL sinh idempotent; model sinh DDL được; chưa chạy lên SQL Server thật |
 | NuGet | Sau khi cập nhật dependency Pkcs, kiểm tra package trực tiếp và gián tiếp không báo lỗ hổng đã biết từ nguồn NuGet tại thời điểm kiểm tra |

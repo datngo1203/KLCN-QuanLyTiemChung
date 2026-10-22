@@ -1,49 +1,24 @@
-import 'dart:convert';
+// Export feature-first classes for backward compatibility
+export '../features/catalog/data/models/vaccine_model.dart';
+export '../features/catalog/data/repositories/catalog_repository_impl.dart';
+export '../features/catalog/domain/models/vaccine.dart';
+export '../features/catalog/domain/repositories/catalog_repository.dart';
 
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import '../features/catalog/data/repositories/catalog_repository_impl.dart';
+import 'network/dio_client.dart';
 
-class Vaccine {
-  const Vaccine({required this.id, required this.name, required this.price});
-  factory Vaccine.fromJson(Map<String, dynamic> json) => Vaccine(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    price: (json['price'] as num).toDouble(),
-  );
-  final int id;
-  final String name;
-  final double price;
-}
-
-abstract interface class CatalogRepository {
-  Future<List<Vaccine>> getVaccines();
-}
-
-class ApiClient implements CatalogRepository {
-  ApiClient({http.Client? client, String? baseUrl})
-    : _client = client ?? http.Client(),
-      _baseUrl =
-          baseUrl ??
-          const String.fromEnvironment(
-            'API_BASE_URL',
-            defaultValue: 'http://10.0.2.2:5080',
-          );
-  final http.Client _client;
-  final String _baseUrl;
-  @override
-  Future<List<Vaccine>> getVaccines() async {
-    final base = _baseUrl.replaceAll(RegExp(r'/$'), '');
-    final response = await _client
-        .get(Uri.parse('$base/api/v1/catalog/vaccines'))
-        .timeout(const Duration(seconds: 8));
-    if (response.statusCode != 200) {
-      throw Exception('Không tải được danh mục (HTTP ${response.statusCode}).');
-    }
-    final body =
-        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    return (body['items'] as List)
-        .map((item) => Vaccine.fromJson(item as Map<String, dynamic>))
-        .toList();
-  }
-
-  void close() => _client.close();
+/// Legacy alias for CatalogRepositoryImpl with Dio support
+class ApiClient extends CatalogRepositoryImpl {
+  ApiClient({
+    Dio? dio,
+    HttpClientAdapter? adapter,
+    String? baseUrl,
+  }) : super(
+          dioClient: DioClient(
+            dio: dio,
+            baseUrl: baseUrl,
+            adapter: adapter,
+          ),
+        );
 }
