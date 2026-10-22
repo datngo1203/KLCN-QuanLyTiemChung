@@ -1,5 +1,13 @@
 # Trạng thái khung — 19/10/2026
 
+## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
+
+- PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
+- Login dùng `IAuthService`/`SampleAuthService`; A06/A09/A11/A12/A14 chỉ thao tác dữ liệu mẫu, chưa có endpoint thật cho các luồng này. README ghi backend chưa có xác thực. Mật khẩu không lưu ở client và cần hash tại backend.
+- Đã reset ViewModel tài khoản/đổi mật khẩu khi bắt đầu phiên mới để không giữ state người dùng trước. A11 xóa snapshot/kết quả xuất khi thay bộ lọc cho đến khi tạo báo cáo lại.
+- Kiểm tra: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error; CI của PR #26 thành công tại lần kiểm tra hiện tại. Các ảnh normal/error/empty và giới hạn từng màn ở `docs/ui-review/ui-login-a06-a09-a11-a12-a14/` và `docs/status-login.md`, `docs/status-a06.md`, `docs/status-a09.md`, `docs/status-a11.md`, `docs/status-a12.md`, `docs/status-a14.md`.
+- Chưa kiểm chứng API, phân quyền phiên, ghi dữ liệu nghiệp vụ, gửi nhắc thật, xuất file thật, xác thực/đổi mật khẩu thật hoặc DPI khác.
+
 ## Sửa góp ý review phase3 PR #22 — 2026-10-22
 
 - Nhánh `ui/phase3-review-fixes` xử lý 5 góp ý: bỏ khởi tạo kép `StartupUri`/shell; chuyển nguyên cột kết luận/chỉ định A02 khi thu hẹp; điều hướng nhóm đơn đến màn của nhóm; tải lại snapshot A01 (bảng, luồng, chỉ số) theo cùng khoảng ngày và đặt số liệu về 0 khi rỗng; bind nhãn nguồn A02.

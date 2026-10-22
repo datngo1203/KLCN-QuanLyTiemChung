@@ -29,8 +29,8 @@ public sealed class ReportViewModel : ViewModelBase
     public ObservableCollection<ReportExpiringLot> ExpiringLots { get; } = [];
     public RelayCommand GenerateReportCommand { get; }
     public RelayCommand ExportCommand { get; }
-    public DateTime FromDate { get => _fromDate; set { if (Set(ref _fromDate, value)) Refresh(); } }
-    public DateTime ToDate { get => _toDate; set { if (Set(ref _toDate, value)) Refresh(); } }
+    public DateTime FromDate { get => _fromDate; set { if (Set(ref _fromDate, value)) { ClearSnapshot(); Refresh(); } } }
+    public DateTime ToDate { get => _toDate; set { if (Set(ref _toDate, value)) { ClearSnapshot(); Refresh(); } } }
     public decimal Revenue { get => _revenue; private set => Set(ref _revenue, value); }
     public decimal ReactionRate { get => _reactionRate; private set => Set(ref _reactionRate, value); }
     public bool HasData { get => _hasData && !HasInvalidRange; private set { if (Set(ref _hasData, value)) { OnPropertyChanged(nameof(HasNoData)); OnPropertyChanged(nameof(CanExport)); } } }
@@ -83,6 +83,16 @@ public sealed class ReportViewModel : ViewModelBase
     {
         if (!CanExport) return;
         Feedback = $"Xuất {format} là giao diện mẫu; TODO nối chức năng xuất file thật.";
+    }
+
+    private void ClearSnapshot()
+    {
+        HasData = false;
+        Revenue = 0;
+        ReactionRate = 0;
+        Doses.Clear();
+        ExpiringLots.Clear();
+        Feedback = "";
     }
 
     private void Refresh()

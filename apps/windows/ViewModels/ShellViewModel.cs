@@ -68,8 +68,8 @@ public sealed class ShellViewModel : ViewModelBase
     public VaccinationViewModel Vaccination { get; }
     public AppointmentViewModel Appointments { get; }
     public ReportViewModel Reports { get; }
-    public AccountViewModel Accounts { get; }
-    public ChangePasswordViewModel ChangePassword { get; }
+    public AccountViewModel Accounts { get; private set; }
+    public ChangePasswordViewModel ChangePassword { get; private set; }
     private object _currentView = null!;
     public object CurrentView { get => _currentView; private set => Set(ref _currentView, value); }
     public string CurrentUserDisplayName { get => _currentUserDisplayName; private set => Set(ref _currentUserDisplayName, value); }
@@ -95,6 +95,10 @@ public sealed class ShellViewModel : ViewModelBase
 
     public void BeginLocalSession(string userName)
     {
+        Accounts = new AccountViewModel(userName);
+        ChangePassword = new ChangePasswordViewModel();
+        OnPropertyChanged(nameof(Accounts));
+        OnPropertyChanged(nameof(ChangePassword));
         CurrentUserDisplayName = userName;
         SelectedGroup = NavigationGroups[0];
         SelectedScreen = NavigationGroups[0].Screens[0];

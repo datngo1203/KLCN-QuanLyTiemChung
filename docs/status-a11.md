@@ -3,6 +3,7 @@
 ## Đối chiếu Screen Spec
 
 - Bộ lọc `TuNgay`/`DenNgay` giữ điều kiện `TuNgay ≤ DenNgay ≤ hôm nay`; khi sai hiển thị lỗi, ẩn kết quả cũ và khóa tạo/xuất.
+- Khi đổi một trong hai ngày, snapshot hiện tại được xóa và phải tạo báo cáo lại trước khi xem/xuất; tránh dùng kết quả của khoảng ngày trước.
 - Có doanh thu, tỷ lệ phản ứng, số mũi theo loại vắc xin ở bảng và biểu đồ cột, cùng bảng lô sắp hết hạn.
 - Trạng thái không có dữ liệu hiện gợi ý chọn khoảng khác. Excel/PDF/CSV chỉ bật khi snapshot có dữ liệu; nút hiện chỉ phản hồi TODO, chưa tạo tệp.
 - `IReportService`/`SampleReportService` và snapshot riêng cung cấp dữ liệu fixture; `UseSampleData=false` trả snapshot rỗng và nhãn Chưa có nguồn dữ liệu.
