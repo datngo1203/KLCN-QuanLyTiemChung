@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
 
 namespace TiemChung.Desktop.ViewsV2;
@@ -44,9 +45,8 @@ public partial class MainWindow : Window
 
     private void SignOutRequested(object? sender, EventArgs e)
     {
-        // Reuse the existing local login unchanged; no new authentication logic.
         Hide();
-        var login = new DemoLoginWindow();
+        var login = new LoginWindow(new LoginViewModel(new SampleAuthService()));
         if (login.ShowDialog() == true) { _viewModel.BeginLocalSession(login.UserName); Show(); }
         else Close();
     }

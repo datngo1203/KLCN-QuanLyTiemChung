@@ -1,0 +1,54 @@
+<UserControl x:Class="TiemChung.Desktop.ViewsV2.VaccinationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Vis"/>
+        <DataTemplate DataType="{x:Type vm:VaccinationViewModel}">
+            <Grid Margin="28" Background="{StaticResource CE.Canvas}">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <DockPanel Margin="0,0,0,16">
+                    <StackPanel><TextBlock Text="Tiêm &amp; theo dõi" Style="{StaticResource CE.Heading}"/><TextBlock Text="Xác nhận lượt đủ điều kiện, đối chiếu lô và theo dõi sau tiêm" Style="{StaticResource CE.Caption}" Margin="0,5,0,0"/></StackPanel>
+                    <Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Sample}"><TextBlock Text="{Binding DataSourceLabel}"/></Border>
+                </DockPanel>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CE.Card}" Padding="14">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <TextBlock Text="Lượt có chỉ định · đủ điều kiện · đã thanh toán" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+                            <ListView Grid.Row="1" ItemsSource="{Binding Queue}" SelectedItem="{Binding Selected}" Style="{StaticResource CE.ListView}" Margin="0,10,0,8">
+                                <ListView.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Recipient}" Style="{StaticResource CE.Body}" FontWeight="SemiBold"/><StackPanel Orientation="Horizontal" Margin="0,3,0,0"><TextBlock Text="{Binding Vaccine}" Style="{StaticResource CE.Caption}"/><TextBlock Text=" · " Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding Dose}" Style="{StaticResource CE.Caption}"/></StackPanel><TextBlock Text="Đủ điều kiện · Đã thanh toán" Style="{StaticResource CE.Caption}" Margin="0,3,0,0"/></StackPanel></DataTemplate></ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock Grid.Row="1" Text="{Binding DataSourceLabel, StringFormat='Chưa có lượt chờ tiêm ({0}).'}" Visibility="{Binding HasNoQueue, Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Row="2" Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                            <StackPanel Visibility="{Binding IsFollowingUp, Converter={StaticResource Vis}}">
+                                <TextBlock Text="Theo dõi sau tiêm" Style="{StaticResource CE.SectionHeading}"/>
+                                <ContentControl Style="{StaticResource CE.Alert.Info}" Margin="0,10,0,12"><StackPanel Orientation="Horizontal"><TextBlock Text="Thời gian còn lại  "/><TextBlock Text="{Binding RemainingDisplay}" FontWeight="SemiBold"/></StackPanel></ContentControl>
+                                <TextBlock Text="Tình trạng phản ứng *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Conditions}" SelectedItem="{Binding Condition}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,10"/>
+                                <TextBlock Text="Mức độ *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Severities}" SelectedItem="{Binding Severity}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,10"/>
+                                <ContentControl Style="{StaticResource CE.Alert.Safety}" Visibility="{Binding RequiresDoctorAlert, Converter={StaticResource Vis}}" Margin="0,0,0,10"><StackPanel><TextBlock Text="Cần báo bác sĩ trực ngay" FontWeight="SemiBold"/><CheckBox Content="Đã báo bác sĩ trực" IsChecked="{Binding DoctorNotified}" Margin="0,6,0,0"/></StackPanel></ContentControl>
+                                <TextBlock Text="Hướng xử trí *" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding Treatment, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" MinHeight="64" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                                <ContentControl Style="{StaticResource CE.Alert.Warning}" Visibility="{Binding ShowEarlyReleaseWarning, Converter={StaticResource Vis}}" Margin="0,0,0,10"><StackPanel><TextBlock Text="Chưa đủ 30 phút theo dõi. Xác nhận trước khi cho về sớm." TextWrapping="Wrap"/><CheckBox Visibility="{Binding ShowEarlyReleaseConfirmation, Converter={StaticResource Vis}}" Content="Tôi xác nhận cho về trước thời gian theo dõi" IsChecked="{Binding EarlyReleaseConfirmed}" Margin="0,6,0,0"/></StackPanel></ContentControl>
+                                <Button Content="Hoàn tất theo dõi / cho về" Command="{Binding CompleteFollowUpCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Right"/>
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsNotFollowingUp, Converter={StaticResource Vis}}">
+                                <TextBlock Text="Xác nhận mũi tiêm" Style="{StaticResource CE.SectionHeading}"/>
+                                <TextBlock Text="Chọn lượt ở danh sách để nạp lô đúng vắc xin; lô hết hạn hoặc hết tồn không xuất hiện." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,6,0,14"/>
+                                <TextBlock Text="Người được tiêm" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding Selected.Recipient, TargetNullValue=Chưa chọn lượt}" Style="{StaticResource CE.Body}" Margin="0,4,0,12"/>
+                                <TextBlock Text="Vắc xin chỉ định" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding Selected.Vaccine, TargetNullValue=Chưa có chỉ định}" Style="{StaticResource CE.Body}" Margin="0,4,0,12"/>
+                                <TextBlock Text="Số lô *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Lots}" SelectedItem="{Binding SelectedLot}" DisplayMemberPath="Number" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,12"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Number}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+                                <TextBlock Text="Vị trí tiêm *" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding Location, UpdateSourceTrigger=PropertyChanged}" Tag="Ví dụ: Bắp tay trái" Style="{StaticResource CE.TextBox}" Margin="0,4,0,16"/>
+                                <Button Content="Xác nhận tiêm" Command="{Binding ConfirmInjectionCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Right"/>
+                            </StackPanel>
+                        </StackPanel></ScrollViewer>
+                    </Border>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+    <ContentControl Content="{Binding}"/>
+</UserControl>

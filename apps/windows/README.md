@@ -1,6 +1,6 @@
 # Windows — Đạt phụ trách nền giao diện
 
-C# WPF .NET 10 + WPF UI 4.3.0. Kế thừa UI A01–A14 và login mô phỏng admin/123. Services/TiemChungApiClient.cs và nút Kiểm tra API ở sidebar gọi backend thật.
+C# WPF .NET 10 + WPF UI 4.3.0. A01/A02 và các màn mới dùng ViewModels/Services riêng; Login hiện chạy qua `IAuthService` với `SampleAuthService` cho giao diện mẫu. Backend hiện chưa có xác thực, không có tài khoản/mật khẩu đăng nhập cố định trong UI. `TiemChungApiClient` và nút Kiểm tra API ở sidebar chỉ gọi các endpoint backend hiện có.
 
 ```powershell
 dotnet run --project TiemChung.Desktop.csproj
