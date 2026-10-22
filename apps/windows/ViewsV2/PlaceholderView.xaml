@@ -4,8 +4,8 @@
     <Grid Margin="28,24">
         <Border Style="{StaticResource CE.Card}" VerticalAlignment="Top">
             <StackPanel>
-                <TextBlock Text="{Binding Screen.Title}" Style="{StaticResource CE.Text.PageTitle}" />
-                <TextBlock Text="Trang đang chờ triển khai." Style="{StaticResource CE.Text.Secondary}" Margin="0,12,0,0" />
+                <TextBlock Text="{Binding Screen.Title}" Style="{StaticResource CE.Heading}" />
+                <TextBlock Text="Trang đang chờ triển khai." Style="{StaticResource CE.Caption}" Margin="0,12,0,0" />
             </StackPanel>
         </Border>
     </Grid>
