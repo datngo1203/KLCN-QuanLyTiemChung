@@ -1,5 +1,27 @@
 # Trạng thái khung — 19/10/2026
 
+## Kiểm kê UI Windows trước hoàn thiện — 2026-10-22
+
+| Màn | Hiện trạng / service mặc định | XAML |
+|---|---|---|
+| Login | Form đăng nhập; `SampleAuthService`, chưa xác thực API | `LoginWindow.xaml` |
+| A01 | Dashboard có lọc/ngày/chỉ số; `SampleDashboardService`, dữ liệu mẫu | `OverviewView.xaml` |
+| A02 | Form khám/validation/chỉ định; `SampleScreeningService`, chưa lưu API | `ScreeningView.xaml` |
+| A03 | Hồ sơ khách hàng/người tiêm, thao tác mẫu; `SampleProfilesService` | `ProfilesView.xaml` |
+| A04 | Danh mục/vắc xin/gói, thao tác mẫu; `SampleCatalogService` | `CatalogView.xaml` |
+| A05 | Lô/tồn/biến động, thao tác mẫu; `SampleInventoryService` | `InventoryView.xaml` |
+| A06 | Tiêm/theo dõi, dữ liệu mẫu; `SampleVaccinationService` | `VaccinationView.xaml` |
+| A07 | Đăng ký dịch vụ, thao tác mẫu; `SampleRegistrationService` | `RegistrationView.xaml` |
+| A08 | Thanh toán nhiều lần, thao tác mẫu; `SamplePaymentService` | `PaymentView.xaml` |
+| A09 | Lịch/nhắc, thao tác mẫu; `SampleAppointmentService` | `AppointmentView.xaml` |
+| A10 | Ưu đãi, thao tác mẫu; `SamplePromotionService` | `PromotionView.xaml` |
+| A11 | Báo cáo/xuất mô phỏng; `SampleReportService` | `ReportView.xaml` |
+| A12 | Nhân viên/tài khoản/quyền mẫu; `SampleAccountService` | `AccountView.xaml` |
+| A13 | Chưa có View/service; nút tài khoản chỉ hiện phản hồi | Chưa có |
+| A14 | Đổi mật khẩu mô phỏng; `SampleChangePasswordService` | `ChangePasswordView.xaml` |
+
+Lệch hiện trạng ghi nhận trước sửa: Clinical Neutral trong `Colors.xaml` còn khác token Design Spec; menu đang đưa A14 vào nhóm, A13 chưa là popover; A02 chưa có phát hiện từ khóa dị ứng nguy hiểm; một số nhãn kỹ thuật, hardcode màu/cỡ chữ và AutomationProperties cần rà theo yêu cầu lượt này. Ngoại trừ health check của A01, các luồng nghiệp vụ Windows trên dùng dữ liệu/service mẫu, chưa ghi API thật.
+
 ## Tích hợp UI Windows và lưu ảnh review — 2026-10-22
 
 - Nhánh `ui/windows-redesign` được tạo từ `origin/main`. Nội dung code của `ui/docs` (PR #18), `ui/themes` (#19), `ui/phase3` (#22), A03/A07/A08 (#23), sửa review phase3 (#24), A04/A05/A10 (#25), Login/A06/A09/A11/A12/A14 (#26) đã được tích hợp vào `main`; so sánh cây file không thấy code mới cần cherry-pick. Giữ nguyên bản Design Spec, Plan và status hiện có trên `main`.
