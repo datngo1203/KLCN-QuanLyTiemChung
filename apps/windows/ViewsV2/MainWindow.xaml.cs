@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
 
@@ -13,6 +14,7 @@ public partial class MainWindow : Window
         nameof(IsCompact), typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
     public bool IsCompact { get => (bool)GetValue(IsCompactProperty); private set => SetValue(IsCompactProperty, value); }
     private readonly ShellViewModel _viewModel;
+    private IInputElement? _panelReturnFocus;
 
     public MainWindow() : this(new ShellViewModel("")) { }
 
@@ -41,8 +43,25 @@ public partial class MainWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ShellViewModel.IsSearchOpen) && _viewModel.IsSearchOpen)
-            Dispatcher.BeginInvoke(new Action(() => { FunctionSearch.Focus(); FunctionSearch.SelectAll(); }));
+        if (e.PropertyName is not (nameof(ShellViewModel.IsSearchOpen) or nameof(ShellViewModel.IsProfileOpen) or nameof(ShellViewModel.IsNavigationOpen))) return;
+        bool isOpening = e.PropertyName switch
+        {
+            nameof(ShellViewModel.IsSearchOpen) => _viewModel.IsSearchOpen,
+            nameof(ShellViewModel.IsProfileOpen) => _viewModel.IsProfileOpen,
+            _ => _viewModel.IsNavigationOpen
+        };
+        if (isOpening) _panelReturnFocus ??= Keyboard.FocusedElement;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (_viewModel.IsSearchOpen) { FunctionSearch.Focus(); FunctionSearch.SelectAll(); }
+            else if (_viewModel.IsProfileOpen) ProfilePasswordButton.Focus();
+            else if (_viewModel.IsNavigationOpen) NavigationCloseButton.Focus();
+            else
+            {
+                if (_panelReturnFocus is UIElement { IsVisible: true, IsEnabled: true } target) target.Focus();
+                _panelReturnFocus = null;
+            }
+        }));
     }
 
     private void SignOutRequested(object? sender, EventArgs e)
