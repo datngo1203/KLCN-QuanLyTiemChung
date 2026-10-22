@@ -3,8 +3,8 @@
 ## Gói UI thay thế PR #27 — 23/10/2026
 
 - Tách 19 file Windows từ #27 lên develop `f188084`, không mang lịch sử nhánh cũ, không xóa 56 ảnh lịch sử. Hai commit tài liệu `38c4f84`/`fa027ee` giữ riêng trên `codex/pr27-docs-preserved` và nhánh gốc, chưa push.
-- Code `d47a0ee`: Release build 0 warning/error; harness STA 54 PASS và 24 ảnh render synthetic 96 DPI. Có A02/A12/A13/A14, Sample off, menu hẹp và command phiên. [Bằng chứng và giới hạn](status-pr27-ui.md).
-- Chưa kiểm bàn phím vật lý, DPI thực 100/125/150%, multi-monitor, capture native/E2E/API/SQL/auth. Không suy nghiệp vụ từ gợi ý chưa được duyệt. Cần Bảo hoặc Quý review; giữ các PR Draft, không merge/đóng #27.
+- Code `c239041`: Release build 0 warning/error; harness STA 54 PASS và 24 ảnh render synthetic 96 DPI. Có A02/A12/A13/A14, Sample off, menu hẹp và command phiên. [Bằng chứng và giới hạn](status-pr27-ui.md).
+- Chưa kiểm bàn phím vật lý, DPI 100/150% hoặc checklist 125% đầy đủ, multi-monitor/E2E/API/SQL/auth. Native capture subset DPI120 đã chạy cùng script #30. Không suy nghiệp vụ từ gợi ý chưa được duyệt. Cần Bảo hoặc Quý review; giữ các PR Draft, không merge/đóng #27.
 
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
