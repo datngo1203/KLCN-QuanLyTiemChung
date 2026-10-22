@@ -30,7 +30,7 @@ public sealed class ScreeningViewModel : ViewModelBase
     public ScreeningViewModel()
     {
         Queue = new ObservableCollection<ScreeningQueueSample>(ScreeningSampleData.CreateQueue());
-        Queue.CollectionChanged += (_, _) => { if (SelectedEncounter is not null && !Queue.Contains(SelectedEncounter)) { IsDirty = false; SelectedEncounter = null; } RefreshFilter(); };
+        Queue.CollectionChanged += (_, _) => { if (SelectedEncounter is not null && !Queue.Contains(SelectedEncounter)) { IsDirty = false; SelectedEncounter = null; ResetDraft(); Feedback = ""; } RefreshFilter(); };
         VaccineCatalog = ScreeningSampleData.CreateVaccineCatalog();
         QueueView = CollectionViewSource.GetDefaultView(Queue);
         QueueView.Filter = MatchesFilter;
