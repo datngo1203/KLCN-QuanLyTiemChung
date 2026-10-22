@@ -186,7 +186,7 @@
                 </DockPanel>
             </Border>
         </Grid>
-        <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="30" Background="#100F172A"
+        <Grid Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="30" Background="{StaticResource CE.Brush.Overlay}"
               Visibility="{Binding IsProfileOpen, Converter={StaticResource BoolVisibility}}">
             <Button Command="{Binding ClosePanelsCommand}" Background="Transparent" BorderThickness="0" Focusable="False" AutomationProperties.Name="Đóng menu tài khoản" />
             <Border Style="{StaticResource CE.Card.Compact}" Width="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,24,0">

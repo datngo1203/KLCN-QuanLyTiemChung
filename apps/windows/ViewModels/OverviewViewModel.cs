@@ -108,12 +108,12 @@ public sealed class OverviewViewModel : ViewModelBase
         try
         {
             ApiHealthy = await _apiClient.IsHealthyAsync();
-            ApiStatus = ApiHealthy == true ? "API phản hồi health OK" : "API chưa sẵn sàng";
+            ApiStatus = ApiHealthy == true ? "Dịch vụ phản hồi tốt" : "Dịch vụ chưa sẵn sàng";
         }
         catch (Exception)
         {
             ApiHealthy = false;
-            ApiStatus = "Chưa kết nối được API";
+            ApiStatus = "Chưa kết nối được dịch vụ";
         }
         finally
         {
