@@ -6,4 +6,3 @@
  <Style x:Key="CE.SegmentedButton.Info" TargetType="RadioButton" BasedOn="{StaticResource CE.SegmentedButton}"><Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{StaticResource CE.InfoBackground}"/><Setter Property="Foreground" Value="{StaticResource CE.Info}"/></Trigger></Style.Triggers></Style>
  <Style x:Key="CE.SegmentedButton.Warning" TargetType="RadioButton" BasedOn="{StaticResource CE.SegmentedButton}"><Style.Triggers><Trigger Property="IsChecked" Value="True"><Setter Property="Background" Value="{StaticResource CE.WarningBackground}"/><Setter Property="Foreground" Value="{StaticResource CE.Warning}"/></Trigger></Style.Triggers></Style>
 </ResourceDictionary>
-
