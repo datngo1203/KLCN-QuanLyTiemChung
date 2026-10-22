@@ -20,6 +20,7 @@ public static class NavigationRegistry
         "A01" => new OverviewView { DataContext = shell.Overview },
         "A02" => new ScreeningView { DataContext = shell.Screening },
         "A03" => new ProfilesView { DataContext = shell.Profiles },
+        "A07" => new RegistrationView { DataContext = shell.Registration },
         _ => new PlaceholderView { DataContext = new PlaceholderViewModel(Groups.SelectMany(g => g.Screens).First(s => s.Id == id)) }
     };
 }
