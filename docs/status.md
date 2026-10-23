@@ -2,6 +2,8 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Release suite mới 24/24 đạt: thêm revoke/write hai thứ tự, confirm cạnh tranh, recovery manifest negative, backup/restore ledger, validation HTTP; publish API không chứa operator/tests. Vẫn chưa đủ checklist trước ready; xem verification hiện hành.
+
 - Working tree bổ sung test đạt 21/21: audit rollback Profiles/refresh, bootstrap/admin negative và mail retry/resend. CI implementation `670b599` backend SQL/web/Windows success ở lần kiểm; chưa xác nhận mobile và chưa áp cho test mới. Chi tiết/ca thiếu trong tài liệu verification.
 
 - Bổ sung kiểm chứng: recovery audit-trigger failure rollback/hai operator, rotation/logout hai thứ tự, HTTP sáu chức danh/Admin XemHoSo/PUT bất biến/account locked/scope A-B/fixture guard đã chạy đạt trong suite 19 test. [Cách chạy và giới hạn hiện hành](m1-implementation-verification.md); chưa đủ checklist, chưa ready.

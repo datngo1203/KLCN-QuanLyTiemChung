@@ -35,6 +35,12 @@ public sealed class IdentityRecoverySqlTests
         var manifest=new RecoveryManifest(Guid.NewGuid(),metadata.RecoveryDatabaseId,"M1","20261023073816_M1Identity",
             account.MaTaiKhoan,account.MaNhanVien!.Value,Convert.ToBase64String(account.RowVersion),DateTimeOffset.UtcNow,DateTimeOffset.UtcNow.AddMinutes(20),"Technical");
         var recovery=new IdentityRecovery(db);
+        foreach(var wrong in new[]{manifest with { RecoveryDatabaseId=Guid.NewGuid() },manifest with { M1UpgradeEpoch="M2" },
+            manifest with { MigrationId="wrong" },manifest with { TargetAccountId=int.MaxValue },manifest with { EmployeeId=int.MaxValue },
+            manifest with { ExpiresAt=DateTimeOffset.UtcNow.AddSeconds(-1) }}) {
+            await Assert.ThrowsAsync<IdentityFailure>(()=>recovery.RecoverAsync(wrong,"synthetic-operator","synthetic-new-password-123",CancellationToken.None));
+            db.ChangeTracker.Clear(); Assert.Empty(await db.Set<IdentityRecoveryOperation>().ToListAsync());
+        }
         var stale=manifest with { ExpectedRowVersion=Convert.ToBase64String(new byte[8]) };
         Assert.Equal(409,(await Assert.ThrowsAsync<IdentityFailure>(()=>recovery.RecoverAsync(stale,"synthetic-operator","synthetic-new-password-123",CancellationToken.None))).Status);
         Assert.Empty(await db.Set<IdentityRecoveryOperation>().ToListAsync());

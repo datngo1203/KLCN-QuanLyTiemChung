@@ -90,6 +90,15 @@ public sealed class IdentityHttpSqlTests
             client.DefaultRequestHeaders.Authorization=new("Bearer",staffTokens.RootElement.GetProperty("accessToken").GetString());
             Assert.Equal(title=="LeTan"?HttpStatusCode.OK:HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
             if(title=="LeTan") {
+                foreach(var invalid in new[]{
+                    new {fullName="",identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"},
+                    new {fullName="Synthetic",identityNumber="１２３４５６７８９０１２",phoneNumber="0900000000",email="ok@example.invalid"},
+                    new {fullName="Synthetic",identityNumber="000000000099",phoneNumber="123",email="ok@example.invalid"},
+                    new {fullName="Synthetic",identityNumber="000000000099",phoneNumber="0900000000",email="invalid"}})
+                    Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",invalid)).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/recipients",new {customerId="bad",fullName="Synthetic",dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"})).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/customers?page=0")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/recipients?customerId=-1")).StatusCode);
                 await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectProfileAudit ON SecurityAudit AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE Action='profiles.created') THROW 51009, 'Synthetic audit failure', 1; END;");
                 var failed=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Rollback",identityNumber="000000000099",phoneNumber="0900000000",email="rollback@example.invalid"});
                 Assert.Equal(HttpStatusCode.InternalServerError,failed.StatusCode);

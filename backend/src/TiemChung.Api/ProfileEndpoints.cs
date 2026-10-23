@@ -126,7 +126,7 @@ public static class ProfileEndpoints
             var actor=await auth.RequireAsync(context,true,ct);
             if(!actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
             var body=await IdentityEndpoints.Payload(context,["customerId","fullName","identityNumber","dateOfBirth","gender","relationshipToCustomer"],ct);
-            if(!body.TryGetProperty("customerId",out var customer) || !customer.TryGetInt32(out var customerId)
+            if(!body.TryGetProperty("customerId",out var customer) || customer.ValueKind!=System.Text.Json.JsonValueKind.Number || !customer.TryGetInt32(out var customerId)
                 || !DateOnly.TryParseExact(IdentityEndpoints.Value(body,"dateOfBirth"),"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.None,out var dob)) throw new IdentityFailure(400,"validation");
             var req=new CreateRecipientRequest(customerId,IdentityEndpoints.Value(body,"fullName"),

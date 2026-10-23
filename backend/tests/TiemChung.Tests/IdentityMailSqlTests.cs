@@ -42,7 +42,14 @@ public sealed class IdentityMailSqlTests
         db.ChangeTracker.Clear();
         await dispatcher.DrainAsync(sink,CancellationToken.None);
         var fresh=sink.Delivered.Values.Single(x=>x!=old);
-        await registration.ConfirmAsync(fresh,"confirm",CancellationToken.None);
+        async Task<int> ConfirmParallel()
+        {
+            await using var connection=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(cs.ConnectionString).Options);
+            try { await new IdentityRegistration(connection,config).ConfirmAsync(fresh,"confirm",CancellationToken.None); return 204; }
+            catch(IdentityFailure f) { return f.Status; }
+        }
+        Assert.Equal(new[]{204,400},(await Task.WhenAll(ConfirmParallel(),ConfirmParallel())).Order().ToArray());
+        db.ChangeTracker.Clear();
         Assert.Equal("invalidVerificationToken",(await Assert.ThrowsAsync<IdentityFailure>(()=>registration.ConfirmAsync(fresh,"used",CancellationToken.None))).Code);
         Assert.Empty(await db.Set<AccountProfileLink>().ToListAsync());
         await Assert.ThrowsAsync<InvalidOperationException>(()=>new IdentityMailSink(db,config,new Env { EnvironmentName="Production" }).DrainAsync(sink,CancellationToken.None));

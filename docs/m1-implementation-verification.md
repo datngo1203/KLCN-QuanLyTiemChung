@@ -27,4 +27,6 @@ Suite hiện tại 19 test đạt trên working tree ngày 23/10/2026; gồm uni
 
 Cập nhật working tree: suite 21/21 đạt trên LocalDB; đã thêm audit-trigger rollback POST Profiles/refresh (không hồ sơ dở dang, không mất nhánh token active), bootstrap/self-change/Director negative và mail sink retry/resend/used token. CI `670b599`: backend SQL/web/Windows success tại lần kiểm, mobile còn chạy; các test mới chưa thuộc SHA đó.
 
-Còn kiểm chứng trước ready: thu hồi cạnh tranh ghi hai thứ tự, operator xác thực CLI negative, verification race/validation biên đầy đủ, backup/restore, multi-tab coordinator mock và production publish. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS.
+Cập nhật tiếp: Release suite 24/24 đạt trên LocalDB, gồm thu hồi/ghi hai thứ tự, confirm hai connection, manifest sai DB/mốc/target, backup/restore định danh DB/ledger và validation HTTP cơ bản. API Release publish không có Operator/Tests assembly. Test backup tạo bản sao synthetic, giữ file/DB để chẩn đoán; không restore đè DB gốc.
+
+Còn kiểm chứng trước ready: operator xác thực CLI negative, validation biên đầy đủ, multi-tab coordinator mock và CI tại HEAD cuối. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS.
