@@ -41,6 +41,17 @@ public sealed class IdentityAdministrationSqlTests
         await administration.ChangeAsync("bootstrap-admin","synthetic-password-123",staffId,"set-account-status",["Locked"],CancellationToken.None);
         Assert.Equal(0,await db.Set<RefreshCredential>().CountAsync(x=>x.SessionId==session.Id && x.ConsumedAt==null && x.RevokedAt==null));
         Assert.NotNull((await db.Set<IdentitySession>().AsNoTracking().SingleAsync()).RevokedAt);
+        var version=(await db.Set<TaiKhoan>().AsNoTracking().SingleAsync(x=>x.MaTaiKhoan==staffId)).SecurityVersion;
+        db.ChangeTracker.Clear();
+        await administration.ChangeAsync("bootstrap-admin","synthetic-password-123",staffId,"set-extra-permissions",["XemHoSo"],CancellationToken.None);
+        Assert.Equal(version+1,(await db.Set<TaiKhoan>().AsNoTracking().SingleAsync(x=>x.MaTaiKhoan==staffId)).SecurityVersion);
+        Assert.True(await db.Set<SecurityAudit>().AnyAsync(x=>x.Action=="permissionsChanged" && x.SubjectAccountId==staffId));
+        db.ChangeTracker.Clear();
+        await administration.ChangeAsync("bootstrap-admin","synthetic-password-123",staffId,"set-employee-status",["Inactive"],CancellationToken.None);
+        Assert.Equal("Inactive",(await db.Set<NhanVien>().AsNoTracking().SingleAsync(x=>x.MaNhanVien==staffEmployee.MaNhanVien)).TrangThai);
+        Assert.True(await db.Set<SecurityAudit>().AnyAsync(x=>x.Action=="employeeStatusChanged" && x.SubjectAccountId==staffId));
+        db.ChangeTracker.Clear();
+        Assert.Equal(403,(await Assert.ThrowsAsync<IdentityFailure>(()=>administration.ChangeAsync("synthetic-staff","synthetic-staff-password-123",adminId,"set-account-status",["Locked"],CancellationToken.None))).Status);
         await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.AdministrativeDuty,"Director"));
         db.ChangeTracker.Clear();
         Assert.Equal(403,(await Assert.ThrowsAsync<IdentityFailure>(()=>administration.ChangeAsync("bootstrap-admin","synthetic-password-123",staffId,"set-account-status",["Active"],CancellationToken.None))).Status);
