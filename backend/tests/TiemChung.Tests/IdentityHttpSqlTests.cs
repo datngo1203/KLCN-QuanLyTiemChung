@@ -89,6 +89,13 @@ public sealed class IdentityHttpSqlTests
             using var staffTokens=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             client.DefaultRequestHeaders.Authorization=new("Bearer",staffTokens.RootElement.GetProperty("accessToken").GetString());
             Assert.Equal(title=="LeTan"?HttpStatusCode.OK:HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
+            if(title=="LeTan") {
+                await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectProfileAudit ON SecurityAudit AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE Action='profiles.created') THROW 51009, 'Synthetic audit failure', 1; END;");
+                var failed=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Rollback",identityNumber="000000000099",phoneNumber="0900000000",email="rollback@example.invalid"});
+                Assert.Equal(HttpStatusCode.InternalServerError,failed.StatusCode);
+                Assert.False(await db.Customers.AnyAsync(x=>x.CCCD=="000000000099"));
+                await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectProfileAudit;");
+            }
             var create=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Created",identityNumber="000000000010",phoneNumber="0900000000",email="created@example.invalid"});
             Assert.Equal(title=="LeTan"?HttpStatusCode.Created:HttpStatusCode.Forbidden,create.StatusCode);
             var put=await client.PutAsJsonAsync($"/api/v1/recipients/{recipient.MaNguoiDuocTiem}",new {fullName="Changed",identityNumber=(string?)null,dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"});

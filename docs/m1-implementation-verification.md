@@ -25,4 +25,6 @@ ConnectionStrings:TiemChung, Identity:SigningKey và Identity:MailEncryptionKey 
 
 Suite hiện tại 19 test đạt trên working tree ngày 23/10/2026; gồm unit và SQL/HTTP. Recovery có upgrade Admin cũ, stale-version, audit-trigger failure rollback, hai operator, retry cùng manifest và operation mới sau khóa lại. Refresh hai connection một 200/một 409, replay và hai thứ tự rotation/logout. HTTP có sáu title, Admin XemHoSo, PUT bất biến, account locked, scope A/B và fixture Production/marker negative. Không dùng số test này để tuyên bố toàn checklist đạt.
 
-Còn kiểm chứng trước ready: audit rollback Profiles/refresh, thu hồi cạnh tranh ghi hai thứ tự, bootstrap/operator negative cases, mail sink retry/cleanup, verification race/resend, validation biên đầy đủ, backup/restore, multi-tab coordinator mock và production publish. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS.
+Cập nhật working tree: suite 21/21 đạt trên LocalDB; đã thêm audit-trigger rollback POST Profiles/refresh (không hồ sơ dở dang, không mất nhánh token active), bootstrap/self-change/Director negative và mail sink retry/resend/used token. CI `670b599`: backend SQL/web/Windows success tại lần kiểm, mobile còn chạy; các test mới chưa thuộc SHA đó.
+
+Còn kiểm chứng trước ready: thu hồi cạnh tranh ghi hai thứ tự, operator xác thực CLI negative, verification race/validation biên đầy đủ, backup/restore, multi-tab coordinator mock và production publish. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS.

@@ -36,6 +36,12 @@ public sealed class IdentitySqlTests
         var sessions=new TiemChung.Api.IdentitySessions(db,tokens);
         var login=await sessions.LoginAsync("person@example.invalid","synthetic-passphrase-123","native","test-login",CancellationToken.None);
         db.ChangeTracker.Clear();
+        await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectRefreshAudit ON SecurityAudit AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE Action='refreshRotated') THROW 51009, 'Synthetic audit failure', 1; END;");
+        await Assert.ThrowsAsync<DbUpdateException>(()=>sessions.RefreshAsync(login.RefreshToken,"native",null,"test-audit-failure",CancellationToken.None));
+        db.ChangeTracker.Clear();
+        Assert.Equal(1,await db.Set<RefreshCredential>().CountAsync(x=>x.SessionId==login.SessionId && x.ConsumedAt==null && x.RevokedAt==null));
+        Assert.Equal(1,await db.Set<RefreshCredential>().CountAsync(x=>x.SessionId==login.SessionId));
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectRefreshAudit;");
         async Task<(TiemChung.Api.SessionTokens? Tokens,int Status)> Compete()
         {
             await using var connection=new TiemChungDbContext(options);
