@@ -1,5 +1,11 @@
 # Trạng thái khung — 19/10/2026
 
+## Đặc tả M1 Profiles + Identity — 23/10/2026
+
+- Người dùng duyệt phạm vi M1 và cho phép PR Draft tài liệu từ develop; [gói review](m1-identity-review.md) gồm contract/quyền năm route, schema đề xuất, quyết định kỹ thuật và checklist SQL/auth. Contract/schema còn chờ review độc lập, chưa được coi đã chấp thuận triển khai.
+- Chỉ sửa tài liệu/đặc tả; không migration, DTO/API/client, nguồn/ảnh gốc; không kéo PR #29/#30/#31 chưa tích hợp hoặc commit 38c4f84/fa027ee. Không merge, không Goal code M1. M2–M4 giữ lộ trình.
+- Kiểm tra tài liệu: git diff --check, liên kết Markdown mới và allowlist sáu file thay đổi. Rà toàn status phát hiện năm link lịch sử đã hỏng trên base (analysis/wpf-phase0-screen-spec.md, design/wpf-phase1-layout-proposal.md, analysis/wpf-phase3-binding-preflight.md, apps/windows/ViewsV2/README.md, screenshots/a02-screen.png); không sửa ngoài phạm vi. Không chạy build/test/SQL/auth/runtime cho gói chỉ tài liệu; checklist SQL thật là kế hoạch chưa thực thi, CI của PR cần xem riêng. Tự rà tài liệu không thay review độc lập.
+
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
