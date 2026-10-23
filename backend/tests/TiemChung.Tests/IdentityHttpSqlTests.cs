@@ -76,5 +76,32 @@ public sealed class IdentityHttpSqlTests
         var csrf=cookies.Single(x=>x.StartsWith("__Host-klcn-csrf=")).Split(';')[0].Split('=',2)[1];
         client.DefaultRequestHeaders.Add("X-CSRF-Token",csrf);
         Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="web"})).StatusCode);
+        client.DefaultRequestHeaders.Remove("Cookie"); client.DefaultRequestHeaders.Remove("X-CSRF-Token");
+        foreach(var title in new[]{"LeTan","Admin","BacSi","DieuDuong","ThuNgan","ThuKho"}) {
+            var employee=new NhanVien { HoTen="Synthetic "+title,CCCD="000000000003",SoDienThoai="0900000000",Email="staff@example.invalid",BoPhan="Test",ChucDanh=title,TrangThai="Active" };
+            db.Add(employee); await db.SaveChangesAsync();
+            var staff=new TaiKhoan { MaNhanVien=employee.MaNhanVien,TenDangNhap="staff-"+title,NormalizedUsername=("staff-"+title).ToUpperInvariant(),
+                AccountType="Employee",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
+            staff.MatKhauHash=new Microsoft.AspNetCore.Identity.PasswordHasher<TaiKhoan>().HashPassword(staff,"synthetic-staff-password-123");
+            db.Add(staff); await db.SaveChangesAsync();
+            var response=await client.PostAsJsonAsync("/api/v1/auth/login",new {identifier=staff.TenDangNhap,password="synthetic-staff-password-123",clientType="native"});
+            Assert.Equal(HttpStatusCode.OK,response.StatusCode);
+            using var staffTokens=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            client.DefaultRequestHeaders.Authorization=new("Bearer",staffTokens.RootElement.GetProperty("accessToken").GetString());
+            Assert.Equal(title=="LeTan"?HttpStatusCode.OK:HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
+            var create=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Created",identityNumber="000000000010",phoneNumber="0900000000",email="created@example.invalid"});
+            Assert.Equal(title=="LeTan"?HttpStatusCode.Created:HttpStatusCode.Forbidden,create.StatusCode);
+            var put=await client.PutAsJsonAsync($"/api/v1/recipients/{recipient.MaNguoiDuocTiem}",new {fullName="Changed",identityNumber=(string?)null,dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"});
+            Assert.Equal(title=="LeTan"?HttpStatusCode.Conflict:HttpStatusCode.Forbidden,put.StatusCode);
+            if(title=="Admin") {
+                var permission=new QuyenHan { Code="XemHoSo",TenQuyen="XemHoSo",MoTa="Synthetic" };
+                db.Add(permission); await db.SaveChangesAsync();
+                db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=staff.MaTaiKhoan,MaQuyen=permission.MaQuyen }); await db.SaveChangesAsync();
+                Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/customers")).StatusCode);
+            }
+            await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==staff.MaTaiKhoan).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
+            Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/auth/me")).StatusCode);
+        }
+        Assert.Equal("Synthetic Child",(await db.Recipients.AsNoTracking().SingleAsync()).HoTen);
     }
 }

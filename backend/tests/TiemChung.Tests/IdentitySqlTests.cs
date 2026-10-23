@@ -59,6 +59,21 @@ public sealed class IdentitySqlTests
         context.Request.Headers.Authorization="Bearer "+rotated.AccessToken;
         var authorization=new TiemChung.Api.IdentityAuthorization(db,tokens);
         Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>authorization.RequireAsync(context,false,CancellationToken.None))).Status);
+        db.ChangeTracker.Clear();
+        var logoutSession=await sessions.LoginAsync("person@example.invalid","synthetic-passphrase-123","native","test-login-again",CancellationToken.None);
+        db.ChangeTracker.Clear();
+        var next=await sessions.RefreshAsync(logoutSession.RefreshToken,"native",null,"test-rotate-before-logout",CancellationToken.None);
+        db.ChangeTracker.Clear();
+        await sessions.LogoutAsync(logoutSession.RefreshToken,"native",null,"test-logout-old-token",CancellationToken.None);
+        Assert.Equal(0,await db.Set<RefreshCredential>().CountAsync(x=>x.SessionId==logoutSession.SessionId && x.ConsumedAt==null && x.RevokedAt==null));
+        db.ChangeTracker.Clear();
+        Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>sessions.RefreshAsync(next.RefreshToken,"native",null,"test-refresh-after-logout",CancellationToken.None))).Status);
+        db.ChangeTracker.Clear();
+        var firstLogout=await sessions.LoginAsync("person@example.invalid","synthetic-passphrase-123","native","test-login-third",CancellationToken.None);
+        db.ChangeTracker.Clear();
+        await sessions.LogoutAsync(firstLogout.RefreshToken,"native",null,"test-logout-first",CancellationToken.None);
+        db.ChangeTracker.Clear();
+        Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>sessions.RefreshAsync(firstLogout.RefreshToken,"native",null,"test-rotate-after-logout",CancellationToken.None))).Status);
     }
     [Fact, Trait("Category","SqlIntegration")]
     public async Task FreshDatabaseMigratesAndEnforcesCredentialAndRecoveryUniqueness()

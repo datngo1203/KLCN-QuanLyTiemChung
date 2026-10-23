@@ -39,7 +39,28 @@ public sealed class IdentityRecoverySqlTests
         Assert.Equal(409,(await Assert.ThrowsAsync<IdentityFailure>(()=>recovery.RecoverAsync(stale,"synthetic-operator","synthetic-new-password-123",CancellationToken.None))).Status);
         Assert.Empty(await db.Set<IdentityRecoveryOperation>().ToListAsync());
         db.ChangeTracker.Clear();
-        Assert.Equal("recovered",await recovery.RecoverAsync(manifest,"synthetic-operator","synthetic-new-password-123",CancellationToken.None));
+        await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectRecoveryAudit ON SecurityAudit AFTER INSERT AS BEGIN THROW 51009, 'Synthetic audit failure', 1; END;");
+        await Assert.ThrowsAsync<DbUpdateException>(()=>recovery.RecoverAsync(manifest,"synthetic-operator","synthetic-new-password-123",CancellationToken.None));
+        db.ChangeTracker.Clear();
+        Assert.Empty(await db.Set<IdentityRecoveryOperation>().ToListAsync());
+        Assert.Empty(await db.Set<TaiKhoan_QuyenHan>().ToListAsync());
+        Assert.Equal("Locked",(await db.Set<TaiKhoan>().AsNoTracking().SingleAsync()).TrangThai);
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectRecoveryAudit;");
+        async Task<string> CompeteRecovery(RecoveryManifest request)
+        {
+            await using var connection=new TiemChungDbContext(options);
+            try { return await new IdentityRecovery(connection).RecoverAsync(request,"synthetic-operator","synthetic-new-password-123",CancellationToken.None); }
+            catch(IdentityFailure failure) { return failure.Code; }
+        }
+        var results=await Task.WhenAll(CompeteRecovery(manifest),CompeteRecovery(manifest with { OperationId=Guid.NewGuid() }));
+        Assert.Single(results,x=>x=="recovered");
+        Assert.Single(results,x=>x=="concurrencyConflict");
+        var committed=await db.Set<IdentityRecoveryOperation>().AsNoTracking().SingleAsync();
+        // The winning manifest may be either contender; bind retry to its exact fingerprint.
+        if(committed.OperationId!=manifest.OperationId) {
+            // Verify retry through an identical record with the winner operation ID.
+            manifest=manifest with { OperationId=committed.OperationId };
+        }
         var count=await db.Set<SecurityAudit>().CountAsync();
         db.ChangeTracker.Clear();
         Assert.Equal("recovered",await recovery.RecoverAsync(manifest,"synthetic-operator","synthetic-new-password-123",CancellationToken.None));

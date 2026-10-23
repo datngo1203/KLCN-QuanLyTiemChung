@@ -21,7 +21,7 @@ builder.Services.AddDbContext<TiemChungDbContext>(options =>
     options.UseSqlServer(connection ?? "Server=localhost;Database=TiemChung;Integrated Security=True;TrustServerCertificate=True"));
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
-    .AllowAnyHeader().AllowAnyMethod()));
+    .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
 app.UseExceptionHandler();

@@ -2,6 +2,8 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Bổ sung kiểm chứng: recovery audit-trigger failure rollback/hai operator, rotation/logout hai thứ tự, HTTP sáu chức danh/Admin XemHoSo/PUT bất biến/account locked/scope A-B/fixture guard đã chạy đạt trong suite 19 test. [Cách chạy và giới hạn hiện hành](m1-implementation-verification.md); chưa đủ checklist, chưa ready.
+
 - Nhánh `codex/m1-implementation` phụ thuộc PR #32; đặc tả kỹ thuật được người dùng chấp thuận tại `20a9a72b`, gate hành chính commit `053ee86`. Chưa hoàn tất, chưa PR sẵn sàng review; không merge PR tài liệu hoặc các PR khác.
 - Đã có model/mapping/migration bổ sung `20261023073816_M1Identity`, Identity services/routes, Profiles auth/scope/transaction, operator executable riêng và SQL tests. Chưa coi scaffold/build hoặc số test hiện có là đủ toàn checklist.
 - Kiểm thực tế trên working tree hiện tại: `dotnet test backend/TiemChung.slnx --no-restore` với `M1_SQL_TEST_CONNECTION` trỏ instance `(localdb)\KLCN_M1_Test` riêng: 19 passed, 0 failed, 0 skipped. SQL Server LocalDB 17.0.4025.3; test tạo DB synthetic `KLCN_M1_Test_<guid>`, không dùng dữ liệu thật. Bao phủ DB sạch/constraint, upgrade Admin cũ/recovery/stale-version/retry, rotation hai connection/replay/revoke, HTTP anonymous/unlinked/web CSRF và unit token/model/rate-limit.

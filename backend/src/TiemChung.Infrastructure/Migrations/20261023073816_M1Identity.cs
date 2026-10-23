@@ -19,6 +19,9 @@ namespace TiemChung.Infrastructure.Migrations
                     THROW 51000, 'M1 preflight: duplicate customer identity; operator resolution required.', 1;
                 IF EXISTS (SELECT 1 FROM NhanVien WHERE ChucDanh NOT IN ('Admin','LeTan','BacSi','DieuDuong','ThuNgan','ThuKho'))
                     THROW 51000, 'M1 preflight: unsupported employee title.', 1;
+                IF EXISTS (SELECT 1 FROM NhanVien WHERE TrangThai NOT IN ('Active','Inactive'))
+                    OR EXISTS (SELECT 1 FROM TaiKhoan WHERE TrangThai NOT IN ('Active','Locked'))
+                    THROW 51000, 'M1 preflight: legacy status mapping requires operator resolution.', 1;
                 IF EXISTS (SELECT 1 FROM TaiKhoan WHERE LEN(LTRIM(RTRIM(TenDangNhap))) NOT BETWEEN 4 AND 100
                     OR LTRIM(RTRIM(TenDangNhap)) COLLATE Latin1_General_100_BIN2 LIKE '%[^-a-zA-Z0-9._]%')
                     THROW 51000, 'M1 preflight: unsupported username.', 1;
