@@ -1,5 +1,7 @@
 # M1 — bổ sung hai P1 tại 9fa35ab, chờ review phần đổi
 
+Thay thế operator theo quyết định người dùng: [backend CLI/SQL boundary](m1-offline-operator-db-boundary-review.md) là diff duy nhất chờ review trước code. Phần Windows-only/OS secret/ACL trong tài liệu này là lịch sử, không tiếp tục phát triển; mail/batch/dedup giữ nguyên.
+
 Chỉ bổ sung contract cho hai findings implementation #33; không duyệt lại M1, không mở M2–M4. Chưa có approval phần này; chưa viết code phụ thuộc. Sau chấp thuận, các quy tắc dưới đây thay nguồn environment operator và chốt bảo đảm delivery còn thiếu ở [contract M1](m1-identity-profiles.md). Không đổi schema trong đề xuất này.
 
 ## P1-Operator: boundary OS và SQL

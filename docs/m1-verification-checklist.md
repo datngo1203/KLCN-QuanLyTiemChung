@@ -1,5 +1,12 @@
 # Checklist M1 — kế hoạch kiểm chứng, chưa chạy SQL/auth
 
+## Gate/acceptance thay operator Windows-only
+
+- [ ] Review một [diff backend CLI/SQL boundary](../contracts/m1-offline-operator-db-boundary-review.md), gồm role/grants/effective permissions/guard TaiKhoan và audit. Chưa code/migration.
+- [ ] App SQL principal không thể bootstrap/recovery/reset Employee trực tiếp; CLI role/membership không thay SQL enforcement. Positive CLI bootstrap/recovery/reset với hai login thực + SQL audit/ledger/token/login mới phải chạy theo acceptance trong diff.
+- [ ] Bỏ Windows SID/ACL/VM khỏi tiêu chí M1, không bỏ gap positive CLI; không dùng service tests/DBA login/CI cũ thay least-privilege evidence. Mail/batch giữ nguyên.
+
+
 ## Follow-up ACL deployment — chưa code/positive test
 
 - [ ] Review [diff ACL scope/path](../contracts/m1-operator-acl-scope-review.md) riêng: TrustedInstaller system ancestor, tạo sibling, delete-child/child DELETE, ACE scope/deny/owner/reparse/handle race và app subtree protected. Giữ batch fix.

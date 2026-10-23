@@ -1,5 +1,7 @@
 # Điều chỉnh hẹp ACL deployment operator — chờ review trước code
 
+ĐÃ THAY HƯỚNG theo người dùng: không tiếp tục thiết kế checker Windows/Program Files tại đây. Xem [diff backend CLI/SQL boundary duy nhất](m1-offline-operator-db-boundary-review.md) để review trước code; khảo sát ACL dưới đây chỉ giữ truy vết, không còn là tiêu chí nghiệm thu M1.
+
 Base `48171fe` (CheckChain không đổi từ `517211c`). Không thay batch fix, SQL/auth, mail hoặc quota recovery. Chưa sửa code bảo mật/OS/ACL/deployment. Nội dung này đề nghị thay điều kiện ancestor của [contract operator](m1-p1-operator-delivery-review.md), không phải approval triển khai.
 
 ## Kết luận từ khảo sát chỉ đọc

@@ -1,5 +1,7 @@
 # M1 — Identity tối thiểu và bảo vệ Profiles
 
+Boundary operator mới theo quyết định người dùng: [diff backend CLI/SQL chờ review](../contracts/m1-offline-operator-db-boundary-review.md). Tài khoản/quyền thuộc phần mềm/API/SQL; không Windows SID/ACL hay VM làm điều kiện sử dụng/nghiệm thu. Chưa code/DDL phụ thuộc; giữ invariants M1 và batch/delivery hiện có.
+
 Trạng thái: **đặc tả M1 được người dùng chấp thuận để triển khai, chưa triển khai**. Ngày 23/10/2026, người dùng thay gate riêng M1: báo cáo review kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` cùng chấp thuận contract/nghiệp vụ của người dùng thay yêu cầu Bảo/Quý xác nhận trước code. Không phải approval của Bảo/Quý hoặc GitHub approval. Base `develop` tại `f188084389a0033b856594632ae2c6495b29e248`. PR này chỉ tài liệu; thay gate hành chính không đổi nội dung kỹ thuật đã review.
 
 ## Phạm vi và nguồn quyết định

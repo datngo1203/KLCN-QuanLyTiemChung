@@ -1,5 +1,11 @@
 # Trạng thái khung — 19/10/2026
 
+## Đổi boundary operator — một diff chờ review trước code
+
+- Người dùng chốt backend offline CLI độc lập nền tảng chức năng, không OS account/SID/ACL cố định hoặc VM. [Contract/spec/runbook/checklist thay thế](../contracts/m1-offline-operator-db-boundary-review.md) chờ reviewer kiểm một lượt trước code/DDL: DB credential do DBA cấp, object grants + guard Employee/audit, actor reset/invariant recovery giữ nguyên.
+- Chỉ tài liệu, chưa code/schema/OS/SQL/grants; batch/delivery giữ nguyên. Chưa positive CLI mới, không báo đủ nghiệm thu hoặc dùng 44/44 cũ thay bằng chứng boundary mới. Không Goal/Plan/merge/approve/comment/gửi tin.
+
+
 ## ACL deployment follow-up — tài liệu chờ review
 
 - Khảo sát read-only xác nhận CheckChain quá rộng: C:\ TrustedInstaller/unprotected, AU create-subdirectory và inherit-only; ProgramData Users 0x116 có create và metadata writes; Program Files Users RX, TrustedInstaller owner. Chưa có bằng chứng máy này không thể an toàn; không đổi ACL/provision hoặc code.

@@ -1,5 +1,7 @@
 # Operator positive-path — yêu cầu môi trường test có thẩm quyền
 
+THAY RUNBOOK WINDOWS-ONLY: [runbook và acceptance backend CLI/SQL](../contracts/m1-offline-operator-db-boundary-review.md) chờ review. Không provision OS account/ACL/Program Files/VM theo các bước cũ bên dưới. Positive CLI mới vẫn phải chạy bằng DB-principal thật được DBA cấp, không xóa gap để báo đạt.
+
 **Đính chính sau khảo sát ACL máy hiện tại:** không còn coi “VM/root ACL phải pass checker cũ” là yêu cầu môi trường. [Diff contract ACL/path](../contracts/m1-operator-acl-scope-review.md) phân biệt sibling creation và takeover, đề nghị app subtree cố định dưới Program Files và kiểm ancestor theo mutation thực; chờ review trước code. Chưa provision, không đổi root/ProgramData/ACL/OS user/SQL chung. Bảng yêu cầu bên dưới giữ truy vết thiết kế cũ, không được thi hành nguyên trạng.
 
 Chưa chạy CLI positive. Khảo sát chỉ đọc trên máy hiện tại: token Windows không elevated, policy cố định chưa tồn tại; `C:\ProgramData` owner SYSTEM, DACL protected. Chưa kiểm/cấp quyền SQL deployment principal. Không thay ACL/SQL/policy hiện hữu, không hứa kết quả service test là CLI PASS.
