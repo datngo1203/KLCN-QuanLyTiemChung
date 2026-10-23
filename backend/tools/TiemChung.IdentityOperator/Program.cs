@@ -24,10 +24,8 @@ try {
         var allowed=(Environment.GetEnvironmentVariable("M1_OPERATOR_ALLOWED_IDENTITIES")??"").Split(';',StringSplitOptions.RemoveEmptyEntries);
         if(!allowed.Contains(identity,StringComparer.OrdinalIgnoreCase)) throw new InvalidOperationException("Operator identity denied.");
         var configured=Environment.GetEnvironmentVariable("M1_OPERATOR_SECRET")??throw new InvalidOperationException("Operator secret required.");
-        if(Convert.FromBase64String(configured).Length<32) throw new InvalidOperationException("Operator secret too short.");
         var supplied=Hidden("Operator secret: ");
-        if(!CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(configured)),SHA256.HashData(Encoding.UTF8.GetBytes(supplied))))
-            throw new InvalidOperationException("Operator authentication failed.");
+        OperatorAuthentication.Validate(identity,allowed,configured,supplied);
         if(Read("Maintenance active; public writes disabled? Type CONFIRM: ")!="CONFIRM") throw new InvalidOperationException("Maintenance confirmation required.");
         var recovery=new IdentityRecovery(db);
         if(command=="recover-upgraded-admin") {

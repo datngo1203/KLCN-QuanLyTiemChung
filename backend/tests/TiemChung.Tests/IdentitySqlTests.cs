@@ -10,6 +10,36 @@ namespace TiemChung.Tests;
 // Run explicitly with Category=SqlIntegration. Missing SQL is a failure, never a pass/skip.
 public sealed class IdentitySqlTests
 {
+    [Fact,Trait("Category","SqlIntegration")]
+    public async Task RegistrationRaceAndAccountConstraintsAreEnforcedBySql()
+    {
+        var source=Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")??throw new InvalidOperationException("SQL required.");
+        var cs=new SqlConnectionStringBuilder(source) { InitialCatalog="KLCN_M1_Test_"+Guid.NewGuid().ToString("N") };
+        var options=new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(cs.ConnectionString).Options;
+        await using var db=new TiemChungDbContext(options); await db.Database.MigrateAsync();
+        var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> {
+            ["Identity:MailEncryptionKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)) }).Build();
+        async Task Register(string email) {
+            await using var connection=new TiemChungDbContext(options);
+            await new TiemChung.Api.IdentityRegistration(connection,config).RegisterAsync(email,"synthetic-race-password-123","race",CancellationToken.None);
+        }
+        await Task.WhenAll(Register("Race@example.invalid"),Register("race@example.invalid"));
+        Assert.Equal(1,await db.Set<TaiKhoan>().CountAsync());
+        Assert.Equal(1,await db.Set<EmailVerification>().CountAsync());
+        Assert.Equal(1,await db.Set<IdentityMailOutbox>().CountAsync());
+        var account=await db.Set<TaiKhoan>().SingleAsync();
+        Assert.Null(account.MaNhanVien); Assert.Null(account.NormalizedUsername);
+        account.AdministrativeDuty="Technical";
+        await Assert.ThrowsAsync<DbUpdateException>(()=>db.SaveChangesAsync());
+        db.ChangeTracker.Clear();
+        db.Add(new TaiKhoan { AccountType="Employee",MaNhanVien=null,NormalizedUsername="BAD-EMPLOYEE",TenDangNhap="bad-employee",MatKhauHash="synthetic",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow });
+        await Assert.ThrowsAsync<DbUpdateException>(()=>db.SaveChangesAsync());
+        db.ChangeTracker.Clear();
+        var longEmail=new string('a',64)+"@"+new string('b',63)+"."+new string('c',63)+"."+new string('d',61);
+        Assert.Equal(254,longEmail.Length);
+        await Register(longEmail);
+        Assert.True(await db.Set<TaiKhoan>().AnyAsync(x=>x.LoginEmail==longEmail && x.TenDangNhap.Length<100));
+    }
     [Fact, Trait("Category","SqlIntegration")]
     public async Task RegisterConfirmRotateReplayAndNextRequestRevocationUseRealSql()
     {

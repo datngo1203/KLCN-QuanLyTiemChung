@@ -107,6 +107,17 @@ public sealed class IdentityHttpSqlTests
             }
             var create=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Created",identityNumber="000000000010",phoneNumber="0900000000",email="created@example.invalid"});
             Assert.Equal(title=="LeTan"?HttpStatusCode.Created:HttpStatusCode.Forbidden,create.StatusCode);
+            if(title=="LeTan") {
+                var duplicate=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Duplicate",identityNumber="000000000010",phoneNumber="0900000000",email="duplicate@example.invalid"});
+                Assert.Equal(HttpStatusCode.Conflict,duplicate.StatusCode);
+                using var problem=JsonDocument.Parse(await duplicate.Content.ReadAsStringAsync());
+                Assert.Equal("duplicateIdentity",problem.RootElement.GetProperty("code").GetString());
+                foreach(var dob in new[]{"0001-01-01","2999-01-01","not-a-date"})
+                    Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/recipients",new {customerId=own.MaKhachHang,fullName="Synthetic",dateOfBirth=dob,gender="Khác",relationshipToCustomer="Con"})).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/recipients",new {customerId=own.MaKhachHang,fullName="Synthetic",dateOfBirth="2020-01-01",gender="Unknown",relationshipToCustomer="Con"})).StatusCode);
+                Assert.Equal(HttpStatusCode.Created,(await client.PostAsJsonAsync("/api/v1/recipients",new {customerId=own.MaKhachHang,fullName="Synthetic New Recipient",dateOfBirth="2020-01-01",gender="Khác",identityNumber=(string?)null,relationshipToCustomer="Con"})).StatusCode);
+                Assert.Equal(HttpStatusCode.NotFound,(await client.PutAsJsonAsync("/api/v1/recipients/2147483647",new {})).StatusCode);
+            }
             var put=await client.PutAsJsonAsync($"/api/v1/recipients/{recipient.MaNguoiDuocTiem}",new {fullName="Changed",identityNumber=(string?)null,dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"});
             Assert.Equal(title=="LeTan"?HttpStatusCode.Conflict:HttpStatusCode.Forbidden,put.StatusCode);
             if(title=="Admin") {
@@ -118,6 +129,7 @@ public sealed class IdentityHttpSqlTests
             await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==staff.MaTaiKhoan).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
             Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/auth/me")).StatusCode);
         }
-        Assert.Equal("Synthetic Child",(await db.Recipients.AsNoTracking().SingleAsync()).HoTen);
+        Assert.Equal("Synthetic Child",(await db.Recipients.AsNoTracking().SingleAsync(x=>x.MaNguoiDuocTiem==recipient.MaNguoiDuocTiem)).HoTen);
+        Assert.True(await db.Set<SecurityAudit>().AnyAsync(x=>x.Action=="profiles.writeDenied" && x.ResourceId==null));
     }
 }

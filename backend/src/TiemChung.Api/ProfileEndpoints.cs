@@ -10,6 +10,18 @@ public static class ProfileEndpoints
     public static IEndpointRouteBuilder MapProfileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1").WithTags("Profiles");
+        group.AddEndpointFilter(async (invocation,next) => {
+            try { return await next(invocation); }
+            catch(IdentityFailure) when(invocation.HttpContext.Request.Method is "POST" or "PUT") {
+                var context=invocation.HttpContext;
+                var db=context.RequestServices.GetRequiredService<TiemChungDbContext>();
+                // Failed handler transactions have unwound. Never persist tracked failed writes.
+                db.ChangeTracker.Clear();
+                IdentityTransactions.Audit(db,"profiles.writeDenied",context.TraceIdentifier,outcome:"Denied");
+                await db.SaveChangesAsync(context.RequestAborted);
+                throw;
+            }
+        });
 
         // GET /api/v1/customers
         group.MapGet("/customers", async (HttpContext context, IdentityAuthorization auth, string? search, int? page, int? pageSize, TiemChungDbContext db, CancellationToken ct) =>

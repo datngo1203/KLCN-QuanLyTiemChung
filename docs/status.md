@@ -2,6 +2,8 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Bổ sung test local: register hai connection cùng normalized email chỉ một account/token/outbox; email 254 không cắt username, SQL chặn customer duty sai/employee thiếu FK; operator auth negative và mock coordinator. Chưa đồng nhất HEAD cuối/CI; không báo hoàn tất.
+
 - Release suite mới 24/24 đạt: thêm revoke/write hai thứ tự, confirm cạnh tranh, recovery manifest negative, backup/restore ledger, validation HTTP; publish API không chứa operator/tests. Vẫn chưa đủ checklist trước ready; xem verification hiện hành.
 
 - Working tree bổ sung test đạt 21/21: audit rollback Profiles/refresh, bootstrap/admin negative và mail retry/resend. CI implementation `670b599` backend SQL/web/Windows success ở lần kiểm; chưa xác nhận mobile và chưa áp cho test mới. Chi tiết/ca thiếu trong tài liệu verification.

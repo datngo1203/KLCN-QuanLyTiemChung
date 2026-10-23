@@ -29,4 +29,6 @@ Cập nhật working tree: suite 21/21 đạt trên LocalDB; đã thêm audit-tr
 
 Cập nhật tiếp: Release suite 24/24 đạt trên LocalDB, gồm thu hồi/ghi hai thứ tự, confirm hai connection, manifest sai DB/mốc/target, backup/restore định danh DB/ledger và validation HTTP cơ bản. API Release publish không có Operator/Tests assembly. Test backup tạo bản sao synthetic, giữ file/DB để chẩn đoán; không restore đè DB gốc.
 
-Còn kiểm chứng trước ready: operator xác thực CLI negative, validation biên đầy đủ, multi-tab coordinator mock và CI tại HEAD cuối. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS.
+Đã thêm operator authentication unit negative (allowlist/secret yếu/sai/không lộ secret), audit writeDenied, mock giao thức coordinator (không phải browser E2E), SQL register race chuẩn hóa email, customer email 254 và account/duty constraints. Các ca này chạy local đạt; tổng suite cần ghi lại theo HEAD cuối.
+
+Còn kiểm chứng trước ready: validation/dependency failures và preflight dữ liệu lỗi đủ checklist, CI tại HEAD cuối. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS. Client/browser E2E thuộc M2, mock không được gọi là client đã triển khai.
