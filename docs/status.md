@@ -1,5 +1,11 @@
 # Trạng thái khung — 19/10/2026
 
+## Hai P1 implementation #33 tại 9fa35ab — chờ review bổ sung hẹp
+
+- Xác nhận operator tin env allowlist/expected secret/connection caller đặt và mail chưa có dispatcher trong lifecycle. M1 chưa được coi ready/nghiệm thu; 35/35/CI cũ không bao phủ hai nguyên nhân này.
+- Chuẩn bị [contract boundary/delivery](../contracts/m1-p1-operator-delivery-review.md) cùng cảnh báo runbook và acceptance checklist; đây là thay đổi contract thực chất về deployment/operator và mức bảo đảm delivery. Chưa code phụ thuộc trước review phần đổi, không thay schema hoặc Goal mới, không mở M2–M4.
+- Gói này chỉ tài liệu: kiểm diff/allowlist/link; chưa chạy SQL/auth suite mới hoặc khẳng định test P1 PASS. Sau approval mới triển khai/chạy tests và CI theo HEAD code mới. Không approve/merge/comment hoặc gửi tin thành viên/reviewer.
+
 ## M1 implementation đang thực hiện — 23/10/2026
 
 - Reset tests mới: suite 35/35 đạt với SQL active-session revocation, actor negatives trực tiếp Reset, Customer target/inactive target, hash/revoke/audit rollback và child-process stdin redirect/no-secret-output. Chờ CI HEAD cuối trước bàn giao ready; không dùng 33/33 cũ thay bằng chứng reset.

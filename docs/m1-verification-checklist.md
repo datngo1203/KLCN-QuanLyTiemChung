@@ -1,5 +1,11 @@
 # Checklist M1 — kế hoạch kiểm chứng, chưa chạy SQL/auth
 
+## Hai P1 mới sau implementation review tại 9fa35ab
+
+- [ ] Review/chấp thuận [diff contract hẹp operator/delivery](../contracts/m1-p1-operator-delivery-review.md) trước code phụ thuộc; không duyệt lại toàn M1.
+- [ ] Sau approval chạy từng acceptance của bổ sung: OS/policy/SQL boundary và host lifecycle register → sink → verify → login, failure/retry/race/shutdown/production fail-closed. Không helper drain thay lifecycle; Windows ACL cần runner Windows thực, test giả không đủ.
+- [ ] SQL/auth Release và CI trên HEAD code mới, không dùng 35/35 cũ làm bằng chứng sửa hai P1. Bàn giao mapping từng finding/commit/file/test; chưa nghiệm thu production.
+
 [Spec](m1-identity-review.md), [contract](../contracts/m1-identity-profiles.md), [schema](../database/m1-identity-schema-review.md). Các ô dưới đây là tiêu chí nghiệm thu sau triển khai, không phải kết quả PASS. PR hiện tại chỉ kiểm tài liệu; CI xanh không thay review độc lập hoặc chứng minh các test tương lai đã chạy.
 
 ## Gate review trước code

@@ -1,5 +1,7 @@
 # Reset nhân viên M1 — operator offline
 
+**Chặn vận hành sau review P1 tại 9fa35ab:** môi trường caller tự đặt chưa phải trust boundary. Không dùng hướng dẫn env dưới đây với DB thật. [Đề xuất boundary OS/SQL và thay runbook](../contracts/m1-p1-operator-delivery-review.md) chờ review: Windows SID token, policy tại vị trí Known Folder cố định với owner/DACL được kiểm, Integrated Security/principal SQL riêng; không env/path override. Admin triển khai cấp ACL và SQL trước; test phải xác nhận caller không sửa policy/binary, không có quyền SQL trực tiếp. Không in secret hoặc coi OS/DB administrator là đối tượng có thể chống được. Chưa có code boundary mới, hướng dẫn dưới giữ truy vết implementation cũ.
+
 Contract được người dùng chấp thuận: `f30641b6463858a2c10691054cf9090f3927521f` cùng báo cáo review kỹ thuật; không phải approval GitHub hoặc thành viên. Không HTTP reset, không self-service/force-change, không mở lại recovery ledger.
 
 1. Đối chiếu danh tính người nhận theo quy trình được quản trị chấp nhận; tổ chức phiên hỗ trợ trực tiếp, người nhận tự nhập mật khẩu. Không đủ kênh bàn giao bảo mật đã phê duyệt thì dừng. Không gửi mail/SMS/chat hoặc lưu mật khẩu ra file.

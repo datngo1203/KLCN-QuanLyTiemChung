@@ -1,5 +1,7 @@
 # Contract review M1 — chưa thực thi
 
+Review implementation tại `9fa35ab`: [bổ sung hẹp hai P1 operator/delivery](m1-p1-operator-delivery-review.md) đang chờ review trước code phụ thuộc. Các mô tả nguồn secret/config và delivery cũ dưới đây không chứng minh boundary/lifecycle đã an toàn; chưa được coi hai findings đã sửa.
+
 Base `/api/v1`, JSON camelCase, UTC ISO 8601, DateOnly `YYYY-MM-DD`, ID int như hiện tại. Đây là đặc tả Markdown chờ review, không phải DTO/OpenAPI đã triển khai. [Quyết định và gate](../docs/m1-identity-review.md), [schema](../database/m1-identity-schema-review.md).
 
 ## Identity requests/responses
