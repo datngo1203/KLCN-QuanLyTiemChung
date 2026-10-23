@@ -71,7 +71,13 @@ public sealed class IdentityHttpSqlTests
         var cookies=login.Headers.GetValues("Set-Cookie").ToArray();
         Assert.Contains(cookies,x=>x.StartsWith("__Host-klcn-refresh=") && x.Contains("secure",StringComparison.OrdinalIgnoreCase) && x.Contains("httponly",StringComparison.OrdinalIgnoreCase));
         client.DefaultRequestHeaders.Add("Cookie",string.Join("; ",cookies.Select(x=>x.Split(';')[0])));
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="native",refreshToken="synthetic"})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="web",refreshToken="synthetic"})).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="web"})).StatusCode);
+        client.DefaultRequestHeaders.Add("Origin","https://attacker.invalid");
+        client.DefaultRequestHeaders.Add("X-CSRF-Token","wrong");
+        Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="web"})).StatusCode);
+        client.DefaultRequestHeaders.Remove("Origin"); client.DefaultRequestHeaders.Remove("X-CSRF-Token");
         client.DefaultRequestHeaders.Add("Origin","https://localhost");
         var csrf=cookies.Single(x=>x.StartsWith("__Host-klcn-csrf=")).Split(';')[0].Split('=',2)[1];
         client.DefaultRequestHeaders.Add("X-CSRF-Token",csrf);

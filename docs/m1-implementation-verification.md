@@ -34,3 +34,7 @@ Cập nhật tiếp: Release suite 24/24 đạt trên LocalDB, gồm thu hồi/g
 Release suite hiện tại 32/32 đạt: đã thêm preflight duplicate legacy dừng trước DDL/giữ rows, HTTP SQL unavailable 503, stale SecurityVersion/session missing/refresh expired và verification expired. Bằng chứng các ca ở test source tương ứng; không suy rộng sang các tổ hợp chưa chạy.
 
 Còn kiểm chứng trước ready: đối chiếu checklist cuối và CI tại HEAD cuối. Client/browser E2E thuộc M2, mock không được gọi là client đã triển khai. Những hàng checklist gộp nhiều tổ hợp vẫn chỉ được xác nhận theo test thực có; không đánh dấu blanket PASS.
+
+## Khoảng trống contract cần quyết định/review
+
+Schema M1 yêu cầu cấp lại mật khẩu hash legacy không xác định, nhưng danh sách lệnh contract chưa có reset cho account nhân viên đã tồn tại; provision bị unique employee/account, recovery chỉ dành Admin target một lần. Đã báo người dùng, chưa được xem là chấp thuận thay contract. Đề xuất tối thiểu cần review: `reset-employee-password` offline, actor Admin active + QuanLyTaiKhoan + không Director; không self-reset; target Employee tồn tại, không tự đổi status/duty/quyền; password nhập ẩn/hash server; tăng SecurityVersion/revoke session+credential/audit cùng transaction. Chưa viết lệnh, chưa thay contract/schema đã duyệt. Đây là phần còn chặn ready với dữ liệu legacy tương ứng.
