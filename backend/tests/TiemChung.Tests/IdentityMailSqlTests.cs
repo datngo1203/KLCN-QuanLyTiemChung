@@ -23,6 +23,13 @@ public sealed class IdentityMailSqlTests
             ["Identity:MailEncryptionKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
         }).Build();
         var registration=new IdentityRegistration(db,config);
+        await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectOutbox ON IdentityMailOutbox AFTER INSERT AS BEGIN THROW 51009, 'Synthetic outbox failure', 1; END;");
+        await Assert.ThrowsAsync<DbUpdateException>(()=>registration.RegisterAsync("rollback@example.invalid","synthetic-original-password","outbox-failure",CancellationToken.None));
+        db.ChangeTracker.Clear();
+        Assert.Empty(await db.Set<TaiKhoan>().ToListAsync());
+        Assert.Empty(await db.Set<EmailVerification>().ToListAsync());
+        Assert.Empty(await db.Set<SecurityAudit>().ToListAsync());
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectOutbox;");
         await registration.RegisterAsync("mail@example.invalid","synthetic-original-password","register",CancellationToken.None);
         var hash=(await db.Set<TaiKhoan>().AsNoTracking().SingleAsync()).MatKhauHash;
         await registration.RegisterAsync("mail@example.invalid","synthetic-changed-password","repeat",CancellationToken.None);
