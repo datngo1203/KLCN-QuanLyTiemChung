@@ -10,12 +10,14 @@ public static class IdentityEndpoints
         g.MapPost("/register", async (HttpContext c, IdentityRegistration s, CancellationToken ct) => {
             var p = await Payload(c, ["email","password"], ct);
             Limit(c,"register",Value(p,"email"));
+            await c.RequestServices.GetRequiredService<IdentityMailReadiness>().RequireAsync(c.RequestServices.GetRequiredService<TiemChung.Infrastructure.Data.TiemChungDbContext>(),Value(p,"email"),ct);
             await s.RegisterAsync(Value(p,"email"), Value(p,"password"), c.TraceIdentifier, ct);
             return Results.Json(new { status = "verificationPending" }, statusCode: 202);
         });
         g.MapPost("/email-verifications/resend", async (HttpContext c, IdentityRegistration s, CancellationToken ct) => {
             var p = await Payload(c, ["email"], ct);
             Limit(c,"resend",Value(p,"email"));
+            await c.RequestServices.GetRequiredService<IdentityMailReadiness>().RequireAsync(c.RequestServices.GetRequiredService<TiemChung.Infrastructure.Data.TiemChungDbContext>(),Value(p,"email"),ct);
             await s.ResendAsync(Value(p,"email"), c.TraceIdentifier, ct);
             return Results.Json(new { status = "verificationPending" }, statusCode: 202);
         });

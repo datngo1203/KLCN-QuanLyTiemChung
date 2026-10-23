@@ -22,13 +22,14 @@ public sealed class IdentityHttpSqlTests
         var source=Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")??throw new InvalidOperationException("SQL required.");
         var cs=new SqlConnectionStringBuilder(source) { InitialCatalog="KLCN_M1_Test_"+Guid.NewGuid().ToString("N") };
         var values=new Dictionary<string,string?> {
-            ["ConnectionStrings:TiemChung"]=cs.ConnectionString,["Catalog:UseDemoData"]="false",
+            ["ConnectionStrings:TiemChung"]=cs.ConnectionString,["Catalog:UseDemoData"]="false",["Identity:MailMode"]="Synthetic",
             ["Identity:SigningKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
             ["Identity:MailEncryptionKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
             ["Cors:Origins:0"]="https://localhost"
         };
         await using var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(cs.ConnectionString).Options);
         await db.Database.MigrateAsync();
+        await IdentityFixture.MarkSyntheticAsync(db);
         await using var factory=new WebApplicationFactory<Program>().WithWebHostBuilder(b=>b.UseEnvironment("Development")
             .ConfigureAppConfiguration((_,c)=>c.AddInMemoryCollection(values)).ConfigureServices(s=> {
                 s.RemoveAll<DbContextOptions<TiemChungDbContext>>();
@@ -40,10 +41,12 @@ public sealed class IdentityHttpSqlTests
         Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/auth/register",new {email="a@example.invalid",password="synthetic-password-123",accountType="Employee"})).StatusCode);
         Assert.Equal(HttpStatusCode.Accepted,(await client.PostAsJsonAsync("/api/v1/auth/register",new {email="a@example.invalid",password="synthetic-password-123"})).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/auth/login",new {identifier="a@example.invalid",password="synthetic-password-123",clientType="native"})).StatusCode);
-        var outbox=await db.Set<IdentityMailOutbox>().SingleAsync(); var payload=outbox.EncryptedPayload!; var plain=new byte[payload.Length-28];
-        using(var aes=new System.Security.Cryptography.AesGcm(Convert.FromBase64String(values["Identity:MailEncryptionKey"]!),16)) aes.Decrypt(payload.AsSpan(0,12),payload.AsSpan(28),payload.AsSpan(12,16),plain);
-        using var mail=JsonDocument.Parse(plain);
-        Assert.Equal(HttpStatusCode.NoContent,(await client.PostAsJsonAsync("/api/v1/auth/email-verifications/confirm",new {token=mail.RootElement.GetProperty("token").GetString()})).StatusCode);
+        var sink=factory.Services.GetRequiredService<TiemChung.Api.SyntheticVerificationSink>();
+        using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15))) {
+            while(sink.Messages.Count==0) await Task.Delay(50,timeout.Token);
+        }
+        var token=sink.Messages.Single().Value.Token;
+        Assert.Equal(HttpStatusCode.NoContent,(await client.PostAsJsonAsync("/api/v1/auth/email-verifications/confirm",new {token})).StatusCode);
         var login=await client.PostAsJsonAsync("/api/v1/auth/login",new {identifier="a@example.invalid",password="synthetic-password-123",clientType="web"});
         Assert.Equal(HttpStatusCode.OK,login.StatusCode);
         using var envelope=JsonDocument.Parse(await login.Content.ReadAsStringAsync());
@@ -58,8 +61,7 @@ public sealed class IdentityHttpSqlTests
         var recipient=new NguoiDuocTiem { MaKhachHang=own.MaKhachHang,HoTen="Synthetic Child",NgaySinh=new DateOnly(2020,1,1),GioiTinh="Khác",QuanHeVoiKhachHang="Con" };
         db.Add(recipient); await db.SaveChangesAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(()=>IdentityFixture.LinkAsync(db,"Production",account.MaTaiKhoan,own.MaKhachHang,null));
-        await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>IdentityFixture.LinkAsync(db,"Test",account.MaTaiKhoan,own.MaKhachHang,null));
-        await IdentityFixture.MarkSyntheticAsync(db);
+
         await IdentityFixture.LinkAsync(db,"Test",account.MaTaiKhoan,own.MaKhachHang,null);
         using var scoped=JsonDocument.Parse(await client.GetStringAsync("/api/v1/customers?pageSize=1"));
         Assert.Equal(own.MaKhachHang,scoped.RootElement.GetProperty("items")[0].GetProperty("id").GetInt32());

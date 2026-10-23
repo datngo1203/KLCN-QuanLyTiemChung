@@ -1,5 +1,7 @@
 # Reset nhân viên M1 — operator offline
 
+Implementation hai P1 sau chấp thuận `8a6a0e4`: [runbook policy Windows/SQL và bằng chứng mới](m1-p1-implementation-verification.md). **Hướng dẫn env bên dưới đã hết hiệu lực cho operator**: connection/allowlist/secret/manifest lấy từ policy quản trị cố định, không env/path caller. Các bước credential/target/version/handoff vẫn giữ; positive CLI qua boundary mới chưa được kiểm trên môi trường quản trị hợp lệ.
+
 **Chặn vận hành sau review P1 tại 9fa35ab:** môi trường caller tự đặt chưa phải trust boundary. Không dùng hướng dẫn env dưới đây với DB thật. [Đề xuất boundary OS/SQL và thay runbook](../contracts/m1-p1-operator-delivery-review.md) chờ review: Windows SID token, policy tại vị trí Known Folder cố định với owner/DACL được kiểm, Integrated Security/principal SQL riêng; không env/path override. Admin triển khai cấp ACL và SQL trước; test phải xác nhận caller không sửa policy/binary, không có quyền SQL trực tiếp. Không in secret hoặc coi OS/DB administrator là đối tượng có thể chống được. Chưa có code boundary mới, hướng dẫn dưới giữ truy vết implementation cũ.
 
 Contract được người dùng chấp thuận: `f30641b6463858a2c10691054cf9090f3927521f` cùng báo cáo review kỹ thuật; không phải approval GitHub hoặc thành viên. Không HTTP reset, không self-service/force-change, không mở lại recovery ledger.

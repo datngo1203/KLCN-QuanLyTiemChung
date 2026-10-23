@@ -12,6 +12,10 @@ public sealed class OperatorPromptTests
         var start=new ProcessStartInfo("dotnet") { RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,UseShellExecute=false };
         start.ArgumentList.Add(typeof(IdentityAdministration).Assembly.Location);
         start.ArgumentList.Add("reset-employee-password");
+        start.Environment["M1_OPERATOR_ALLOWED_IDENTITIES"]=Environment.UserDomainName+"\\"+Environment.UserName;
+        start.Environment["M1_OPERATOR_SECRET"]="SYNTHETIC_SECRET_MUST_NOT_ECHO";
+        start.Environment["M1_OPERATOR_POLICY_PATH"]=Path.Combine(Path.GetTempPath(),"caller-policy-not-trusted.json");
+        start.Environment["ProgramData"]=Path.GetTempPath();
         start.Environment["M1_OPERATOR_CONNECTION"]="Server=unused;Database=unused;Integrated Security=true";
         using var process=Process.Start(start)!;
         await process.StandardInput.WriteLineAsync("synthetic-actor");

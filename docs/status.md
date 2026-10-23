@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## Sửa implementation hai P1 sau chấp thuận 8a6a0e4
+
+- Đã thay operator env trust bằng Windows SID/native fixed policy + ACL toàn chuỗi + Integrated SQL; nối hosted mail dispatcher/readiness, production intake 503, retry/race/dedup theo sink instance. Không schema mới hoặc email người thật.
+- [Mapping finding/file/test, runbook và giới hạn](m1-p1-implementation-verification.md). Release SQL/auth local 41/41, không skip. Chưa kiểm positive CLI qua deployment policy/ACL/SQL principal quản trị; không thay OS/DB grants chung, không gọi service test là ACL positive. HEAD/CI cuối xem PR #33; không dùng 35/35 cũ. Chưa nghiệm thu/production-ready, không approve/merge.
+
 ## P2 contract delivery tại 7b2c1c7 — sửa giới hạn dedup
 
 - Chỉ sửa lời hứa delivery và acceptance/checklist: dedup cùng sink instance/lifetime; message ID từ outbox đã commit giữ nguyên qua retry. Delivery không rollback cùng SQL; sink host độc lập/restart có thể nhận lại, application lock không bảo đảm exactly-once. Không thay operator, lifecycle/production 503 hoặc thêm schema/code.

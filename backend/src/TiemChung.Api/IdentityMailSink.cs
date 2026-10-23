@@ -8,7 +8,7 @@ namespace TiemChung.Api;
 
 public interface IVerificationMailSink
 {
-    // Sink must deduplicate deliveryId, since a crash can occur after delivery before DB commit.
+    // Dedup is per sink instance/lifetime; delivery cannot roll back with SQL.
     Task DeliverAsync(Guid deliveryId,string syntheticAddress,string token,CancellationToken ct);
 }
 
@@ -18,11 +18,14 @@ public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config
     {
         if(!environment.IsDevelopment() && !environment.IsEnvironment("Test"))
             throw new InvalidOperationException("Mail test sink unavailable.");
+        await using var tx=await IdentityTransactions.BeginAsync(db,ct);
+        await db.Database.ExecuteSqlRawAsync("DECLARE @r int; EXEC @r=sys.sp_getapplock @Resource=N'KLCN.M1.Mail', @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; IF @r<0 THROW 51001, 'Mail lock unavailable', 1;",ct);
         var now=DateTimeOffset.UtcNow;
         await db.Set<IdentityMailOutbox>().Where(x=>x.ExpiresAt<=now && x.EncryptedPayload!=null)
             .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.EncryptedPayload,(byte[]?)null),ct);
         var rows=await db.Set<IdentityMailOutbox>().Where(x=>x.SentAt==null && x.ExpiresAt>now && x.EncryptedPayload!=null &&
             (x.NextAttemptAt==null || x.NextAttemptAt<=now)).OrderBy(x=>x.CreatedAt).Take(25).ToListAsync(ct);
+        rows=rows.Where(row=>db.Set<EmailVerification>().Any(v=>v.Id==row.VerificationId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>now)).ToList();
         var key=Convert.FromBase64String(config["Identity:MailEncryptionKey"]??throw new InvalidOperationException("Mail key required."));
         foreach(var row in rows) {
             var bytes=row.EncryptedPayload!; var plaintext=new byte[bytes.Length-28];
@@ -30,7 +33,7 @@ public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config
                 using(var aes=new AesGcm(key,16)) aes.Decrypt(bytes.AsSpan(0,12),bytes.AsSpan(28),bytes.AsSpan(12,16),plaintext);
                 using var doc=JsonDocument.Parse(plaintext);
                 var email=doc.RootElement.GetProperty("email").GetString()!;
-                if(!email.EndsWith("@example.invalid",StringComparison.OrdinalIgnoreCase))
+                if(!IdentityMailReadiness.IsSynthetic(email))
                     throw new InvalidOperationException("Synthetic recipient required.");
                 await sink.DeliverAsync(row.Id,email,doc.RootElement.GetProperty("token").GetString()!,ct);
                 row.SentAt=DateTimeOffset.UtcNow; row.EncryptedPayload=null; row.LastErrorCode=null;
@@ -39,5 +42,6 @@ public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config
             } finally { CryptographicOperations.ZeroMemory(plaintext); }
             row.Attempts++; await db.SaveChangesAsync(ct);
         }
+        await tx.CommitAsync(ct);
     }
 }

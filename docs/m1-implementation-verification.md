@@ -1,5 +1,7 @@
 # M1 implementation — đang kiểm chứng
 
+Sau review hai P1 tại 9fa35ab và chấp thuận contract 8a6a0e4: xem [kiểm chứng implementation mới và giới hạn ACL](m1-p1-implementation-verification.md). Operator env cũ và ghi nhận 35/35 bên dưới là lịch sử, không thay bằng chứng sửa P1.
+
 Nhánh `codex/m1-implementation`, dependency #32 (đặc tả kỹ thuật `20a9a72b`, gate người dùng `053ee86`). Không M2–M4/client. Owner không đổi; cần review độc lập implementation trước merge.
 
 ## Chạy local

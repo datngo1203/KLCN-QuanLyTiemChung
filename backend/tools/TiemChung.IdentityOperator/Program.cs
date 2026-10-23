@@ -16,22 +16,21 @@ public static async Task<int> Main(string[] args)
 try {
     if(args.Length!=1) throw new InvalidOperationException("Specify exactly one command.");
     var command=args[0];
-    var connection=Environment.GetEnvironmentVariable("M1_OPERATOR_CONNECTION")??throw new InvalidOperationException("Operator connection required.");
+    var policy=ProtectedOperatorPolicy.Load();
+    var connection=policy.ConnectionString;
     await using var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
     var ct=CancellationToken.None;
     if(command is "bootstrap-admin" or "recover-upgraded-admin") {
-        var identity=Environment.UserDomainName+"\\"+Environment.UserName;
-        var allowed=(Environment.GetEnvironmentVariable("M1_OPERATOR_ALLOWED_IDENTITIES")??"").Split(';',StringSplitOptions.RemoveEmptyEntries);
-        if(!allowed.Contains(identity,StringComparer.OrdinalIgnoreCase)) throw new InvalidOperationException("Operator identity denied.");
-        var configured=Environment.GetEnvironmentVariable("M1_OPERATOR_SECRET")??throw new InvalidOperationException("Operator secret required.");
+        var identity=policy.PrincipalSid;
+        var allowed=policy.AllowedSids;
+        var configured=policy.ExpectedSecret;
         var supplied=Hidden("Operator secret: ");
         OperatorAuthentication.Validate(identity,allowed,configured,supplied);
         if(Read("Maintenance active; public writes disabled? Type CONFIRM: ")!="CONFIRM") throw new InvalidOperationException("Maintenance confirmation required.");
         var recovery=new IdentityRecovery(db);
         if(command=="recover-upgraded-admin") {
             // Manifest is read from a protected secret-store export, never auto-created by this command.
-            var manifestPath=Read("Protected manifest path: ");
-            var manifest=JsonSerializer.Deserialize<RecoveryManifest>(await File.ReadAllTextAsync(manifestPath))??throw new InvalidOperationException("Manifest required.");
+            var manifest=policy.Manifest??throw new InvalidOperationException("Recovery manifest required.");
             var result=await recovery.RecoverAsync(manifest,identity,Hidden("Target password (12-128): "),ct);
             Console.WriteLine(result);
         } else {

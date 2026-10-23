@@ -11,6 +11,11 @@ builder.Services.AddScoped<IdentityAuthorization>();
 builder.Services.AddScoped<IdentityRegistration>();
 builder.Services.AddScoped<IdentitySessions>();
 builder.Services.AddSingleton<IdentityRateLimits>();
+builder.Services.AddSingleton<IdentityMailReadiness>();
+builder.Services.AddSingleton<SyntheticVerificationSink>();
+builder.Services.AddSingleton<IVerificationMailSink>(s=>s.GetRequiredService<SyntheticVerificationSink>());
+builder.Services.AddScoped<IdentityMailSink>();
+builder.Services.AddHostedService<IdentityMailDispatcher>();
 var demo = builder.Configuration.GetValue<bool>("Catalog:UseDemoData");
 var connection = builder.Configuration.GetConnectionString("TiemChung");
 if (demo && !builder.Environment.IsDevelopment())
