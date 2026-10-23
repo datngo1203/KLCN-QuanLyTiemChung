@@ -2,6 +2,8 @@
 
 ## Đặc tả M1 Profiles + Identity — 23/10/2026
 
+- Quyết định trực tiếp của người dùng trong chat ngày 23/10/2026 thay gate riêng M1: dùng báo cáo kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` và chấp thuận contract/nghiệp vụ của người dùng thay Bảo/Quý xác nhận trước code. Được tiếp tục implementation nhánh riêng phụ thuộc #32; không phải approval thành viên/GitHub, không đổi owner/branch protection. Contract/schema mới đổi thực chất vẫn cần review độc lập phần đổi. Nội dung kỹ thuật không đổi, các ghi nhận chờ approval phía dưới là lịch sử trước quyết định này. SQL/auth/runtime M1 chưa kiểm chứng.
+
 - Sửa recovery theo review `427f52a9`/base `f1880843`: bind RowVersion sau migration trong maintenance, kiểm lại trong transaction; ledger unique DB/mốc M1 và retry trả kết quả đã commit, không reset theo secret/manifest. Checklist bổ sung stale-version/rollback/retry/manifest mới/admin khóa lại/hai operator. Chỉ kiểm tài liệu; SQL/auth/runtime chưa chạy.
 
 - Sửa review `ff1294b9`/base `f1880843`: recovery nâng cấp manifest/ledger/audit, invariant revoke credential, Web Locks/CSRF và bearer web memory-only; checklist có ánh xạ finding → sửa → ca kiểm dự kiến. Chỉ tài liệu, chưa chạy SQL/auth/runtime; tự rà không thay review độc lập.

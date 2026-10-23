@@ -4,10 +4,10 @@
 
 ## Gate review trước code
 
-- [ ] Bảo/Quý không phải tác giả review độc lập Identity + schema, ghi SHA/approval; Bảo xác nhận Profiles nghiệp vụ, Đạt phụ trách SQL/quyền. Không tự ký thay reviewer.
-- [ ] Chấp thuận 10 quyết định kỹ thuật trong spec, đặc biệt SQL account độc lập, nghĩa PUT từ chối, phạm vi nhân viên toàn trung tâm hiện tại và refresh 409/5 giây.
+- [x] Gate riêng M1 do người dùng quyết định ngày 23/10/2026 trong chat: báo cáo kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` + chấp thuận contract/nghiệp vụ của người dùng thay yêu cầu Bảo/Quý xác nhận trước code. Không phải GitHub approval hoặc ý kiến thay thành viên; owner giữ nguyên.
+- [x] Người dùng chấp thuận đặc tả và 10 quyết định kỹ thuật M1 tại SHA trên; không thay nội dung kỹ thuật trong lần đổi gate hành chính. Contract/schema đổi thực chất cần review độc lập phần đổi.
 - [ ] Review diff so develop chỉ tài liệu, không migration/DTO/API/client/ảnh gốc; không mang #29/#30/#31 hoặc 38c4f84/fa027ee.
-- [ ] Sau approval mới chia PR implementation SQL → Identity → Profiles; mỗi contract đổi phải review lại. Không tự merge PR đặc tả, không Goal code trước gate.
+- [ ] Gate đã cho phép Goal/implementation SQL → Identity → Profiles trên nhánh riêng; ghi dependency #32 nếu chưa merge. Mọi thay đổi contract/schema mới cần review phần đổi; không tự merge hoặc bỏ qua branch protection.
 
 ## SQL Server thật, chạy tự động trong suite riêng
 

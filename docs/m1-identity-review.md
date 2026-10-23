@@ -1,6 +1,6 @@
 # M1 — Identity tối thiểu và bảo vệ Profiles
 
-Trạng thái: **đặc tả đề nghị review độc lập, chưa triển khai**. Người dùng duyệt phạm vi M1 ngày 23/10/2026; chưa duyệt contract/schema kỹ thuật này. Base `develop` tại `f188084389a0033b856594632ae2c6495b29e248`. PR này chỉ sửa tài liệu, không migration/API/DTO thực thi.
+Trạng thái: **đặc tả M1 được người dùng chấp thuận để triển khai, chưa triển khai**. Ngày 23/10/2026, người dùng thay gate riêng M1: báo cáo review kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` cùng chấp thuận contract/nghiệp vụ của người dùng thay yêu cầu Bảo/Quý xác nhận trước code. Không phải approval của Bảo/Quý hoặc GitHub approval. Base `develop` tại `f188084389a0033b856594632ae2c6495b29e248`. PR này chỉ tài liệu; thay gate hành chính không đổi nội dung kỹ thuật đã review.
 
 ## Phạm vi và nguồn quyết định
 
@@ -15,14 +15,14 @@ Căn cứ: [bối cảnh](project-context.md), [kiến trúc](architecture.md), 
 
 | Thành phần | Đầu mối | Review độc lập cần có |
 |---|---|---|
-| Identity, quyền, SQL, điều phối | Đạt | Bảo hoặc Quý, không phải tác giả tự rà |
-| Profiles API/nghiệp vụ | Bảo | Đạt review quyền/SQL; Quý review luồng khách |
+| Identity, quyền, SQL, điều phối | Đạt | Gate trước code M1 theo quyết định người dùng ở đầu tài liệu; thay đổi contract/schema mới cần review độc lập |
+| Profiles API/nghiệp vụ | Bảo | Người dùng đã chấp thuận contract/nghiệp vụ M1; thay đổi mới giữ review chéo Đạt/Quý theo module |
 | Windows A03/Login/A12/A14 và điểm nối (M2) | Đạt | Bảo review A03/API; Quý review phần liên quan |
 | Web (M2) / Mobile (M2) | Bảo / Quý | Thành viên khác review contract/luồng |
 
 Agent được phép làm các module không đổi owner. Không coi CI, tự rà hoặc nhận xét của chính tác giả là review độc lập. Không tự cấp quyền GitHub hoặc gán người không đủ quyền.
 
-Đọc theo thứ tự: [contract](../contracts/m1-identity-profiles.md) → [schema đề xuất](../database/m1-identity-schema-review.md) → [checklist SQL/auth](m1-verification-checklist.md). Reviewer xác nhận từng quyết định dưới đây và ghi approval gắn SHA; thay contract/schema sau approval cần review lại phần bị đổi. Dừng trước migration/API cho đến khi approval độc lập bao phủ cả contract và schema.
+Đọc theo thứ tự: [contract](../contracts/m1-identity-profiles.md) → [schema đề xuất](../database/m1-identity-schema-review.md) → [checklist SQL/auth](m1-verification-checklist.md). Gate trước code M1 đã đáp ứng bằng nguồn quyết định ở đầu tài liệu, bao phủ đặc tả tại SHA đã review; được tiếp tục migration/API/test trên nhánh riêng phụ thuộc #32 mà không merge PR này. Contract/schema thay đổi thực chất cần review độc lập phần đổi trước thực hiện phần bị ảnh hưởng. Giữ owner/review chéo và branch protection; không tự gán GitHub approval. Gate hành chính này không yêu cầu review lại nội dung kỹ thuật không đổi.
 
 ## Quyết định kỹ thuật đề nghị chấp thuận
 
@@ -67,4 +67,4 @@ P0–P7 giữ nguyên lộ trình. Mỗi lát chỉ làm đặc tả → migrati
 
 Production chưa cho sử dụng dữ liệu thật trước nghiệm thu. Endpoint M2–M4 chưa được map; feature capability trả false. Khi triển khai các mốc này, server vẫn gate theo môi trường/quyết định vận hành, UI chỉ phản ánh capability; không có bypass production. Mail M1 chỉ gửi hộp thư sink kiểm thử cho đến khi dịch vụ gửi thật được cấu hình và kiểm chứng. DB test/dev và bí mật tách biệt; fixture runner phải từ chối non-Development/non-Test và DB không có marker fixture, không nhận connection production.
 
-Chưa có câu hỏi chặn đặc tả M1. Reviewer phải chấp thuận các lựa chọn kỹ thuật 1–10; đây không phải yêu cầu nghiệp vụ đã được coi là duyệt. Tiêu chuẩn bằng chứng chính chủ/đại diện, người được phân công xác minh, đồng ý/thời hạn quyền, sửa định danh/tranh chấp và chính sách thanh toán/nhắc/đổi hủy chờ quyết định ở M3/M4. Ghi chú nhân viên không thay thế bằng chứng.
+Các lựa chọn kỹ thuật 1–10 của M1 tại SHA đã review được người dùng chấp thuận theo gate riêng; không suy ra nghiệp vụ M2–M4 được duyệt. Tiêu chuẩn bằng chứng chính chủ/đại diện, người được phân công xác minh, đồng ý/thời hạn quyền, sửa định danh/tranh chấp và chính sách thanh toán/nhắc/đổi hủy chờ quyết định ở M3/M4. Ghi chú nhân viên không thay thế bằng chứng.
