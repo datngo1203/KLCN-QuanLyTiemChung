@@ -110,6 +110,20 @@ public sealed class IdentitySqlTests
         await sessions.LogoutAsync(firstLogout.RefreshToken,"native",null,"test-logout-first",CancellationToken.None);
         db.ChangeTracker.Clear();
         Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>sessions.RefreshAsync(firstLogout.RefreshToken,"native",null,"test-rotate-after-logout",CancellationToken.None))).Status);
+        db.ChangeTracker.Clear();
+        var versioned=await sessions.LoginAsync("person@example.invalid","synthetic-passphrase-123","native","version",CancellationToken.None);
+        await db.Set<TaiKhoan>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.SecurityVersion,x=>x.SecurityVersion+1));
+        db.ChangeTracker.Clear();
+        Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>sessions.RefreshAsync(versioned.RefreshToken,"native",null,"stale-version",CancellationToken.None))).Status);
+        var missing=new Microsoft.AspNetCore.Http.DefaultHttpContext(); missing.Request.Headers.Authorization="Bearer "+tokens.Issue(1,Guid.NewGuid(),DateTimeOffset.UtcNow);
+        Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>authorization.RequireAsync(missing,false,CancellationToken.None))).Status);
+        db.ChangeTracker.Clear();
+        var expired=await sessions.LoginAsync("person@example.invalid","synthetic-passphrase-123","native","expired",CancellationToken.None);
+        // Keep expiry > creation so the fixture does not bypass SQL expiry constraints.
+        await db.Set<RefreshCredential>().Where(x=>x.SessionId==expired.SessionId).ExecuteUpdateAsync(s=>s
+            .SetProperty(x=>x.CreatedAt,DateTimeOffset.UtcNow.AddDays(-8)).SetProperty(x=>x.ExpiresAt,DateTimeOffset.UtcNow.AddDays(-1)));
+        db.ChangeTracker.Clear();
+        Assert.Equal(401,(await Assert.ThrowsAsync<TiemChung.Api.IdentityFailure>(()=>sessions.RefreshAsync(expired.RefreshToken,"native",null,"expired-refresh",CancellationToken.None))).Status);
     }
     [Fact, Trait("Category","SqlIntegration")]
     public async Task FreshDatabaseMigratesAndEnforcesCredentialAndRecoveryUniqueness()

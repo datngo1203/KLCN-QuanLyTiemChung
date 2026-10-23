@@ -131,5 +131,15 @@ public sealed class IdentityHttpSqlTests
         }
         Assert.Equal("Synthetic Child",(await db.Recipients.AsNoTracking().SingleAsync(x=>x.MaNguoiDuocTiem==recipient.MaNguoiDuocTiem)).HoTen);
         Assert.True(await db.Set<SecurityAudit>().AnyAsync(x=>x.Action=="profiles.writeDenied" && x.ResourceId==null));
+        await using var unavailableFactory=factory.WithWebHostBuilder(b=>b.ConfigureServices(services=> {
+            services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();
+            services.AddDbContext<TiemChungDbContext>(o=>o.UseSqlServer("Server=127.0.0.1,1;Database=Unavailable;Integrated Security=true;Connect Timeout=1;TrustServerCertificate=true"));
+        }));
+        using var unavailable=unavailableFactory.CreateClient();
+        unavailable.DefaultRequestHeaders.Authorization=new("Bearer",envelope.RootElement.GetProperty("accessToken").GetString());
+        var dependency=await unavailable.GetAsync("/api/v1/auth/me");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable,dependency.StatusCode);
+        using var dependencyBody=JsonDocument.Parse(await dependency.Content.ReadAsStringAsync());
+        Assert.Equal("dependencyUnavailable",dependencyBody.RootElement.GetProperty("code").GetString());
     }
 }

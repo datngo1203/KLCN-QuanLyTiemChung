@@ -52,6 +52,14 @@ public sealed class IdentityMailSqlTests
         db.ChangeTracker.Clear();
         Assert.Equal("invalidVerificationToken",(await Assert.ThrowsAsync<IdentityFailure>(()=>registration.ConfirmAsync(fresh,"used",CancellationToken.None))).Code);
         Assert.Empty(await db.Set<AccountProfileLink>().ToListAsync());
+        await registration.RegisterAsync("expired@example.invalid","synthetic-expired-password","expired-register",CancellationToken.None);
+        await dispatcher.DrainAsync(sink,CancellationToken.None);
+        var expired=sink.Delivered.Values.Single(x=>x!=fresh && x!=old);
+        var expiredHash=IdentityTokens.Hash(expired);
+        await db.Set<EmailVerification>().Where(x=>x.TokenHash==expiredHash).ExecuteUpdateAsync(s=>s
+            .SetProperty(x=>x.CreatedAt,DateTimeOffset.UtcNow.AddHours(-2)).SetProperty(x=>x.ExpiresAt,DateTimeOffset.UtcNow.AddHours(-1)));
+        db.ChangeTracker.Clear();
+        Assert.Equal("invalidVerificationToken",(await Assert.ThrowsAsync<IdentityFailure>(()=>registration.ConfirmAsync(expired,"expired-confirm",CancellationToken.None))).Code);
         await Assert.ThrowsAsync<InvalidOperationException>(()=>new IdentityMailSink(db,config,new Env { EnvironmentName="Production" }).DrainAsync(sink,CancellationToken.None));
     }
     private sealed class Sink : IVerificationMailSink

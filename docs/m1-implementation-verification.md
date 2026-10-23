@@ -31,4 +31,6 @@ Cập nhật tiếp: Release suite 24/24 đạt trên LocalDB, gồm thu hồi/g
 
 Đã thêm operator authentication unit negative (allowlist/secret yếu/sai/không lộ secret), audit writeDenied, mock giao thức coordinator (không phải browser E2E), SQL register race chuẩn hóa email, customer email 254 và account/duty constraints. Các ca này chạy local đạt; tổng suite cần ghi lại theo HEAD cuối.
 
-Còn kiểm chứng trước ready: validation/dependency failures và preflight dữ liệu lỗi đủ checklist, CI tại HEAD cuối. CI phải ghi theo SHA thực tế. Các ca trong checklist chưa có bằng chứng không được đánh dấu PASS. Client/browser E2E thuộc M2, mock không được gọi là client đã triển khai.
+Release suite hiện tại 32/32 đạt: đã thêm preflight duplicate legacy dừng trước DDL/giữ rows, HTTP SQL unavailable 503, stale SecurityVersion/session missing/refresh expired và verification expired. Bằng chứng các ca ở test source tương ứng; không suy rộng sang các tổ hợp chưa chạy.
+
+Còn kiểm chứng trước ready: đối chiếu checklist cuối và CI tại HEAD cuối. Client/browser E2E thuộc M2, mock không được gọi là client đã triển khai. Những hàng checklist gộp nhiều tổ hợp vẫn chỉ được xác nhận theo test thực có; không đánh dấu blanket PASS.
