@@ -39,6 +39,19 @@ Yêu cầu SQL Server container/instance riêng, DB tên duy nhất mỗi run v�
 - [ ] Client coordinator mock nhiều request/tab: single-flight, 409 không loop, mất response thắng phải login lại; không auto retry POST Profiles khi timeout.
 - [ ] Bootstrap không account mới được chạy; tài khoản cũ chặn; actorId giả không được tin; Director/self-change/missing QuanLyTaiKhoan bị chặn; cấp/khóa/thay quyền đều audit/revoke.
 
+## Bổ sung reset nhân viên — chờ review độc lập, các ca chưa chạy
+
+- [ ] Review phần contract reset riêng theo commit bổ sung; scope approval không thay approval kỹ thuật. Không code lệnh trước review, không endpoint/reset SQL thủ công/khôi phục recovery một lần.
+- [ ] SQL thật: upgrade legacy → Admin recovery → actor xác thực bằng credential mới → reset Employee legacy Active → login bằng password mới. Hash legacy cũ/password cũ không còn dùng được; reset không tạo account/nhân viên trùng.
+- [ ] Actor sai credential/thiếu QuanLyTaiKhoan/Locked/nhân viên inactive/Director/self-reset bị từ chối; secret recovery/token cũ/actorId giả không thay credential. Actor bị đổi password/status/quyền sau bước nhập phải bị phát hiện dưới khóa, không commit.
+- [ ] Target Customer/không tồn tại/EmployeeId không khớp/version thiếu hoặc sai bị từ chối. Snapshot trước/sau: status account/nhân viên, duty/title/quyền/username/email/FK và recovery ledger không đổi. Target Locked/inactive được reset hash nhưng login vẫn bị từ chối.
+- [ ] Session/access token cũ target vô hiệu request tiếp theo; mọi session target revoked có 0 credential chưa consumed/chưa revoked, kể cả token hết hạn; actor/account khác không bị revoke.
+- [ ] Hai SQL connection cùng RowVersion: chỉ một reset thành công; stale version không tự reload/retry. Reset đua với refresh/logout/lock/đổi quyền/credential actor: khóa và kiểm lại không để bypass hoặc trạng thái dở dang.
+- [ ] Inject failure tại update hash, revoke và audit: hash/SecurityVersion/session/credential/audit rollback nguyên vẹn; đúng một lần tăng version/audit sau thành công. Timeout commit chưa rõ không tự phát lại reset hoặc recovery.
+- [ ] Password ẩn/nhập lại/chính sách/hash thư viện backend; stdin redirect bị chặn; stdout/stderr/log/exception/audit/argv/env/file không chứa password hoặc hash. Test dùng secret giả marker, không ghi password thật vào test artifacts.
+- [ ] Runbook bàn giao trực tiếp/đúng người, dừng nếu chưa có kênh được chấp thuận; không gửi mail/SMS/chat, không giả force-change/password expiry. Ledger recovery và quota một lần không đổi.
+- [ ] Chỉ sau review bổ sung mới chạy test reset và toàn SQL suite trên HEAD code mới; cập nhật lệnh/SQL version/kết quả/CI SHA mới, không dùng 33/33 hoặc CI SHA trước để kết luận reset PASS.
+
 ## Năm route Profiles và phạm vi
 
 - [ ] Anonymous 401; customer chưa verify bị chặn; verified unlinked GET items rỗng, POST/PUT 403. Không map endpoint claim/link.

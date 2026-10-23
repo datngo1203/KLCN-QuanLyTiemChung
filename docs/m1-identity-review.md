@@ -39,6 +39,8 @@ Agent được phép làm các module không đổi owner. Không coi CI, tự r
 
 ## Khóa/thu hồi và ranh giới request
 
+Bổ sung phạm vi ngày 23/10/2026: người dùng cho phép `reset-employee-password` offline để xử lý hash legacy ngoài target Admin recovery. [Contract bổ sung](../contracts/m1-identity-profiles.md#bổ-sung-reset-employee-password--phạm-vi-đã-duyệt-contract-chờ-review) còn chờ review độc lập; chưa viết lệnh, không coi approval M1 trước đây bao phủ phần mới. Actor dùng credential DB mới sau recovery; target chọn bằng ID bất biến và RowVersion. Chỉ hash/SecurityVersion/session/credential/audit thay đổi nguyên tử; giữ status/duty/quyền và ledger recovery. Không endpoint, schema mới, SQL thủ công hoặc mở rộng M2–M4. Bàn giao trực tiếp cho đúng nhân viên, không giả flow đổi mật khẩu chưa triển khai. Sau review được chấp thuận mới tiếp tục Goal M1, viết lệnh và chạy tests/SQL suite/CI tại HEAD code mới; không gọi Goal complete tại mốc tài liệu này.
+
 Account có SecurityVersion; session lưu phiên bản lúc cấp. Khóa account, đổi trạng thái nhân viên hoặc thay quyền được commit cùng audit; thao tác tăng SecurityVersion và thu hồi refresh sessions. Request tiếp theo (bắt đầu sau commit) đọc SQL và bị 401 nếu phiên đã thu hồi. Sau login lại, quyền mới có hiệu lực. Không đợi JWT hết hạn. auth/me cũng chịu quy tắc này.
 
 Request đang chạy trước thu hồi không bị hứa hẹn hủy ngược. Mọi ghi Profiles phải kiểm lại account/session/quyền trong transaction trước commit; cùng khóa account theo thứ tự account → session → hồ sơ → audit để serialize với lệnh thu hồi. Nếu quyền bị thu hồi trước bước kiểm cuối thì rollback. Test hai thứ tự commit. Không trả thành công ghi nếu audit cùng transaction thất bại.

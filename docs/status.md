@@ -2,6 +2,8 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Bổ sung reset-employee-password: người dùng đã duyệt phạm vi, contract/đặc tả/checklist mới vẫn chờ review độc lập. Chỉ cập nhật tài liệu trên nhánh hiện tại, chưa viết lệnh hoặc schema; chưa có kết quả test reset. Giữ actor offline Admin active + QuanLyTaiKhoan, không Director/self-reset; target ID/version bất biến, hash/revoke/version/audit nguyên tử, không đổi status/duty/quyền hoặc mở lại recovery. Không complete/approve/merge. Sau approval mới triển khai và chạy SQL suite/CI theo HEAD code mới; kết quả 33/33 cũ không bao phủ reset.
+
 - Release local mới 33/33 đạt, thêm CCCD race/rowversion/FK, outbox rollback, biên midnight Saigon và HTTP length/page/search. Khoảng trống reset legacy vẫn chờ quyết định/review contract, chưa code. CI HEAD cuối chưa kết luận.
 
 - Phát hiện thiếu đường cấp lại mật khẩu legacy cho account nhân viên hiện có ngoài Admin recovery; đã đề xuất lệnh offline reset để người dùng quyết định/review contract trước code phần đó. Chưa triển khai hoặc tự sửa contract. CI run `39930119878` tại `a93cf99` đang chạy ở lần kiểm; không coi run cũ bị cancel là PASS.
