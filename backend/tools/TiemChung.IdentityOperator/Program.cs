@@ -16,21 +16,17 @@ public static async Task<int> Main(string[] args)
 try {
     if(args.Length!=1) throw new InvalidOperationException("Specify exactly one command.");
     var command=args[0];
-    var policy=ProtectedOperatorPolicy.Load();
-    var connection=policy.ConnectionString;
+    var connection=SqlOperatorBoundary.ConnectionFromEnvironment();
     await using var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
     var ct=CancellationToken.None;
+    var sqlIdentity=await SqlOperatorBoundary.RequireAsync(db,ct);
     if(command is "bootstrap-admin" or "recover-upgraded-admin") {
-        var identity=policy.PrincipalSid;
-        var allowed=policy.AllowedSids;
-        var configured=policy.ExpectedSecret;
-        var supplied=Hidden("Operator secret: ");
-        OperatorAuthentication.Validate(identity,allowed,configured,supplied);
+        var identity=sqlIdentity;
         if(Read("Maintenance active; public writes disabled? Type CONFIRM: ")!="CONFIRM") throw new InvalidOperationException("Maintenance confirmation required.");
         var recovery=new IdentityRecovery(db);
         if(command=="recover-upgraded-admin") {
             // Manifest is read from a protected secret-store export, never auto-created by this command.
-            var manifest=policy.Manifest??throw new InvalidOperationException("Recovery manifest required.");
+            var manifest=JsonSerializer.Deserialize<RecoveryManifest>(await File.ReadAllTextAsync(Environment.GetEnvironmentVariable("M1_RECOVERY_MANIFEST")??throw new InvalidOperationException("Manifest configuration required.")))??throw new InvalidOperationException("Manifest required.");
             var result=await recovery.RecoverAsync(manifest,identity,Hidden("Target password (12-128): "),ct);
             Console.WriteLine(result);
         } else {

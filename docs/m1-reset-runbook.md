@@ -1,5 +1,7 @@
 # Reset nhân viên M1 — operator offline
 
+Boundary `ad6a7f7` đã được chấp thuận và implementation mới tại [SQL boundary runbook/evidence](m1-sql-boundary-implementation.md). Không còn Windows SID/policy/expected-secret gate: launcher cung cấp SQL operator credential, server xác thực role/grants/guards; actor app credential vẫn bắt buộc. Provisioning/CLI positive theo [danh sách cần duyệt riêng](m1-sql-boundary-provision-request.md), chưa chạy. Các hướng dẫn Windows/ACL bên dưới đã hết hiệu lực.
+
 Operator Windows-only đã đổi hướng theo người dùng: xem [diff CLI/SQL boundary](../contracts/m1-offline-operator-db-boundary-review.md). Chưa code phụ thuộc. Không bắt OS principal riêng/ACL cố định; reset vẫn cần DB operator credential và actor Admin/target/version/hash/revoke/audit nguyên tử; các hướng dẫn Windows/environment cũ dưới đây là lịch sử.
 
 Implementation hai P1 sau chấp thuận `8a6a0e4`: [runbook policy Windows/SQL và bằng chứng mới](m1-p1-implementation-verification.md). **Hướng dẫn env bên dưới đã hết hiệu lực cho operator**: connection/allowlist/secret/manifest lấy từ policy quản trị cố định, không env/path caller. Các bước credential/target/version/handoff vẫn giữ; positive CLI qua boundary mới chưa được kiểm trên môi trường quản trị hợp lệ.

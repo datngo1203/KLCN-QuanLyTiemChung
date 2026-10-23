@@ -31,6 +31,8 @@ jobs:
           done
           exit 1
       - run: dotnet test backend/TiemChung.slnx --configuration Release
+      - name: Build SQL-principal acceptance (not executed without approved provisioning)
+        run: dotnet build backend/tests/TiemChung.BoundaryAcceptance/TiemChung.BoundaryAcceptance.csproj --configuration Release
   web:
     runs-on: ubuntu-latest
     defaults:

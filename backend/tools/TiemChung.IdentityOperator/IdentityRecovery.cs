@@ -20,6 +20,7 @@ public sealed class IdentityRecovery(TiemChungDbContext db)
 
     public async Task<string> RecoverAsync(RecoveryManifest manifest,string authenticatedOperator,string password,CancellationToken ct)
     {
+        authenticatedOperator=await SqlOperatorBoundary.IdentityAsync(db,ct);
         IdentityAdministration.ValidatePassword(password);
         var fingerprint=SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(manifest));
         await using var tx=await IdentityTransactions.BeginAsync(db,ct);
@@ -64,6 +65,7 @@ public sealed class IdentityRecovery(TiemChungDbContext db)
 
     public async Task<int> BootstrapAsync(int employeeId,string username,string password,string authenticatedOperator,CancellationToken ct)
     {
+        authenticatedOperator=await SqlOperatorBoundary.IdentityAsync(db,ct);
         IdentityAdministration.ValidateUsername(username); IdentityAdministration.ValidatePassword(password);
         await using var tx=await IdentityTransactions.BeginAsync(db,ct);
         await IdentityTransactions.AdministrationLockAsync(db,ct);

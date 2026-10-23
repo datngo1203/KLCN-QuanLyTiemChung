@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## SQL boundary sau chấp thuận ad6a7f7 — 24/10/2026
+
+- Bỏ Windows-only checker/expected-secret, thêm SQL context/role/effective permissions/guards gate, audit server identity, DDL migration bảo mật riêng với 2 triggers CALLER/grants. DDL chưa apply, chưa provisioning roles/logins/grants. Batch/delivery không đổi; không M2–M4.
+- [Mapping design/code/tests và giới hạn](m1-sql-boundary-implementation.md); build boundary acceptance riêng đạt, suite regression Release hiện 42/42 (bỏ 2 tests Windows cũ), không gọi đó là least-privilege/CLI PASS. Còn cần DBA/user duyệt [danh sách provisioning giới hạn](m1-sql-boundary-provision-request.md). Chưa start SQLEXPRESS/tạo login/grant/đổi OS/ACL hoặc SQL chung. HEAD/CI xem PR #33; chưa đủ nghiệm thu.
+
 ## Đổi boundary operator — một diff chờ review trước code
 
 - Người dùng chốt backend offline CLI độc lập nền tảng chức năng, không OS account/SID/ACL cố định hoặc VM. [Contract/spec/runbook/checklist thay thế](../contracts/m1-offline-operator-db-boundary-review.md) chờ reviewer kiểm một lượt trước code/DDL: DB credential do DBA cấp, object grants + guard Employee/audit, actor reset/invariant recovery giữ nguyên.

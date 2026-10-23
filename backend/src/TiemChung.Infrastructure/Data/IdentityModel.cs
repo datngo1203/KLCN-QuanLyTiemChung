@@ -18,6 +18,7 @@ internal static class IdentityModel
         a.HasIndex(x => x.NormalizedUsername).IsUnique().HasFilter("[NormalizedUsername] IS NOT NULL");
         a.HasIndex(x => x.MaNhanVien).IsUnique().HasFilter("[MaNhanVien] IS NOT NULL");
         a.ToTable(t => {
+            t.UseSqlOutputClause(false);
             t.HasCheckConstraint("CK_TaiKhoan_Type", "([AccountType]='Customer' AND [MaNhanVien] IS NULL AND [LoginEmail] IS NOT NULL AND [NormalizedEmail] IS NOT NULL AND [NormalizedUsername] IS NULL AND [AdministrativeDuty]='None') OR ([AccountType]='Employee' AND [MaNhanVien] IS NOT NULL AND [NormalizedUsername] IS NOT NULL)");
             t.HasCheckConstraint("CK_TaiKhoan_Duty", "[AdministrativeDuty] IN ('None','Technical','Director') AND [SecurityVersion]>0");
         });
@@ -79,6 +80,7 @@ internal static class IdentityModel
         l.HasIndex(x => new { x.AccountId, x.State });
 
         var audit = m.Entity<SecurityAudit>();
+        audit.ToTable(t=>t.UseSqlOutputClause(false));
         audit.ToTable("SecurityAudit"); audit.HasKey(x => x.Id);
         audit.HasOne<TaiKhoan>().WithMany().HasForeignKey(x => x.ActorAccountId).OnDelete(DeleteBehavior.Restrict);
         audit.HasOne<TaiKhoan>().WithMany().HasForeignKey(x => x.SubjectAccountId).OnDelete(DeleteBehavior.Restrict);

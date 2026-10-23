@@ -53,6 +53,7 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
             .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.RevokedAt,DateTimeOffset.UtcNow),ct);
         var audit=IdentityTransactions.Audit(db,"employeePasswordReset",trace,actor.MaTaiKhoan,targetId);
         audit.ChangedFields="MatKhauHash,SecurityVersion";
+        audit.OperatorIdentity=await SqlOperatorBoundary.IdentityAsync(db,ct);
         await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return target.RowVersion.ToArray();
     }
 
@@ -72,7 +73,7 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
             AccountType="Employee",AdministrativeDuty="None",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
         account.MatKhauHash=Hasher.HashPassword(account,password);
         db.Add(account); await db.SaveChangesAsync(ct);
-        IdentityTransactions.Audit(db,"employeeProvisioned",Guid.NewGuid().ToString("N"),actor.MaTaiKhoan,account.MaTaiKhoan);
+        IdentityTransactions.Audit(db,"employeeProvisioned",Guid.NewGuid().ToString("N"),actor.MaTaiKhoan,account.MaTaiKhoan).OperatorIdentity=await SqlOperatorBoundary.IdentityAsync(db,ct);
         await db.SaveChangesAsync(ct); await tx.CommitAsync(ct);
         return account.MaTaiKhoan;
     }
@@ -107,7 +108,7 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
             default: throw new IdentityFailure(400,"validation");
         }
         await IdentityTransactions.RevokeAccountAsync(db,target,command,trace,actor.MaTaiKhoan,ct);
-        IdentityTransactions.Audit(db,action,trace,actor.MaTaiKhoan,targetId);
+        IdentityTransactions.Audit(db,action,trace,actor.MaTaiKhoan,targetId).OperatorIdentity=await SqlOperatorBoundary.IdentityAsync(db,ct);
         await db.SaveChangesAsync(ct); await tx.CommitAsync(ct);
     }
 

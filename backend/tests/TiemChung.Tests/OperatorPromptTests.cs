@@ -16,7 +16,7 @@ public sealed class OperatorPromptTests
         start.Environment["M1_OPERATOR_SECRET"]="SYNTHETIC_SECRET_MUST_NOT_ECHO";
         start.Environment["M1_OPERATOR_POLICY_PATH"]=Path.Combine(Path.GetTempPath(),"caller-policy-not-trusted.json");
         start.Environment["ProgramData"]=Path.GetTempPath();
-        start.Environment["M1_OPERATOR_CONNECTION"]="Server=unused;Database=unused;Integrated Security=true";
+        start.Environment["M1_OPERATOR_CONNECTION"]="Server=127.0.0.1,1;Database=unused;Integrated Security=true;Connect Timeout=1";
         using var process=Process.Start(start)!;
         await process.StandardInput.WriteLineAsync("synthetic-actor");
         await process.StandardInput.WriteLineAsync("SYNTHETIC_SECRET_MUST_NOT_ECHO");
