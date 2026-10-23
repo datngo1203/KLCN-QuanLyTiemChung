@@ -43,7 +43,18 @@ try {
     } else {
         var admin=new IdentityAdministration(db);
         var username=Read("Actor username: "); var password=Hidden("Actor password: ");
-        if(command=="provision-employee") {
+        if(command=="reset-employee-password") {
+            var snapshot=await admin.AuthenticateResetActorAsync(username,password,ct);
+            var target=int.Parse(Read("Target account ID: "),System.Globalization.CultureInfo.InvariantCulture);
+            var employee=int.Parse(Read("Target employee ID: "),System.Globalization.CultureInfo.InvariantCulture);
+            var version=Convert.FromBase64String(Read("Expected target RowVersion (base64, read from current DB): "));
+            var targetRow=await db.Set<TiemChung.Domain.Entities.TaiKhoan>().AsNoTracking().SingleOrDefaultAsync(x=>x.MaTaiKhoan==target);
+            if(targetRow is null || targetRow.MaNhanVien!=employee) throw new IdentityFailure(400,"validation");
+            Console.WriteLine($"Target account {target}, employee {employee}, username {targetRow.TenDangNhap}");
+            if(Read("Identity checked; employee present and approved secure handoff? Type CONFIRM: ")!="CONFIRM") throw new IdentityFailure(400,"validation");
+            var result=await admin.ResetPasswordAsync(snapshot,username,password,target,employee,version,Hidden("Employee enters new password: "),Hidden("Repeat new password: "),ct);
+            Console.WriteLine($"Reset committed. Account {target}; employee {employee}; RowVersion {Convert.ToBase64String(result)}");
+        } else if(command=="provision-employee") {
             var employee=int.Parse(Read("Existing employee ID: "),System.Globalization.CultureInfo.InvariantCulture);
             var targetUsername=Read("New username: ");
             await admin.ProvisionAsync(username,password,employee,targetUsername,Hidden("Initial password: "),ct);

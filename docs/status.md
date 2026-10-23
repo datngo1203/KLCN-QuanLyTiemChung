@@ -2,6 +2,10 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Reset đã triển khai theo `f30641b` được người dùng chấp thuận. Release local toàn suite 33/33 chạy lại với code reset: legacy login qua Admin recovery, snapshot actor stale, target ID/version negatives, audit failure rollback, hai SQL connection chỉ một reset commit, mật khẩu cũ bị thay/Locked vẫn chặn và ledger không đổi. Có runbook handoff; chưa xác nhận CI HEAD code mới, chưa ready.
+
+- Người dùng chấp thuận contract reset `f30641b6463858a2c10691054cf9090f3927521f` và báo cáo review qua chat điều phối ngày 23/10/2026 (ủy quyền nguyên văn chuyển về chat triển khai). Gate phần mới đã đáp ứng, không phải approval GitHub/thành viên. Đang triển khai operator reset, chưa có test reset PASS; phải kiểm SQL/CI HEAD code mới trước ready. Các dòng chờ review phía dưới là lịch sử.
+
 - Bổ sung reset-employee-password: người dùng đã duyệt phạm vi, contract/đặc tả/checklist mới vẫn chờ review độc lập. Chỉ cập nhật tài liệu trên nhánh hiện tại, chưa viết lệnh hoặc schema; chưa có kết quả test reset. Giữ actor offline Admin active + QuanLyTaiKhoan, không Director/self-reset; target ID/version bất biến, hash/revoke/version/audit nguyên tử, không đổi status/duty/quyền hoặc mở lại recovery. Không complete/approve/merge. Sau approval mới triển khai và chạy SQL suite/CI theo HEAD code mới; kết quả 33/33 cũ không bao phủ reset.
 
 - Release local mới 33/33 đạt, thêm CCCD race/rowversion/FK, outbox rollback, biên midnight Saigon và HTTP length/page/search. Khoảng trống reset legacy vẫn chờ quyết định/review contract, chưa code. CI HEAD cuối chưa kết luận.

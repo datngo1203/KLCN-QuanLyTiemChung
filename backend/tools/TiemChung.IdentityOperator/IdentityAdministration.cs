@@ -12,6 +12,50 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
 {
     private static readonly PasswordHasher<TaiKhoan> Hasher=new();
 
+    public sealed class ResetActorSnapshot
+    {
+        internal int Id { get; init; }
+        internal byte[] Version { get; init; }=[];
+        internal long SecurityVersion { get; init; }
+        internal string Hash { get; init; }="";
+    }
+    public async Task<ResetActorSnapshot> AuthenticateResetActorAsync(string username,string password,CancellationToken ct)
+    {
+        db.ChangeTracker.Clear();
+        var actor=await AuthenticateAsync(username,password,ct);
+        var snapshot=new ResetActorSnapshot { Id=actor.MaTaiKhoan,Version=actor.RowVersion.ToArray(),SecurityVersion=actor.SecurityVersion,Hash=actor.MatKhauHash };
+        db.ChangeTracker.Clear(); return snapshot;
+    }
+
+    public async Task<byte[]> ResetPasswordAsync(ResetActorSnapshot snapshot,string actorUsername,string actorPassword,
+        int targetId,int employeeId,byte[] expectedVersion,string password,string confirmation,CancellationToken ct)
+    {
+        ValidatePassword(password);
+        if(password!=confirmation || password==actorPassword || expectedVersion.Length!=8 || targetId<=0 || employeeId<=0)
+            throw new IdentityFailure(400,"validation");
+        var hash=Hasher.HashPassword(new TaiKhoan(),password);
+        db.ChangeTracker.Clear();
+        await using var tx=await IdentityTransactions.BeginAsync(db,ct);
+        await IdentityTransactions.AdministrationLockAsync(db,ct);
+        var actor=await AuthenticateAsync(actorUsername,actorPassword,ct);
+        if(actor.MaTaiKhoan!=snapshot.Id || actor.SecurityVersion!=snapshot.SecurityVersion || actor.MatKhauHash!=snapshot.Hash ||
+            !actor.RowVersion.SequenceEqual(snapshot.Version)) throw new IdentityFailure(409,"concurrencyConflict");
+        if(actor.MaTaiKhoan==targetId) throw new IdentityFailure(403,"permissionDenied");
+        var target=await IdentityTransactions.LockAccountAsync(db,targetId,ct)??throw new IdentityFailure(404,"resourceNotFound");
+        if(target.AccountType!="Employee" || target.MaNhanVien!=employeeId) throw new IdentityFailure(400,"validation");
+        if(!target.RowVersion.SequenceEqual(expectedVersion)) throw new IdentityFailure(409,"concurrencyConflict");
+        target.MatKhauHash=hash;
+        var trace=Guid.NewGuid().ToString("N");
+        await IdentityTransactions.RevokeAccountAsync(db,target,"passwordReset",trace,actor.MaTaiKhoan,ct);
+        // Also normalize credentials of already revoked families; never leave an active slot there.
+        var ids=db.Set<IdentitySession>().Where(x=>x.AccountId==targetId).Select(x=>x.Id);
+        await db.Set<RefreshCredential>().Where(x=>ids.Contains(x.SessionId) && x.ConsumedAt==null && x.RevokedAt==null)
+            .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.RevokedAt,DateTimeOffset.UtcNow),ct);
+        var audit=IdentityTransactions.Audit(db,"employeePasswordReset",trace,actor.MaTaiKhoan,targetId);
+        audit.ChangedFields="MatKhauHash,SecurityVersion";
+        await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); return target.RowVersion.ToArray();
+    }
+
     public async Task<int> ProvisionAsync(string actorUsername,string actorPassword,int employeeId,string username,string password,CancellationToken ct)
     {
         ValidateUsername(username); ValidatePassword(password);

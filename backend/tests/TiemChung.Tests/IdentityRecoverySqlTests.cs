@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using TiemChung.Api;
 using TiemChung.Domain.Entities;
 using TiemChung.IdentityOperator;
@@ -73,6 +74,23 @@ public sealed class IdentityRecoverySqlTests
         Assert.Equal(count,await db.Set<SecurityAudit>().CountAsync());
         Assert.Single(await db.Set<IdentityRecoveryOperation>().ToListAsync());
         Assert.Equal(12,await db.Set<TaiKhoan_QuyenHan>().CountAsync());
+        var legacyEmployee=new NhanVien { HoTen="Synthetic Legacy",CCCD="000000000002",SoDienThoai="0900000001",Email="legacy@example.invalid",BoPhan="Test",ChucDanh="LeTan",TrangThai="Active" };
+        db.Add(legacyEmployee); await db.SaveChangesAsync();
+        var legacyAccount=new TaiKhoan { AccountType="Employee",MaNhanVien=legacyEmployee.MaNhanVien,TenDangNhap="legacy-staff",NormalizedUsername="LEGACY-STAFF",
+            MatKhauHash="unknown-legacy-hash",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
+        db.Add(legacyAccount); await db.SaveChangesAsync();
+        var admin=new IdentityAdministration(db);
+        await Assert.ThrowsAsync<IdentityFailure>(()=>admin.AuthenticateResetActorAsync("old-admin","admin/123",CancellationToken.None));
+        var actor=await admin.AuthenticateResetActorAsync("old-admin","synthetic-new-password-123",CancellationToken.None);
+        var ledgerBefore=await db.Set<IdentityRecoveryOperation>().AsNoTracking().SingleAsync();
+        await admin.ResetPasswordAsync(actor,"old-admin","synthetic-new-password-123",legacyAccount.MaTaiKhoan,legacyEmployee.MaNhanVien,legacyAccount.RowVersion,
+            "synthetic-legacy-reset-password","synthetic-legacy-reset-password",CancellationToken.None);
+        var config=new Microsoft.Extensions.Configuration.ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> {
+            ["Identity:SigningKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)) }).Build();
+        db.ChangeTracker.Clear();
+        var login=await new IdentitySessions(db,new IdentityTokens(config)).LoginAsync("legacy-staff","synthetic-legacy-reset-password","native","legacy-reset-login",CancellationToken.None);
+        Assert.NotEqual(Guid.Empty,login.SessionId);
+        Assert.Equal(ledgerBefore.OperationId,(await db.Set<IdentityRecoveryOperation>().AsNoTracking().SingleAsync()).OperationId);
         await db.Set<TaiKhoan>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
         db.ChangeTracker.Clear();
         var again=manifest with { OperationId=Guid.NewGuid() };
