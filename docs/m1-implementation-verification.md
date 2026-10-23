@@ -11,7 +11,7 @@ $env:M1_SQL_TEST_CONNECTION='Server=(localdb)\KLCN_M1_Test;Integrated Security=t
 dotnet test backend/TiemChung.slnx --configuration Release
 ```
 
-Thiếu SQL là test failure, không skip. CI khởi động SQL Server 2022 container riêng, secret ngẫu nhiên được mask mỗi run. Chưa có kết quả GitHub CI implementation tại lúc viết.
+Thiếu SQL là test failure, không skip. CI khởi động SQL Server 2022 container riêng, secret ngẫu nhiên được mask mỗi run. CI code `4c9af44` đã success; HEAD cuối sau test reset mở rộng phải kiểm riêng, không lấy CI trước thay thế.
 
 Migration bổ sung `20261023073816_M1Identity`, không sửa InitialCreate. Sau backup/preflight và review DDL, chạy qua EF CLI với connection ngoài Git; API không auto migrate:
 
@@ -23,38 +23,26 @@ ConnectionStrings:TiemChung, Identity:SigningKey và Identity:MailEncryptionKey 
 
 ## Bằng chứng hiện có và giới hạn
 
-Suite hiện tại 19 test đạt trên working tree ngày 23/10/2026; gồm unit và SQL/HTTP. Recovery có upgrade Admin cũ, stale-version, audit-trigger failure rollback, hai operator, retry cùng manifest và operation mới sau khóa lại. Refresh hai connection một 200/một 409, replay và hai thứ tự rotation/logout. HTTP có sáu title, Admin XemHoSo, PUT bất biến, account locked, scope A/B và fixture Production/marker negative. Không dùng số test này để tuyên bố toàn checklist đạt.
-
-Cập nhật working tree: suite 21/21 đạt trên LocalDB; đã thêm audit-trigger rollback POST Profiles/refresh (không hồ sơ dở dang, không mất nhánh token active), bootstrap/self-change/Director negative và mail sink retry/resend/used token. CI `670b599`: backend SQL/web/Windows success tại lần kiểm, mobile còn chạy; các test mới chưa thuộc SHA đó.
-
-Cập nhật tiếp: Release suite 24/24 đạt trên LocalDB, gồm thu hồi/ghi hai thứ tự, confirm hai connection, manifest sai DB/mốc/target, backup/restore định danh DB/ledger và validation HTTP cơ bản. API Release publish không có Operator/Tests assembly. Test backup tạo bản sao synthetic, giữ file/DB để chẩn đoán; không restore đè DB gốc.
-
-Đã thêm operator authentication unit negative (allowlist/secret yếu/sai/không lộ secret), audit writeDenied, mock giao thức coordinator (không phải browser E2E), SQL register race chuẩn hóa email, customer email 254 và account/duty constraints. Các ca này chạy local đạt; tổng suite cần ghi lại theo HEAD cuối.
-
-Release suite hiện tại 32/32 đạt: đã thêm preflight duplicate legacy dừng trước DDL/giữ rows, HTTP SQL unavailable 503, stale SecurityVersion/session missing/refresh expired và verification expired. Bằng chứng các ca ở test source tương ứng; không suy rộng sang các tổ hợp chưa chạy.
-
-Còn kiểm chứng trước ready: đối chiếu checklist cuối và CI tại HEAD cuối. Client/browser E2E thuộc M2, mock không được gọi là client đã triển khai. Những hàng checklist gộp nhiều tổ hợp vẫn chỉ được xác nhận theo test thực có; không đánh dấu blanket PASS.
-
-## Khoảng trống contract cần quyết định/review
+Code/test SHA `e477bac1b2d55d6ad4d5afa7ab3abd49968b5784`: Release suite chạy lại 35 passed, 0 failed, 0 skipped trên SQL Server LocalDB 17.0.4025.3. Kết quả gồm code reset mới, không kế thừa kết quả 33/33 cũ. API Release publish tại SHA này không có assembly Operator/Tests. Diff/link đã kiểm; CI HEAD cuối được ghi trong PR/bàn giao sau khi hoàn tất, không suy từ local tests.
 
 ## Đối chiếu bằng chứng theo nhóm checklist
 
 | Nhóm | Bằng chứng đã chạy | Giới hạn |
 |---|---|---|
-| SQL upgrade/recovery | IdentityRecoverySqlTests, IdentityPreflightSqlTests, IdentityBackupSqlTests | Legacy reset ngoài target recovery còn thiếu contract |
+| SQL upgrade/recovery | IdentityRecoverySqlTests, IdentityPreflightSqlTests, IdentityBackupSqlTests | Backup/restore DB synthetic riêng; không diễn tập DB production |
 | Constraint/concurrency | IdentitySqlTests: register/CCCD race, rowversion stale update, FK Restrict, duty/type, email 254 | Không suy ra mọi dữ liệu legacy đều ánh xạ được |
 | Phiên/revoke/audit | IdentitySqlTests, IdentityWriteRevokeSqlTests, audit-trigger HTTP test | Revoke-write test dùng final auth/transaction path, không browser E2E |
 | Identity/mail | IdentityMailSqlTests: rollback outbox, resend/used/expired/confirm race; IdentityTokenTests | Mail chỉ synthetic sink, không gửi người thật |
-| Profiles/transport | IdentityHttpSqlTests: sáu title, scope A/B, create/PUT, CSRF/mixed transport, dependency 503 | Một số biên length/ngày sinh theo giờ cần kiểm thêm |
-| Operator/publish | IdentityAdministrationSqlTests, OperatorAuthenticationTests; API Release publish đã kiểm | Không thay review vận hành; reset legacy còn chặn |
+| Profiles/transport | IdentityHttpSqlTests: sáu title, scope A/B, create/PUT, CSRF/mixed transport, dependency 503, length/page/search; ProfileDateTests midnight Saigon | Không chứng minh client/browser E2E |
+| Operator/reset/publish | IdentityAdministrationSqlTests, EmployeeResetSqlTests, OperatorAuthenticationTests, OperatorPromptTests; API Release publish đã kiểm | Child process kiểm stdin redirect; chưa kiểm người nhận thật hoặc terminal E2E |
 | Coordinator | IdentityCoordinatorContractTests | Chỉ mock contract, không client M2 hoặc browser E2E |
 
 Các kết quả trên không thay kết quả CI HEAD cuối hoặc review độc lập. Chưa đánh dấu toàn hàng checklist PASS khi một hàng có tổ hợp chưa chạy.
 
-### Quyết định đang chờ
+### Reset đã chấp thuận và triển khai
 
-Cập nhật ngày 23/10/2026: người dùng đã chấp thuận contract reset tại `f30641b` cùng báo cáo review độc lập, qua ủy quyền nguyên văn từ chat điều phối. Đã triển khai lệnh offline; đoạn chờ quyết định phía dưới là lịch sử. Release suite hiện hành 33/33 đạt với ca reset SQL mới (không dùng kết quả 33/33 trước bổ sung): legacy credential sau Admin recovery, audit rollback, hai reset cùng version, stale actor/target, sai ID/self/credential, password mới login, Locked vẫn chặn, ledger giữ nguyên. [Runbook reset](m1-reset-runbook.md). CI HEAD code mới cần xác nhận trước ready.
+Ngày 23/10/2026 người dùng chấp thuận contract reset `f30641b` cùng báo cáo review độc lập qua ủy quyền nguyên văn từ chat điều phối; đây không phải approval GitHub/thành viên. Lệnh offline đã triển khai, không schema mới hoặc endpoint. [Runbook reset](m1-reset-runbook.md). SQL tests có legacy credential sau Admin recovery, hai reset cùng version, stale actor/target, sai ID/self/credential, password mới login, Locked vẫn chặn và ledger giữ nguyên.
 
 Reset mở rộng: Release suite 35/35 chạy lại trên SQL LocalDB sau bổ sung EmployeeResetSqlTests và OperatorPromptTests. Assert trực tiếp Reset cho actor Locked/Director/thiếu quyền/nhân viên inactive, Customer target; reset giữ target inactive, status/duty/title/FK/quyền/ledger; access/refresh active trước reset bị chặn sau commit, actor session không bị revoke. Fault injection tại update hash, revoke credential và audit rollback hash/version/session/credential nguyên vẹn. Child process stdin redirect bị từ chối/không echo synthetic secret marker; không giả terminal E2E. Các ca nằm trong test method nhiều assert, không suy theo số lượng test. CI phải xác nhận HEAD cuối; bản handoff là operator offline, không self-service M2.
 
-Schema M1 yêu cầu cấp lại mật khẩu hash legacy không xác định; provision bị unique employee/account, recovery chỉ dành Admin target một lần. Người dùng đã chấp thuận phạm vi `reset-employee-password` ngày 23/10/2026; phần contract bổ sung mới còn chờ review độc lập, chưa viết lệnh hoặc sửa schema. Xem [contract](../contracts/m1-identity-profiles.md#bổ-sung-reset-employee-password--phạm-vi-đã-duyệt-contract-chờ-review) và [checklist](m1-verification-checklist.md#bổ-sung-reset-nhân-viên--chờ-review-độc-lập-các-ca-chưa-chạy). Đây vẫn là gate trước triển khai reset/ready; kết quả suite/CI cũ không bao phủ phần mới, phải kiểm HEAD code mới sau approval. Các dòng “chưa có contract” phía trên phản ánh khoảng trống implementation trước bổ sung, không phải phủ nhận scope approval mới.
+Lịch sử: thiếu contract reset từng chặn implementation; bổ sung `f30641b` đã được review và người dùng chấp thuận trước code `4c9af44`. Không còn gate chờ contract reset; review implementation/CI vẫn độc lập. Các ghi nhận pending trong status cũ là lịch sử, không phải trạng thái hiện hành.
