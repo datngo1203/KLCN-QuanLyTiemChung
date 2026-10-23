@@ -2,6 +2,8 @@
 
 ## Đặc tả M1 Profiles + Identity — 23/10/2026
 
+- Sửa recovery theo review `427f52a9`/base `f1880843`: bind RowVersion sau migration trong maintenance, kiểm lại trong transaction; ledger unique DB/mốc M1 và retry trả kết quả đã commit, không reset theo secret/manifest. Checklist bổ sung stale-version/rollback/retry/manifest mới/admin khóa lại/hai operator. Chỉ kiểm tài liệu; SQL/auth/runtime chưa chạy.
+
 - Sửa review `ff1294b9`/base `f1880843`: recovery nâng cấp manifest/ledger/audit, invariant revoke credential, Web Locks/CSRF và bearer web memory-only; checklist có ánh xạ finding → sửa → ca kiểm dự kiến. Chỉ tài liệu, chưa chạy SQL/auth/runtime; tự rà không thay review độc lập.
 
 - Người dùng duyệt phạm vi M1 và cho phép PR Draft tài liệu từ develop; [gói review](m1-identity-review.md) gồm contract/quyền năm route, schema đề xuất, quyết định kỹ thuật và checklist SQL/auth. Contract/schema còn chờ review độc lập, chưa được coi đã chấp thuận triển khai.

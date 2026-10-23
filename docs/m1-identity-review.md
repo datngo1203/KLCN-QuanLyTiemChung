@@ -59,6 +59,8 @@ Sau xác minh, khóa snapshot tự khai và dùng liên kết chính thức. Yê
 
 ## Giao hàng và điều kiện vận hành
 
+Recovery sửa tiếp theo review `427f52a9`/base `f1880843`: migration xong vẫn maintenance → operator ngoài DB đọc/bind RowVersion mới → transaction kiểm lại trước ghi. Ledger unique theo định danh DB bền vững và mốc M1; operationId chỉ chống retry. Manifest mới không cấp lượt mới, kể cả admin lại bị khóa; không mở cơ chế recovery khác trong M1. Ba mục revoke credential/CSRF/bearer memory-only giữ nguyên.
+
 Sửa review trên `ff1294b9`/base `f1880843`: recovery offline DB nâng cấp theo contract với manifest ngoài DB/ledger/audit; revoke session đồng thời revoke credential chưa consumed; Web Locks và đọc lại CSRF cookie trong lock; bearer web chỉ memory. Bootstrap DB rỗng, recovery DB nâng cấp và quản trị thường ngày theo ba điều kiện riêng trong contract. Bổ sung này cần review lại, chưa phải implementation hoặc approval độc lập.
 
 P0–P7 giữ nguyên lộ trình. Mỗi lát chỉ làm đặc tả → migration/API → test tương ứng sau approval, không migrate trước toàn bộ đại diện/audit mở rộng. M1 SQL/Identity/Profiles phải qua checklist SQL thật trước nối client M2. Không gọi M1 là đã hoàn thành khi mới có PR đặc tả.
