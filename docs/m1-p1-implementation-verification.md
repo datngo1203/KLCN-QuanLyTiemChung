@@ -1,5 +1,7 @@
 # Hai P1 M1 — implementation và giới hạn kiểm chứng
 
+Sau review `517211c`: batch eligibility đưa vào SQL trước Order/Take(25), giữ kiểm lại trong transaction. `MailLifecycleSqlTests.HostSkipsTwentyFiveIneligibleMessagesBeforeBatchLimit` chạy host thật, ba ca invalidated do resend/used/expired với >=25 message cũ; worker tự gửi message mới, assert sink/outbox và confirm. Release suite mới 44/44 trên LocalDB riêng; không lấy 41/41 cũ thay bằng chứng mới. Positive CLI vẫn thiếu môi trường quản trị: [danh sách deployment/quyền/lệnh và cleanup](m1-operator-positive-deployment-check.md). Chưa thao tác ACL/grants hoặc policy chung.
+
 Người dùng chấp thuận contract operator/delivery tại `8a6a0e4`, gồm giới hạn dedup cùng sink instance/lifetime. Không phải approval GitHub/thành viên. Không schema mới, M2–M4, provider email thật hoặc thay OS/SQL grants chung.
 
 ## Finding → sửa → bằng chứng

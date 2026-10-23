@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## Batch eligibility và positive CLI sau review 517211c
+
+- IdentityMailSink đẩy điều kiện verification used/invalidated/expiry vào SQL trước Order/Take(25), kiểm lại trong transaction trước delivery. Regression host thật với 25 message invalidated do resend/used/expired phía trước: worker tự chuyển message hợp lệ; assert sink/outbox, không helper drain thay lifecycle. Release SQL/auth mới **44/44**, 0 failed/skipped; HEAD/CI cuối xem PR #33.
+- [Kế hoạch deployment Windows test và quyền còn thiếu](m1-operator-positive-deployment-check.md): khảo sát read-only token không elevated, policy cố định chưa có. Chưa chạy positive CLI, chưa thay quyền OS/SQL/policy chung. Đã ghi đường dẫn/owner/ACL/principal/DB/lệnh/tác động/khôi phục để quản trị kiểm. Service tests/CI không thay CLI PASS; M1 chưa đủ nghiệm thu.
+
 ## Sửa implementation hai P1 sau chấp thuận 8a6a0e4
 
 - Đã thay operator env trust bằng Windows SID/native fixed policy + ACL toàn chuỗi + Integrated SQL; nối hosted mail dispatcher/readiness, production intake 503, retry/race/dedup theo sink instance. Không schema mới hoặc email người thật.

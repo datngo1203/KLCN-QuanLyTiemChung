@@ -16,6 +16,42 @@ namespace TiemChung.Tests;
 
 public sealed class MailLifecycleSqlTests
 {
+    [Theory,Trait("Category","SqlIntegration")]
+    [InlineData("invalidated")]
+    [InlineData("used")]
+    [InlineData("expired")]
+    public async Task HostSkipsTwentyFiveIneligibleMessagesBeforeBatchLimit(string state)
+    {
+        var cs=Connection(); await using var db=Db(cs); await db.Database.MigrateAsync(); await IdentityFixture.MarkSyntheticAsync(db);
+        var key=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> { ["Identity:MailEncryptionKey"]=key }).Build();
+        var registration=new IdentityRegistration(db,config);
+        await registration.RegisterAsync("batch@example.invalid","synthetic-password","batch",default);
+        for(var i=0;i<25;i++) await registration.ResendAsync("batch@example.invalid","resend",default);
+        var old=await db.Set<EmailVerification>().Where(v=>v.InvalidatedAt!=null).ToListAsync();
+        Assert.Equal(25,old.Count);
+        if(state=="used") foreach(var v in old) { v.UsedAt=DateTimeOffset.UtcNow; v.InvalidatedAt=null; }
+        if(state=="expired") foreach(var v in old) { v.CreatedAt=DateTimeOffset.UtcNow.AddHours(-2);v.ExpiresAt=DateTimeOffset.UtcNow.AddHours(-1);v.InvalidatedAt=null; }
+        await db.SaveChangesAsync();
+        var valid=await db.Set<EmailVerification>().SingleAsync(v=>v.InvalidatedAt==null && v.UsedAt==null && v.ExpiresAt>DateTimeOffset.UtcNow);
+        var validMessage=await db.Set<IdentityMailOutbox>().SingleAsync(x=>x.VerificationId==valid.Id);
+        var oldIds=old.Select(v=>v.Id).ToArray();
+        await db.Set<IdentityMailOutbox>().Where(x=>oldIds.Contains(x.VerificationId)).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.CreatedAt,DateTimeOffset.UtcNow.AddMinutes(-5)));
+        // Start real lifecycle only after the backlog is committed; no manual DrainAsync.
+        await using var host=Host(cs,"Test").WithWebHostBuilder(b=>b.ConfigureAppConfiguration((_,c)=>c.AddInMemoryCollection(new Dictionary<string,string?> { ["Identity:MailEncryptionKey"]=key })));
+        using var client=host.CreateClient(); var sink=host.Services.GetRequiredService<SyntheticVerificationSink>();
+        using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        while(!sink.Messages.ContainsKey(validMessage.Id)) await Task.Delay(50,timeout.Token);
+        while(!await db.Set<IdentityMailOutbox>().AnyAsync(x=>x.Id==validMessage.Id && x.SentAt!=null)) await Task.Delay(50,timeout.Token);
+        db.ChangeTracker.Clear(); Assert.Single(sink.Messages);
+        var skipped=await db.Set<IdentityMailOutbox>().Where(x=>oldIds.Contains(x.VerificationId)).ToListAsync();
+        Assert.All(skipped,x=>{Assert.Null(x.SentAt);Assert.Equal(0,x.Attempts);Assert.NotNull(x.EncryptedPayload);});
+        var sent=await db.Set<IdentityMailOutbox>().SingleAsync(x=>x.Id==validMessage.Id);
+        Assert.NotNull(sent.SentAt); Assert.Null(sent.EncryptedPayload);
+        Assert.True(valid.ExpiresAt>DateTimeOffset.UtcNow); // no waiting for the old outbox expiry
+        Assert.Equal(HttpStatusCode.NoContent,(await client.PostAsJsonAsync("/api/v1/auth/email-verifications/confirm",new {token=sink.Messages[validMessage.Id].Token})).StatusCode);
+    }
+
     [Fact,Trait("Category","SqlIntegration")]
     public async Task ProductionIntakeIsClosedEvenWithSyntheticFlag()
     {
