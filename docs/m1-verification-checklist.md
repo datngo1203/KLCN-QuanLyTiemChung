@@ -1,5 +1,10 @@
 # Checklist M1 — kế hoạch kiểm chứng, chưa chạy SQL/auth
 
+## Follow-up ACL deployment — chưa code/positive test
+
+- [ ] Review [diff ACL scope/path](../contracts/m1-operator-acl-scope-review.md) riêng: TrustedInstaller system ancestor, tạo sibling, delete-child/child DELETE, ACE scope/deny/owner/reparse/handle race và app subtree protected. Giữ batch fix.
+- [ ] Sau approval mới sửa code và chạy regression positive/negative liệt kê; không đổi root ACL hoặc dùng unit fake/Linux CI thay positive Windows CLI. Provision app subtree/OS SID hiện hữu/DB test cần người dùng và quản trị cho phép riêng, chưa được thực hiện.
+
 ## Hai P1 mới sau implementation review tại 9fa35ab
 
 - [ ] P2 dedup: cùng sink instance/lifetime count nhận giữ 1 khi SQL rollback rồi retry; hai host với sink độc lập A/B nhận tổng 2 cùng deliveryId sau A accepted/SQL rollback và B retry. Assert SentAt null/payload còn sau rollback, chỉ commit delivery thành công mới SentAt/xóa payload; restart không được hứa exactly-once. Confirm token một lần, không tăng account/quyền khi delivery lặp. Đây là ca dự kiến, chưa chạy.

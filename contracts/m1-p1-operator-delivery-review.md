@@ -4,6 +4,8 @@ Chỉ bổ sung contract cho hai findings implementation #33; không duyệt l�
 
 ## P1-Operator: boundary OS và SQL
 
+Follow-up deployment tại `48171fe`: [điều chỉnh ACL scope/path hẹp](m1-operator-acl-scope-review.md) chờ review trước code. Checker hiện tại quá chặt với Windows servicing ancestor; chưa cho phép đổi root ACL hoặc provision. Phần mail/batch/dedup không đổi.
+
 ### Threat model và cơ chế cụ thể đề nghị duyệt
 
 - Caller không đặc quyền có thể đặt toàn bộ environment, working directory, argv, file trong thư mục mình, và tự chạy binary. Những khả năng này không được cho phép bootstrap/recovery hoặc chọn kết nối DB đặc quyền. Password actor của lệnh thường ngày vẫn cần kiểm backend như contract hiện có.

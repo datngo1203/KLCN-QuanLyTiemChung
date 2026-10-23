@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## ACL deployment follow-up — tài liệu chờ review
+
+- Khảo sát read-only xác nhận CheckChain quá rộng: C:\ TrustedInstaller/unprotected, AU create-subdirectory và inherit-only; ProgramData Users 0x116 có create và metadata writes; Program Files Users RX, TrustedInstaller owner. Chưa có bằng chứng máy này không thể an toàn; không đổi ACL/provision hoặc code.
+- [Diff contract/thiết kế/test/quyền provision hẹp](../contracts/m1-operator-acl-scope-review.md): app subtree Program Files cố định, mutation từng cạnh/owner/deny/inheritance/reparse/race thay “mọi ancestor chỉ SYSTEM/Admin/protected”. Cần review trước code; VM/root ACL không còn được coi yêu cầu mặc định. Batch 48171fe giữ nguyên. Chỉ kiểm tài liệu/link/diff, chưa SQL/auth/CLI mới; không báo PASS/đủ nghiệm thu.
+
 ## Batch eligibility và positive CLI sau review 517211c
 
 - IdentityMailSink đẩy điều kiện verification used/invalidated/expiry vào SQL trước Order/Take(25), kiểm lại trong transaction trước delivery. Regression host thật với 25 message invalidated do resend/used/expired phía trước: worker tự chuyển message hợp lệ; assert sink/outbox, không helper drain thay lifecycle. Release SQL/auth mới **44/44**, 0 failed/skipped; HEAD/CI cuối xem PR #33.
