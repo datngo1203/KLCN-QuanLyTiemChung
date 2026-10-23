@@ -2,6 +2,8 @@
 
 ## M1 implementation đang thực hiện — 23/10/2026
 
+- Reset tests mới: suite 35/35 đạt với SQL active-session revocation, actor negatives trực tiếp Reset, Customer target/inactive target, hash/revoke/audit rollback và child-process stdin redirect/no-secret-output. Chờ CI HEAD cuối trước bàn giao ready; không dùng 33/33 cũ thay bằng chứng reset.
+
 - Reset đã triển khai theo `f30641b` được người dùng chấp thuận. Release local toàn suite 33/33 chạy lại với code reset: legacy login qua Admin recovery, snapshot actor stale, target ID/version negatives, audit failure rollback, hai SQL connection chỉ một reset commit, mật khẩu cũ bị thay/Locked vẫn chặn và ledger không đổi. Có runbook handoff; chưa xác nhận CI HEAD code mới, chưa ready.
 
 - Người dùng chấp thuận contract reset `f30641b6463858a2c10691054cf9090f3927521f` và báo cáo review qua chat điều phối ngày 23/10/2026 (ủy quyền nguyên văn chuyển về chat triển khai). Gate phần mới đã đáp ứng, không phải approval GitHub/thành viên. Đang triển khai operator reset, chưa có test reset PASS; phải kiểm SQL/CI HEAD code mới trước ready. Các dòng chờ review phía dưới là lịch sử.
