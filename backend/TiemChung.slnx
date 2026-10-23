@@ -8,4 +8,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/TiemChung.Tests/TiemChung.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/TiemChung.IdentityOperator/TiemChung.IdentityOperator.csproj" />
+  </Folder>
 </Solution>

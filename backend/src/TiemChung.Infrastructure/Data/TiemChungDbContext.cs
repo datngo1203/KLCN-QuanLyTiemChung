@@ -18,6 +18,7 @@ public sealed class TiemChungDbContext(DbContextOptions<TiemChungDbContext> opti
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        IdentityModel.Configure(model);
         var nhanvien = model.Entity<NhanVien>();
         nhanvien.ToTable("NhanVien");
         nhanvien.HasKey(x => x.MaNhanVien);

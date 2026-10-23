@@ -1,5 +1,12 @@
 # Trạng thái khung — 19/10/2026
 
+## M1 implementation đang thực hiện — 23/10/2026
+
+- Nhánh `codex/m1-implementation` phụ thuộc PR #32; đặc tả kỹ thuật được người dùng chấp thuận tại `20a9a72b`, gate hành chính commit `053ee86`. Chưa hoàn tất, chưa PR sẵn sàng review; không merge PR tài liệu hoặc các PR khác.
+- Đã có model/mapping/migration bổ sung `20261023073816_M1Identity`, Identity services/routes, Profiles auth/scope/transaction, operator executable riêng và SQL tests. Chưa coi scaffold/build hoặc số test hiện có là đủ toàn checklist.
+- Kiểm thực tế trên working tree hiện tại: `dotnet test backend/TiemChung.slnx --no-restore` với `M1_SQL_TEST_CONNECTION` trỏ instance `(localdb)\KLCN_M1_Test` riêng: 19 passed, 0 failed, 0 skipped. SQL Server LocalDB 17.0.4025.3; test tạo DB synthetic `KLCN_M1_Test_<guid>`, không dùng dữ liệu thật. Bao phủ DB sạch/constraint, upgrade Admin cũ/recovery/stale-version/retry, rotation hai connection/replay/revoke, HTTP anonymous/unlinked/web CSRF và unit token/model/rate-limit.
+- Chưa kiểm đủ: toàn ma trận Profiles/fixture guard, audit failure và rollback/cạnh tranh mọi thứ tự, bootstrap/operator negative cases, mail sink retry, backup/restore, multi-tab coordinator mock, production publish và CI mới. GitHub CI SQL được cấu hình nhưng chưa chạy theo SHA implementation. Không báo SQL/auth M1 hoàn tất.
+
 ## Đặc tả M1 Profiles + Identity — 23/10/2026
 
 - Quyết định trực tiếp của người dùng trong chat ngày 23/10/2026 thay gate riêng M1: dùng báo cáo kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` và chấp thuận contract/nghiệp vụ của người dùng thay Bảo/Quý xác nhận trước code. Được tiếp tục implementation nhánh riêng phụ thuộc #32; không phải approval thành viên/GitHub, không đổi owner/branch protection. Contract/schema mới đổi thực chất vẫn cần review độc lập phần đổi. Nội dung kỹ thuật không đổi, các ghi nhận chờ approval phía dưới là lịch sử trước quyết định này. SQL/auth/runtime M1 chưa kiểm chứng.
