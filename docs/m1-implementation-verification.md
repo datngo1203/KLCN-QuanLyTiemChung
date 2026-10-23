@@ -37,4 +37,20 @@ Còn kiểm chứng trước ready: đối chiếu checklist cuối và CI tại
 
 ## Khoảng trống contract cần quyết định/review
 
+## Đối chiếu bằng chứng theo nhóm checklist
+
+| Nhóm | Bằng chứng đã chạy | Giới hạn |
+|---|---|---|
+| SQL upgrade/recovery | IdentityRecoverySqlTests, IdentityPreflightSqlTests, IdentityBackupSqlTests | Legacy reset ngoài target recovery còn thiếu contract |
+| Constraint/concurrency | IdentitySqlTests: register/CCCD race, rowversion stale update, FK Restrict, duty/type, email 254 | Không suy ra mọi dữ liệu legacy đều ánh xạ được |
+| Phiên/revoke/audit | IdentitySqlTests, IdentityWriteRevokeSqlTests, audit-trigger HTTP test | Revoke-write test dùng final auth/transaction path, không browser E2E |
+| Identity/mail | IdentityMailSqlTests: rollback outbox, resend/used/expired/confirm race; IdentityTokenTests | Mail chỉ synthetic sink, không gửi người thật |
+| Profiles/transport | IdentityHttpSqlTests: sáu title, scope A/B, create/PUT, CSRF/mixed transport, dependency 503 | Một số biên length/ngày sinh theo giờ cần kiểm thêm |
+| Operator/publish | IdentityAdministrationSqlTests, OperatorAuthenticationTests; API Release publish đã kiểm | Không thay review vận hành; reset legacy còn chặn |
+| Coordinator | IdentityCoordinatorContractTests | Chỉ mock contract, không client M2 hoặc browser E2E |
+
+Các kết quả trên không thay kết quả CI HEAD cuối hoặc review độc lập. Chưa đánh dấu toàn hàng checklist PASS khi một hàng có tổ hợp chưa chạy.
+
+### Quyết định đang chờ
+
 Schema M1 yêu cầu cấp lại mật khẩu hash legacy không xác định, nhưng danh sách lệnh contract chưa có reset cho account nhân viên đã tồn tại; provision bị unique employee/account, recovery chỉ dành Admin target một lần. Đã báo người dùng, chưa được xem là chấp thuận thay contract. Đề xuất tối thiểu cần review: `reset-employee-password` offline, actor Admin active + QuanLyTaiKhoan + không Director; không self-reset; target Employee tồn tại, không tự đổi status/duty/quyền; password nhập ẩn/hash server; tăng SecurityVersion/revoke session+credential/audit cùng transaction. Chưa viết lệnh, chưa thay contract/schema đã duyệt. Đây là phần còn chặn ready với dữ liệu legacy tương ứng.

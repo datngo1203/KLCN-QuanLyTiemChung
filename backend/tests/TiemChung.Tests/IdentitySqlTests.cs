@@ -39,6 +39,21 @@ public sealed class IdentitySqlTests
         Assert.Equal(254,longEmail.Length);
         await Register(longEmail);
         Assert.True(await db.Set<TaiKhoan>().AnyAsync(x=>x.LoginEmail==longEmail && x.TenDangNhap.Length<100));
+        async Task<bool> CreateSameIdentity()
+        {
+            await using var connection=new TiemChungDbContext(options);
+            connection.Add(new KhachHang { HoTen="Synthetic Race",CCCD="000000000001",SoDienThoai="0900000000",Email="race@example.invalid" });
+            try { await connection.SaveChangesAsync(); return true; }
+            catch(DbUpdateException e) when(e.InnerException is SqlException sql && sql.Number is 2601 or 2627) { return false; }
+        }
+        Assert.Equal(new[]{false,true},(await Task.WhenAll(CreateSameIdentity(),CreateSameIdentity())).Order().ToArray());
+        await using var first=new TiemChungDbContext(options); await using var second=new TiemChungDbContext(options);
+        var firstAccount=await first.Set<TaiKhoan>().FirstAsync(); var secondAccount=await second.Set<TaiKhoan>().SingleAsync(x=>x.MaTaiKhoan==firstAccount.MaTaiKhoan);
+        firstAccount.TrangThai="Locked"; await first.SaveChangesAsync();
+        secondAccount.SecurityVersion++; await Assert.ThrowsAsync<DbUpdateConcurrencyException>(()=>second.SaveChangesAsync());
+        db.ChangeTracker.Clear();
+        var referenced=await db.Set<TaiKhoan>().FirstAsync(); db.Remove(referenced);
+        await Assert.ThrowsAsync<DbUpdateException>(()=>db.SaveChangesAsync());
     }
     [Fact, Trait("Category","SqlIntegration")]
     public async Task RegisterConfirmRotateReplayAndNextRequestRevocationUseRealSql()
