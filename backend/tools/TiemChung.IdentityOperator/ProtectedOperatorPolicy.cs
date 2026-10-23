@@ -45,7 +45,7 @@ public sealed record ProtectedOperatorPolicy(string[] AllowedSids,string Server,
     private static void CheckChain(string path)
     {
         var current=Path.GetFullPath(path);
-        
+
         while(true) {
             FileSystemInfo item=Directory.Exists(current)?new DirectoryInfo(current):new FileInfo(current);
             if(!item.Exists || (item.Attributes&FileAttributes.ReparsePoint)!=0) throw new InvalidOperationException("Untrusted path.");
