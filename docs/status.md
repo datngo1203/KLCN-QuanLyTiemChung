@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## P2 contract delivery tại 7b2c1c7 — sửa giới hạn dedup
+
+- Chỉ sửa lời hứa delivery và acceptance/checklist: dedup cùng sink instance/lifetime; message ID từ outbox đã commit giữ nguyên qua retry. Delivery không rollback cùng SQL; sink host độc lập/restart có thể nhận lại, application lock không bảo đảm exactly-once. Không thay operator, lifecycle/production 503 hoặc thêm schema/code.
+- Test dự kiến phân biệt shared instance với hai sink độc lập, count nhận và trạng thái outbox, token auth một lần. Chưa chạy SQL/auth/test delivery; kiểm diff/link/nhất quán tài liệu, không gọi 35/35 cũ là bằng chứng mới. Giữ #33 Draft/chờ review contract.
+
 ## Hai P1 implementation #33 tại 9fa35ab — chờ review bổ sung hẹp
 
 - Xác nhận operator tin env allowlist/expected secret/connection caller đặt và mail chưa có dispatcher trong lifecycle. M1 chưa được coi ready/nghiệm thu; 35/35/CI cũ không bao phủ hai nguyên nhân này.

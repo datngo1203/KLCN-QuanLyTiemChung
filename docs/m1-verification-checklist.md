@@ -2,6 +2,8 @@
 
 ## Hai P1 mới sau implementation review tại 9fa35ab
 
+- [ ] P2 dedup: cùng sink instance/lifetime count nhận giữ 1 khi SQL rollback rồi retry; hai host với sink độc lập A/B nhận tổng 2 cùng deliveryId sau A accepted/SQL rollback và B retry. Assert SentAt null/payload còn sau rollback, chỉ commit delivery thành công mới SentAt/xóa payload; restart không được hứa exactly-once. Confirm token một lần, không tăng account/quyền khi delivery lặp. Đây là ca dự kiến, chưa chạy.
+
 - [ ] Review/chấp thuận [diff contract hẹp operator/delivery](../contracts/m1-p1-operator-delivery-review.md) trước code phụ thuộc; không duyệt lại toàn M1.
 - [ ] Sau approval chạy từng acceptance của bổ sung: OS/policy/SQL boundary và host lifecycle register → sink → verify → login, failure/retry/race/shutdown/production fail-closed. Không helper drain thay lifecycle; Windows ACL cần runner Windows thực, test giả không đủ.
 - [ ] SQL/auth Release và CI trên HEAD code mới, không dùng 35/35 cũ làm bằng chứng sửa hai P1. Bàn giao mapping từng finding/commit/file/test; chưa nghiệm thu production.
