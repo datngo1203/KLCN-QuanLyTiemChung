@@ -257,7 +257,7 @@ public static class ProfileEndpoints
                 errors["identityNumber"] = ["CCCD (nếu nhập) phải gồm đúng 12 chữ số."];
         }
 
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTimeOffset.UtcNow,"Asia/Ho_Chi_Minh").DateTime);
+        var today = ProfileDates.Today(DateTimeOffset.UtcNow);
         if (dateOfBirth == DateOnly.MinValue || dateOfBirth > today)
             errors["dateOfBirth"] = ["Ngày sinh không được lớn hơn ngày hiện tại."];
 

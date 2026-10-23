@@ -105,6 +105,10 @@ public sealed class IdentityHttpSqlTests
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/recipients",new {customerId="bad",fullName="Synthetic",dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"})).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/customers?page=0")).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/recipients?customerId=-1")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/customers?pageSize=101")).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync("/api/v1/customers?search="+new string('a',151))).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",new {fullName=new string('a',151),identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"})).StatusCode);
+                Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",new {fullName="   ",identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"})).StatusCode);
                 await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectProfileAudit ON SecurityAudit AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE Action='profiles.created') THROW 51009, 'Synthetic audit failure', 1; END;");
                 var failed=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Rollback",identityNumber="000000000099",phoneNumber="0900000000",email="rollback@example.invalid"});
                 Assert.Equal(HttpStatusCode.InternalServerError,failed.StatusCode);
