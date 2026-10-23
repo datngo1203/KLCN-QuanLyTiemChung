@@ -1,5 +1,10 @@
 # Trạng thái khung — 19/10/2026
 
+## SQL test run m1br_20261024_01 — 24/10/2026
+
+- Người dùng đã cho phép phạm vi provisioning có điều kiện preflight; start MSSQL$SQLEXPRESS bị Windows từ chối do token không elevated. Service trước/sau Stopped, chưa SQL connection/auth mode/TLS/collision check, chưa DB/login/grant/guard/fixture nào được tạo.
+- [Evidence/bước Administrator ngắn](m1br_20261024_01-preflight-evidence.md), [manifest rỗng](m1br_20261024_01-manifest.json). Scripts start-only và preflight read-only đã chuẩn bị; không tự nâng quyền/đổi config/Mixed Mode/ACL. Boundary acceptance/CLI chưa chạy, không PASS giả hoặc dùng suite cũ thay. Chưa đủ nghiệm thu.
+
 ## SQL boundary sau chấp thuận ad6a7f7 — 24/10/2026
 
 - Bỏ Windows-only checker/expected-secret, thêm SQL context/role/effective permissions/guards gate, audit server identity, DDL migration bảo mật riêng với 2 triggers CALLER/grants. DDL chưa apply, chưa provisioning roles/logins/grants. Batch/delivery không đổi; không M2–M4.

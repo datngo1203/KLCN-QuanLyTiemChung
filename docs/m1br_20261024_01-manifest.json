@@ -1,0 +1,20 @@
+{
+  "runId": "m1br_20261024_01",
+  "recordedDateLocal": "2026-10-24",
+  "instance": ".\\SQLEXPRESS",
+  "initialServiceState": "Stopped",
+  "observedServiceState": "Stopped",
+  "serviceStartAttempted": true,
+  "serviceStartSucceeded": false,
+  "blocker": "Windows service access denied under non-elevated process",
+  "sqlConnectionAttempted": false,
+  "authenticationModeVerified": false,
+  "tlsVerified": false,
+  "nameCollisionPreflightVerified": false,
+  "createdDatabases": [],
+  "createdLogins": [],
+  "createdUsersRolesGrantsGuardsFixtures": [],
+  "cleanupPerformed": false,
+  "cleanupReason": "No run objects created; service remains in original Stopped state",
+  "acceptanceExecuted": false
+}
