@@ -30,6 +30,10 @@ TokenEnvelope: `{accessToken, tokenType:"Bearer", expiresIn:300, sessionId, refr
 
 ### Refresh cạnh tranh và request tiếp theo
 
+Web access token chỉ ở memory, không localStorage/sessionStorage/IndexedDB. Refresh giữ cookie HttpOnly/Secure; CSRF cookie riêng theo transport trên. Coordinator dùng Web Locks API độc quyền `klcn-auth` chung login/refresh/logout toàn origin; browser thiếu Web Locks phải yêu cầu login, không fallback lease storage. Trong lock, đọc lại CSRF cookie ngay trước fetch, không giữ header cũ; browser tự gửi refresh cookie hiện hành. Leader giữ lock đến response hoàn tất, chỉ phát completion/access token qua BroadcastChannel sau browser áp dụng Set-Cookie; waiter dùng access token này trong memory, không refresh lại. Nếu bỏ lỡ completion, waiter lấy lock và đọc lại cookie/CSRF để refresh tối đa một lần. Tab đóng tự giải phóng lock; leader lỗi/mất response, timeout tổng 15 giây hoặc 409 không có completion thì xóa memory và yêu cầu login lại, không retry khi kết quả cũ chưa biết. Logout broadcast xóa memory. Thiếu một cookie hoặc csrfFailed thì login lại; không nới CSRF/Origin/replay. Channel không lưu bền token.
+
+Mọi đường revoke session/family phải revoke credential chưa consumed trong cùng transaction theo invariant schema; mọi sử dụng vẫn kiểm account/session/SecurityVersion.
+
 Mỗi login tạo session riêng, mỗi session chỉ có một refresh token active. Client phải single-flight refresh (mọi request cùng chờ một promise; nhiều tab web phối hợp một leader). Không tự động refresh lại request register/logout hoặc retry ghi Profiles chưa biết kết quả.
 
 Trong transaction, khóa account/session rồi CAS token active → consumed và tạo token kế tiếp; một request thắng. Request thua dùng cùng token trong 5 giây kể từ ConsumedAt nhận 409 + Retry-After: 1, không token và không thu hồi token thắng. Sau 5 giây, dùng lại token consumed thu hồi session và 401 `refreshReplay`. Nếu không phân biệt được cạnh tranh với replay trong 5 giây, vẫn không cấp token thứ hai; rủi ro cửa sổ này được reviewer xem xét rõ.
@@ -39,6 +43,14 @@ Web waiter chờ leader cập nhật cookie; native waiter nhận token mới t�
 Account locked, session revoked, SecurityVersion lệch hoặc employee inactive làm access và refresh thất bại ở request tiếp theo sau commit. Mọi request đọc primary SQL, không replica trễ/cache quyền. Ghi kiểm lại quyền trong transaction như [spec](../docs/m1-identity-review.md). JWT có chữ ký/hạn hợp lệ chưa đủ cho phép truy cập.
 
 ## Cấp nhân viên và quản trị tối thiểu
+
+### Recovery DB nâng cấp một lần
+
+`recover-upgraded-admin` là công cụ offline riêng, không HTTP/startup seeder và không nằm trong API publish. Chỉ chạy maintenance sau migration M1 khi không có Employee active + Admin + QuanLyTaiKhoan + không Director. Operator xác thực bằng secret 256 bit ngoài DB qua secret store và OS identity allowlist, không cần actor account active. Không secret trong argv/log. Bootstrap vẫn chỉ DB không account; recovery chỉ DB có account cũ; quản trị tiếp theo vẫn cần actor account như dưới.
+
+Trước nâng cấp, operator được ủy quyền lập manifest trong secret store: operationId duy nhất, DB instance/database ID, migration ID, target accountId/employeeId/expected rowversion, xác nhận người thật được phân công Technical không Director, hạn tối đa 30 phút. Không nhận tham số tùy ý chọn target/quyền. Kiểm target Employee cũ, nhân viên active/title Admin; sai DB/target/version/hạn thì dừng. Không suy duty từ tên/BoPhan.
+
+Transaction Serializable lấy application lock độc quyền chung với bootstrap/provision/status/permission/duty commands; kiểm lại không có admin hiệu lực và operation chưa dùng. Chỉ target được đổi Technical + Active, cấp đúng 12 mã đã duyệt, đặt lại password nhập an toàn nếu hash cũ không xác định, tăng SecurityVersion, revoke toàn session/credential. Ghi ledger operationId/fingerprint manifest và audit operator OS identity đã xác thực (ActorAccountId null, SubjectAccountId target) cùng transaction. Audit lỗi rollback toàn bộ. Hai invocation chỉ một commit; operation đã commit trả alreadyApplied không ghi lại; manifest khác bị chặn khi có admin hiệu lực. Sau commit hủy secret/manifest ngoài DB; crash sau commit vẫn chặn lặp bằng ledger, rollback được thử lại trong hạn. Không target Admin cũ hợp lệ thì dừng xử lý dữ liệu qua quy trình nâng cấp được review, không tự tạo nhân viên/account thay thế. Đây là ngoại lệ recovery có target cố định, không cho self-change trong quản trị thường ngày.
 
 Không thêm HTTP quản trị accounts/permissions ở M1. Công cụ vận hành riêng cung cấp `bootstrap-admin`, `provision-employee`, `set-account-status`, `set-extra-permissions`, `set-employee-status`. Auth actor qua credentials được kiểm tra cùng hash/account/employee/quyền hiện hành, không nhận actorId để tin ngay. Audit lưu actor đã xác thực; không mật khẩu trong argv hoặc stdout.
 

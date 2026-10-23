@@ -2,6 +2,8 @@
 
 ## Đặc tả M1 Profiles + Identity — 23/10/2026
 
+- Sửa review `ff1294b9`/base `f1880843`: recovery nâng cấp manifest/ledger/audit, invariant revoke credential, Web Locks/CSRF và bearer web memory-only; checklist có ánh xạ finding → sửa → ca kiểm dự kiến. Chỉ tài liệu, chưa chạy SQL/auth/runtime; tự rà không thay review độc lập.
+
 - Người dùng duyệt phạm vi M1 và cho phép PR Draft tài liệu từ develop; [gói review](m1-identity-review.md) gồm contract/quyền năm route, schema đề xuất, quyết định kỹ thuật và checklist SQL/auth. Contract/schema còn chờ review độc lập, chưa được coi đã chấp thuận triển khai.
 - Chỉ sửa tài liệu/đặc tả; không migration, DTO/API/client, nguồn/ảnh gốc; không kéo PR #29/#30/#31 chưa tích hợp hoặc commit 38c4f84/fa027ee. Không merge, không Goal code M1. M2–M4 giữ lộ trình.
 - Kiểm tra tài liệu: git diff --check, liên kết Markdown mới và allowlist sáu file thay đổi. Rà toàn status phát hiện năm link lịch sử đã hỏng trên base (analysis/wpf-phase0-screen-spec.md, design/wpf-phase1-layout-proposal.md, analysis/wpf-phase3-binding-preflight.md, apps/windows/ViewsV2/README.md, screenshots/a02-screen.png); không sửa ngoài phạm vi. Không chạy build/test/SQL/auth/runtime cho gói chỉ tài liệu; checklist SQL thật là kế hoạch chưa thực thi, CI của PR cần xem riêng. Tự rà tài liệu không thay review độc lập.

@@ -11,6 +11,15 @@
 
 ## SQL Server thật, chạy tự động trong suite riêng
 
+Ánh xạ review `ff1294b9`/base `f1880843` → sửa → kiểm dự kiến, tất cả chưa chạy:
+
+| Finding | Mục sửa | Ca kiểm bắt buộc |
+|---|---|---|
+| P1 | Contract recovery; schema ledger/audit | DB chỉ có Admin cũ Locked: bootstrap bị chặn, recovery hợp lệ phục hồi quản trị thường ngày; sai secret/operator/DB/target/version/Director/hết hạn bị chặn; hai connection chỉ một commit, lặp operation không ghi, manifest khác bị chặn khi đã có admin; crash sau commit và audit failure/rollback |
+| P2 | Schema invariant; contract revoke | Assert SQL count credential ConsumedAt NULL AND RevokedAt NULL = 0 cho từng session revoked sau logout/replay/khóa/đổi quyền/status/duty/recovery; rotation thành công = 1, 409 không đổi nhánh thắng; hai thứ tự logout/rotation, audit rollback và phạm vi session khác |
+| CSRF nhiều tab | Contract coordinator | A rotate, B có header cũ phải đọc lại cookie trong lock; đóng leader trước/sau response, mất broadcast/response, timeout, 409, cookie thiếu, browser thiếu Web Locks kết thúc hữu hạn/login lại; không nới CSRF/replay |
+| Kho bearer | Contract memory-only | Không token trong localStorage/sessionStorage/IndexedDB/log/URL; logout/reload xóa memory; refresh HttpOnly/Secure và CSRF cookie riêng; channel không lưu bền |
+
 Yêu cầu SQL Server container/instance riêng, DB tên duy nhất mỗi run với dữ liệu giả; credentials qua secret, không production. Runner CI phải start SQL, wait readiness rồi migrate/test; skip hoặc thiếu SQL là NOT VERIFIED, không PASS. Unit tests/EF InMemory/GenerateCreateScript không thay suite này. Báo SQL version, migration ID, SHA, lệnh và log đã loại bí mật.
 
 - [ ] Fresh migration và upgrade từ InitialCreate; so dữ liệu/constraint, backup/restore bản sao. Preflight lỗi dừng trước sửa, không tự merge CCCD/account.

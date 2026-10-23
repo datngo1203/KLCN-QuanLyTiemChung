@@ -59,6 +59,8 @@ Sau xác minh, khóa snapshot tự khai và dùng liên kết chính thức. Yê
 
 ## Giao hàng và điều kiện vận hành
 
+Sửa review trên `ff1294b9`/base `f1880843`: recovery offline DB nâng cấp theo contract với manifest ngoài DB/ledger/audit; revoke session đồng thời revoke credential chưa consumed; Web Locks và đọc lại CSRF cookie trong lock; bearer web chỉ memory. Bootstrap DB rỗng, recovery DB nâng cấp và quản trị thường ngày theo ba điều kiện riêng trong contract. Bổ sung này cần review lại, chưa phải implementation hoặc approval độc lập.
+
 P0–P7 giữ nguyên lộ trình. Mỗi lát chỉ làm đặc tả → migration/API → test tương ứng sau approval, không migrate trước toàn bộ đại diện/audit mở rộng. M1 SQL/Identity/Profiles phải qua checklist SQL thật trước nối client M2. Không gọi M1 là đã hoàn thành khi mới có PR đặc tả.
 
 Production chưa cho sử dụng dữ liệu thật trước nghiệm thu. Endpoint M2–M4 chưa được map; feature capability trả false. Khi triển khai các mốc này, server vẫn gate theo môi trường/quyết định vận hành, UI chỉ phản ánh capability; không có bypass production. Mail M1 chỉ gửi hộp thư sink kiểm thử cho đến khi dịch vụ gửi thật được cấu hình và kiểm chứng. DB test/dev và bí mật tách biệt; fixture runner phải từ chối non-Development/non-Test và DB không có marker fixture, không nhận connection production.
