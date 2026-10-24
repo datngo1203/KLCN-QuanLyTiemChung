@@ -7,25 +7,34 @@
   "serviceStartAttempted": true,
   "serviceStartSucceeded": true,
   "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
-  "blocker": "LoginMode change authorized; agent not elevated. Administrator must run scoped apply script after fresh baseline checks",
+  "blocker": "Actual hidden-input terminal CLI positive/negative/concurrency/rollback evidence pending; retained run objects",
   "sqlConnectionAttempted": true,
   "authenticationModeVerified": true,
   "tlsVerified": false,
   "deploymentPermissionsVerified": true,
   "nameCollisionPreflightVerified": true,
-  "createdDatabases": [],
-  "createdLogins": [],
-  "createdUsersRolesGrantsGuardsFixtures": [],
+  "createdDatabases": [
+    "KLCN_M1_Test_Boundary_m1br_20261024_01",
+    "KLCN_M1_Test_Legacy_m1br_20261024_01"
+  ],
+  "createdLogins": [
+    "m1br_20261024_01_app",
+    "m1br_20261024_01_operator"
+  ],
+  "createdUsersRolesGrantsGuardsFixtures": [
+    "KLCN_M1_Test_Boundary_m1br_20261024_01",
+    "KLCN_M1_Test_Legacy_m1br_20261024_01"
+  ],
   "cleanupPerformed": false,
-  "cleanupReason": "No run objects created. Service remains Running; no stop attempted because impact on other connections/work has not been established",
-  "acceptanceExecuted": false,
+  "cleanupReason": "Not yet: terminal CLI acceptance pending; exact two DBs/logins retained",
+  "acceptanceExecuted": true,
   "encryptionVerified": true,
   "certificateValidationBypassedForLocalTest": true,
-  "authenticationMode": "Windows-only",
+  "authenticationMode": "Mixed",
   "existingRunDatabaseCount": 0,
   "existingRunLoginCount": 0,
   "modeChangeAuthorized": true,
-  "modeChangeExecuted": false,
+  "modeChangeExecuted": true,
   "beforeModeChange": {
     "serverName": "LAPTOP-DAT\\SQLEXPRESS",
     "integratedOnly": 1,
@@ -35,5 +44,17 @@
     "userDatabaseCount": 0,
     "otherUserSessionCount": 0,
     "agentElevated": false
+  },
+  "acceptanceComplete": false,
+  "boundaryResults": {
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0
+  },
+  "regressionResults": {
+    "passed": 42,
+    "failed": 0,
+    "instance": "(localdb)\\KLCN_M1_Test",
+    "skipped": 0
   }
 }

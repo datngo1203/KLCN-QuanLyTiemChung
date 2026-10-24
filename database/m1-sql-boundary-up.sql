@@ -75,8 +75,14 @@ DENY UPDATE,DELETE ON dbo.SecurityAudit TO m1_operator;
 -- No runtime role may change guards, membership, owner or execution identity.
 DENY ALTER,TAKE OWNERSHIP ON SCHEMA::dbo TO m1_app;
 DENY ALTER,TAKE OWNERSHIP ON SCHEMA::dbo TO m1_operator;
-DENY ALTER ANY ROLE,ALTER ANY USER,IMPERSONATE ANY USER TO m1_app;
-DENY ALTER ANY ROLE,ALTER ANY USER,IMPERSONATE ANY USER TO m1_operator;
+DENY ALTER ANY ROLE,ALTER ANY USER TO m1_app;
+DENY ALTER ANY ROLE,ALTER ANY USER TO m1_operator;
+-- SQL Server exposes IMPERSONATE on USER, not a database-wide ANY USER permission.
+-- Runtime users receive no impersonation grants; explicitly deny privileged built-ins.
+DENY IMPERSONATE ON USER::dbo TO m1_app;
+DENY IMPERSONATE ON USER::guest TO m1_app;
+DENY IMPERSONATE ON USER::dbo TO m1_operator;
+DENY IMPERSONATE ON USER::guest TO m1_operator;
 IF EXISTS(SELECT 1 FROM sys.extended_properties WHERE class=0 AND name='KLCN.M1.SqlBoundary')
  EXEC sys.sp_updateextendedproperty @name=N'KLCN.M1.SqlBoundary',@value=N'1';
 ELSE EXEC sys.sp_addextendedproperty @name=N'KLCN.M1.SqlBoundary',@value=N'1';

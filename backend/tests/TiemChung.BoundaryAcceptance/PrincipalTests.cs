@@ -35,6 +35,9 @@ public sealed class PrincipalTests
     [InlineData("DELETE FROM dbo.IdentityRecoveryOperation")]
     [InlineData("UPDATE dbo.IdentityRecoveryDatabase SET M1UpgradeEpoch='denied'")]
     [InlineData("DISABLE TRIGGER dbo.M1GuardAccount ON dbo.TaiKhoan")]
+    [InlineData("SELECT TOP(1) Id FROM dbo.SecurityAudit")]
+    [InlineData("SELECT TOP(1) OperatorIdentity FROM dbo.SecurityAudit")]
+    [InlineData("EXECUTE AS USER='dbo'")]
     [InlineData("INSERT dbo.SecurityAudit(OccurredAt,Action,Outcome,TraceId) VALUES(SYSDATETIMEOFFSET(),'employeePasswordReset','Success','synthetic-denied')")]
     public async Task AppCannotDirectlyMutateAdministrativeState(string sql)
     {
@@ -46,7 +49,9 @@ public sealed class PrincipalTests
         var error=await Record.ExceptionAsync(()=>db.Database.ExecuteSqlRawAsync(sql));
         Assert.True(error is SqlException, "SQL must reject, not merely CLI.");
         var number=((SqlException)error!).Number;
-        Assert.True(number is 51021 or 51022 or 229 or 1088 or 15151, "Expected guard/permission denial, not unrelated SQL syntax failure.");
+        Assert.True(number is 51021 or 51022 or 229 or 1088 or 15151 ||
+            sql=="EXECUTE AS USER='dbo'" && number==15517,
+            "Expected guard/permission denial, not unrelated SQL syntax failure.");
         // Dispose rolls back even if a future faulty guard lets any statement proceed.
     }
 
@@ -59,5 +64,21 @@ public sealed class PrincipalTests
             await using var tx=await db.Database.BeginTransactionAsync();
             Assert.IsType<SqlException>(await Record.ExceptionAsync(()=>db.Database.ExecuteSqlRawAsync(sql)));
         }
+    }
+
+    [Fact]
+    public async Task AuditAppendWorksWithoutAuditReadAndRollsBackWithCallerTransaction()
+    {
+        await using var db=Db("M1_BOUNDARY_APP_CONNECTION");
+        await using var tx=await db.Database.BeginTransactionAsync();
+        var audit=new TiemChung.Domain.Entities.SecurityAudit { OccurredAt=DateTimeOffset.UtcNow,
+            Action="account.registered",Outcome="Success",TraceId="synthetic-append-only" };
+        db.Add(audit);
+        Assert.Equal(1,await db.SaveChangesAsync());
+        Assert.True(audit.Id>0);
+        Assert.Equal(0,await db.SaveChangesAsync());
+        Assert.IsType<SqlException>(await Record.ExceptionAsync(()=>db.Database
+            .ExecuteSqlRawAsync("SELECT Id FROM dbo.SecurityAudit")));
+        await tx.RollbackAsync();
     }
 }

@@ -1,5 +1,7 @@
 # SQL boundary implementation — chưa đủ acceptance provisioning
 
+**Cập nhật run thực:** xem [acceptance m1br_20261024_01](m1br_20261024_01-acceptance.md): đã provision/apply DDL cả hai DB test, sửa syntax permission và audit append không SELECT, boundary actual login 20/20 + regression mới 42/42. CLI positive terminal/rollback/concurrency và cleanup/mode rollback chưa đủ; bảng build-only dưới đây là lịch sử trước provisioning, không phải trạng thái mới.
+
 Thiết kế `ad6a7f7` được người dùng chấp thuận cùng review độc lập. Không phải approval GitHub/thành viên. Windows checker/expected-secret gate và tests riêng của cơ chế đó đã bỏ; không có hai bypass song song. M1/batch/delivery/actor/reset/ledger giữ phạm vi cũ.
 
 | Thiết kế | Implementation | Kiểm chứng hiện tại |

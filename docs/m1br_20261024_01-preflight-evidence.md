@@ -1,5 +1,7 @@
 # Run m1br_20261024_01 — Windows-only authentication blocks provisioning
 
+**Đã vượt blocker lịch sử:** người dùng apply Mixed Mode, preflight encrypted local exception đạt; đã provision đúng run và chạy boundary login thật. [Evidence acceptance mới và gate còn mở](m1br_20261024_01-acceptance.md). Lịch sử dưới đây giữ truy vết.
+
 ## Quyền mới và bước elevated còn chặn
 
 Người dùng đã cho phép đổi đúng LoginMode/restart/rollback có kiểm soát; agent đọc lại đúng instance, 0 DB/0 phiên khác, sa disabled, Running nhưng token không elevated. Chưa đổi cấu hình. Xem [baseline, script Administrator apply/rollback và xử lý lỗi](m1br_20261024_01-auth-mode-runbook.md). Các giới hạn chưa cho đổi mode dưới đây là lịch sử trước quyền mới. Provisioning vẫn chờ apply và preflight đạt; không đối tượng mới hoặc acceptance PASS.

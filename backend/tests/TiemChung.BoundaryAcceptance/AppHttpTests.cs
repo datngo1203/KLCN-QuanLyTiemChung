@@ -39,11 +39,16 @@ public sealed class AppHttpTests
         login.EnsureSuccessStatusCode();
         var body=await login.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
         client.DefaultRequestHeaders.Authorization=new("Bearer",body.GetProperty("accessToken").GetString());
+        Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/auth/me")).StatusCode);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/customers")).StatusCode);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/recipients")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/customers",new {})).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/recipients",new {})).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,(await client.PutAsJsonAsync("/api/v1/recipients/1",new {})).StatusCode);
         var refresh=await client.PostAsJsonAsync("/api/v1/auth/refresh",new {clientType="native",refreshToken=body.GetProperty("refreshToken").GetString()});
         refresh.EnsureSuccessStatusCode();body=await refresh.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
         Assert.Equal(HttpStatusCode.NoContent,(await client.PostAsJsonAsync("/api/v1/auth/logout",new {clientType="native",refreshToken=body.GetProperty("refreshToken").GetString()})).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/auth/me")).StatusCode);
     }
 
     [Fact]

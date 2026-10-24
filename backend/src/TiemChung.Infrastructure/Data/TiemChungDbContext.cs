@@ -3,7 +3,7 @@ using TiemChung.Domain.Entities;
 
 namespace TiemChung.Infrastructure.Data;
 
-public sealed class TiemChungDbContext(DbContextOptions<TiemChungDbContext> options) : DbContext(options)
+public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbContext> options) : DbContext(options)
 {
     public DbSet<VacXin> Vaccines => Set<VacXin>();
 

@@ -12,7 +12,7 @@ namespace TiemChung.IdentityOperator;
 public sealed record RecoveryManifest(Guid OperationId,Guid RecoveryDatabaseId,string M1UpgradeEpoch,string MigrationId,
     int TargetAccountId,int EmployeeId,string ExpectedRowVersion,DateTimeOffset IssuedAt,DateTimeOffset ExpiresAt,string AssignedDuty);
 
-// No HTTP registration. The operator executable authenticates OS identity + secret before invoking.
+// No HTTP registration. The executable verifies the actual SQL operator principal before invoking.
 public sealed class IdentityRecovery(TiemChungDbContext db)
 {
     private const string Migration="20261023073816_M1Identity";
