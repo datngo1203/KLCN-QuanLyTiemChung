@@ -1,5 +1,20 @@
 # Trạng thái khung — 19/10/2026
 
+## Ponytail skill cho dự án — 24/10/2026
+
+- Theo yêu cầu người dùng, cài skill chính [Ponytail](../.agents/skills/ponytail/SKILL.md) từ DietrichGebert/ponytail, pin commit `09c434ab73ca43761c5d8b0c5d341926c2fba710`, tại `.agents/skills/ponytail` (repo scope). Giữ nguyên SKILL upstream, kèm LICENSE/SOURCE; AGENTS hướng dẫn full mặc định theo rule khóa luận. Không cài plugin/hooks/CLI/npm hoặc skill audit bổ sung; không đụng code ứng dụng/SQL/credential.
+- Kiểm cấu trúc/frontmatter, đối chiếu nội dung skill với blob upstream và diff whitespace; không chạy build/test/runtime vì chỉ cài instructions. Chưa thực hiện một task code với skill để đo hiệu quả, không khẳng định benchmark upstream áp dụng cho dự án.
+
+## Giới hạn mức khóa luận — 24/10/2026
+
+- Theo yêu cầu người dùng: bổ sung [quy tắc giới hạn triển khai/review](thesis-scope-rules.md), dẫn bắt buộc từ AGENTS. Ưu tiên luồng UI–API–SQL thật và Admin khởi tạo đơn giản; giữ kiểm quyền/hash/validation/tính đúng dữ liệu. Các yêu cầu production/legacy ngoài gói được ghi hoãn/hướng phát triển, không tự thành gate khóa luận.
+- Chỉ cập nhật quy tắc và hướng dẫn điều phối; chưa đổi code/contract/schema/checklist M1 hoặc xóa cơ chế đã làm. Kiểm diff, liên kết tài liệu và nội dung quy tắc; không chạy build/test/SQL/runtime mới. Bằng chứng và việc khôi phục cấu hình SQL còn lại giữ theo trạng thái run hiện hành bên dưới.
+
+## Quy ước tài khoản test — 24/10/2026
+
+- Theo yêu cầu trực tiếp của người dùng, AGENTS ghi phép tạo/dùng/lưu plaintext credential synthetic trong sổ local ngoài Git `C:/Users/DAT/Documents/Codex/KLCN090-Coordination/TEST-ACCOUNTS.local.md`, dùng chung các chat. Phân biệt password dự kiến với đã áp dụng/đã login; không đổi cơ chế bảo vệ sản phẩm hoặc quyền SQL/OS. Username/password không ghi trong status/PR.
+- Lịch sử lúc tạo sổ: Bootstrap trả `validation`, Boundary DB khi đó có 0 account; password dự kiến chưa áp dụng. Trạng thái này đã được các checkpoint SQL/CLI và cleanup phía dưới thay thế; không dùng để kết luận DB/tài khoản hiện còn tồn tại. Quy ước ghi sổ vẫn hiệu lực.
+
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
 - Khôi phục môi trường hoàn tất: user chạy elevated Rollback và Stop; evidence xác nhận LoginMode=1/IntegratedOnly=1, Windows admin hoạt động, encryption TRUE, sa vẫn disabled, 0 DB người dùng/0 login run/0 phiên khác trước stop. Agent xác minh service MSSQL$SQLEXPRESS Stopped; không mở lại SQL sau stop. Hai DB/hai login run đã cleanup; backup g1 giữ nguyên. Không chạy lại SQL/auth sau cleanup; kết quả 42/42 và 21/21 là lượt cuối trước cleanup, chưa nghiệm thu M1.
