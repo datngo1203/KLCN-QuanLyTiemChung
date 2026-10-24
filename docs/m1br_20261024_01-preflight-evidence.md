@@ -1,5 +1,9 @@
 # Run m1br_20261024_01 — Windows-only authentication blocks provisioning
 
+## Quyền mới và bước elevated còn chặn
+
+Người dùng đã cho phép đổi đúng LoginMode/restart/rollback có kiểm soát; agent đọc lại đúng instance, 0 DB/0 phiên khác, sa disabled, Running nhưng token không elevated. Chưa đổi cấu hình. Xem [baseline, script Administrator apply/rollback và xử lý lỗi](m1br_20261024_01-auth-mode-runbook.md). Các giới hạn chưa cho đổi mode dưới đây là lịch sử trước quyền mới. Provisioning vẫn chờ apply và preflight đạt; không đối tượng mới hoặc acceptance PASS.
+
 ## Kết quả mới: ngoại lệ TLS test được người dùng cho phép
 
 - Chỉ run `m1br_20261024_01` tới `.\SQLEXPRESS` trên máy này: người dùng cho phép `sqlcmd -N -C` (hoặc `Encrypt=True;TrustServerCertificate=True`). Encryption vẫn bắt buộc; **không xác minh chứng chỉ đạt**, không đổi trust store/chứng chỉ/instance hoặc mặc định production. Script preflight mặc định vẫn `-N` không `-C`.

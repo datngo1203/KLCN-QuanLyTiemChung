@@ -2,6 +2,8 @@
 
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
+- Người dùng đã cho phép đổi đúng SQLEXPRESS LoginMode 1→2/restart và rollback sau cleanup. Baseline đọc lại: đúng instance, 0 DB người dùng/0 phiên khác, sa disabled, service Running; agent không elevated nên chưa apply/restart. [Script apply/rollback và tác động/khôi phục](m1br_20261024_01-auth-mode-runbook.md) đã chuẩn bị cho Administrator, có fresh checks và evidence trước write; parser/driver SQL read-only/diff đạt. Chưa tạo đối tượng/CLI/BoundaryAcceptance hoặc test Release mới; không thay gate nghiệm thu. Dòng “không có quyền đổi mode” phía dưới là lịch sử đã được chấp thuận thêm phạm vi, không phải trạng thái quyền hiện tại.
+
 - Sau ngoại lệ test TLS được người dùng cho phép: `-N -C` chỉ tới `.\SQLEXPRESS`/run này, encryption TRUE, không xác minh chứng chỉ. Preflight read-only xác nhận Windows-only authentication (`IntegratedOnly=1`), quyền deployment ALTER ANY LOGIN/CREATE ANY DATABASE đều 1, tên hai DB/hai login chưa có. Exit 1/error 51030; không provisioning/Mixed Mode/restart/config changes. Sửa class truy vấn HAS_PERMS_BY_NAME server-level sang NULL và chạy lại; không sửa quyền SQL. Manifest created rỗng, service Running; CLI/BoundaryAcceptance vẫn chưa chạy. Các dòng TLS chặn phía dưới là lịch sử trước ngoại lệ.
 
 - Người dùng đã chạy script start; agent xác nhận MSSQL$SQLEXPRESS Running. Preflight read-only `-E -N` dừng ở ODBC 17 TLS: certificate chain không được tin cậy. Chưa thiết lập SQL session nên auth mode/quyền/collision đều chưa xác minh; chưa tạo DB/login/grant/guard/fixture.

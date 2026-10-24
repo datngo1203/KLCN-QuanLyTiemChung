@@ -7,7 +7,7 @@
   "serviceStartAttempted": true,
   "serviceStartSucceeded": true,
   "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
-  "blocker": "Windows-only authentication (IsIntegratedSecurityOnly=1); SQL app/operator logins unavailable; no instance changes authorized",
+  "blocker": "LoginMode change authorized; agent not elevated. Administrator must run scoped apply script after fresh baseline checks",
   "sqlConnectionAttempted": true,
   "authenticationModeVerified": true,
   "tlsVerified": false,
@@ -23,5 +23,17 @@
   "certificateValidationBypassedForLocalTest": true,
   "authenticationMode": "Windows-only",
   "existingRunDatabaseCount": 0,
-  "existingRunLoginCount": 0
+  "existingRunLoginCount": 0,
+  "modeChangeAuthorized": true,
+  "modeChangeExecuted": false,
+  "beforeModeChange": {
+    "serverName": "LAPTOP-DAT\\SQLEXPRESS",
+    "integratedOnly": 1,
+    "serviceState": "Running",
+    "saName": "sa",
+    "saDisabled": true,
+    "userDatabaseCount": 0,
+    "otherUserSessionCount": 0,
+    "agentElevated": false
+  }
 }
