@@ -19,7 +19,7 @@
     "CertificateValidation":  "Bypassed only for this authorized local test; encryption required",
     "ApplyStartedUtc":  "2026-10-24T03:36:54.4053963Z",
     "ApplySucceeded":  true,
-    "RollbackSucceeded":  false,
+    "RollbackSucceeded":  true,
     "ApplyAfter":  {
                        "ServerName":  "LAPTOP-DAT\\SQLEXPRESS",
                        "InstanceName":  "SQLEXPRESS",
@@ -31,5 +31,30 @@
                        "SaDisabled":  1,
                        "Encryption":  "TRUE",
                        "RunLoginCount":  0
-                   }
+                   },
+    "RollbackBefore":  {
+                           "ServerName":  "LAPTOP-DAT\\SQLEXPRESS",
+                           "InstanceName":  "SQLEXPRESS",
+                           "IntegratedOnly":  0,
+                           "DeploymentSysadmin":  1,
+                           "UserDatabaseCount":  0,
+                           "OtherUserSessionCount":  0,
+                           "SaName":  "sa",
+                           "SaDisabled":  1,
+                           "Encryption":  "TRUE",
+                           "RunLoginCount":  0
+                       },
+    "RollbackStartedUtc":  "2026-10-24T12:18:15.4355581Z",
+    "RollbackAfter":  {
+                          "ServerName":  "LAPTOP-DAT\\SQLEXPRESS",
+                          "InstanceName":  "SQLEXPRESS",
+                          "IntegratedOnly":  1,
+                          "DeploymentSysadmin":  1,
+                          "UserDatabaseCount":  0,
+                          "OtherUserSessionCount":  0,
+                          "SaName":  "sa",
+                          "SaDisabled":  1,
+                          "Encryption":  "TRUE",
+                          "RunLoginCount":  0
+                      }
 }

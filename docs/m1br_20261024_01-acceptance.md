@@ -1,4 +1,10 @@
-# m1br_20261024_01 — acceptance một phần, chưa đóng gate CLI
+# m1br_20261024_01 — evidence kiểm thử và khôi phục môi trường
+
+## Khôi phục môi trường — 24/10/2026
+
+- Khôi phục môi trường hoàn tất: user chạy elevated Rollback và Stop; evidence xác nhận LoginMode=1/IntegratedOnly=1, Windows admin hoạt động, encryption TRUE, sa vẫn disabled, 0 DB người dùng/0 login run/0 phiên khác trước stop. Agent xác minh service MSSQL$SQLEXPRESS Stopped; không mở lại SQL sau stop. Hai DB/hai login run đã cleanup; backup g1 giữ nguyên. Không chạy lại SQL/auth sau cleanup; kết quả 42/42 và 21/21 là lượt cuối trước cleanup, chưa nghiệm thu M1.
+
+Các mục pending bên dưới là checkpoint lịch sử đã được cập nhật bởi mục này.
 
 ## Kết quả cuối run / cleanup — 24/10/2026
 
@@ -66,3 +72,4 @@ Thử nghiệm trung gian 15/16 và 19/20/34-of-42 thất bại không được 
 **Chưa có bằng chứng CLI positive** bootstrap/recovery/reset, CLI retry/concurrency/rollback/actor negatives, SQL audit/ledger/token/login sau terminal commands. Service tests và app CLI rejection không thay chúng. Chưa xác nhận handoff password/old-token revocation từ actual CLI; không giả workflow đổi password. Chỉ nhập password test trong terminal, không chat/argv/Git.
 
 Chưa cleanup hoặc rollback mode: giữ đúng hai DB/hai login để các ca CLI còn thiếu chạy được; service Running/Mixed Mode/sa disabled. `scripts/m1br-cleanup.ps1` đã chuẩn bị nhưng chưa chạy: gate acceptanceComplete, đối chiếu DB ID/create_date/owner/marker và login SID/create_date với evidence, từ chối phiên còn mở, drop đúng tên không forced disconnect/wildcard. Sau khi đủ evidence/cleanup, người dùng chạy [rollback LoginMode=1 có kiểm soát](m1br_20261024_01-auth-mode-runbook.md); agent không elevated nên chưa thực hiện. Chưa M1 nghiệm thu/production-ready hoặc merge.
+

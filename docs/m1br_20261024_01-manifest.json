@@ -3,11 +3,11 @@
   "recordedDateLocal": "2026-10-24",
   "instance": ".\\SQLEXPRESS",
   "initialServiceState": "Stopped",
-  "observedServiceState": "Running",
+  "observedServiceState": "Stopped",
   "serviceStartAttempted": true,
   "serviceStartSucceeded": true,
   "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
-  "blocker": "SQL test objects cleaned; awaiting user elevated LoginMode1 rollback/restart and initial service Stopped restoration",
+  "blocker": null,
   "sqlConnectionAttempted": true,
   "authenticationModeVerified": true,
   "tlsVerified": false,
@@ -30,7 +30,7 @@
   "acceptanceExecuted": true,
   "encryptionVerified": true,
   "certificateValidationBypassedForLocalTest": true,
-  "authenticationMode": "Mixed",
+  "authenticationMode": "Windows-only",
   "existingRunDatabaseCount": 0,
   "existingRunLoginCount": 0,
   "modeChangeAuthorized": true,
@@ -67,5 +67,7 @@
   "cleanedLogins": [
     "m1br_20261024_01_app",
     "m1br_20261024_01_operator"
-  ]
+  ],
+  "initialServiceStateRestored": true,
+  "environmentRestorationVerified": true
 }
