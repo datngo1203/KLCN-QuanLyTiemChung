@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $manifestPath=Join-Path $root 'docs/m1br_20261024_01-manifest.json'
 $manifest=Get-Content $manifestPath -Raw|ConvertFrom-Json
-if(-not $manifest.acceptanceComplete){throw 'Acceptance gate remains open; do not destroy pending CLI fixtures.'}
+if(-not $manifest.runChecksReadyForCleanup){throw 'Run evidence is not ready; do not destroy pending CLI fixtures. This flag is not M1 acceptance.'}
 $evidence=Get-Content (Join-Path $root 'docs/m1br_20261024_01-sql-evidence.json') -Raw|ConvertFrom-Json
 $dbs=@('KLCN_M1_Test_Boundary_m1br_20261024_01','KLCN_M1_Test_Legacy_m1br_20261024_01')
 $logins=@('m1br_20261024_01_app','m1br_20261024_01_operator')

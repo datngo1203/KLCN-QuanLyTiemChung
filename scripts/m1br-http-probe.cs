@@ -67,6 +67,21 @@ public static async Task Main(string[] args){
   client.DefaultRequestHeaders.Authorization=new("Bearer",body.GetProperty("accessToken").GetString());
   var me=await client.GetAsync("/api/v1/auth/me");if(me.StatusCode!=HttpStatusCode.OK)throw new Exception("me failed");
   var refresh=await client.PostAsJsonAsync("/api/v1/auth/refresh",new{clientType="native",refreshToken=body.GetProperty("refreshToken").GetString()});refresh.EnsureSuccessStatusCode();body=await refresh.Content.ReadFromJsonAsync<JsonElement>();
+  if(args.Contains("--profiles-write") && item.Name=="legacy-staff"){
+   var identity="99"+DateTime.UtcNow.Ticks.ToString()[^10..]; // Synthetic fixture only, not inferred customer data.
+   var created=await client.PostAsJsonAsync("/api/v1/customers",new{fullName="Synthetic CLI Customer",identityNumber=identity,phoneNumber="0900000012",email="profiles@example.invalid"});
+   if(created.StatusCode!=HttpStatusCode.Created)throw new Exception("Staff customer create denied: "+(int)created.StatusCode);
+   var customer=(await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+   var recipient=await client.PostAsJsonAsync("/api/v1/recipients",new{customerId=customer,fullName="Synthetic CLI Recipient",identityNumber=(string?)null,dateOfBirth="2000-01-01",gender="Nam",relationshipToCustomer="Test fixture"});
+   if(recipient.StatusCode!=HttpStatusCode.Created)throw new Exception("Staff recipient create denied: "+(int)recipient.StatusCode);
+   var recipientId=(await recipient.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+   if((await client.GetAsync("/api/v1/customers")).StatusCode!=HttpStatusCode.OK)throw new Exception("Customer read failed");
+   var put=await client.PutAsJsonAsync("/api/v1/recipients/"+recipientId,new{fullName="Changed synthetic identity",identityNumber=(string?)null,dateOfBirth="2000-01-01",gender="Nam",relationshipToCustomer="Test fixture"});
+   if(put.StatusCode!=HttpStatusCode.Conflict || (await put.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString()!="identityApprovalRequired")throw new Exception("Identity approval gate not enforced");
+   var list=await client.GetFromJsonAsync<JsonElement>("/api/v1/recipients");
+   if(list.GetProperty("items").EnumerateArray().Single(x=>x.GetProperty("id").GetInt32()==recipientId).GetProperty("fullName").GetString()!="Synthetic CLI Recipient")throw new Exception("Denied PUT changed identity");
+   Console.WriteLine("Staff actual-app-grants five Profiles routes: create/read PASS; PUT409 identityApprovalRequired and unchanged row PASS");
+  }
   var logout=await client.PostAsJsonAsync("/api/v1/auth/logout",new{clientType="native",refreshToken=body.GetProperty("refreshToken").GetString()});if(logout.StatusCode!=HttpStatusCode.NoContent)throw new Exception("logout failed");
   if((await client.GetAsync("/api/v1/auth/me")).StatusCode!=HttpStatusCode.Unauthorized)throw new Exception("post logout auth not revoked");
   Console.WriteLine(item.Name+": real app SQL credential / HTTP host login-me-refresh-logout-revocation=PASS");

@@ -1,6 +1,6 @@
 {
   "RunId": "m1br_20261024_01",
-  "RecordedUtc": "2026-10-24T04:47:20.7569538Z",
+  "RecordedUtc": "2026-10-24T12:00:25.7933182Z",
   "CertificateValidation": "Local test exception only",
   "Databases": [
     {
@@ -1668,11 +1668,33 @@
           "minor_id": 0
         }
       ],
-      "AuditCount": 9,
-      "LedgerCount": 0,
-      "SentOutboxCount": 1,
-      "UsedVerificationCount": 1,
-      "RolledBackAppendCount": 0
+      "AuditCount": 74,
+      "LedgerCount": 1,
+      "SentOutboxCount": 3,
+      "UsedVerificationCount": 3,
+      "RolledBackAppendCount": 0,
+      "OperatorAudit": [
+        {
+          "Action": "adminRecovered",
+          "Outcome": "Success",
+          "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+        },
+        {
+          "Action": "employeePasswordReset",
+          "Outcome": "Success",
+          "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+        },
+        {
+          "Action": "employeePasswordReset",
+          "Outcome": "Success",
+          "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+        },
+        {
+          "Action": "employeePasswordReset",
+          "Outcome": "Success",
+          "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+        }
+      ]
     }
   ],
   "Principals": [

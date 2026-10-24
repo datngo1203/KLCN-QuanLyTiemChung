@@ -16,7 +16,24 @@
   "AdminHttpLoginMeRefreshLogout": true,
   "StaffHttpLoginMeRefreshLogout": true,
   "AfterLogoutMeStatus": 401,
-  "ProbeSourceSHA256": "7AE3A2CF22723271E2E6FE0439E28D825E526DD35E4C95DA8AC22499331A0D8E",
-  "PreExistingCliResetRevocation": "PENDING: live probe confirmed me200 and awaits actual CLI reset",
-  "CliConcurrencyRollback": "NOT YET RUN"
+  "ProbeSourceSHA256": "32E224AEE5EB5487CD97BFD6E5A955EAB0D8E8EC0258B4B6722B37BAC4900548",
+  "PreExistingCliResetRevocation": "PASS: pre-reset valid access+refresh rejected after actual CLI reset, same signing key, expiry margin >10s; next-password HTTP login/logout passed",
+  "CliConcurrencyRollback": "PASS: actual ConPTY pair same RowVersion one committed/one concurrencyConflict; audit-fault actual CLI exit1 target/ledger/audit/session snapshot unchanged; fault trigger removed",
+  "FinalStaffSecurityVersion": 4,
+  "FinalResetAuditCount": 3,
+  "RecoveryLedgerCount": 1,
+  "PositiveStaffProfilesWithAppGrants": "PASS create/read; PUT409 identityApprovalRequired and unchanged row",
+  "FinalReleaseResults": {
+    "SqlAuth": 42,
+    "Skipped": 0,
+    "ActualPrincipalBoundary": 21,
+    "Failed": 0
+  },
+  "RunSqlObjectsCleaned": true,
+  "NotClaimed": [
+    "actual CLI recovery-specific fault/race; SQL service regression only",
+    "production/device/client E2E",
+    "elevated mode/service restore not yet run",
+    "independent implementation approval/merge"
+  ]
 }
