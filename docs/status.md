@@ -2,6 +2,8 @@
 
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
+- Recovery terminal g1 đã thành công; reset bị từ chối vì credential đề xuất không khớp hash, người dùng không nhớ credential thực. Diagnostic paste đúng 23 ký tự/0 control, không suy là lỗi transport. [Script/backup/rollback tái tạo riêng fixture legacy g2 chờ chấp thuận](m1br_20261024_01-legacy-rebuild-request.md); chỉ parser và SQL read-only Check đã chạy. Chưa backup/drop/create/restore/đổi hash/quota hoặc tests SQL/auth mới. Giữ DB/login/mode và chứng cứ g1.
+
 - Bootstrap terminal thật đã thành công và đối chiếu DB/audit/12 quyền; recovery lỗi trước password vì PowerShell 5.1 serialize ngày dạng legacy. Sửa writer ISO-8601, giữ instant/operation/target/version, normalize file local có backup, không gia hạn hoặc thay quota. Boundary regression có powershell.exe thực **21/21**; recovery/reset vẫn chờ terminal, ledger legacy/audit recovery 0. [Checkpoint](m1br_20261024_01-acceptance.md). Không cleanup/rollback mode hoặc đủ nghiệm thu.
 
 - Apply elevated của người dùng thành công; preflight mới đạt Mixed Mode/Windows admin/encryption/quyền/tên trống, sa disabled. Đã provision đúng hai DB/hai login/run users/grants/guards/fixtures. Sửa lỗi DDL IMPERSONATE không hợp lệ và đường EF audit INSERT cần SELECT bằng append-only INSERT+SCOPE_IDENTITY, không nới quyền/schema. **BoundaryAcceptance login thật 20/20**, regression Release SQL/auth mới **42/42** sau sửa. [Mapping/evidence/giới hạn](m1br_20261024_01-acceptance.md). Positive CLI terminal/concurrency/rollback còn thiếu, chưa cleanup/rollback mode; DB/login giữ cho acceptance, service Running/Mixed. Không báo đủ nghiệm thu. Các dòng chưa provision bên dưới là lịch sử.

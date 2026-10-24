@@ -2,6 +2,8 @@
 
 ## Checkpoint terminal / lỗi manifest PowerShell 5.1
 
+**Checkpoint mới:** Recover đã exit 0 và audit/ledger ghi đúng SQL operator. Reset hai lần bị permissionDenied trước target input; mật khẩu đề xuất không khớp hash. Diagnostic paste nhận đúng 23 ký tự/0 control, người dùng không nhớ mật khẩu thực tế. Không có reset commit. [Đề nghị tái tạo riêng fixture legacy g2, chờ phép](m1br_20261024_01-legacy-rebuild-request.md); chưa thực thi. Không xóa quota/hash để vượt gate.
+
 - Bootstrap terminal thật exit 0, binary SHA256 `54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F`; DB Boundary account/employee 1, Admin active/Technical, 12 quyền, backend Identity hash; audit adminBootstrapped Success với original SQL operator identity, ledger 0. Exit 1 trước đó giữ lịch sử, không suy nguyên nhân. Chưa kiểm HTTP login của tài khoản bootstrap.
 - Recover hai lần exit 1 trước prompt password: Windows PowerShell 5.1 ConvertTo-Json xuất DateTimeOffset dạng `/Date(milliseconds)/`, không hợp System.Text.Json. DB legacy old-admin vẫn Locked/None/SecurityVersion1; audit recovery/ledger đều 0, không có recovery commit.
 - Writer `scripts/m1br-manifest-json.ps1` chuyển DateTimeOffset sang chuỗi ISO-8601 rõ ràng trước JSON. Regression chạy **powershell.exe thực trên Windows** và deserialize thành RecoveryManifest bằng .NET, giữ đúng instant/25 phút/operation ID/target/version; không giả terminal CLI. Boundary suite sau sửa **21/21**. Không đổi API/schema/contract hay validity policy.
