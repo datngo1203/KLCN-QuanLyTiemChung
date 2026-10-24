@@ -2,8 +2,8 @@
 
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
-- Người dùng đã cho phép phạm vi provisioning có điều kiện preflight; start MSSQL$SQLEXPRESS bị Windows từ chối do token không elevated. Service trước/sau Stopped, chưa SQL connection/auth mode/TLS/collision check, chưa DB/login/grant/guard/fixture nào được tạo.
-- [Evidence/bước Administrator ngắn](m1br_20261024_01-preflight-evidence.md), [manifest rỗng](m1br_20261024_01-manifest.json). Scripts start-only và preflight read-only đã chuẩn bị; không tự nâng quyền/đổi config/Mixed Mode/ACL. Boundary acceptance/CLI chưa chạy, không PASS giả hoặc dùng suite cũ thay. Chưa đủ nghiệm thu.
+- Người dùng đã chạy script start; agent xác nhận MSSQL$SQLEXPRESS Running. Preflight read-only `-E -N` dừng ở ODBC 17 TLS: certificate chain không được tin cậy. Chưa thiết lập SQL session nên auth mode/quyền/collision đều chưa xác minh; chưa tạo DB/login/grant/guard/fixture.
+- [Evidence lỗi TLS và điều kiện còn thiếu](m1br_20261024_01-preflight-evidence.md), [manifest rỗng](m1br_20261024_01-manifest.json). Không bỏ kiểm chứng chỉ hoặc đổi instance/trust/ACL/quyền SQL. Service giữ Running vì chưa xác minh ảnh hưởng nếu stop. Boundary acceptance/CLI chưa chạy; lượt này chỉ kiểm tài liệu/JSON/diff, không SQL/auth PASS mới. Chưa đủ nghiệm thu.
 
 ## SQL boundary sau chấp thuận ad6a7f7 — 24/10/2026
 
