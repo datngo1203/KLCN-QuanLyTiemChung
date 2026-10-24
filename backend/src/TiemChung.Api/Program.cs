@@ -6,6 +6,16 @@ using TiemChung.Infrastructure.Data;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<IdentityTokens>();
+builder.Services.AddScoped<IdentityAuthorization>();
+builder.Services.AddScoped<IdentityRegistration>();
+builder.Services.AddScoped<IdentitySessions>();
+builder.Services.AddSingleton<IdentityRateLimits>();
+builder.Services.AddSingleton<IdentityMailReadiness>();
+builder.Services.AddSingleton<SyntheticVerificationSink>();
+builder.Services.AddSingleton<IVerificationMailSink>(s=>s.GetRequiredService<SyntheticVerificationSink>());
+builder.Services.AddScoped<IdentityMailSink>();
+builder.Services.AddHostedService<IdentityMailDispatcher>();
 var demo = builder.Configuration.GetValue<bool>("Catalog:UseDemoData");
 var connection = builder.Configuration.GetConnectionString("TiemChung");
 if (demo && !builder.Environment.IsDevelopment())
@@ -16,10 +26,26 @@ builder.Services.AddDbContext<TiemChungDbContext>(options =>
     options.UseSqlServer(connection ?? "Server=localhost;Database=TiemChung;Integrated Security=True;TrustServerCertificate=True"));
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
-    .AllowAnyHeader().AllowAnyMethod()));
+    .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.Use(async (context, next) => {
+    if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";
+    try { await next(context); }
+    catch (IdentityFailure failure) {
+        if (failure.Code == "refreshInProgress") context.Response.Headers.RetryAfter = "1";
+        if (failure.Code == "rateLimited") context.Response.Headers.RetryAfter = "60";
+        context.Response.StatusCode = failure.Status;
+        await context.Response.WriteAsJsonAsync(new { type="about:blank", title=failure.Code, status=failure.Status,
+            code=failure.Code, traceId=context.TraceIdentifier, errors=failure.Errors });
+    }
+    catch (Microsoft.Data.SqlClient.SqlException) {
+        context.Response.StatusCode=503;
+        await context.Response.WriteAsJsonAsync(new { type="about:blank",title="dependencyUnavailable",status=503,
+            code="dependencyUnavailable",traceId=context.TraceIdentifier });
+    }
+});
 app.UseCors();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "TiemChung.Api" }))
@@ -47,6 +73,7 @@ app.MapGet("/api/v1/modules", () => new ModuleDto[] {
 }).WithName("ListModules");
 
 app.MapProfileEndpoints();
+app.MapIdentityEndpoints();
 
 app.Run();
 

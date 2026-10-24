@@ -1,5 +1,109 @@
 # Trạng thái khung — 19/10/2026
 
+## Ponytail skill cho dự án — 24/10/2026
+
+- Theo yêu cầu người dùng, cài skill chính [Ponytail](../.agents/skills/ponytail/SKILL.md) từ DietrichGebert/ponytail, pin commit `09c434ab73ca43761c5d8b0c5d341926c2fba710`, tại `.agents/skills/ponytail` (repo scope). Giữ nguyên SKILL upstream, kèm LICENSE/SOURCE; AGENTS hướng dẫn full mặc định theo rule khóa luận. Không cài plugin/hooks/CLI/npm hoặc skill audit bổ sung; không đụng code ứng dụng/SQL/credential.
+- Kiểm cấu trúc/frontmatter, đối chiếu nội dung skill với blob upstream và diff whitespace; không chạy build/test/runtime vì chỉ cài instructions. Chưa thực hiện một task code với skill để đo hiệu quả, không khẳng định benchmark upstream áp dụng cho dự án.
+
+## Giới hạn mức khóa luận — 24/10/2026
+
+- Theo yêu cầu người dùng: bổ sung [quy tắc giới hạn triển khai/review](thesis-scope-rules.md), dẫn bắt buộc từ AGENTS. Ưu tiên luồng UI–API–SQL thật và Admin khởi tạo đơn giản; giữ kiểm quyền/hash/validation/tính đúng dữ liệu. Các yêu cầu production/legacy ngoài gói được ghi hoãn/hướng phát triển, không tự thành gate khóa luận.
+- Chỉ cập nhật quy tắc và hướng dẫn điều phối; chưa đổi code/contract/schema/checklist M1 hoặc xóa cơ chế đã làm. Kiểm diff, liên kết tài liệu và nội dung quy tắc; không chạy build/test/SQL/runtime mới. Bằng chứng và việc khôi phục cấu hình SQL còn lại giữ theo trạng thái run hiện hành bên dưới.
+
+## Quy ước tài khoản test — 24/10/2026
+
+- Theo yêu cầu trực tiếp của người dùng, AGENTS ghi phép tạo/dùng/lưu plaintext credential synthetic trong sổ local ngoài Git `C:/Users/DAT/Documents/Codex/KLCN090-Coordination/TEST-ACCOUNTS.local.md`, dùng chung các chat. Phân biệt password dự kiến với đã áp dụng/đã login; không đổi cơ chế bảo vệ sản phẩm hoặc quyền SQL/OS. Username/password không ghi trong status/PR.
+- Lịch sử lúc tạo sổ: Bootstrap trả `validation`, Boundary DB khi đó có 0 account; password dự kiến chưa áp dụng. Trạng thái này đã được các checkpoint SQL/CLI và cleanup phía dưới thay thế; không dùng để kết luận DB/tài khoản hiện còn tồn tại. Quy ước ghi sổ vẫn hiệu lực.
+
+## SQL test run m1br_20261024_01 — 24/10/2026
+
+- Khôi phục môi trường hoàn tất: user chạy elevated Rollback và Stop; evidence xác nhận LoginMode=1/IntegratedOnly=1, Windows admin hoạt động, encryption TRUE, sa vẫn disabled, 0 DB người dùng/0 login run/0 phiên khác trước stop. Agent xác minh service MSSQL$SQLEXPRESS Stopped; không mở lại SQL sau stop. Hai DB/hai login run đã cleanup; backup g1 giữ nguyên. Không chạy lại SQL/auth sau cleanup; kết quả 42/42 và 21/21 là lượt cuối trước cleanup, chưa nghiệm thu M1.
+
+- Đã xác minh CLI reset thu hồi token đang hợp lệ + new-password HTTP login; actual ConPTY (input không redirect) bootstrap retry/recovery idempotency/quota/self-reset denial/audit-fault rollback/two-process rowversion race đạt đúng kết quả. Staff SV4/audit reset3/ledger1; Staff app grants create/read Profiles PASS, identity PUT409 không ghi. Release cuối mới **42/42 SQL/auth + 21/21 actual-principal** trước cleanup. [Mapping/giới hạn](m1br_20261024_01-acceptance.md). Sau giữ evidence đã cleanup đúng hai DB/hai login theo identity/owner/marker, không force. Backup g1 giữ; mode Mixed/service Running còn chờ Administrator rollback1/restart rồi fresh-check stop. Chưa nghiệm thu/production-ready/merge; acceptanceComplete false, chỉ runChecksReadyForCleanup true. AGENTS/status khác giữ riêng.
+
+- G2 Recover đã đối chiếu hash/actor PASS trước Reset; Reset terminal exit0, Staff hash match/SecurityVersion1→2, status/duty/title/extra-permissions giữ nguyên, audit Success/ledger1. HTTP application host thật với app SQL credential: Admin và Staff login/me/refresh/logout và hậu logout401 PASS. [Source probe và gate](m1br_20261024_01-acceptance.md). Ca access/refresh tồn tại trước CLI reset đang chuẩn bị bằng live probe (valid me200, giữ signing key/refresh/expiry guard); chưa PASS cho CLI revoke, chưa cạnh tranh/rollback/cleanup hoặc đủ nghiệm thu. Không báo 42/42 mới.
+
+- Theo chấp thuận riêng: đã archive manifest g1 trước Apply ở AppData Codex/Windows PowerShell (cùng Local path; Roaming không có), backup COPY_ONLY/CHECKSUM + VERIFYONLY đạt rồi thay duy nhất DB legacy generation2. Boundary/login/password/state giữ nguyên theo evidence/actual connection. G2 grants/auth boundary Release mới **21/21**; Admin Locked/None/ledger0. [Record và gate tiếp](m1br_20261024_01-legacy-rebuild-request.md). Mật khẩu Recover đã chuẩn bị ngoài Git, chưa áp dụng; phải đối chiếu hash/actor ngay sau Recover trước Reset. Backup/evidence g1 giữ nguyên, chưa restore/cleanup/mode rollback; không 42/42 mới hoặc đủ nghiệm thu.
+
+- Recovery terminal g1 đã thành công; reset bị từ chối vì credential đề xuất không khớp hash, người dùng không nhớ credential thực. Diagnostic paste đúng 23 ký tự/0 control, không suy là lỗi transport. [Script/backup/rollback tái tạo riêng fixture legacy g2 chờ chấp thuận](m1br_20261024_01-legacy-rebuild-request.md); chỉ parser và SQL read-only Check đã chạy. Chưa backup/drop/create/restore/đổi hash/quota hoặc tests SQL/auth mới. Giữ DB/login/mode và chứng cứ g1.
+
+- Bootstrap terminal thật đã thành công và đối chiếu DB/audit/12 quyền; recovery lỗi trước password vì PowerShell 5.1 serialize ngày dạng legacy. Sửa writer ISO-8601, giữ instant/operation/target/version, normalize file local có backup, không gia hạn hoặc thay quota. Boundary regression có powershell.exe thực **21/21**; recovery/reset vẫn chờ terminal, ledger legacy/audit recovery 0. [Checkpoint](m1br_20261024_01-acceptance.md). Không cleanup/rollback mode hoặc đủ nghiệm thu.
+
+- Apply elevated của người dùng thành công; preflight mới đạt Mixed Mode/Windows admin/encryption/quyền/tên trống, sa disabled. Đã provision đúng hai DB/hai login/run users/grants/guards/fixtures. Sửa lỗi DDL IMPERSONATE không hợp lệ và đường EF audit INSERT cần SELECT bằng append-only INSERT+SCOPE_IDENTITY, không nới quyền/schema. **BoundaryAcceptance login thật 20/20**, regression Release SQL/auth mới **42/42** sau sửa. [Mapping/evidence/giới hạn](m1br_20261024_01-acceptance.md). Positive CLI terminal/concurrency/rollback còn thiếu, chưa cleanup/rollback mode; DB/login giữ cho acceptance, service Running/Mixed. Không báo đủ nghiệm thu. Các dòng chưa provision bên dưới là lịch sử.
+
+- Người dùng đã cho phép đổi đúng SQLEXPRESS LoginMode 1→2/restart và rollback sau cleanup. Baseline đọc lại: đúng instance, 0 DB người dùng/0 phiên khác, sa disabled, service Running; agent không elevated nên chưa apply/restart. [Script apply/rollback và tác động/khôi phục](m1br_20261024_01-auth-mode-runbook.md) đã chuẩn bị cho Administrator, có fresh checks và evidence trước write; parser/driver SQL read-only/diff đạt. Chưa tạo đối tượng/CLI/BoundaryAcceptance hoặc test Release mới; không thay gate nghiệm thu. Dòng “không có quyền đổi mode” phía dưới là lịch sử đã được chấp thuận thêm phạm vi, không phải trạng thái quyền hiện tại.
+
+- Sau ngoại lệ test TLS được người dùng cho phép: `-N -C` chỉ tới `.\SQLEXPRESS`/run này, encryption TRUE, không xác minh chứng chỉ. Preflight read-only xác nhận Windows-only authentication (`IntegratedOnly=1`), quyền deployment ALTER ANY LOGIN/CREATE ANY DATABASE đều 1, tên hai DB/hai login chưa có. Exit 1/error 51030; không provisioning/Mixed Mode/restart/config changes. Sửa class truy vấn HAS_PERMS_BY_NAME server-level sang NULL và chạy lại; không sửa quyền SQL. Manifest created rỗng, service Running; CLI/BoundaryAcceptance vẫn chưa chạy. Các dòng TLS chặn phía dưới là lịch sử trước ngoại lệ.
+
+- Người dùng đã chạy script start; agent xác nhận MSSQL$SQLEXPRESS Running. Preflight read-only `-E -N` dừng ở ODBC 17 TLS: certificate chain không được tin cậy. Chưa thiết lập SQL session nên auth mode/quyền/collision đều chưa xác minh; chưa tạo DB/login/grant/guard/fixture.
+- [Evidence lỗi TLS và điều kiện còn thiếu](m1br_20261024_01-preflight-evidence.md), [manifest rỗng](m1br_20261024_01-manifest.json). Không bỏ kiểm chứng chỉ hoặc đổi instance/trust/ACL/quyền SQL. Service giữ Running vì chưa xác minh ảnh hưởng nếu stop. Boundary acceptance/CLI chưa chạy; lượt này chỉ kiểm tài liệu/JSON/diff, không SQL/auth PASS mới. Chưa đủ nghiệm thu.
+
+## SQL boundary sau chấp thuận ad6a7f7 — 24/10/2026
+
+- Bỏ Windows-only checker/expected-secret, thêm SQL context/role/effective permissions/guards gate, audit server identity, DDL migration bảo mật riêng với 2 triggers CALLER/grants. DDL chưa apply, chưa provisioning roles/logins/grants. Batch/delivery không đổi; không M2–M4.
+- [Mapping design/code/tests và giới hạn](m1-sql-boundary-implementation.md); build boundary acceptance riêng đạt, suite regression Release hiện 42/42 (bỏ 2 tests Windows cũ), không gọi đó là least-privilege/CLI PASS. Còn cần DBA/user duyệt [danh sách provisioning giới hạn](m1-sql-boundary-provision-request.md). Chưa start SQLEXPRESS/tạo login/grant/đổi OS/ACL hoặc SQL chung. HEAD/CI xem PR #33; chưa đủ nghiệm thu.
+
+## Đổi boundary operator — một diff chờ review trước code
+
+- Người dùng chốt backend offline CLI độc lập nền tảng chức năng, không OS account/SID/ACL cố định hoặc VM. [Contract/spec/runbook/checklist thay thế](../contracts/m1-offline-operator-db-boundary-review.md) chờ reviewer kiểm một lượt trước code/DDL: DB credential do DBA cấp, object grants + guard Employee/audit, actor reset/invariant recovery giữ nguyên.
+- Chỉ tài liệu, chưa code/schema/OS/SQL/grants; batch/delivery giữ nguyên. Chưa positive CLI mới, không báo đủ nghiệm thu hoặc dùng 44/44 cũ thay bằng chứng boundary mới. Không Goal/Plan/merge/approve/comment/gửi tin.
+
+
+## ACL deployment follow-up — tài liệu chờ review
+
+- Khảo sát read-only xác nhận CheckChain quá rộng: C:\ TrustedInstaller/unprotected, AU create-subdirectory và inherit-only; ProgramData Users 0x116 có create và metadata writes; Program Files Users RX, TrustedInstaller owner. Chưa có bằng chứng máy này không thể an toàn; không đổi ACL/provision hoặc code.
+- [Diff contract/thiết kế/test/quyền provision hẹp](../contracts/m1-operator-acl-scope-review.md): app subtree Program Files cố định, mutation từng cạnh/owner/deny/inheritance/reparse/race thay “mọi ancestor chỉ SYSTEM/Admin/protected”. Cần review trước code; VM/root ACL không còn được coi yêu cầu mặc định. Batch 48171fe giữ nguyên. Chỉ kiểm tài liệu/link/diff, chưa SQL/auth/CLI mới; không báo PASS/đủ nghiệm thu.
+
+## Batch eligibility và positive CLI sau review 517211c
+
+- IdentityMailSink đẩy điều kiện verification used/invalidated/expiry vào SQL trước Order/Take(25), kiểm lại trong transaction trước delivery. Regression host thật với 25 message invalidated do resend/used/expired phía trước: worker tự chuyển message hợp lệ; assert sink/outbox, không helper drain thay lifecycle. Release SQL/auth mới **44/44**, 0 failed/skipped; HEAD/CI cuối xem PR #33.
+- [Kế hoạch deployment Windows test và quyền còn thiếu](m1-operator-positive-deployment-check.md): khảo sát read-only token không elevated, policy cố định chưa có. Chưa chạy positive CLI, chưa thay quyền OS/SQL/policy chung. Đã ghi đường dẫn/owner/ACL/principal/DB/lệnh/tác động/khôi phục để quản trị kiểm. Service tests/CI không thay CLI PASS; M1 chưa đủ nghiệm thu.
+
+## Sửa implementation hai P1 sau chấp thuận 8a6a0e4
+
+- Đã thay operator env trust bằng Windows SID/native fixed policy + ACL toàn chuỗi + Integrated SQL; nối hosted mail dispatcher/readiness, production intake 503, retry/race/dedup theo sink instance. Không schema mới hoặc email người thật.
+- [Mapping finding/file/test, runbook và giới hạn](m1-p1-implementation-verification.md). Release SQL/auth local 41/41, không skip. Chưa kiểm positive CLI qua deployment policy/ACL/SQL principal quản trị; không thay OS/DB grants chung, không gọi service test là ACL positive. HEAD/CI cuối xem PR #33; không dùng 35/35 cũ. Chưa nghiệm thu/production-ready, không approve/merge.
+
+## P2 contract delivery tại 7b2c1c7 — sửa giới hạn dedup
+
+- Chỉ sửa lời hứa delivery và acceptance/checklist: dedup cùng sink instance/lifetime; message ID từ outbox đã commit giữ nguyên qua retry. Delivery không rollback cùng SQL; sink host độc lập/restart có thể nhận lại, application lock không bảo đảm exactly-once. Không thay operator, lifecycle/production 503 hoặc thêm schema/code.
+- Test dự kiến phân biệt shared instance với hai sink độc lập, count nhận và trạng thái outbox, token auth một lần. Chưa chạy SQL/auth/test delivery; kiểm diff/link/nhất quán tài liệu, không gọi 35/35 cũ là bằng chứng mới. Giữ #33 Draft/chờ review contract.
+
+## Hai P1 implementation #33 tại 9fa35ab — chờ review bổ sung hẹp
+
+- Xác nhận operator tin env allowlist/expected secret/connection caller đặt và mail chưa có dispatcher trong lifecycle. M1 chưa được coi ready/nghiệm thu; 35/35/CI cũ không bao phủ hai nguyên nhân này.
+- Chuẩn bị [contract boundary/delivery](../contracts/m1-p1-operator-delivery-review.md) cùng cảnh báo runbook và acceptance checklist; đây là thay đổi contract thực chất về deployment/operator và mức bảo đảm delivery. Chưa code phụ thuộc trước review phần đổi, không thay schema hoặc Goal mới, không mở M2–M4.
+- Gói này chỉ tài liệu: kiểm diff/allowlist/link; chưa chạy SQL/auth suite mới hoặc khẳng định test P1 PASS. Sau approval mới triển khai/chạy tests và CI theo HEAD code mới. Không approve/merge/comment hoặc gửi tin thành viên/reviewer.
+
+## M1 implementation đang thực hiện — 23/10/2026
+
+- Reset tests mới: suite 35/35 đạt với SQL active-session revocation, actor negatives trực tiếp Reset, Customer target/inactive target, hash/revoke/audit rollback và child-process stdin redirect/no-secret-output. Chờ CI HEAD cuối trước bàn giao ready; không dùng 33/33 cũ thay bằng chứng reset.
+
+- Reset đã triển khai theo `f30641b` được người dùng chấp thuận. Release local toàn suite 33/33 chạy lại với code reset: legacy login qua Admin recovery, snapshot actor stale, target ID/version negatives, audit failure rollback, hai SQL connection chỉ một reset commit, mật khẩu cũ bị thay/Locked vẫn chặn và ledger không đổi. Có runbook handoff; chưa xác nhận CI HEAD code mới, chưa ready.
+
+- Người dùng chấp thuận contract reset `f30641b6463858a2c10691054cf9090f3927521f` và báo cáo review qua chat điều phối ngày 23/10/2026 (ủy quyền nguyên văn chuyển về chat triển khai). Gate phần mới đã đáp ứng, không phải approval GitHub/thành viên. Đang triển khai operator reset, chưa có test reset PASS; phải kiểm SQL/CI HEAD code mới trước ready. Các dòng chờ review phía dưới là lịch sử.
+
+- Bổ sung reset-employee-password: người dùng đã duyệt phạm vi, contract/đặc tả/checklist mới vẫn chờ review độc lập. Chỉ cập nhật tài liệu trên nhánh hiện tại, chưa viết lệnh hoặc schema; chưa có kết quả test reset. Giữ actor offline Admin active + QuanLyTaiKhoan, không Director/self-reset; target ID/version bất biến, hash/revoke/version/audit nguyên tử, không đổi status/duty/quyền hoặc mở lại recovery. Không complete/approve/merge. Sau approval mới triển khai và chạy SQL suite/CI theo HEAD code mới; kết quả 33/33 cũ không bao phủ reset.
+
+- Release local mới 33/33 đạt, thêm CCCD race/rowversion/FK, outbox rollback, biên midnight Saigon và HTTP length/page/search. Khoảng trống reset legacy vẫn chờ quyết định/review contract, chưa code. CI HEAD cuối chưa kết luận.
+
+- Phát hiện thiếu đường cấp lại mật khẩu legacy cho account nhân viên hiện có ngoài Admin recovery; đã đề xuất lệnh offline reset để người dùng quyết định/review contract trước code phần đó. Chưa triển khai hoặc tự sửa contract. CI run `39930119878` tại `a93cf99` đang chạy ở lần kiểm; không coi run cũ bị cancel là PASS.
+
+- Release suite 32/32 đạt trên SQL LocalDB: preflight duplicate legacy trước DDL, dependency 503, SecurityVersion/session missing/refresh expired/verification expired bổ sung. Đang đối chiếu checklist cuối; CI phải xem SHA mới, chưa ready.
+
+- Bổ sung test local: register hai connection cùng normalized email chỉ một account/token/outbox; email 254 không cắt username, SQL chặn customer duty sai/employee thiếu FK; operator auth negative và mock coordinator. Chưa đồng nhất HEAD cuối/CI; không báo hoàn tất.
+
+- Release suite mới 24/24 đạt: thêm revoke/write hai thứ tự, confirm cạnh tranh, recovery manifest negative, backup/restore ledger, validation HTTP; publish API không chứa operator/tests. Vẫn chưa đủ checklist trước ready; xem verification hiện hành.
+
+- Working tree bổ sung test đạt 21/21: audit rollback Profiles/refresh, bootstrap/admin negative và mail retry/resend. CI implementation `670b599` backend SQL/web/Windows success ở lần kiểm; chưa xác nhận mobile và chưa áp cho test mới. Chi tiết/ca thiếu trong tài liệu verification.
+
+- Bổ sung kiểm chứng: recovery audit-trigger failure rollback/hai operator, rotation/logout hai thứ tự, HTTP sáu chức danh/Admin XemHoSo/PUT bất biến/account locked/scope A-B/fixture guard đã chạy đạt trong suite 19 test. [Cách chạy và giới hạn hiện hành](m1-implementation-verification.md); chưa đủ checklist, chưa ready.
+
+- Nhánh `codex/m1-implementation` phụ thuộc PR #32; đặc tả kỹ thuật được người dùng chấp thuận tại `20a9a72b`, gate hành chính commit `053ee86`. Chưa hoàn tất, chưa PR sẵn sàng review; không merge PR tài liệu hoặc các PR khác.
+- Đã có model/mapping/migration bổ sung `20261023073816_M1Identity`, Identity services/routes, Profiles auth/scope/transaction, operator executable riêng và SQL tests. Chưa coi scaffold/build hoặc số test hiện có là đủ toàn checklist.
+- Kiểm thực tế trên working tree hiện tại: `dotnet test backend/TiemChung.slnx --no-restore` với `M1_SQL_TEST_CONNECTION` trỏ instance `(localdb)\KLCN_M1_Test` riêng: 19 passed, 0 failed, 0 skipped. SQL Server LocalDB 17.0.4025.3; test tạo DB synthetic `KLCN_M1_Test_<guid>`, không dùng dữ liệu thật. Bao phủ DB sạch/constraint, upgrade Admin cũ/recovery/stale-version/retry, rotation hai connection/replay/revoke, HTTP anonymous/unlinked/web CSRF và unit token/model/rate-limit.
+- Chưa kiểm đủ: toàn ma trận Profiles/fixture guard, audit failure và rollback/cạnh tranh mọi thứ tự, bootstrap/operator negative cases, mail sink retry, backup/restore, multi-tab coordinator mock, production publish và CI mới. GitHub CI SQL được cấu hình nhưng chưa chạy theo SHA implementation. Không báo SQL/auth M1 hoàn tất.
+
 ## Đặc tả M1 Profiles + Identity — 23/10/2026
 
 - Quyết định trực tiếp của người dùng trong chat ngày 23/10/2026 thay gate riêng M1: dùng báo cáo kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` và chấp thuận contract/nghiệp vụ của người dùng thay Bảo/Quý xác nhận trước code. Được tiếp tục implementation nhánh riêng phụ thuộc #32; không phải approval thành viên/GitHub, không đổi owner/branch protection. Contract/schema mới đổi thực chất vẫn cần review độc lập phần đổi. Nội dung kỹ thuật không đổi, các ghi nhận chờ approval phía dưới là lịch sử trước quyết định này. SQL/auth/runtime M1 chưa kiểm chứng.

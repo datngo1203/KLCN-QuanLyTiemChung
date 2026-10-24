@@ -51,6 +51,6 @@ public sealed class ApiTests
         var script = context.Database.GenerateCreateScript();
         Assert.Contains("CREATE TABLE [DangKyDichVu]", script);
         Assert.Contains("MatKhauHash", script);
-        Assert.Equal(27, context.Model.GetEntityTypes().Count());
+        Assert.Equal(35, context.Model.GetEntityTypes().Count());
     }
 }

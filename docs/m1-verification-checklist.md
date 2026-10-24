@@ -1,5 +1,25 @@
 # Checklist M1 — kế hoạch kiểm chứng, chưa chạy SQL/auth
 
+## Gate/acceptance thay operator Windows-only
+
+- [ ] Review một [diff backend CLI/SQL boundary](../contracts/m1-offline-operator-db-boundary-review.md), gồm role/grants/effective permissions/guard TaiKhoan và audit. Chưa code/migration.
+- [ ] App SQL principal không thể bootstrap/recovery/reset Employee trực tiếp; CLI role/membership không thay SQL enforcement. Positive CLI bootstrap/recovery/reset với hai login thực + SQL audit/ledger/token/login mới phải chạy theo acceptance trong diff.
+- [ ] Bỏ Windows SID/ACL/VM khỏi tiêu chí M1, không bỏ gap positive CLI; không dùng service tests/DBA login/CI cũ thay least-privilege evidence. Mail/batch giữ nguyên.
+
+
+## Follow-up ACL deployment — chưa code/positive test
+
+- [ ] Review [diff ACL scope/path](../contracts/m1-operator-acl-scope-review.md) riêng: TrustedInstaller system ancestor, tạo sibling, delete-child/child DELETE, ACE scope/deny/owner/reparse/handle race và app subtree protected. Giữ batch fix.
+- [ ] Sau approval mới sửa code và chạy regression positive/negative liệt kê; không đổi root ACL hoặc dùng unit fake/Linux CI thay positive Windows CLI. Provision app subtree/OS SID hiện hữu/DB test cần người dùng và quản trị cho phép riêng, chưa được thực hiện.
+
+## Hai P1 mới sau implementation review tại 9fa35ab
+
+- [ ] P2 dedup: cùng sink instance/lifetime count nhận giữ 1 khi SQL rollback rồi retry; hai host với sink độc lập A/B nhận tổng 2 cùng deliveryId sau A accepted/SQL rollback và B retry. Assert SentAt null/payload còn sau rollback, chỉ commit delivery thành công mới SentAt/xóa payload; restart không được hứa exactly-once. Confirm token một lần, không tăng account/quyền khi delivery lặp. Đây là ca dự kiến, chưa chạy.
+
+- [ ] Review/chấp thuận [diff contract hẹp operator/delivery](../contracts/m1-p1-operator-delivery-review.md) trước code phụ thuộc; không duyệt lại toàn M1.
+- [ ] Sau approval chạy từng acceptance của bổ sung: OS/policy/SQL boundary và host lifecycle register → sink → verify → login, failure/retry/race/shutdown/production fail-closed. Không helper drain thay lifecycle; Windows ACL cần runner Windows thực, test giả không đủ.
+- [ ] SQL/auth Release và CI trên HEAD code mới, không dùng 35/35 cũ làm bằng chứng sửa hai P1. Bàn giao mapping từng finding/commit/file/test; chưa nghiệm thu production.
+
 [Spec](m1-identity-review.md), [contract](../contracts/m1-identity-profiles.md), [schema](../database/m1-identity-schema-review.md). Các ô dưới đây là tiêu chí nghiệm thu sau triển khai, không phải kết quả PASS. PR hiện tại chỉ kiểm tài liệu; CI xanh không thay review độc lập hoặc chứng minh các test tương lai đã chạy.
 
 ## Gate review trước code
@@ -38,6 +58,19 @@ Yêu cầu SQL Server container/instance riêng, DB tên duy nhất mỗi run v�
 - [ ] Web cookie flags, CSRF sai/thiếu/Origin lạ, cookie + body token, native transport; auth/me không lộ hash/PII và không cache.
 - [ ] Client coordinator mock nhiều request/tab: single-flight, 409 không loop, mất response thắng phải login lại; không auto retry POST Profiles khi timeout.
 - [ ] Bootstrap không account mới được chạy; tài khoản cũ chặn; actorId giả không được tin; Director/self-change/missing QuanLyTaiKhoan bị chặn; cấp/khóa/thay quyền đều audit/revoke.
+
+## Bổ sung reset nhân viên — chờ review độc lập, các ca chưa chạy
+
+- [ ] Review phần contract reset riêng theo commit bổ sung; scope approval không thay approval kỹ thuật. Không code lệnh trước review, không endpoint/reset SQL thủ công/khôi phục recovery một lần.
+- [ ] SQL thật: upgrade legacy → Admin recovery → actor xác thực bằng credential mới → reset Employee legacy Active → login bằng password mới. Hash legacy cũ/password cũ không còn dùng được; reset không tạo account/nhân viên trùng.
+- [ ] Actor sai credential/thiếu QuanLyTaiKhoan/Locked/nhân viên inactive/Director/self-reset bị từ chối; secret recovery/token cũ/actorId giả không thay credential. Actor bị đổi password/status/quyền sau bước nhập phải bị phát hiện dưới khóa, không commit.
+- [ ] Target Customer/không tồn tại/EmployeeId không khớp/version thiếu hoặc sai bị từ chối. Snapshot trước/sau: status account/nhân viên, duty/title/quyền/username/email/FK và recovery ledger không đổi. Target Locked/inactive được reset hash nhưng login vẫn bị từ chối.
+- [ ] Session/access token cũ target vô hiệu request tiếp theo; mọi session target revoked có 0 credential chưa consumed/chưa revoked, kể cả token hết hạn; actor/account khác không bị revoke.
+- [ ] Hai SQL connection cùng RowVersion: chỉ một reset thành công; stale version không tự reload/retry. Reset đua với refresh/logout/lock/đổi quyền/credential actor: khóa và kiểm lại không để bypass hoặc trạng thái dở dang.
+- [ ] Inject failure tại update hash, revoke và audit: hash/SecurityVersion/session/credential/audit rollback nguyên vẹn; đúng một lần tăng version/audit sau thành công. Timeout commit chưa rõ không tự phát lại reset hoặc recovery.
+- [ ] Password ẩn/nhập lại/chính sách/hash thư viện backend; stdin redirect bị chặn; stdout/stderr/log/exception/audit/argv/env/file không chứa password hoặc hash. Test dùng secret giả marker, không ghi password thật vào test artifacts.
+- [ ] Runbook bàn giao trực tiếp/đúng người, dừng nếu chưa có kênh được chấp thuận; không gửi mail/SMS/chat, không giả force-change/password expiry. Ledger recovery và quota một lần không đổi.
+- [ ] Chỉ sau review bổ sung mới chạy test reset và toàn SQL suite trên HEAD code mới; cập nhật lệnh/SQL version/kết quả/CI SHA mới, không dùng 33/33 hoặc CI SHA trước để kết luận reset PASS.
 
 ## Năm route Profiles và phạm vi
 

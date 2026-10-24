@@ -1,5 +1,7 @@
 # M1 — Identity tối thiểu và bảo vệ Profiles
 
+Boundary operator mới theo quyết định người dùng: [diff backend CLI/SQL chờ review](../contracts/m1-offline-operator-db-boundary-review.md). Tài khoản/quyền thuộc phần mềm/API/SQL; không Windows SID/ACL hay VM làm điều kiện sử dụng/nghiệm thu. Chưa code/DDL phụ thuộc; giữ invariants M1 và batch/delivery hiện có.
+
 Trạng thái: **đặc tả M1 được người dùng chấp thuận để triển khai, chưa triển khai**. Ngày 23/10/2026, người dùng thay gate riêng M1: báo cáo review kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` cùng chấp thuận contract/nghiệp vụ của người dùng thay yêu cầu Bảo/Quý xác nhận trước code. Không phải approval của Bảo/Quý hoặc GitHub approval. Base `develop` tại `f188084389a0033b856594632ae2c6495b29e248`. PR này chỉ tài liệu; thay gate hành chính không đổi nội dung kỹ thuật đã review.
 
 ## Phạm vi và nguồn quyết định
@@ -38,6 +40,8 @@ Agent được phép làm các module không đổi owner. Không coi CI, tự r
 10. Chỉ fixture test/dev riêng tạo liên kết chính chủ; không endpoint claim/accept/link, không bật bằng một flag trên DB production. M1 không có đường cấp quyền đại diện thực tế.
 
 ## Khóa/thu hồi và ranh giới request
+
+Bổ sung phạm vi ngày 23/10/2026: người dùng cho phép `reset-employee-password` offline để xử lý hash legacy ngoài target Admin recovery. [Contract bổ sung](../contracts/m1-identity-profiles.md#bổ-sung-reset-employee-password--phạm-vi-đã-duyệt-contract-chờ-review) còn chờ review độc lập; chưa viết lệnh, không coi approval M1 trước đây bao phủ phần mới. Actor dùng credential DB mới sau recovery; target chọn bằng ID bất biến và RowVersion. Chỉ hash/SecurityVersion/session/credential/audit thay đổi nguyên tử; giữ status/duty/quyền và ledger recovery. Không endpoint, schema mới, SQL thủ công hoặc mở rộng M2–M4. Bàn giao trực tiếp cho đúng nhân viên, không giả flow đổi mật khẩu chưa triển khai. Sau review được chấp thuận mới tiếp tục Goal M1, viết lệnh và chạy tests/SQL suite/CI tại HEAD code mới; không gọi Goal complete tại mốc tài liệu này.
 
 Account có SecurityVersion; session lưu phiên bản lúc cấp. Khóa account, đổi trạng thái nhân viên hoặc thay quyền được commit cùng audit; thao tác tăng SecurityVersion và thu hồi refresh sessions. Request tiếp theo (bắt đầu sau commit) đọc SQL và bị 401 nếu phiên đã thu hồi. Sau login lại, quyền mới có hiệu lực. Không đợi JWT hết hạn. auth/me cũng chịu quy tắc này.
 

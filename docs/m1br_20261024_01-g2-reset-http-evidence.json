@@ -1,0 +1,39 @@
+{
+  "RunId": "m1br_20261024_01",
+  "Generation": 2,
+  "AtUtc": "2026-10-24T11:42:08.6515878Z",
+  "CliResetExitCode": 0,
+  "CliResetAtUtc": "2026-10-24T11:30:19.6504094Z",
+  "StaffRecordedHashMatches": true,
+  "StaffSecurityVersionBefore": 1,
+  "StaffSecurityVersionAfter": 2,
+  "StaffStatus": "Active",
+  "StaffDuty": "None",
+  "StaffTitle": "LeTan",
+  "StaffExtraPermissions": 0,
+  "LedgerCount": 1,
+  "HttpHostKind": "Actual application pipeline via TestServer, actual app SQL login",
+  "AdminHttpLoginMeRefreshLogout": true,
+  "StaffHttpLoginMeRefreshLogout": true,
+  "AfterLogoutMeStatus": 401,
+  "ProbeSourceSHA256": "32E224AEE5EB5487CD97BFD6E5A955EAB0D8E8EC0258B4B6722B37BAC4900548",
+  "PreExistingCliResetRevocation": "PASS: pre-reset valid access+refresh rejected after actual CLI reset, same signing key, expiry margin >10s; next-password HTTP login/logout passed",
+  "CliConcurrencyRollback": "PASS: actual ConPTY pair same RowVersion one committed/one concurrencyConflict; audit-fault actual CLI exit1 target/ledger/audit/session snapshot unchanged; fault trigger removed",
+  "FinalStaffSecurityVersion": 4,
+  "FinalResetAuditCount": 3,
+  "RecoveryLedgerCount": 1,
+  "PositiveStaffProfilesWithAppGrants": "PASS create/read; PUT409 identityApprovalRequired and unchanged row",
+  "FinalReleaseResults": {
+    "SqlAuth": 42,
+    "Skipped": 0,
+    "ActualPrincipalBoundary": 21,
+    "Failed": 0
+  },
+  "RunSqlObjectsCleaned": true,
+  "NotClaimed": [
+    "actual CLI recovery-specific fault/race; SQL service regression only",
+    "production/device/client E2E",
+    "elevated mode/service restore not yet run",
+    "independent implementation approval/merge"
+  ]
+}
