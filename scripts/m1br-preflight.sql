@@ -3,8 +3,8 @@ SET NOCOUNT ON;
 SELECT
  CONVERT(int,SERVERPROPERTY('IsIntegratedSecurityOnly')) AS IntegratedOnly,
  IS_SRVROLEMEMBER('sysadmin') AS DeploymentIsSysadmin,
- HAS_PERMS_BY_NAME(NULL,'SERVER','ALTER ANY LOGIN') AS CanCreateTestLogins,
- HAS_PERMS_BY_NAME(NULL,'SERVER','CREATE ANY DATABASE') AS CanCreateTestDatabases;
+ HAS_PERMS_BY_NAME(NULL,NULL,'ALTER ANY LOGIN') AS CanCreateTestLogins,
+ HAS_PERMS_BY_NAME(NULL,NULL,'CREATE ANY DATABASE') AS CanCreateTestDatabases;
 SELECT encrypt_option AS SessionEncryption, auth_scheme AS AuthenticationScheme
  FROM sys.dm_exec_connections WHERE session_id=@@SPID;
 SELECT COUNT(*) AS ExistingRunDatabases FROM sys.databases WHERE name IN
@@ -13,8 +13,8 @@ SELECT COUNT(*) AS ExistingRunLogins FROM sys.server_principals WHERE name IN
  ('m1br_20261024_01_app','m1br_20261024_01_operator');
 IF CONVERT(int,SERVERPROPERTY('IsIntegratedSecurityOnly'))<>0
  THROW 51030,'Preflight blocked: SQL authentication unavailable; do not change authentication mode.',1;
-IF COALESCE(HAS_PERMS_BY_NAME(NULL,'SERVER','ALTER ANY LOGIN'),0)<>1 OR
-   COALESCE(HAS_PERMS_BY_NAME(NULL,'SERVER','CREATE ANY DATABASE'),0)<>1
+IF COALESCE(HAS_PERMS_BY_NAME(NULL,NULL,'ALTER ANY LOGIN'),0)<>1 OR
+   COALESCE(HAS_PERMS_BY_NAME(NULL,NULL,'CREATE ANY DATABASE'),0)<>1
  THROW 51031,'Preflight blocked: deployment permissions missing.',1;
 IF NOT EXISTS(SELECT 1 FROM sys.dm_exec_connections WHERE session_id=@@SPID AND encrypt_option='TRUE')
  THROW 51032,'Preflight blocked: encrypted session not established.',1;

@@ -2,6 +2,8 @@
 
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
+- Sau ngoại lệ test TLS được người dùng cho phép: `-N -C` chỉ tới `.\SQLEXPRESS`/run này, encryption TRUE, không xác minh chứng chỉ. Preflight read-only xác nhận Windows-only authentication (`IntegratedOnly=1`), quyền deployment ALTER ANY LOGIN/CREATE ANY DATABASE đều 1, tên hai DB/hai login chưa có. Exit 1/error 51030; không provisioning/Mixed Mode/restart/config changes. Sửa class truy vấn HAS_PERMS_BY_NAME server-level sang NULL và chạy lại; không sửa quyền SQL. Manifest created rỗng, service Running; CLI/BoundaryAcceptance vẫn chưa chạy. Các dòng TLS chặn phía dưới là lịch sử trước ngoại lệ.
+
 - Người dùng đã chạy script start; agent xác nhận MSSQL$SQLEXPRESS Running. Preflight read-only `-E -N` dừng ở ODBC 17 TLS: certificate chain không được tin cậy. Chưa thiết lập SQL session nên auth mode/quyền/collision đều chưa xác minh; chưa tạo DB/login/grant/guard/fixture.
 - [Evidence lỗi TLS và điều kiện còn thiếu](m1br_20261024_01-preflight-evidence.md), [manifest rỗng](m1br_20261024_01-manifest.json). Không bỏ kiểm chứng chỉ hoặc đổi instance/trust/ACL/quyền SQL. Service giữ Running vì chưa xác minh ảnh hưởng nếu stop. Boundary acceptance/CLI chưa chạy; lượt này chỉ kiểm tài liệu/JSON/diff, không SQL/auth PASS mới. Chưa đủ nghiệm thu.
 

@@ -1,4 +1,12 @@
-# Run m1br_20261024_01 — TLS preflight blocked
+# Run m1br_20261024_01 — Windows-only authentication blocks provisioning
+
+## Kết quả mới: ngoại lệ TLS test được người dùng cho phép
+
+- Chỉ run `m1br_20261024_01` tới `.\SQLEXPRESS` trên máy này: người dùng cho phép `sqlcmd -N -C` (hoặc `Encrypt=True;TrustServerCertificate=True`). Encryption vẫn bắt buộc; **không xác minh chứng chỉ đạt**, không đổi trust store/chứng chỉ/instance hoặc mặc định production. Script preflight mặc định vẫn `-N` không `-C`.
+- Chạy read-only `sqlcmd -S '.\SQLEXPRESS' -d master -E -N -C -l 5 -b -i scripts/m1br-preflight.sql`: `IntegratedOnly=1`, deployment sysadmin=1, encryption `TRUE`, auth scheme `NTLM`, hai counts DB/login trùng tên đều 0. Exit 1, SQL error 51030: SQL authentication unavailable. Dừng trước provisioning; không đổi Mixed Mode hoặc restart.
+- Sửa truy vấn server permissions trong preflight từ class `'SERVER'` sang `NULL` theo chữ ký `HAS_PERMS_BY_NAME` cho server-level securable; truy vấn cũ trả NULL. Chạy lại SQL read-only sau sửa: `ALTER ANY LOGIN=1`, `CREATE ANY DATABASE=1`; auth mode vẫn chặn. Không thay quyền SQL thực.
+- Không tạo DB/login/user/grant/fixture; chưa BoundaryAcceptance/CLI. Service xác nhận Running, không stop vì chưa xác minh tác động công việc khác. Cần instance test hiện hữu có SQL authentication được phép để chạy acceptance bằng app/operator SQL login thật; không dùng deployment/sysadmin thay. Hiện không có quyền bật Mixed Mode/restart hay chuyển instance nên dừng đúng bước.
+- Manifest phân biệt encryption đã kiểm với certificate validation chưa đạt. Lượt này chỉ SQL preflight read-only/JSON/diff; không SQL/auth Release hoặc CLI PASS mới.
 
 Ngày 24/10/2026 người dùng cho phép start service và provisioning **có điều kiện preflight đạt**, chỉ hai DB/hai login đã liệt kê. Không phải quyền đổi instance config/Mixed Mode/ACL/OS user hoặc bỏ TLS. Thiết kế M1 không thay.
 
