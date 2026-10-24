@@ -7,7 +7,7 @@
   "serviceStartAttempted": true,
   "serviceStartSucceeded": true,
   "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
-  "blocker": "Bootstrap CLI positive confirmed; Recover stopped on PowerShell 5.1 date format, writer fixed; recovery/reset terminal acceptance pending",
+  "blocker": "Generation2 fixture ready; terminal Recover pending, then immediate recorded-password hash/actor verification before Reset",
   "sqlConnectionAttempted": true,
   "authenticationModeVerified": true,
   "tlsVerified": false,
@@ -26,7 +26,7 @@
     "KLCN_M1_Test_Legacy_m1br_20261024_01"
   ],
   "cleanupPerformed": false,
-  "cleanupReason": "Not yet: terminal CLI acceptance pending; exact two DBs/logins retained",
+  "cleanupReason": "Retain generation2 run objects and original verified backup for terminal acceptance; no cleanup/rollback mode yet",
   "acceptanceExecuted": true,
   "encryptionVerified": true,
   "certificateValidationBypassedForLocalTest": true,
@@ -56,5 +56,7 @@
     "failed": 0,
     "instance": "(localdb)\\KLCN_M1_Test",
     "skipped": 0
-  }
+  },
+  "legacyGeneration": 2,
+  "legacyOriginalBackupVerified": true
 }

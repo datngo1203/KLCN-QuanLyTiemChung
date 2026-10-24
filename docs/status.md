@@ -2,6 +2,8 @@
 
 ## SQL test run m1br_20261024_01 — 24/10/2026
 
+- Theo chấp thuận riêng: đã archive manifest g1 trước Apply ở AppData Codex/Windows PowerShell (cùng Local path; Roaming không có), backup COPY_ONLY/CHECKSUM + VERIFYONLY đạt rồi thay duy nhất DB legacy generation2. Boundary/login/password/state giữ nguyên theo evidence/actual connection. G2 grants/auth boundary Release mới **21/21**; Admin Locked/None/ledger0. [Record và gate tiếp](m1br_20261024_01-legacy-rebuild-request.md). Mật khẩu Recover đã chuẩn bị ngoài Git, chưa áp dụng; phải đối chiếu hash/actor ngay sau Recover trước Reset. Backup/evidence g1 giữ nguyên, chưa restore/cleanup/mode rollback; không 42/42 mới hoặc đủ nghiệm thu.
+
 - Recovery terminal g1 đã thành công; reset bị từ chối vì credential đề xuất không khớp hash, người dùng không nhớ credential thực. Diagnostic paste đúng 23 ký tự/0 control, không suy là lỗi transport. [Script/backup/rollback tái tạo riêng fixture legacy g2 chờ chấp thuận](m1br_20261024_01-legacy-rebuild-request.md); chỉ parser và SQL read-only Check đã chạy. Chưa backup/drop/create/restore/đổi hash/quota hoặc tests SQL/auth mới. Giữ DB/login/mode và chứng cứ g1.
 
 - Bootstrap terminal thật đã thành công và đối chiếu DB/audit/12 quyền; recovery lỗi trước password vì PowerShell 5.1 serialize ngày dạng legacy. Sửa writer ISO-8601, giữ instant/operation/target/version, normalize file local có backup, không gia hạn hoặc thay quota. Boundary regression có powershell.exe thực **21/21**; recovery/reset vẫn chờ terminal, ledger legacy/audit recovery 0. [Checkpoint](m1br_20261024_01-acceptance.md). Không cleanup/rollback mode hoặc đủ nghiệm thu.

@@ -1,5 +1,11 @@
 # Xin phép tái tạo riêng fixture legacy generation 2
 
+**Đã được người dùng chấp thuận và Apply thực tế:** COPY_ONLY/CHECKSUM backup + VERIFYONLY đạt trước DROP/CREATE; record [before/after](m1br_20261024_01-legacy-rebuild.json). [Manifest archives trước Apply](m1br_20261024_01-manifest-archives.json): Codex/Windows PowerShell/registry LocalAppData cùng đường dẫn, archive 1 active manifest đúng DB/operation, Roaming không có. File backup g1 giữ nguyên ngoài Git; không restore thử hoặc rollback vì Apply thành công. Các đoạn “chờ phép/chưa chạy” bên dưới là bản đề nghị lịch sử, chỉ tiêu chí chưa kiểm thực tế vẫn giữ.
+
+Generation2 mới có RecoveryDatabaseId khác, ledger 0/Admin Locked/None; `BoundaryAcceptance` Release trên G2 **21/21**, không thay positive CLI. [Đối chiếu Boundary/login giữ nguyên](m1br_20261024_01-g2-preservation.json): identity/state/login credentials thật, mode Mixed/sa disabled. Mật khẩu Recover dự kiến được ghi trước vào sổ test local; chưa áp dụng/khớp hash, chưa hướng dẫn Reset. Không có plaintext password trong Git.
+
+Lần Apply đầu guard đã dừng trước backup/write do pooled connection đọc manifest trong cùng process. Sau process kết thúc, SQL read-only xác nhận 0 phiên và baseline khớp; Apply process riêng thành công. Không kill phiên hoặc nới guard. Chưa cleanup/mode rollback; giữ nguyên backup, evidence và g2 cho Recover/Reset. Bộ 42 regression trước đó không được báo là lượt mới này.
+
 ## Lý do và giới hạn
 
 Người dùng không nhớ mật khẩu thực tế nhập khi CLI Recover thành công. Chẩn đoán terminal nhận đúng chuỗi đề xuất (23 ký tự, 0 control), nhưng PasswordHasher backend xác nhận không khớp hash; actor đủ quyền/Active/Technical, reset bị từ chối trước target input. Không có bằng chứng lỗi phân quyền hoặc paste transport hiện tại; không đổi code bảo mật, hash hoặc quyền để vượt từ chối. Ledger recovery cũ đã dùng, không xóa/mở lại ledger hoặc quota.

@@ -1,5 +1,9 @@
 # m1br_20261024_01 — acceptance một phần, chưa đóng gate CLI
 
+## Generation 2 sau chấp thuận thay fixture
+
+Backup SQL COPY_ONLY/CHECKSUM + VERIFYONLY thực đạt trước thay duy nhất DB legacy. [Record](m1br_20261024_01-legacy-rebuild.json), [archive manifest đúng run trước Apply](m1br_20261024_01-manifest-archives.json), [so sánh Boundary/login](m1br_20261024_01-g2-preservation.json). Backup giữ g1/ledger consumed, g2 có DB identity mới/ledger trống/Admin Locked/None; không sửa hash/quota g1 hoặc thay Boundary/login/password/instance. G2 actual-login boundary Release **21/21**. Chưa G2 Recover/Reset/actor-password match/login/token/concurrency/rollback; mật khẩu Recover chỉ dự kiến trong sổ local, kiểm khớp ngay sau terminal mới tiếp tục Reset. Không restore hoặc cleanup/mode rollback khi không cần/acceptance chưa đủ. Checkpoint g1 dưới đây là lịch sử.
+
 ## Checkpoint terminal / lỗi manifest PowerShell 5.1
 
 **Checkpoint mới:** Recover đã exit 0 và audit/ledger ghi đúng SQL operator. Reset hai lần bị permissionDenied trước target input; mật khẩu đề xuất không khớp hash. Diagnostic paste nhận đúng 23 ký tự/0 control, người dùng không nhớ mật khẩu thực tế. Không có reset commit. [Đề nghị tái tạo riêng fixture legacy g2, chờ phép](m1br_20261024_01-legacy-rebuild-request.md); chưa thực thi. Không xóa quota/hash để vượt gate.

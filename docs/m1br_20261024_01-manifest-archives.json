@@ -1,0 +1,20 @@
+{
+  "RunId": "m1br_20261024_01",
+  "AtUtc": "2026-10-24T04:44:41.9664757Z",
+  "Sources": "Codex environment/FolderPath, actual Windows PowerShell FolderPath, Windows registry, Roaming checked; duplicate physical paths deduplicated",
+  "BeforeApply": true,
+  "Records": [
+    {
+      "Source": "C:\\Users\\DAT\\AppData\\Local\\KLCN-M1-Test\\m1br_20261024_01\\recovery.json",
+      "Archive": "C:\\Users\\DAT\\AppData\\Local\\KLCN-M1-Test\\m1br_20261024_01\\recovery.g1.b9242c4d8b404142bf8dce8505ed10d4.json",
+      "RecoveryDatabaseId": "4776ccc6-3a46-4a7f-aaec-e7d3981bd400",
+      "OperationId": "92ad1af5-6399-4bee-9598-b9f4b86b4fff",
+      "Archived": true
+    },
+    {
+      "Source": "C:\\Users\\DAT\\AppData\\Roaming\\KLCN-M1-Test\\m1br_20261024_01\\recovery.json",
+      "Archived": false,
+      "Reason": "No active manifest at this AppData location"
+    }
+  ]
+}

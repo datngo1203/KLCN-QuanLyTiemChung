@@ -1,0 +1,12 @@
+{
+  "RunId": "m1br_20261024_01",
+  "Generation": 2,
+  "BoundarySnapshotUnchanged": true,
+  "SqlLoginIdentityStateUnchanged": true,
+  "ActualAppOperatorCredentialsConnected": true,
+  "Instance": {
+    "IntegratedOnly": 0,
+    "SaDisabled": 1
+  },
+  "AtUtc": "2026-10-24T04:46:45.2865360Z"
+}
