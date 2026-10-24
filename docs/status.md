@@ -1,5 +1,17 @@
 # Trạng thái khung — 19/10/2026
 
+## Đặc tả M1 Profiles + Identity — 23/10/2026
+
+- Quyết định trực tiếp của người dùng trong chat ngày 23/10/2026 thay gate riêng M1: dùng báo cáo kỹ thuật từ chat độc lập tại `20a9a72b42c660bb642cac213045616a111de8ee` và chấp thuận contract/nghiệp vụ của người dùng thay Bảo/Quý xác nhận trước code. Được tiếp tục implementation nhánh riêng phụ thuộc #32; không phải approval thành viên/GitHub, không đổi owner/branch protection. Contract/schema mới đổi thực chất vẫn cần review độc lập phần đổi. Nội dung kỹ thuật không đổi, các ghi nhận chờ approval phía dưới là lịch sử trước quyết định này. SQL/auth/runtime M1 chưa kiểm chứng.
+
+- Sửa recovery theo review `427f52a9`/base `f1880843`: bind RowVersion sau migration trong maintenance, kiểm lại trong transaction; ledger unique DB/mốc M1 và retry trả kết quả đã commit, không reset theo secret/manifest. Checklist bổ sung stale-version/rollback/retry/manifest mới/admin khóa lại/hai operator. Chỉ kiểm tài liệu; SQL/auth/runtime chưa chạy.
+
+- Sửa review `ff1294b9`/base `f1880843`: recovery nâng cấp manifest/ledger/audit, invariant revoke credential, Web Locks/CSRF và bearer web memory-only; checklist có ánh xạ finding → sửa → ca kiểm dự kiến. Chỉ tài liệu, chưa chạy SQL/auth/runtime; tự rà không thay review độc lập.
+
+- Người dùng duyệt phạm vi M1 và cho phép PR Draft tài liệu từ develop; [gói review](m1-identity-review.md) gồm contract/quyền năm route, schema đề xuất, quyết định kỹ thuật và checklist SQL/auth. Contract/schema còn chờ review độc lập, chưa được coi đã chấp thuận triển khai.
+- Chỉ sửa tài liệu/đặc tả; không migration, DTO/API/client, nguồn/ảnh gốc; không kéo PR #29/#30/#31 chưa tích hợp hoặc commit 38c4f84/fa027ee. Không merge, không Goal code M1. M2–M4 giữ lộ trình.
+- Kiểm tra tài liệu: git diff --check, liên kết Markdown mới và allowlist sáu file thay đổi. Rà toàn status phát hiện năm link lịch sử đã hỏng trên base (analysis/wpf-phase0-screen-spec.md, design/wpf-phase1-layout-proposal.md, analysis/wpf-phase3-binding-preflight.md, apps/windows/ViewsV2/README.md, screenshots/a02-screen.png); không sửa ngoài phạm vi. Không chạy build/test/SQL/auth/runtime cho gói chỉ tài liệu; checklist SQL thật là kế hoạch chưa thực thi, CI của PR cần xem riêng. Tự rà tài liệu không thay review độc lập.
+
 ## Windows Login, A06, A09, A11, A12, A14 — 2026-10-22
 
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
