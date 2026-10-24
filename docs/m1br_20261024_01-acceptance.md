@@ -2,6 +2,14 @@
 
 ## Generation 2 sau chấp thuận thay fixture
 
+**Checkpoint mới sau terminal:** Recover g2 exit0, recorded password hash match và AuthenticateResetActorAsync PASS bằng SQL operator thật, không mutation. Reset g2 exit0 lúc 11:30:19Z ngày 24/10/2026: Staff account/employee2, hash match, SecurityVersion1→2, Active/None/LeTan và 0 extra permissions giữ nguyên; employeePasswordReset Success với operator identity, ledger vẫn1. Password chỉ ở sổ local, không log/Git.
+
+Đã kiểm HTTP host thật (TestServer/application pipeline, không claim thiết bị/Kestrel production) bằng **app SQL login** cho Admin đã recovered và Staff đã reset: login/me/refresh/logout, request sau logout401. Source tái lập: `scripts/m1br-http-probe.csproj`; đọc credential synthetic từ sổ local, không argv/log. Log raw ngoài Git `artifacts/m1br-g2-http-committed-source.log`; không gọi đây là SQL/auth suite 42 mới.
+
+**Ca pre-existing token qua CLI vẫn pending:** `--hold-session` tạo session Staff, xác nhận HTTP me200 trước reset, giữ cùng host/signing key và refresh trước expiry; từ chối PASS nếu expiry sát lúc kiểm. Probe chỉ quan sát SecurityVersion rồi thử access/refresh cũ + login/logout bằng mật khẩu tiếp theo đã chuẩn bị trong sổ. Không tự gọi service Reset hoặc mô phỏng stdin CLI. Phiên probe đang chạy giữ fixture; cần người dùng thực hiện thêm một Reset terminal. Không gọi logout revocation là CLI reset revocation. CLI cạnh tranh/rollback và các case chưa chạy vẫn giữ gate; chưa cleanup/mode rollback.
+
+Để tái lập normal HTTP probe (không thay password): dot-source `scripts/m1br-runtime.ps1 -Database Legacy`, bỏ env operator khỏi process con, `dotnet run --project scripts/m1br-http-probe.csproj -c Release`; dùng `-- --hold-session` chỉ khi đã chuẩn bị mật khẩu kế tiếp/local ledger và sắp chạy actual CLI. Không chạy nhiều probe cùng lúc. Helper source dùng đúng local run/DB qua connection đã được SQL server xác thực; không publish vào API/client. Một probe nháp đã được dừng đúng process test do agent tạo và bỏ kết quả; chỉ probe có expiry guard hiện hành được dùng cho evidence.
+
 Backup SQL COPY_ONLY/CHECKSUM + VERIFYONLY thực đạt trước thay duy nhất DB legacy. [Record](m1br_20261024_01-legacy-rebuild.json), [archive manifest đúng run trước Apply](m1br_20261024_01-manifest-archives.json), [so sánh Boundary/login](m1br_20261024_01-g2-preservation.json). Backup giữ g1/ledger consumed, g2 có DB identity mới/ledger trống/Admin Locked/None; không sửa hash/quota g1 hoặc thay Boundary/login/password/instance. G2 actual-login boundary Release **21/21**. Chưa G2 Recover/Reset/actor-password match/login/token/concurrency/rollback; mật khẩu Recover chỉ dự kiến trong sổ local, kiểm khớp ngay sau terminal mới tiếp tục Reset. Không restore hoặc cleanup/mode rollback khi không cần/acceptance chưa đủ. Checkpoint g1 dưới đây là lịch sử.
 
 ## Checkpoint terminal / lỗi manifest PowerShell 5.1

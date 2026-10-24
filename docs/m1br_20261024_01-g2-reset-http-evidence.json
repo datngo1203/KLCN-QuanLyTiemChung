@@ -1,0 +1,22 @@
+{
+  "RunId": "m1br_20261024_01",
+  "Generation": 2,
+  "AtUtc": "2026-10-24T11:42:08.6515878Z",
+  "CliResetExitCode": 0,
+  "CliResetAtUtc": "2026-10-24T11:30:19.6504094Z",
+  "StaffRecordedHashMatches": true,
+  "StaffSecurityVersionBefore": 1,
+  "StaffSecurityVersionAfter": 2,
+  "StaffStatus": "Active",
+  "StaffDuty": "None",
+  "StaffTitle": "LeTan",
+  "StaffExtraPermissions": 0,
+  "LedgerCount": 1,
+  "HttpHostKind": "Actual application pipeline via TestServer, actual app SQL login",
+  "AdminHttpLoginMeRefreshLogout": true,
+  "StaffHttpLoginMeRefreshLogout": true,
+  "AfterLogoutMeStatus": 401,
+  "ProbeSourceSHA256": "7AE3A2CF22723271E2E6FE0439E28D825E526DD35E4C95DA8AC22499331A0D8E",
+  "PreExistingCliResetRevocation": "PENDING: live probe confirmed me200 and awaits actual CLI reset",
+  "CliConcurrencyRollback": "NOT YET RUN"
+}
