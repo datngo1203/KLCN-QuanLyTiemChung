@@ -1,6 +1,6 @@
 {
   "RunId": "m1br_20261024_01",
-  "RecordedUtc": "2026-10-24T03:49:25.6834925Z",
+  "RecordedUtc": "2026-10-24T04:22:15.1718836Z",
   "CertificateValidation": "Local test exception only",
   "Databases": [
     {
@@ -829,11 +829,18 @@
           "minor_id": 0
         }
       ],
-      "AuditCount": 0,
+      "AuditCount": 1,
       "LedgerCount": 0,
       "SentOutboxCount": 0,
       "UsedVerificationCount": 0,
-      "RolledBackAppendCount": 0
+      "RolledBackAppendCount": 0,
+      "OperatorAudit": [
+        {
+          "Action": "adminBootstrapped",
+          "Outcome": "Success",
+          "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+        }
+      ]
     },
     {
       "name": "KLCN_M1_Test_Legacy_m1br_20261024_01",
@@ -1661,10 +1668,10 @@
           "minor_id": 0
         }
       ],
-      "AuditCount": 30,
+      "AuditCount": 57,
       "LedgerCount": 0,
-      "SentOutboxCount": 4,
-      "UsedVerificationCount": 4,
+      "SentOutboxCount": 7,
+      "UsedVerificationCount": 7,
       "RolledBackAppendCount": 0
     }
   ],

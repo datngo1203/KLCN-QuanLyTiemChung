@@ -7,7 +7,7 @@
   "serviceStartAttempted": true,
   "serviceStartSucceeded": true,
   "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
-  "blocker": "Actual hidden-input terminal CLI positive/negative/concurrency/rollback evidence pending; retained run objects",
+  "blocker": "Bootstrap CLI positive confirmed; Recover stopped on PowerShell 5.1 date format, writer fixed; recovery/reset terminal acceptance pending",
   "sqlConnectionAttempted": true,
   "authenticationModeVerified": true,
   "tlsVerified": false,
@@ -47,7 +47,7 @@
   },
   "acceptanceComplete": false,
   "boundaryResults": {
-    "passed": 20,
+    "passed": 21,
     "failed": 0,
     "skipped": 0
   },

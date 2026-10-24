@@ -1,0 +1,4 @@
+{"RunId":"m1br_20261024_01","Command":"bootstrap-admin","Database":"Boundary","BinarySHA256":"54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F","ExitCode":1,"AtUtc":"2026-10-24T04:10:17.1206601Z","Interactive":true}
+{"RunId":"m1br_20261024_01","Command":"bootstrap-admin","Database":"Boundary","BinarySHA256":"54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F","ExitCode":0,"AtUtc":"2026-10-24T04:15:12.6469866Z","Interactive":true}
+{"RunId":"m1br_20261024_01","Command":"recover-upgraded-admin","Database":"Legacy","BinarySHA256":"54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F","ExitCode":1,"AtUtc":"2026-10-24T04:18:34.3710933Z","Interactive":true}
+{"RunId":"m1br_20261024_01","Command":"recover-upgraded-admin","Database":"Legacy","BinarySHA256":"54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F","ExitCode":1,"AtUtc":"2026-10-24T04:18:45.5693220Z","Interactive":true}

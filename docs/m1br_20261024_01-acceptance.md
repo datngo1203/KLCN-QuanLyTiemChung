@@ -1,5 +1,13 @@
 # m1br_20261024_01 — acceptance một phần, chưa đóng gate CLI
 
+## Checkpoint terminal / lỗi manifest PowerShell 5.1
+
+- Bootstrap terminal thật exit 0, binary SHA256 `54B39542B7D5C80B23ADBEB66147FA2B686E2162C5D20A436871408D8B04568F`; DB Boundary account/employee 1, Admin active/Technical, 12 quyền, backend Identity hash; audit adminBootstrapped Success với original SQL operator identity, ledger 0. Exit 1 trước đó giữ lịch sử, không suy nguyên nhân. Chưa kiểm HTTP login của tài khoản bootstrap.
+- Recover hai lần exit 1 trước prompt password: Windows PowerShell 5.1 ConvertTo-Json xuất DateTimeOffset dạng `/Date(milliseconds)/`, không hợp System.Text.Json. DB legacy old-admin vẫn Locked/None/SecurityVersion1; audit recovery/ledger đều 0, không có recovery commit.
+- Writer `scripts/m1br-manifest-json.ps1` chuyển DateTimeOffset sang chuỗi ISO-8601 rõ ràng trước JSON. Regression chạy **powershell.exe thực trên Windows** và deserialize thành RecoveryManifest bằng .NET, giữ đúng instant/25 phút/operation ID/target/version; không giả terminal CLI. Boundary suite sau sửa **21/21**. Không đổi API/schema/contract hay validity policy.
+- File manifest local đã chuẩn hóa hai trường ngày, backup ngoài Git `.pre-iso`; giữ nguyên thời điểm gốc, OperationId, target, version và mọi trường khác. Không gia hạn/quota mới hoặc reset ledger. User chỉ cần chạy lại Recover trong thời hạn manifest còn hiệu lực; chưa chạy Reset.
+- CLI evidence không chứa password tại [jsonl](m1br_20261024_01-cli-evidence.jsonl). Dữ liệu credential synthetic chỉ ở sổ local đã được người dùng cho phép, không Git/PR/log công khai. AGENTS/status có thay đổi từ chat khác được giữ riêng. Các dòng chưa bootstrap phía dưới là lịch sử trước checkpoint này.
+
 ## Môi trường và provisioning thực tế
 
 - Người dùng chạy apply elevated thành công: [evidence trước/sau](m1br_20261024_01-auth-mode-evidence.json). Agent kiểm lại `LAPTOP-DAT\SQLEXPRESS`, IntegratedOnly=0, Windows admin còn login được, encryption TRUE, NTLM; quyền deployment tạo DB/login=1; tên hai DB/hai login chưa tồn tại trước tạo. `sa` vẫn disabled. Không cấu hình khác/TCP/firewall/ACL/trust store.

@@ -16,7 +16,7 @@ if($Command -eq 'Recover'){
    $c.Open();$q=$c.CreateCommand();$q.CommandText="SELECT RecoveryDatabaseId,M1UpgradeEpoch,MaTaiKhoan,MaNhanVien,RowVersion FROM dbo.IdentityRecoveryDatabase CROSS JOIN dbo.TaiKhoan WHERE TenDangNhap='old-admin'";
    $reader=$q.ExecuteReader();if(-not $reader.Read()){throw 'Legacy target missing'}
    $manifest=[ordered]@{OperationId=[Guid]::NewGuid();RecoveryDatabaseId=$reader.GetGuid(0);M1UpgradeEpoch=$reader.GetString(1);MigrationId='20261023073816_M1Identity';TargetAccountId=$reader.GetInt32(2);EmployeeId=$reader.GetInt32(3);ExpectedRowVersion=[Convert]::ToBase64String($reader.GetValue(4));IssuedAt=[DateTimeOffset]::UtcNow;ExpiresAt=[DateTimeOffset]::UtcNow.AddMinutes(25);AssignedDuty='Technical'}
-   $reader.Dispose();$manifest|ConvertTo-Json|Set-Content -LiteralPath $env:M1_RECOVERY_MANIFEST
+   $reader.Dispose();& (Join-Path $PSScriptRoot 'm1br-manifest-json.ps1') -Manifest $manifest | Set-Content -LiteralPath $env:M1_RECOVERY_MANIFEST -Encoding UTF8
   }finally{$c.Dispose()}
  }
 }
