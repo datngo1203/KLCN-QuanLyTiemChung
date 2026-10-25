@@ -12,6 +12,8 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 
 ## Dự kiến — chưa có endpoint thực thi
 
+**Đính chính hiện trạng Profiles:** code tại `ProfileEndpoints.cs` đã map GET/POST customers, GET/POST recipients và PUT recipients/{id}, gọi SQL nhưng chưa auth/phạm vi. Không sử dụng với dữ liệu thật. [Gói đặc tả M1 chờ review](m1-identity-profiles.md) đề nghị bảo vệ năm route; chưa sửa code/DTO hoặc triển khai Identity. Dòng Profiles dưới đây giữ để truy vết danh mục kế hoạch, không phải bằng chứng route chưa tồn tại.
+
 | Module | Endpoint dự kiến | Người làm |
 |---|---|---|
 | Identity | POST auth/login, auth/refresh, auth/logout; POST auth/change-password; quản lý accounts/permissions | Đạt |

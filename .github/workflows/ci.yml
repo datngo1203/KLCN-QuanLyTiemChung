@@ -18,7 +18,26 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Start Compose SQL Server, apply migrations and start database API
+        run: |
+          export MSSQL_SA_PASSWORD="$(openssl rand -base64 36)Aa1!"
+          echo "::add-mask::$MSSQL_SA_PASSWORD"
+          echo "MSSQL_SA_PASSWORD=$MSSQL_SA_PASSWORD" >> "$GITHUB_ENV"
+          echo "M1_SQL_TEST_CONNECTION=Server=localhost,14333;User ID=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true" >> "$GITHUB_ENV"
+          docker compose -p klcn-s0 -f infra/compose.yaml up -d --build --wait --wait-timeout 180
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:5080/api/v1/catalog/vaccines > /tmp/catalog.json; then
+              python3 -c 'import json; assert json.load(open("/tmp/catalog.json"))["source"] == "database"'
+              exit $?
+            fi
+            sleep 2
+          done
+          exit 1
       - run: dotnet test backend/TiemChung.slnx --configuration Release
+      - name: Repeat migration without resetting data
+        run: docker compose -p klcn-s0 -f infra/compose.yaml run --rm migrate
+      - name: Build SQL-principal acceptance (not executed without approved provisioning)
+        run: dotnet build backend/tests/TiemChung.BoundaryAcceptance/TiemChung.BoundaryAcceptance.csproj --configuration Release
   web:
     runs-on: ubuntu-latest
     defaults:

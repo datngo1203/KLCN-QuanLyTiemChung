@@ -1,0 +1,73 @@
+{
+  "runId": "m1br_20261024_01",
+  "recordedDateLocal": "2026-10-24",
+  "instance": ".\\SQLEXPRESS",
+  "initialServiceState": "Stopped",
+  "observedServiceState": "Stopped",
+  "serviceStartAttempted": true,
+  "serviceStartSucceeded": true,
+  "serviceStartPerformedBy": "User ran approved elevated start-only script; agent confirmed Running",
+  "blocker": null,
+  "sqlConnectionAttempted": true,
+  "authenticationModeVerified": true,
+  "tlsVerified": false,
+  "deploymentPermissionsVerified": true,
+  "nameCollisionPreflightVerified": true,
+  "createdDatabases": [
+    "KLCN_M1_Test_Boundary_m1br_20261024_01",
+    "KLCN_M1_Test_Legacy_m1br_20261024_01"
+  ],
+  "createdLogins": [
+    "m1br_20261024_01_app",
+    "m1br_20261024_01_operator"
+  ],
+  "createdUsersRolesGrantsGuardsFixtures": [
+    "KLCN_M1_Test_Boundary_m1br_20261024_01",
+    "KLCN_M1_Test_Legacy_m1br_20261024_01"
+  ],
+  "cleanupPerformed": true,
+  "cleanupReason": "Exact recorded DB/login identities checked, dropped without forced disconnect; names absent after cleanup",
+  "acceptanceExecuted": true,
+  "encryptionVerified": true,
+  "certificateValidationBypassedForLocalTest": true,
+  "authenticationMode": "Windows-only",
+  "existingRunDatabaseCount": 0,
+  "existingRunLoginCount": 0,
+  "modeChangeAuthorized": true,
+  "modeChangeExecuted": true,
+  "beforeModeChange": {
+    "serverName": "LAPTOP-DAT\\SQLEXPRESS",
+    "integratedOnly": 1,
+    "serviceState": "Running",
+    "saName": "sa",
+    "saDisabled": true,
+    "userDatabaseCount": 0,
+    "otherUserSessionCount": 0,
+    "agentElevated": false
+  },
+  "acceptanceComplete": false,
+  "boundaryResults": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0
+  },
+  "regressionResults": {
+    "passed": 42,
+    "failed": 0,
+    "instance": "(localdb)\\KLCN_M1_Test",
+    "skipped": 0
+  },
+  "legacyGeneration": 2,
+  "legacyOriginalBackupVerified": true,
+  "runChecksReadyForCleanup": true,
+  "cleanedDatabases": [
+    "KLCN_M1_Test_Boundary_m1br_20261024_01",
+    "KLCN_M1_Test_Legacy_m1br_20261024_01"
+  ],
+  "cleanedLogins": [
+    "m1br_20261024_01_app",
+    "m1br_20261024_01_operator"
+  ],
+  "initialServiceStateRestored": true,
+  "environmentRestorationVerified": true
+}

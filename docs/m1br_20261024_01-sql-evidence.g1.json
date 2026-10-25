@@ -1,0 +1,48 @@
+{
+  "RunId": "m1br_20261024_01",
+  "Generation": 1,
+  "RecordedUtc": "2026-10-24T04:39:07.4624841",
+  "DatabaseName": "KLCN_M1_Test_Legacy_m1br_20261024_01",
+  "DatabaseId": 6,
+  "CreatedAt": "2026-10-24T10:38:32.613",
+  "OwnerSid": "0x0105000000000005150000004AC64A6801DA3829C7A3E350E9030000",
+  "RecoveryDatabaseId": "4776CCC6-3A46-4A7F-AAEC-E7D3981BD400",
+  "Accounts": [
+    {
+      "MaTaiKhoan": 1,
+      "MaNhanVien": 1,
+      "TenDangNhap": "old-admin",
+      "TrangThai": "Active",
+      "AdministrativeDuty": "Technical",
+      "SecurityVersion": 2
+    },
+    {
+      "MaTaiKhoan": 2,
+      "MaNhanVien": 2,
+      "TenDangNhap": "legacy-staff",
+      "TrangThai": "Active",
+      "AdministrativeDuty": "None",
+      "SecurityVersion": 1
+    }
+  ],
+  "RecoveryLedger": [
+    {
+      "OperationId": "92AD1AF5-6399-4BEE-9598-B9F4B86B4FFF",
+      "RecoveryDatabaseId": "4776CCC6-3A46-4A7F-AAEC-E7D3981BD400",
+      "M1UpgradeEpoch": "M1",
+      "TargetAccountId": 1,
+      "AppliedAt": "2026-10-24T04:24:45.3550704Z",
+      "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator",
+      "ResultCode": "recovered"
+    }
+  ],
+  "AdministrativeAudit": [
+    {
+      "Action": "adminRecovered",
+      "Outcome": "Success",
+      "OccurredAt": "2026-10-24T04:24:45.6961107Z",
+      "OperatorIdentity": "m1br_20261024_01_operator/m1br_20261024_01_operator"
+    }
+  ],
+  "ResetAuditCount": 0
+}

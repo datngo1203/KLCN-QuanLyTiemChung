@@ -1,5 +1,7 @@
 # Phân công khởi tạo và Git
 
+> Phạm vi hiện hành từ 25/10/2026: [SCOPE.md](SCOPE.md) được ưu tiên khi nội dung cũ xung đột; Mobile đóng băng, chỉ thanh toán một lần, kho/khám chi tiết/ma trận quyền hoãn.
+
 | Thành viên | GitHub | Sở hữu chính | Backend theo nghiệp vụ | Review chéo |
 |---|---|---|---|---|
 | Bảo — Diệp Nguyễn Gia Bảo | `giabao9373` | apps/web; hồ sơ/đăng ký/thu ngân/ưu đãi ở Windows khi nối module | Customers, Recipients, Registrations, Payments, Promotions | Quý review web/luồng khách hàng; Đạt review tiền/quyền/schema |
@@ -11,6 +13,8 @@
 Các username do nhóm cung cấp: `giabao9373` (Bảo), `ngocquydev` (Quý), `datngo1203` (Đạt). GitHub hiện trả quyền đọc cho Bảo và Quý; việc gán issue yêu cầu quyền phù hợp nên các issue của hai bạn chưa có assignee. Chỉ chủ repo có thể nâng quyền trong Settings → Collaborators; sau khi quyền được cập nhật, gán Bảo vào #2–#4 và #11, Quý vào #8–#10. CODEOWNERS chưa gắn hai bạn vì GitHub yêu cầu quyền ghi để thực thi yêu cầu review.
 
 ## Nhánh và review
+
+Từ S0: mỗi lát một nhánh `feat/sN-ten-lat`, PR vào `main` theo SCOPE.md; quy trình develop bên dưới là lịch sử. Giữ review chéo cho contract/schema.
 
 - `main`: phiên bản tích hợp ổn định; `develop`: nhánh tích hợp thường ngày.
 - Nhánh công việc từ develop: `feature/bao-registration`, `feature/quy-appointments`, `feature/dat-inventory`; fix tương tự.

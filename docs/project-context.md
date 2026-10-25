@@ -1,5 +1,7 @@
 # Bối cảnh và phạm vi
 
+> Phạm vi hiện hành từ 25/10/2026: [SCOPE.md](SCOPE.md) được ưu tiên khi nội dung cũ xung đột; Mobile đóng băng, chỉ thanh toán một lần, kho/khám chi tiết/ma trận quyền hoãn.
+
 Đề tài CNTT-KLCN090: Xây dựng hệ thống quản lý tiêm chủng tại Trung tâm tiêm chủng. Nhóm: Diệp Nguyễn Gia Bảo, Nguyễn Ngọc Quý, Ngô Thành Đạt. Nguồn dự án ghi GVHD Mạnh Thiên Lý; thông tin lịch ban đầu không được dùng làm deadline mới khi chưa đối chiếu.
 
 Đề cương gốc có Website + Windows. Ngày 19/10/2026 người dùng yêu cầu thêm ứng dụng mobile cùng cả hai nền tảng đó; repo triển khai hướng **Web + Windows + Mobile**. Đây là quyết định khởi tạo kỹ thuật của nhóm; không tự khẳng định giảng viên đã duyệt thay đổi đề cương.

@@ -15,7 +15,16 @@ public sealed class NhanVien
 public sealed class TaiKhoan
 {
     public int MaTaiKhoan { get; set; }
-    public int MaNhanVien { get; set; }
+    public int? MaNhanVien { get; set; }
+    public string AccountType { get; set; } = "Employee";
+    public string? LoginEmail { get; set; }
+    public string? NormalizedEmail { get; set; }
+    public string? NormalizedUsername { get; set; }
+    public DateTimeOffset? EmailVerifiedAt { get; set; }
+    public long SecurityVersion { get; set; } = 1;
+    public string AdministrativeDuty { get; set; } = "None";
+    public DateTimeOffset CreatedAt { get; set; }
+    public byte[] RowVersion { get; set; } = [];
     public string TenDangNhap { get; set; } = string.Empty;
     public string MatKhauHash { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
@@ -23,6 +32,7 @@ public sealed class TaiKhoan
 
 public sealed class QuyenHan
 {
+    public string Code { get; set; } = string.Empty;
     public int MaQuyen { get; set; }
     public string TenQuyen { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
