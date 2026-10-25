@@ -30,6 +30,8 @@ S1 dùng nguyên mô hình chức danh/quyền backend, không làm thêm UI qu�
 
 Đăng ký demo chỉ nhận địa chỉ `@example.invalid`, vẫn cần xác minh email. Cấu hình Development mail pickup ngoài Git theo `docs/setup.md`; token không được trả qua HTTP hoặc ghi log. Chưa gửi email thật.
 
+Admin đầu tiên: lệnh `--seed-admin` chỉ ở Development, nhận `DevelopmentSeed:Username`/`DevelopmentSeed:Password` từ cấu hình local hoặc biến môi trường; không có credential cố định trong repo. Lệnh tạo Admin/Technical và quyền backend trong transaction, không đổi account/hash/quyền nếu đã có Admin; Production bị từ chối. Cách chạy Compose và sổ credential ngoài Git xem [setup](../docs/setup.md#s1--admin-đầu-tiên-và-đăng-ký-khách-hàng-demo). Đây là lệnh khởi tạo local, không phải endpoint HTTP.
+
 ## Dự kiến — chưa có endpoint thực thi
 
 | Module | Endpoint dự kiến | Người làm |
