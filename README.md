@@ -1,5 +1,7 @@
 # KLCN090 · Hệ thống quản lý tiêm chủng
 
+> Phạm vi hiện hành: [docs/SCOPE.md](docs/SCOPE.md), S0–S8; Mobile đóng băng. Chạy nền SQL/API thật theo mục Docker Compose trong [docs/setup.md](docs/setup.md). Nội dung phạm vi cũ bên dưới chỉ là lịch sử nếu xung đột.
+
 Khung dùng chung cho Bảo, Quý, Đạt: **Website React + ứng dụng Windows WPF + Mobile Flutter → ASP.NET Core Web API → SQL Server**.
 
 Repo khởi tạo ngày 19/10/2026. Mobile được bổ sung theo yêu cầu mới của nhóm, giữ cả Website và Windows theo đề cương gốc. Đây là nền để phát triển khóa luận; chưa phải hệ thống quản lý tiêm chủng đã hoàn thiện.

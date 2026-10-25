@@ -1,5 +1,12 @@
 # Trạng thái khung — 19/10/2026
 
+## Chuẩn bị + S0 — 25/10/2026
+
+- Phạm vi hiện hành: [SCOPE.md](SCOPE.md); chỉ triển khai S0. Mobile/UI redesign hoãn. Đã đóng PR #21, #27, #29, #30, #31 theo phạm vi mới; không xóa nhánh/evidence.
+- Local trước S0 giữ trong stash `pre-S0 local Ponytail changes 2026-10-25`; commit demo `57fc5e4` giữ trên `codex/windows-api-sql-demo`. Nhánh `feat/s0-sql-ci` từ develop `8ccfeef`; dùng schema/M1 đã review ở #32/#33, không thay contract/schema hoặc triển khai S1.
+- Compose chờ SQL healthy → lệnh Development `--migrate` → API catalog dùng DB thật. CI chạy cùng Compose, kiểm source database, suite SQL/HTTP và migration lặp lại; giữ các job client hiện có.
+- Backend Release build đạt 0 warning/error. Docker Desktop đã chạy; SQL image đang tải. Chưa xác nhận migration/runtime/suite SQL/CI của nhánh mới; S0 chưa đánh dấu xong.
+
 ## Ponytail skill cho dự án — 24/10/2026
 
 - Theo yêu cầu người dùng, cài skill chính [Ponytail](../.agents/skills/ponytail/SKILL.md) từ DietrichGebert/ponytail, pin commit `09c434ab73ca43761c5d8b0c5d341926c2fba710`, tại `.agents/skills/ponytail` (repo scope). Giữ nguyên SKILL upstream, kèm LICENSE/SOURCE; AGENTS hướng dẫn full mặc định theo rule khóa luận. Không cài plugin/hooks/CLI/npm hoặc skill audit bổ sung; không đụng code ứng dụng/SQL/credential.

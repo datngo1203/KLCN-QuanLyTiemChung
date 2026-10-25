@@ -15,18 +15,28 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
-  api:
-    build:
+  migrate:
+    build: &api-build
       context: ..
       dockerfile: backend/Dockerfile
+    command: ['--migrate']
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TiemChung: Server=sqlserver;Database=TiemChung;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True
+      Catalog__UseDemoData: 'false'
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+  api:
+    build: *api-build
     ports:
       - '127.0.0.1:5080:8080'
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__TiemChung: Server=sqlserver;Database=TiemChung;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True
-      Catalog__UseDemoData: 'true'
+      Catalog__UseDemoData: 'false'
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 volumes:
   sqlserver-data:

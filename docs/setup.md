@@ -67,6 +67,10 @@ Copy-Item infra/.env.example infra/.env
 docker compose --env-file infra/.env -f infra/compose.yaml up -d --build
 ```
 
-Compose khởi động SQL tại localhost:14333 và API demo tại localhost:5080. Không tự chạy migration hoặc seed tài khoản. Chuyển API sang DB bằng ConnectionStrings:TiemChung và Catalog:UseDemoData=false sau khi apply migration. `.env` được ignore.
+Compose chờ SQL tại localhost:14333 healthy, chạy service `migrate` áp dụng migration rồi mở API tại localhost:5080 với `Catalog:UseDemoData=false`. Catalog trả `source=database` (DB mới có danh sách rỗng); không seed tài khoản hoặc dữ liệu nghiệp vụ. `.env` được ignore; giữ nguyên password khi chạy lại để dùng volume cũ.
+
+Chạy lại migration không xóa dữ liệu: `docker compose --env-file infra/.env -f infra/compose.yaml run --rm migrate`. Dừng và giữ DB: `docker compose --env-file infra/.env -f infra/compose.yaml down` (không thêm `-v`). Dùng cùng tên project Compose cho các lần chạy; máy này dùng `-p klcn-s0`.
+
+Kiểm SQL/API: `Invoke-RestMethod http://localhost:5080/api/v1/catalog/vaccines` phải có `source=database`. Chạy suite backend với `M1_SQL_TEST_CONNECTION` lấy từ credential local, server `localhost,14333`; suite tạo DB `KLCN_M1_Test_<GUID>` riêng, kiểm HTTP ghi/đọc SQL và quyền. Không đưa connection string có password vào log/Git.
 
 Nếu cổng 5080/5173 đang dùng: dừng tiến trình mình đã mở hoặc đổi cổng và cập nhật base URL/CORS; không dừng tiến trình không rõ chủ. Không cần triển khai cloud để bắt đầu code.

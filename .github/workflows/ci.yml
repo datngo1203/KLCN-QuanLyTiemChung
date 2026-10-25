@@ -18,19 +18,24 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Start isolated SQL Server with ephemeral credentials
+      - name: Start Compose SQL Server, apply migrations and start database API
         run: |
-          SQLCMDPASSWORD="$(openssl rand -base64 36)Aa1!"
-          echo "::add-mask::$SQLCMDPASSWORD"
-          export SQLCMDPASSWORD
-          echo "M1_SQL_TEST_CONNECTION=Server=localhost,1433;User ID=sa;Password=$SQLCMDPASSWORD;TrustServerCertificate=true" >> "$GITHUB_ENV"
-          MSSQL_SA_PASSWORD="$SQLCMDPASSWORD" docker run -d --name m1-sql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          export MSSQL_SA_PASSWORD="$(openssl rand -base64 36)Aa1!"
+          echo "::add-mask::$MSSQL_SA_PASSWORD"
+          echo "MSSQL_SA_PASSWORD=$MSSQL_SA_PASSWORD" >> "$GITHUB_ENV"
+          echo "M1_SQL_TEST_CONNECTION=Server=localhost,14333;User ID=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true" >> "$GITHUB_ENV"
+          docker compose -p klcn-s0 -f infra/compose.yaml up -d --build --wait --wait-timeout 180
           for attempt in $(seq 1 30); do
-            if docker exec -e SQLCMDPASSWORD m1-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q "SELECT 1" >/dev/null 2>&1; then exit 0; fi
+            if curl --fail --silent http://localhost:5080/api/v1/catalog/vaccines > /tmp/catalog.json; then
+              python3 -c 'import json; assert json.load(open("/tmp/catalog.json"))["source"] == "database"'
+              exit $?
+            fi
             sleep 2
           done
           exit 1
       - run: dotnet test backend/TiemChung.slnx --configuration Release
+      - name: Repeat migration without resetting data
+        run: docker compose -p klcn-s0 -f infra/compose.yaml run --rm migrate
       - name: Build SQL-principal acceptance (not executed without approved provisioning)
         run: dotnet build backend/tests/TiemChung.BoundaryAcceptance/TiemChung.BoundaryAcceptance.csproj --configuration Release
   web:

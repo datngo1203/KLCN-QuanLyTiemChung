@@ -29,6 +29,13 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
+if (args.Contains("--migrate"))
+{
+    if (!app.Environment.IsDevelopment()) throw new InvalidOperationException("Migration command is Development only.");
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<TiemChungDbContext>().Database.MigrateAsync();
+    return;
+}
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";

@@ -1,5 +1,15 @@
 # KLCN090 — quy tắc làm việc
 
+## Khóa phạm vi (ưu tiên cao nhất)
+- Chỉ làm các mục trong docs/SCOPE.md. Muốn thêm gì phải hỏi người dùng trước.
+- Không tạo thêm tài liệu thiết kế, giai đoạn, ma trận hay ảnh review mới.
+- Mỗi thay đổi là một lát dọc: DB → API → client gọi API thật. Không dùng Sample cho chức năng mới.
+- Chưa có endpoint thì làm endpoint theo contracts/ trước, rồi mới sửa UI.
+- Giữ luồng ở mức tối thiểu, không thêm trạng thái, bước hay ngoại lệ ngoài SCOPE.md.
+- Mỗi PR một chức năng; build và test trước khi báo xong.
+
+Quyết định 25/10/2026: docs/SCOPE.md thay phạm vi cũ bên dưới khi có xung đột; Mobile đóng băng, đặt cọc/trả góp hoãn. Quy tắc bảo mật, dữ liệu và quyền thao tác vẫn giữ.
+
 Đọc README, docs/project-context.md, docs/team.md, docs/status.md trước khi sửa.
 Mỗi phiên làm giao diện Windows phải đọc docs/ui-workflow.md trước khi sửa.
 Phạm vi hiện tại: Website React, Windows WPF, Mobile Flutter; dùng chung ASP.NET Core API và SQL Server.
@@ -21,7 +31,7 @@ Mỗi gói chốt luồng demo, tiêu chí đạt và phần hoãn; review chặ
 
 ## Ponytail cho dự án
 
-Skill chính được cài tại `.agents/skills/ponytail/SKILL.md`. Áp dụng khi viết/sửa/refactor/review code; dùng mức `full` mặc định để chọn thay đổi nhỏ nhất giải quyết đủ yêu cầu, tái sử dụng code/framework và tránh làm trước cho tương lai. Không tự chuyển ultra, chạy audit toàn repo hoặc xóa code ngoài gói. Quy tắc khóa luận/nghiệp vụ/quyền thao tác trong AGENTS và `docs/thesis-scope-rules.md` vẫn có hiệu lực; Ponytail không cho phép bỏ validation/quyền/test cần thiết. Không cần cài hooks hoặc dịch vụ phụ để dùng skill này.
+Dùng duy nhất skill chung tại `C:/Users/DAT/.agents/skills/ponytail/SKILL.md`; không cài bản sao trong repo. Áp dụng khi viết/sửa/refactor/review code; dùng mức `full` mặc định để chọn thay đổi nhỏ nhất giải quyết đủ yêu cầu, tái sử dụng code/framework và tránh làm trước cho tương lai. Không tự chuyển ultra, chạy audit toàn repo hoặc xóa code ngoài gói. Quy tắc khóa luận/nghiệp vụ/quyền thao tác trong AGENTS và `docs/thesis-scope-rules.md` vẫn có hiệu lực; Ponytail không cho phép bỏ validation/quyền/test cần thiết. Không cần cài hooks hoặc dịch vụ phụ để dùng skill này.
 
 ## Tài khoản test — quyết định người dùng 24/10/2026
 
