@@ -12,4 +12,9 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Remove="MainWindow.xaml;Themes/_Gallery.xaml" />
+    <Compile Remove="MainWindow.xaml.cs;MainWindow.Api.cs" />
+  </ItemGroup>
+
 </Project>
