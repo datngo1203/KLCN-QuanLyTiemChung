@@ -1,30 +1,44 @@
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+
 namespace TiemChung.Desktop.Services;
 
-// TODO: A public read endpoint exists, but its DTO omits fields required by A04; use it only after mapping is reviewed.
-public interface ICatalogService
-{
-    bool UseSampleData { get; set; }
-    IReadOnlyList<CatalogVaccine> GetVaccines();
-    IReadOnlyList<CatalogPackage> GetPackages();
-    IReadOnlyList<string> GetInjectionTypes();
-    IReadOnlyList<string> GetVaccineTypes();
-    IReadOnlyList<string> GetPreventableDiseases();
-}
+public sealed record CatalogType(int Id, string Name, string Description);
+public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, string Origin, decimal Price, int VaccineTypeId, int InjectionTypeId);
+public sealed record CatalogPackageItem(int VaccineId, int Quantity);
+public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items);
+public sealed record CatalogList<T>(string Source, T[] Items);
 
-public sealed record CatalogVaccine(int Id, string Name, string VaccineType, string InjectionType, string Manufacturer,
-    string Origin, string Dose, decimal Volume, string Reactions, decimal Price, string Status, IReadOnlyList<string> Diseases);
-public sealed record CatalogPackage(int Id, string Name, decimal Price, IReadOnlyList<(string Vaccine, int Doses)> Items);
-
-public sealed class SampleCatalogService : ICatalogService
+public sealed class CatalogApiService(IdentityApiService? identity = null)
 {
-    public bool UseSampleData { get; set; } = true;
-    public IReadOnlyList<CatalogVaccine> GetVaccines() => UseSampleData ?
-    [
-        new(1,"Vắc xin mẫu A","Mẫu bất hoạt","Tiêm chủng mẫu","Nhà sản xuất mẫu","Xuất xứ mẫu","0,5 ml",0.5m,"Phản ứng minh họa",450000m,"Đang kinh doanh",["Bệnh mẫu 01"]),
-        new(2,"Vắc xin mẫu B","Mẫu tái tổ hợp","Tiêm chủng mẫu","Nhà sản xuất mẫu","Xuất xứ mẫu","1 liều",1m,"Thông tin mẫu",320000m,"Tạm ngừng",["Bệnh mẫu 02"])
-    ] : [];
-    public IReadOnlyList<CatalogPackage> GetPackages() => UseSampleData ? [new(1,"Gói mẫu 01",700000m,[("Vắc xin mẫu A",2)])] : [];
-    public IReadOnlyList<string> GetInjectionTypes() => UseSampleData ? ["Tiêm chủng mẫu"] : [];
-    public IReadOnlyList<string> GetVaccineTypes() => UseSampleData ? ["Mẫu bất hoạt", "Mẫu tái tổ hợp"] : [];
-    public IReadOnlyList<string> GetPreventableDiseases() => UseSampleData ? ["Bệnh mẫu 01", "Bệnh mẫu 02", "Bệnh mẫu 03"] : [];
+    private readonly IdentityApiService _identity = identity ?? IdentityApiService.Current;
+    public async Task<T[]> ListAsync<T>(string resource, string search = "") {
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, $"api/v1/catalog/{resource}?search={Uri.EscapeDataString(search)}");
+        await Check(response);
+        return (await response.Content.ReadFromJsonAsync<CatalogList<T>>())?.Items ?? throw new HttpRequestException("Phản hồi danh mục không hợp lệ.");
+    }
+    public async Task SaveAsync(string resource, int? id, object body) {
+        using var response = await _identity.SendCatalogAsync(id.HasValue ? HttpMethod.Put : HttpMethod.Post,
+            $"api/v1/catalog/{resource}" + (id.HasValue ? $"/{id}" : ""), body);
+        await Check(response);
+    }
+    public async Task DeleteAsync(string resource, int id) {
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Delete, $"api/v1/catalog/{resource}/{id}");
+        await Check(response);
+    }
+    private static async Task Check(HttpResponseMessage response) {
+        if (response.IsSuccessStatusCode) return;
+        var code = "";
+        try { using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()); code = json.RootElement.GetProperty("code").GetString(); }
+        catch (JsonException) { } catch (KeyNotFoundException) { }
+        throw new HttpRequestException(code switch {
+            "catalogReferenced" => "Không thể xóa: mục đang được tham chiếu.",
+            "validation" => "Kiểm tra tên, loại, giá nguyên VND không âm và thành phần gói.",
+            "permissionDenied" => "Bạn không có quyền ghi danh mục này.",
+            "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại.",
+            "resourceNotFound" => "Mục không còn tồn tại. Hãy tải lại danh sách.",
+            _ => $"Không thực hiện được yêu cầu (HTTP {(int)response.StatusCode})."
+        });
+    }
 }

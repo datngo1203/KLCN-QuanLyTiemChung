@@ -104,3 +104,18 @@ Remove-Item Env:Catalog__UseDemoData -ErrorAction SilentlyContinue
 Chỉ khi làm tiếp sau S8: restore với `-IncludeMobile`, dùng Android emulator với `--dart-define=API_BASE_URL=http://10.0.2.2:5080`. Emulator dùng 10.0.2.2 để tới host; iOS build cần macOS/Xcode. Không cần Flutter để chạy Web/Windows/S0.
 
 Nếu cổng đang dùng, chỉ dừng tiến trình mình đã mở hoặc đổi cổng và base URL/CORS tương ứng; không dừng tiến trình không rõ chủ. Xem [database/README.md](../database/README.md) khi cần migration thủ công; không reset/xóa DB để chạy demo.
+
+## S2 — Seed danh mục vào SQL thật
+
+Sau migration, dùng image API của nhánh S2:
+
+```powershell
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml build api
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml run --rm api --seed-catalog
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml up -d api
+```
+
+Hoặc đặt `ASPNETCORE_ENVIRONMENT=Development`, `Catalog__UseDemoData=false`, `ConnectionStrings__TiemChung` trỏ SQL Compose `tcp:127.0.0.1,14333`, rồi `dotnet run --project backend/src/TiemChung.Api --no-launch-profile -- --seed-catalog`.
+Seed thêm 2 loại tiêm, 2 loại vắc xin, 2 vắc xin và 1 gói chứa hai vắc xin, tên có `[DEMO]`, giá giả VND; chạy lại không nhân bản hoặc ghi đè dữ liệu. Chỉ Development; không xóa/reset DB. Để Web/Windows đọc SQL thật, giữ `Catalog__UseDemoData=false` (mặc định Development và Compose). Chế độ `source=demo` cũ chỉ để smoke không SQL.
+
+Windows → Danh mục: chọn một trong bốn tab, Tìm kiếm, chọn dòng để sửa/xóa hoặc Mới → nhập → Lưu. Gói chọn các vắc xin và số lượng; API kiểm quyền chuyên môn + giá. Web → Danh mục: giới thiệu vắc xin/gói, tìm tên, lọc loại tiêm/loại vắc xin và khoảng giá; lỗi kết nối hiển thị trên trang.

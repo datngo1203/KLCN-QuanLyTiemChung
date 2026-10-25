@@ -9,7 +9,7 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | Method/path | Nội dung | Auth |
 |---|---|---|
 | GET `/health` | Liveness tiến trình; không xác nhận SQL sẵn sàng | Không |
-| GET `/api/v1/catalog/vaccines?search=` | `{ source: "demo" hoặc "database", items: [{ id, name, manufacturer, origin, price }] }`; tối đa 100 mục | Không; danh mục công khai |
+| GET `/api/v1/catalog/vaccines?search=` | `{ source: "demo" hoặc "database", items: [{ id, name, manufacturer, origin, price, vaccineTypeId, injectionTypeId }] }` | Không; danh mục công khai |
 | GET `/api/v1/modules` | Module/người phụ trách/trạng thái kế hoạch cũ | Không |
 | GET `/openapi/v1.json` | Mô tả endpoint | Không; chỉ Development |
 | POST `/api/v1/auth/register` | Đăng ký email/password, trả 202 verificationPending khi mail sink sẵn sàng | Không; rate limit và mail readiness |
@@ -49,3 +49,15 @@ Admin đầu tiên: lệnh `--seed-admin` chỉ ở Development, nhận `Develop
 Endpoint nghiệp vụ chỉ được mở sau khi có xác thực và kiểm tra quyền tại API. Khách hàng chỉ đọc hồ sơ mình/người được tiêm được ủy quyền; vai trò nhân viên tách theo chức danh. Không lấy quyền từ trường do client gửi lên.
 
 Tên endpoint dự kiến có thể đổi khi review. Sửa DTO, lỗi, nullable hoặc ID phải cập nhật cả ba client; ghi thay đổi vào PR và nhờ một người khác review. Thanh toán/nhập kho cần idempotency key và transaction trước khi nối form ghi thật. Không tự kết nối ngân hàng, SMS hoặc gửi email thật.
+
+## S2 — Catalog
+
+Các route `/api/v1/catalog/{injection-types|vaccine-types|vaccines|packages}` hỗ trợ GET danh sách công khai (`{ source: "database", items: [...] }`), POST tạo (201), PUT `/{id}` cập nhật (200), DELETE `/{id}` xóa (204). Không phân trang trong danh mục nhỏ của khóa luận. GET nhận `search`; vaccines nhận thêm `vaccineTypeId`, `injectionTypeId`, `minPrice`, `maxPrice`; packages nhận cùng bộ lọc loại (ít nhất một thành phần khớp cả hai loại nếu chọn) và giá.
+
+- Loại: `{ id, name, description }`; POST/PUT bỏ id. Tên bắt buộc tối đa 120, mô tả tối đa 500 (chuỗi rỗng được phép).
+- Vắc xin: `{ id, name, manufacturer, origin, price, vaccineTypeId, injectionTypeId }`; POST/PUT bỏ id. Tên/nhà sản xuất bắt buộc tối đa 150, xuất xứ 100; hai mã loại phải tồn tại.
+- Gói: `{ id, name, price, items: [{ vaccineId, quantity, vaccineName }] }` (vaccineName chỉ bổ sung trong GET, POST/PUT chỉ cần vaccineId/quantity); POST/PUT bỏ id. Tên tối đa 150; 1–100 vắc xin khác nhau, quantity 1–100; mã vắc xin phải tồn tại. PUT thay toàn bộ thành phần trong transaction.
+- Giá là số nguyên VND không âm, tối đa 9.999.999.999.999.999. Không ghi trường y tế/kho trong S2; giữ dữ liệu trường cũ khi sửa.
+- Ghi yêu cầu Bearer của nhân viên Active có `QuanLyDanhMucChuyenMon`; vaccines/packages yêu cầu thêm `QuanLyDanhMucGia` vì form ghi cả giá. API kiểm quyền hiện hành trong transaction; không lấy quyền từ client. Thiếu phiên 401, thiếu quyền 403, đầu vào sai 400 `validation`, không tồn tại 404 `resourceNotFound`, FK ngăn xóa 409 `catalogReferenced`. Xóa gói chỉ xóa thành phần sở hữu; nếu đăng ký đang tham chiếu gói thì rollback toàn bộ. Mỗi ghi thành công có audit người thực hiện/thời điểm.
+
+Seed `--seed-catalog` chỉ ở Development, thêm dữ liệu `[DEMO]` vào SQL thật, không reset hay ghi đè dữ liệu đã có. Mobile đóng băng; trường vaccine DTO mới bổ sung tương thích trường cũ. Contract S2 cần Bảo hoặc Quý review chéo trước merge.

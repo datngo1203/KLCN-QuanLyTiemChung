@@ -72,6 +72,28 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
         return new(true, "Đã đổi mật khẩu. Vui lòng đăng nhập lại.");
     }
 
+    private readonly SemaphoreSlim _catalogGate = new(1, 1);
+    public async Task<HttpResponseMessage> SendCatalogAsync(HttpMethod method, string path, object? body = null)
+    {
+        await _catalogGate.WaitAsync();
+        try {
+            async Task<HttpResponseMessage> Send() {
+                using var request = new HttpRequestMessage(method, path);
+                if (body is not null) request.Content = JsonContent.Create(body);
+                if (_tokens is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _tokens.AccessToken);
+                return await _client.SendAsync(request);
+            }
+            var response = await Send();
+            if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized || _tokens is null) return response;
+            using var refresh = await _client.PostAsJsonAsync("api/v1/auth/refresh", new { clientType = "native", refreshToken = _tokens.RefreshToken });
+            if (!refresh.IsSuccessStatusCode) return response;
+            _tokens = await refresh.Content.ReadFromJsonAsync<Tokens>() ?? throw new HttpRequestException("Invalid refresh response.");
+            response.Dispose();
+            return await Send();
+        }
+        finally { _catalogGate.Release(); }
+    }
+
     private static async Task<string> ErrorAsync(HttpResponseMessage response)
     {
         var problem = await response.Content.ReadFromJsonAsync<Problem>();

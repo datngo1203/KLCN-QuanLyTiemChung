@@ -15,7 +15,7 @@ Nguồn sự thật duy nhất về phạm vi. Cập nhật: 25/10/2026. Hạn n
 |---|-----|-----------|----------|------------|
 | S0 | Nền: SQL Server thật, áp dụng migration, CI xanh | Đạt | API đọc/ghi được DB thật; migration chạy sạch | ☑ 25/10: Compose SQL/API thật, 2 migrations, SQL/HTTP 42/42; CI xanh |
 | S1 | Đăng nhập, đăng xuất, đổi mật khẩu, phân quyền (F01) | Đạt | Mật khẩu có hash; login thật trên Web và Windows; dùng mô hình phân quyền có sẵn ở backend, không làm thêm UI quản trị quyền; test 401/403 | ☑ 25/10: seed Admin Compose; Web browser đăng ký/xác minh/login/logout thật; Windows service HTTP/SQL login/đổi mật khẩu/logout; backend 48/48, Web 2/2, build/lint đạt. Chưa kiểm tương tác cửa sổ WPF; contract chờ review chéo |
-| S2 | Danh mục: loại tiêm chủng, loại vắc xin, vắc xin, gói (D01) | Đạt | CRUD qua API; Windows quản lý; Web giới thiệu + tìm kiếm/lọc | ☐ |
+| S2 | Danh mục: loại tiêm chủng, loại vắc xin, vắc xin, gói (D01) | Đạt | CRUD qua API; Windows quản lý; Web giới thiệu + tìm kiếm/lọc | ☑ 25/10: CRUD SQL/API, quyền/validation/chặn xóa tham chiếu; seed [DEMO] lặp lại; Windows command HTTP/SQL 4 danh mục; Web browser tìm/lọc/lỗi/thử lại; backend 53/53, Web 4/4, build/lint đạt. Chưa kiểm tương tác cửa sổ WPF; contract chờ review chéo |
 | S3 | Hồ sơ khách hàng và người được tiêm/bé (B01) | Bảo | CRUD qua API; Web xem/đăng ký hồ sơ; Windows quản lý thông tin bé | ☐ |
 | S4 | Đăng ký dịch vụ (lẻ + gói) và thanh toán một lần (B02, B03) | Bảo | Tạo đăng ký, chọn vắc xin/gói, chốt giá lúc đăng ký, ghi thanh toán (mô phỏng); Web + Windows | ☐ |
 | S5 | Lịch tiêm, ghi nhận mũi đã tiêm, theo dõi sau tiêm, nhắc lịch (Q01–Q03) | Quý | Sinh lịch các mũi; ghi nhận đã tiêm; theo dõi sau tiêm; nhắc qua Email hoặc log mô phỏng; Web xem lịch | ☐ |
