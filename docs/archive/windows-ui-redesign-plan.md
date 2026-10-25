@@ -1,8 +1,8 @@
 # Kế hoạch Thiết kế lại Giao diện Windows Desktop
 
 > [!IMPORTANT]
-> Tài liệu này là kế hoạch triển khai; dữ liệu/hành vi đối chiếu [Screen Spec](desktop-screen-specs.md), màu và style đối chiếu [Design Spec](design/design-spec-clinical-emerald.md), tiến độ đối chiếu [status.md](status.md).
-> Khi context bị compact hoặc bắt đầu phiên mới, đọc file này và [quy trình UI](ui-workflow.md) trước khi tiếp tục.
+> Tài liệu này là kế hoạch triển khai; dữ liệu/hành vi đối chiếu [Screen Spec](../desktop-screen-specs.md), màu và style đối chiếu [Design Spec](../design/design-spec-clinical-emerald.md), tiến độ đối chiếu [status.md](../status.md).
+> Khi context bị compact hoặc bắt đầu phiên mới, đọc file này và [quy trình UI](../ui-workflow.md) trước khi tiếp tục.
 
 ## Mục tiêu
 
@@ -104,7 +104,7 @@ apps/windows/
 ```
 
 ## Design System — Chuẩn phong cách Clinical Emerald / Mint Soft-Modern
-> *(Tham chiếu chi tiết độc lập tại [design-spec-clinical-emerald.md](design-spec-clinical-emerald.md))*
+> *(Tham chiếu chi tiết độc lập tại [design-spec-clinical-emerald.md](../design/design-spec-clinical-emerald.md))*
 
 Giao diện áp dụng chuẩn phong cách MedTech / Y tế hiện đại mềm mại, loại bỏ hoàn toàn phong cách xám cứng cũ:
 

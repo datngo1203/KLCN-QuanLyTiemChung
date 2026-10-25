@@ -10,5 +10,5 @@
 ## Kiểm chứng
 
 - Build: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error.
-- Ảnh WPF `RenderTargetBitmap` từ LoginWindow với resource Theme hiện tại; các ảnh dưới 500 KB: [rỗng](ui-review/ui-login-a06-a09-a11-a12-a14/login-empty.png), [bình thường](ui-review/ui-login-a06-a09-a11-a12-a14/login-normal.png), [sai thông tin](ui-review/ui-login-a06-a09-a11-a12-a14/login-error.png), [tài khoản bị khóa](ui-review/ui-login-a06-a09-a11-a12-a14/login-locked.png), [lỗi mạng](ui-review/ui-login-a06-a09-a11-a12-a14/login-network-error.png).
+- Ảnh WPF `RenderTargetBitmap` từ LoginWindow với resource Theme hiện tại; các ảnh dưới 500 KB: [rỗng](../ui-review/ui-login-a06-a09-a11-a12-a14/login-empty.png), [bình thường](../ui-review/ui-login-a06-a09-a11-a12-a14/login-normal.png), [sai thông tin](../ui-review/ui-login-a06-a09-a11-a12-a14/login-error.png), [tài khoản bị khóa](../ui-review/ui-login-a06-a09-a11-a12-a14/login-locked.png), [lỗi mạng](../ui-review/ui-login-a06-a09-a11-a12-a14/login-network-error.png).
 - Các chế độ lỗi là fixture nội bộ của `SampleAuthService`, không gọi backend. Chưa kiểm chứng xác thực/API thật, DPI hoặc đăng nhập end-to-end với dữ liệu thật.

@@ -19,7 +19,7 @@ Không tự suy diễn dữ liệu hoặc quy trình nội bộ VNVC. Dữ liệ
 Mật khẩu thật phải hash tại backend. admin/123 trong Windows là đăng nhập UI mô phỏng, chưa phải cơ chế bảo vệ.
 Client không truy cập SQL trực tiếp. Mọi kiểm tra quyền, tiền, tồn kho và ghi dữ liệu phải nằm ở API.
 Chỉ người sở hữu module sửa module đó; thay đổi contracts/schema cần người khác review. Không tự thêm GitHub username hoặc quyền cộng tác khi chưa có thông tin.
-Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; ghi đúng kết quả và các phần chưa kiểm tra trong docs/status.md.
+Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; báo đúng kết quả và các phần chưa kiểm tra. Tiến độ chỉ cập nhật cột Trạng thái trong docs/SCOPE.md; không ghi mục mới vào docs/status.md.
 
 ## Giới hạn mức khóa luận — quyết định người dùng 24/10/2026
 

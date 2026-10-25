@@ -1,76 +1,82 @@
 # Cài đặt và chạy
 
-## Công cụ
+Phạm vi hiện hành: [SCOPE.md](SCOPE.md). Cách chạy chính là Compose với SQL Server thật; chế độ danh mục demo được ghi riêng bên dưới.
 
-- Git; Node.js 24 LTS; .NET 10 SDK (đã dùng 10.0.401 để kiểm tra).
-- Windows để chạy WPF. VS Code cho web/API/mobile; Visual Studio có workload .NET desktop nếu dùng designer WPF.
-- Flutter 3.47.7 stable + Dart đi kèm; Android Studio/Android SDK và emulator cho Android. iOS build cần macOS + Xcode.
-- SQL Server 2022 Developer/Express hoặc Docker khi bắt đầu làm dữ liệu thật. Chạy demo API không cần database.
+## Công cụ và dependencies
 
-## Khôi phục dependencies
-
-```powershell
-dotnet tool restore
-dotnet restore backend/TiemChung.slnx
-dotnet restore apps/windows/TiemChung.Desktop.csproj
-npm --prefix apps/web ci
-cd apps/mobile
-flutter pub get
-flutter doctor
-```
-
-`scripts/bootstrap.ps1` làm các bước restore; báo rõ khi chưa có Flutter. Không commit node_modules/bin/obj/.dart_tool/build hoặc cấu hình bí mật.
-
-## API
+- Git, Node.js 24 LTS, .NET 10 SDK; Windows để chạy WPF.
+- Docker Desktop chạy Linux containers cho SQL Server 2022 Developer và API.
+- Flutter/Android SDK chỉ cần khi chủ động làm Mobile sau S8.
 
 ```powershell
-dotnet run --project backend/src/TiemChung.Api
+./scripts/bootstrap.ps1
+# Chỉ khi cần Mobile: ./scripts/bootstrap.ps1 -IncludeMobile
 ```
 
-`http://localhost:5080/health`, `/api/v1/catalog/vaccines`, `/openapi/v1.json`. Development dùng danh mục hư cấu và không ghi database. Nếu chạy trong Docker hoặc bỏ launch profile, cần đặt `ASPNETCORE_ENVIRONMENT=Development` rõ ràng để dùng demo. API chặn demo ở Production.
+Bootstrap restore .NET tools, backend, Windows và Web. Không commit node_modules/bin/obj hoặc cấu hình bí mật.
+
+## Compose — SQL/API thật (S0)
+
+```powershell
+# Chỉ tạo file nếu chưa có; không ghi đè password của volume đang dùng.
+if (-not (Test-Path infra/.env)) { Copy-Item infra/.env.example infra/.env }
+# Điền MSSQL_SA_PASSWORD synthetic đủ mạnh trong infra/.env local.
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml up -d --build
+Invoke-RestMethod http://127.0.0.1:5080/api/v1/catalog/vaccines
+```
+
+Compose chờ SQL tại `127.0.0.1:14333` healthy, chạy service `migrate`, rồi mở API tại `http://127.0.0.1:5080` với `Catalog:UseDemoData=false`. Catalog phải có `source=database`; DB mới có thể rỗng, không tự seed tài khoản/nghiệp vụ. Health `/health` chỉ kiểm tiến trình; `/openapi/v1.json` có trong Development.
+
+Giữ cùng project `klcn-s0` và password để dùng lại volume. Chạy lại migration không xóa dữ liệu:
+
+```powershell
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml run --rm migrate
+# Dừng và giữ DB; không thêm -v.
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml down
+```
+
+Chạy suite backend với `M1_SQL_TEST_CONNECTION` lấy từ credential local, server `tcp:127.0.0.1,14333` để dùng TCP IPv4 tường minh. Suite tạo DB test `KLCN_M1_Test_<GUID>` riêng; không đưa connection string có password vào log/Git.
+
+```powershell
+# Đặt M1_SQL_TEST_CONNECTION trong phiên shell bằng credential local trước lệnh này.
+dotnet test backend/TiemChung.slnx --configuration Release
+```
 
 ## Web
 
 ```powershell
-Copy-Item apps/web/.env.example apps/web/.env.local
+$env:VITE_API_BASE_URL='http://127.0.0.1:5080'
 npm --prefix apps/web run dev
 ```
 
-URL mặc định 5173, `.env.local` có `VITE_API_BASE_URL`. Chỉ đưa URL công khai vào VITE_*; mọi biến Vite đều có thể xuất hiện trong bundle trình duyệt. Nút Kiểm tra API gọi backend; các form còn cục bộ.
+Mở origin `http://localhost:5173` do CORS backend hiện cho phép origin này; địa chỉ API/SQL vẫn dùng `127.0.0.1`. Đây là ngoại lệ origin trình duyệt, không đổi CORS trong lượt dọn dẹp. Nút Kiểm tra API gọi backend; form còn dùng state cục bộ, chưa login backend thật. Biến VITE_* chỉ chứa giá trị công khai.
 
 ## Windows
 
 ```powershell
-$env:TIEMCHUNG_API_BASE_URL='http://localhost:5080'
+$env:TIEMCHUNG_API_BASE_URL='http://127.0.0.1:5080'
 dotnet run --project apps/windows/TiemChung.Desktop.csproj
 ```
 
-UI đang dùng login mô phỏng admin/123. Nút Kiểm tra API thử kết nối thật; không phát token hoặc cho phép ghi SQL. Mỗi module sẽ thay mock bằng API sau khi có kiểm tra quyền.
+Login hiện dùng SampleAuthService, chưa xác thực backend. Nút Kiểm tra API chỉ kiểm kết nối; không chứng minh client đã lưu dữ liệu SQL. Backend đã có một số endpoint Identity/Profiles, xem [contracts](../contracts/README.md).
 
-## Mobile
-
-```powershell
-cd apps/mobile
-flutter devices
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
-```
-
-Android emulator dùng 10.0.2.2 để tới máy Windows host. Debug manifest cho HTTP chỉ ở debug. Điện thoại thật: cùng mạng, chạy API với `--urls http://0.0.0.0:5080`, đặt API_BASE_URL thành IP LAN của máy và mở đúng cổng firewall. Không commit IP/mật khẩu riêng. iOS simulator dùng `http://localhost:5080`; dùng HTTPS cho bản phân phối. Chưa có cấu hình ký phát hành, push notification hoặc thanh toán thật.
-
-## SQL Server
-
-Xem database/README.md cho migration. Nếu dùng Docker:
+## Chế độ danh mục demo — tách khỏi S0
 
 ```powershell
-Copy-Item infra/.env.example infra/.env
-# Điền MSSQL_SA_PASSWORD đủ mạnh trong file local này
-docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml up -d --build
+# Không chạy đồng thời với Compose API trên cùng cổng 5080.
+$env:ASPNETCORE_ENVIRONMENT='Development'
+$env:Catalog__UseDemoData='true'
+dotnet run --project backend/src/TiemChung.Api --no-launch-profile --urls http://127.0.0.1:5080
 ```
 
-Compose chờ SQL tại localhost:14333 healthy, chạy service `migrate` áp dụng migration rồi mở API tại localhost:5080 với `Catalog:UseDemoData=false`. Catalog trả `source=database` (DB mới có danh sách rỗng); không seed tài khoản hoặc dữ liệu nghiệp vụ. `.env` được ignore; giữ nguyên password khi chạy lại để dùng volume cũ.
+Chế độ này chỉ cho danh mục mẫu `source=demo` và health chạy không cần DB; các route Identity/Profiles vẫn cần SQL/cấu hình tương ứng. Không dùng làm bằng chứng S0. API chặn demo ngoài Development. Kết thúc phiên demo cần bỏ override:
 
-Chạy lại migration không xóa dữ liệu: `docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml run --rm migrate`. Dừng và giữ DB: `docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml down` (không thêm `-v`). Dùng cùng tên project Compose `klcn-s0` cho các lần chạy.
+```powershell
+Remove-Item Env:Catalog__UseDemoData -ErrorAction SilentlyContinue
+```
 
-Kiểm SQL/API: `Invoke-RestMethod http://localhost:5080/api/v1/catalog/vaccines` phải có `source=database`. Chạy suite backend với `M1_SQL_TEST_CONNECTION` lấy từ credential local, server `tcp:127.0.0.1,14333` (TCP IPv4 tường minh trên Windows); suite tạo DB `KLCN_M1_Test_<GUID>` riêng, kiểm HTTP ghi/đọc SQL và quyền. Không đưa connection string có password vào log/Git.
+## Mobile — đóng băng
 
-Nếu cổng 5080/5173 đang dùng: dừng tiến trình mình đã mở hoặc đổi cổng và cập nhật base URL/CORS; không dừng tiến trình không rõ chủ. Không cần triển khai cloud để bắt đầu code.
+Chỉ khi làm tiếp sau S8: restore với `-IncludeMobile`, dùng Android emulator với `--dart-define=API_BASE_URL=http://10.0.2.2:5080`. Emulator dùng 10.0.2.2 để tới host; iOS build cần macOS/Xcode. Không cần Flutter để chạy Web/Windows/S0.
+
+Nếu cổng đang dùng, chỉ dừng tiến trình mình đã mở hoặc đổi cổng và base URL/CORS tương ứng; không dừng tiến trình không rõ chủ. Xem [database/README.md](../database/README.md) khi cần migration thủ công; không reset/xóa DB để chạy demo.

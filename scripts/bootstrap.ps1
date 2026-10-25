@@ -1,3 +1,4 @@
+param([switch]$IncludeMobile)
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 foreach ($tool in @('dotnet', 'node', 'npm.cmd')) {
@@ -13,9 +14,10 @@ if ($IsWindows -or $env:OS -eq 'Windows_NT') {
 }
 npm.cmd --prefix apps/web ci
 if ($LASTEXITCODE) { throw 'Web restore failed' }
-if (Get-Command flutter -ErrorAction SilentlyContinue) {
+if ($IncludeMobile) {
+  if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) { throw 'Thiếu Flutter; xem docs/setup.md.' }
   Push-Location apps/mobile
   try { flutter pub get; if ($LASTEXITCODE) { throw 'Flutter restore failed' } }
   finally { Pop-Location }
-} else { Write-Warning 'Chưa có Flutter trong PATH; xem docs/setup.md. Mobile chưa được restore.' }
+} else { Write-Host 'Mobile đóng băng; dùng -IncludeMobile nếu cần restore Flutter.' }
 Write-Host 'Hoàn tất dependencies đã có công cụ. Xem README để chạy từng ứng dụng.'

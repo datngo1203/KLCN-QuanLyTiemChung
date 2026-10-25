@@ -12,7 +12,7 @@ Nhánh `ui/themes`, PR #19. Lượt này đổi phong cách sang **Clinical Neut
 ## Kiểm chứng
 
 - `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release`: **đạt, 0 warning, 0 error**.
-- Nạp gallery bằng WPF `XamlReader` với resource theme, render bằng `RenderTargetBitmap`, xem lại [ảnh phần trên](ui-review/ui-themes/gallery.png) và [ảnh phần dưới](ui-review/ui-themes/gallery-bottom.png). Ảnh lần lượt 98.361 và 75.093 byte, dưới 500 KB/tệp.
+- Nạp gallery bằng WPF `XamlReader` với resource theme, render bằng `RenderTargetBitmap`, xem lại [ảnh phần trên](../ui-review/ui-themes/gallery.png) và [ảnh phần dưới](../ui-review/ui-themes/gallery-bottom.png). Ảnh lần lượt 98.361 và 75.093 byte, dưới 500 KB/tệp.
 - Tính tương phản từ mã màu: Neutral 6,56:1; Info 6,16:1; Success 6,81:1; Warning 6,84:1; Danger 5,91:1. Chữ trắng trên Primary thường/hover/pressed: 6,45:1 / 8,64:1 / 11,10:1.
 - `git diff --check`: đạt sau khi chuẩn hóa cuối tệp.
 

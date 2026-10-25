@@ -11,5 +11,5 @@
 ## Kiểm chứng
 
 - Build: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error.
-- Ảnh WPF ở `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`, tất cả dưới 500 KB: [bình thường](ui-review/ui-login-a06-a09-a11-a12-a14/a06-normal.png), [cảnh báo cho về sớm](ui-review/ui-login-a06-a09-a11-a12-a14/a06-error.png), [nguồn dữ liệu rỗng](ui-review/ui-login-a06-a09-a11-a12-a14/a06-empty.png), [phản ứng cấp cứu](ui-review/ui-login-a06-a09-a11-a12-a14/a06-safety.png).
+- Ảnh WPF ở `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`, tất cả dưới 500 KB: [bình thường](../ui-review/ui-login-a06-a09-a11-a12-a14/a06-normal.png), [cảnh báo cho về sớm](../ui-review/ui-login-a06-a09-a11-a12-a14/a06-error.png), [nguồn dữ liệu rỗng](../ui-review/ui-login-a06-a09-a11-a12-a14/a06-empty.png), [phản ứng cấp cứu](../ui-review/ui-login-a06-a09-a11-a12-a14/a06-safety.png).
 - Chụp `RenderTargetBitmap` từ View với Theme hiện hành và `SampleVaccinationService`; đã xem các ảnh. Chưa kiểm chứng API, quyền phiên thật, dữ liệu kho/tiêm thật, xử trí y tế, thao tác toàn bàn phím hoặc DPI khác.

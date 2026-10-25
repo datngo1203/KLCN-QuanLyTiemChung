@@ -62,7 +62,7 @@ Các cặp chữ Foreground trên Background ở bảng trên phải đạt WCAG
 
 ## 5. Kiểm chứng
 
-Gallery độc lập phải thể hiện trạng thái các component và khối “Bảng + bộ lọc” với tiêu đề trang, thanh công cụ, bảng 5 hàng đủ nhóm trạng thái, phân trang. Chụp ảnh phần trên và phần dưới tại `docs/ui-review/ui-themes/`, dưới 500 KB mỗi PNG. Build Windows Release và ghi lệnh/kết quả, giới hạn kiểm tra vào `docs/status-themes.md`.
+Gallery độc lập phải thể hiện trạng thái các component và khối “Bảng + bộ lọc” với tiêu đề trang, thanh công cụ, bảng 5 hàng đủ nhóm trạng thái, phân trang. Chụp ảnh phần trên và phần dưới tại `docs/ui-review/ui-themes/`, dưới 500 KB mỗi PNG. Build Windows Release và ghi lệnh/kết quả, giới hạn kiểm tra vào `docs/archive/status-themes.md`.
 
 ## Lịch sử cập nhật
 
