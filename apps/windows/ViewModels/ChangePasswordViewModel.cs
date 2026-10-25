@@ -11,7 +11,7 @@ public sealed class ChangePasswordViewModel : ViewModelBase
 
     public ChangePasswordViewModel(IChangePasswordService? service = null)
     {
-        _service = service ?? new SampleChangePasswordService();
+        _service = service ?? IdentityApiService.Current;
         ChangePasswordCommand = new RelayCommand(async _ => await ChangePasswordAsync(), _ => CanChangePassword);
         CancelCommand = new RelayCommand(_ => Clear());
     }
@@ -25,7 +25,7 @@ public sealed class ChangePasswordViewModel : ViewModelBase
     public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) { OnPropertyChanged(nameof(IsNotBusy)); NotifyCanChange(); } } }
     public bool IsNotBusy => !IsBusy;
     public bool CanChangePassword => !IsBusy && !string.IsNullOrEmpty(CurrentPassword) && !string.IsNullOrEmpty(NewPassword)
-        && !string.IsNullOrEmpty(Confirmation) && NewPassword == Confirmation && NewPassword != CurrentPassword && NewPassword.Length >= 6;
+        && !string.IsNullOrEmpty(Confirmation) && NewPassword == Confirmation && NewPassword != CurrentPassword && NewPassword.Length is >= 12 and <= 128;
     public RelayCommand ChangePasswordCommand { get; }
     public RelayCommand CancelCommand { get; }
 

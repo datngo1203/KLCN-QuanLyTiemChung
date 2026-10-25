@@ -7,6 +7,12 @@ public static class IdentityEndpoints
     public static void MapIdentityEndpoints(this WebApplication app)
     {
         var g = app.MapGroup("/api/v1/auth");
+        g.MapPost("/change-password", async (HttpContext c, IdentitySessions s, IdentityAuthorization auth, CancellationToken ct) => {
+            var p = await Payload(c, ["currentPassword", "newPassword"], ct);
+            Limit(c, "changePassword", "");
+            await s.ChangePasswordAsync(c, auth, Value(p, "currentPassword"), Value(p, "newPassword"), ct);
+            return Results.NoContent();
+        });
         g.MapPost("/register", async (HttpContext c, IdentityRegistration s, CancellationToken ct) => {
             var p = await Payload(c, ["email","password"], ct);
             Limit(c,"register",Value(p,"email"));

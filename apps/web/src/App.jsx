@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 import ApiProbe from './ApiProbe'
+import Account from './Account'
 import './theme.css'
 
 const pages = [
@@ -35,6 +36,7 @@ const initialDraft = {
 }
 
 function App() {
+  const [account, setAccount] = useState(null)
   const [page, setPage] = useState('home')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -65,11 +67,12 @@ function App() {
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
           {pages.map(([id, label]) => <button key={id} className={page === id ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
-        <button className="icon-button account-button" onClick={() => { go('schedule'); notify('Đang mở hồ sơ của bạn.') }} aria-label="Tài khoản">♙</button>
+        <button className="button outline account-button" onClick={() => go('account')} aria-label="Tài khoản">{account ? 'Tài khoản' : 'Đăng nhập'}</button>
         <button className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? '×' : '☰'}</button>
       </header>
 
       <main>
+        {page === 'account' && <Account account={account} setAccount={setAccount} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} notify={notify} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} chooseService={chooseService} notify={notify} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}

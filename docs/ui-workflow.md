@@ -7,7 +7,7 @@
 - Làm trong `apps/windows/ViewsV2/`, tái sử dụng `apps/windows/Themes/` và token `CE.*`; không thiết kế lại UI ngoài lát được giao.
 - Mỗi chức năng mới đi trọn DB → API → client gọi API thật. Chưa có endpoint thì chốt contract và làm endpoint trước; không tạo Sample mới để thay chức năng thật.
 - Giữ nhãn **Dữ liệu mẫu** cho màn mẫu còn tồn tại; không coi kiểm tra UI mẫu là đã lưu API/SQL.
-- Chỉ có hai vai trò `NhanVien` và `KhachHang` theo SCOPE. API kiểm tra quyền và phạm vi hồ sơ; ẩn menu không thay kiểm tra quyền. Giữ validation, xử lý lỗi và ngăn gửi trùng đã có.
+- Dùng mô hình phân quyền có sẵn ở backend theo SCOPE; không làm thêm UI quản trị quyền. API kiểm tra quyền và phạm vi hồ sơ; ẩn menu không thay kiểm tra quyền. Giữ validation, xử lý lỗi và ngăn gửi trùng đã có.
 - Đối chiếu trường dữ liệu/command thuộc lát hiện hành; kiểm trạng thái bình thường, lỗi, rỗng, bàn phím và nút vô hiệu. Không bổ sung bước nghiệp vụ ngoài SCOPE.
 
 ## Phân công và hoàn tất
