@@ -13,7 +13,7 @@ Nguồn sự thật duy nhất về phạm vi. Cập nhật: 25/10/2026. Hạn n
 
 | # | Lát | Phụ trách | Xong khi | Trạng thái |
 |---|-----|-----------|----------|------------|
-| S0 | Nền: SQL Server thật, áp dụng migration, CI xanh | Đạt | API đọc/ghi được DB thật; migration chạy sạch | ☐ |
+| S0 | Nền: SQL Server thật, áp dụng migration, CI xanh | Đạt | API đọc/ghi được DB thật; migration chạy sạch | ☑ 25/10: Compose SQL/API thật, 2 migrations, SQL/HTTP 42/42; CI xanh |
 | S1 | Đăng nhập, đăng xuất, đổi mật khẩu, phân quyền 2 vai trò (F01) | Đạt | Mật khẩu có hash; login thật trên Web và Windows; test 401/403 | ☐ |
 | S2 | Danh mục: loại tiêm chủng, loại vắc xin, vắc xin, gói (D01) | Đạt | CRUD qua API; Windows quản lý; Web giới thiệu + tìm kiếm/lọc | ☐ |
 | S3 | Hồ sơ khách hàng và người được tiêm/bé (B01) | Bảo | CRUD qua API; Web xem/đăng ký hồ sơ; Windows quản lý thông tin bé | ☐ |

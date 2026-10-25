@@ -64,13 +64,13 @@ Xem database/README.md cho migration. Nếu dùng Docker:
 ```powershell
 Copy-Item infra/.env.example infra/.env
 # Điền MSSQL_SA_PASSWORD đủ mạnh trong file local này
-docker compose --env-file infra/.env -f infra/compose.yaml up -d --build
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml up -d --build
 ```
 
 Compose chờ SQL tại localhost:14333 healthy, chạy service `migrate` áp dụng migration rồi mở API tại localhost:5080 với `Catalog:UseDemoData=false`. Catalog trả `source=database` (DB mới có danh sách rỗng); không seed tài khoản hoặc dữ liệu nghiệp vụ. `.env` được ignore; giữ nguyên password khi chạy lại để dùng volume cũ.
 
-Chạy lại migration không xóa dữ liệu: `docker compose --env-file infra/.env -f infra/compose.yaml run --rm migrate`. Dừng và giữ DB: `docker compose --env-file infra/.env -f infra/compose.yaml down` (không thêm `-v`). Dùng cùng tên project Compose cho các lần chạy; máy này dùng `-p klcn-s0`.
+Chạy lại migration không xóa dữ liệu: `docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml run --rm migrate`. Dừng và giữ DB: `docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml down` (không thêm `-v`). Dùng cùng tên project Compose `klcn-s0` cho các lần chạy.
 
-Kiểm SQL/API: `Invoke-RestMethod http://localhost:5080/api/v1/catalog/vaccines` phải có `source=database`. Chạy suite backend với `M1_SQL_TEST_CONNECTION` lấy từ credential local, server `localhost,14333`; suite tạo DB `KLCN_M1_Test_<GUID>` riêng, kiểm HTTP ghi/đọc SQL và quyền. Không đưa connection string có password vào log/Git.
+Kiểm SQL/API: `Invoke-RestMethod http://localhost:5080/api/v1/catalog/vaccines` phải có `source=database`. Chạy suite backend với `M1_SQL_TEST_CONNECTION` lấy từ credential local, server `tcp:127.0.0.1,14333` (TCP IPv4 tường minh trên Windows); suite tạo DB `KLCN_M1_Test_<GUID>` riêng, kiểm HTTP ghi/đọc SQL và quyền. Không đưa connection string có password vào log/Git.
 
 Nếu cổng 5080/5173 đang dùng: dừng tiến trình mình đã mở hoặc đổi cổng và cập nhật base URL/CORS; không dừng tiến trình không rõ chủ. Không cần triển khai cloud để bắt đầu code.

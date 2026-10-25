@@ -5,7 +5,8 @@
 - Phạm vi hiện hành: [SCOPE.md](SCOPE.md); chỉ triển khai S0. Mobile/UI redesign hoãn. Đã đóng PR #21, #27, #29, #30, #31 theo phạm vi mới; không xóa nhánh/evidence.
 - Local trước S0 giữ trong stash `pre-S0 local Ponytail changes 2026-10-25`; commit demo `57fc5e4` giữ trên `codex/windows-api-sql-demo`. Nhánh `feat/s0-sql-ci` từ develop `8ccfeef`; dùng schema/M1 đã review ở #32/#33, không thay contract/schema hoặc triển khai S1.
 - Compose chờ SQL healthy → lệnh Development `--migrate` → API catalog dùng DB thật. CI chạy cùng Compose, kiểm source database, suite SQL/HTTP và migration lặp lại; giữ các job client hiện có.
-- Backend Release build đạt 0 warning/error. Docker Desktop đã chạy; SQL image đang tải. Chưa xác nhận migration/runtime/suite SQL/CI của nhánh mới; S0 chưa đánh dấu xong.
+- Backend Release build đạt 0 warning/error. [CI S0 40176052630](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/40176052630) tại `f54e7a4` xanh cả backend/Web/Windows/Mobile: Compose SQL/migration/catalog `source=database`, backend 42/42 (0 skip), migration lặp lại không thay dữ liệu.
+- S0 local đã kiểm 25/10: project Compose `klcn-s0`, SQL Server 2022 Developer healthy tại `127.0.0.1:14333`; API `http://localhost:5080` trả catalog `source=database`. DB `TiemChung` có `InitialCreate` + `M1Identity` (36 bảng); service migrate exit 0, chạy lần hai báo up to date. Backend Release **42/42, 0 skip** với `tcp:127.0.0.1,14333`, gồm HTTP ghi/đọc và quyền; lượt dùng `localhost` timeout, đã cập nhật hướng dẫn TCP IPv4. Giữ volume/fixture DB và credential synthetic trong sổ local, không đổi LocalDB demo/SQLEXPRESS. Chưa nghiệm thu S1–S8 hoặc SQL-principal acceptance; job acceptance trong CI chỉ build.
 
 ## Ponytail skill cho dự án — 24/10/2026
 
