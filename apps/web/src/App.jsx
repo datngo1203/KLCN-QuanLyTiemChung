@@ -287,7 +287,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
   if (!unlocked && !skipIdentityCheck) {
     return (
       <section className="payment-page wrap">
-        <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán & Đặt cọc" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." />
+        <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán dịch vụ" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." />
         <IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Xác nhận thông tin hồ sơ" description="Sử dụng mã định danh của người được tiêm hoặc người giám hộ đã đăng ký." />
         <button className="button text-button" onClick={() => go('register')}>← Quay lại đăng ký</button>
       </section>
