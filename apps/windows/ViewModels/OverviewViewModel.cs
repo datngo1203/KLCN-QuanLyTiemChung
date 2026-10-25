@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using TiemChung.Desktop.Services;
+using TiemChung.Desktop.ViewsV2;
 using TiemChung.Desktop.ViewModels.Samples;
 
 namespace TiemChung.Desktop.ViewModels;
@@ -31,12 +32,12 @@ public sealed class OverviewViewModel : ViewModelBase
         _navigate = navigate;
         _dashboardService = dashboardService ?? new SampleDashboardService();
         var initialSnapshot = _dashboardService.GetSnapshot(DateTime.Today, DateTime.Today);
-        WorkItems = new ObservableCollection<OverviewWorkItem>(initialSnapshot.WorkItems);
+        WorkItems = new ObservableCollection<OverviewWorkItem>(initialSnapshot.WorkItems.Where(item => NavigationRegistry.IsVisible(item.ScreenId)));
         WorkItemsView = CollectionViewSource.GetDefaultView(WorkItems);
         WorkItemsView.Filter = MatchesFilters;
-        _stages = initialSnapshot.Stages;
+        _stages = initialSnapshot.Stages.Where(stage => NavigationRegistry.IsVisible(stage.ScreenId)).ToArray();
         _metrics = initialSnapshot.Metrics;
-        _hasPeriodData = initialSnapshot.WorkItems.Count > 0;
+        _hasPeriodData = WorkItems.Count > 0;
         RefreshCommand = new RelayCommand(_ => Refresh(), _ => HasValidPeriod);
         ClearFiltersCommand = new RelayCommand(_ => { SearchText = ""; ActiveStage = ""; FromDate = DateTime.Today; ToDate = DateTime.Today; Refresh(); });
         SelectWorkModeCommand = new RelayCommand(p => { WorkMode = p as string ?? "Lịch hẹn"; });
@@ -99,10 +100,10 @@ public sealed class OverviewViewModel : ViewModelBase
             ? _dashboardService.GetSnapshot(FromDate!.Value.Date, ToDate!.Value.Date)
             : OverviewSampleData.CreateEmptySnapshot();
         WorkItems.Clear();
-        foreach (var item in snapshot.WorkItems) WorkItems.Add(item);
-        _stages = snapshot.Stages;
+        foreach (var item in snapshot.WorkItems.Where(item => NavigationRegistry.IsVisible(item.ScreenId))) WorkItems.Add(item);
+        _stages = snapshot.Stages.Where(stage => NavigationRegistry.IsVisible(stage.ScreenId)).ToArray();
         _metrics = snapshot.Metrics;
-        _hasPeriodData = snapshot.WorkItems.Count > 0;
+        _hasPeriodData = WorkItems.Count > 0;
         OnPropertyChanged(nameof(Stages));
         OnPropertyChanged(nameof(Metrics));
         OnPropertyChanged(nameof(HasPeriodData));

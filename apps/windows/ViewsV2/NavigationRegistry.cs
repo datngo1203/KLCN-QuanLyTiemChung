@@ -10,10 +10,12 @@ public static class NavigationRegistry
     [
         new("Tổng quan", [new("A01", "Tổng quan")]),
         new("Tiếp nhận", [new("A03", "Hồ sơ khách hàng"), new("A07", "Đăng ký dịch vụ"), new("A08", "Thanh toán")]),
-        new("Chuyên môn", [new("A02", "Khám sàng lọc"), new("A06", "Tiêm & theo dõi")]),
-        new("Danh mục & kho", [new("A04", "Danh mục"), new("A05", "Lô vắc xin & kho"), new("A10", "Ưu đãi")]),
+        new("Chuyên môn", [new("A06", "Tiêm & theo dõi")]),
+        new("Danh mục", [new("A04", "Danh mục"), new("A10", "Ưu đãi")]),
         new("Quản trị", [new("A09", "Lịch hẹn & lịch sử"), new("A11", "Báo cáo"), new("A12", "Nhân viên & tài khoản"), new("A14", "Đổi mật khẩu")])
     ];
+
+    public static bool IsVisible(string id) => Groups.Any(group => group.Screens.Any(screen => screen.Id == id));
 
     public static UserControl CreatePage(string id, ShellViewModel shell) => id switch
     {
