@@ -20,8 +20,8 @@ public sealed class IdentityRecoverySqlTests
         var cs=new SqlConnectionStringBuilder(source) { InitialCatalog="KLCN_M1_Test_"+Guid.NewGuid().ToString("N") };
         var options=new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(cs.ConnectionString).Options;
         await using var db=new TiemChungDbContext(options);
-        var migrations=db.Database.GetMigrations().ToArray();
-        await db.GetService<IMigrator>().MigrateAsync(migrations[^2]);
+        var legacyMigration=db.Database.GetMigrations().First();
+        await db.GetService<IMigrator>().MigrateAsync(legacyMigration);
         // Raw insert targets the legacy schema before RowVersion exists.
         await db.Database.ExecuteSqlRawAsync("""
             INSERT INTO NhanVien (HoTen,CCCD,SoDienThoai,Email,BoPhan,ChucDanh,TrangThai)

@@ -6,7 +6,7 @@ import Catalog from './Catalog'
 import './theme.css'
 
 const pages = [
-  ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
+  ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
   ['payment', 'Thanh toán'], ['schedule', 'Lịch tiêm / Lịch sử'],
 ]
 

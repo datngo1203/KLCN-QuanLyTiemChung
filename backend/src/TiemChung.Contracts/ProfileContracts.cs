@@ -4,13 +4,13 @@ namespace TiemChung.Contracts;
 public sealed record CustomerDto(
     int Id,
     string FullName,
-    string IdentityNumber,
+    string? IdentityNumber,
     string PhoneNumber,
     string Email);
 
 public sealed record CreateCustomerRequest(
     string FullName,
-    string IdentityNumber,
+    string? IdentityNumber,
     string PhoneNumber,
     string Email);
 

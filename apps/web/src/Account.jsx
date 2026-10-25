@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { identity } from './api/identity'
+import Profiles from './Profiles'
 
 export default function Account({ account, setAccount }) {
   const [mode, setMode] = useState('login')
@@ -48,6 +49,7 @@ export default function Account({ account, setAccount }) {
         <button className="button text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setPassword(''); setToken(''); setError(''); setMessage('') }}>{mode === 'login' ? 'Tạo tài khoản khách hàng' : 'Quay lại đăng nhập'}</button>
       </fieldset>
     </form>}
+    {account && <Profiles key={account.accountId} />}
     {error && <p role="alert">{error}</p>}
     {message && <p role="status">{message}</p>}
   </section>

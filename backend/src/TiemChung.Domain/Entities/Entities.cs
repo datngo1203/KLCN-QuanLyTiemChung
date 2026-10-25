@@ -48,7 +48,7 @@ public sealed class KhachHang
 {
     public int MaKhachHang { get; set; }
     public string HoTen { get; set; } = string.Empty;
-    public string CCCD { get; set; } = string.Empty;
+    public string? CCCD { get; set; }
     public string SoDienThoai { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
 }

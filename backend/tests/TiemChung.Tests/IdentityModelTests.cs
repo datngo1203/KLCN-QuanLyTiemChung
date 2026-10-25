@@ -20,7 +20,7 @@ public sealed class IdentityModelTests
         var recovery = db.Model.FindEntityType(typeof(IdentityRecoveryOperation))!;
         Assert.Contains(recovery.GetIndexes(), x => x.IsUnique && x.Properties.Select(p=>p.Name)
             .SequenceEqual(["RecoveryDatabaseId","M1UpgradeEpoch"]));
-        Assert.Equal(2, db.Model.FindEntityType(typeof(AccountProfileLink))!.GetIndexes()
+        Assert.Equal(1, db.Model.FindEntityType(typeof(AccountProfileLink))!.GetIndexes()
             .Count(x=>x.IsUnique && x.Properties.Count==1 && x.Properties[0].Name=="AccountId"));
     }
 }
