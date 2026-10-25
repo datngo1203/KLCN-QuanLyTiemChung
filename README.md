@@ -17,7 +17,7 @@ powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 Mở các terminal riêng:
 
 ```powershell
-# Backend: http://localhost:5080 — chưa cần SQL khi chạy Development
+# Backend: http://localhost:5080 — cần SQL và cấu hình local theo docs/setup.md
 dotnet run --project backend/src/TiemChung.Api
 # Website: http://localhost:5173
 npm --prefix apps/web run dev

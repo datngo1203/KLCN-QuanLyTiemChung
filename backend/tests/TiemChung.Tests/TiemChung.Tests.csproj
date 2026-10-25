@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../apps/windows/ViewModels/CatalogViewModel.cs" Link="Windows/CatalogViewModel.cs" />
+    <Compile Include="../../../apps/windows/ViewModels/ViewModelBase.cs" Link="Windows/ViewModelBase.cs" />
+    <Compile Include="../../../apps/windows/ViewModels/RelayCommand.cs" Link="Windows/RelayCommand.cs" />
+    <Compile Include="../../../apps/windows/Services/ICatalogService.cs" Link="Windows/ICatalogService.cs" />
     <Compile Include="../../../apps/windows/Services/IdentityApiService.cs" Link="Windows/IdentityApiService.cs" />
     <Compile Include="../../../apps/windows/Services/IAuthService.cs" Link="Windows/IAuthService.cs" />
     <Compile Include="../../../apps/windows/Services/IChangePasswordService.cs" Link="Windows/IChangePasswordService.cs" />

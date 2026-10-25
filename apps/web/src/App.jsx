@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import './App.css'
 import ApiProbe from './ApiProbe'
 import Account from './Account'
+import Catalog from './Catalog'
 import './theme.css'
 
 const pages = [
@@ -17,12 +18,7 @@ const services = [
   { id: 'pack-adult', name: 'Gói tiêm chủng Người lớn & Tiền hôn nhân', category: 'Gói vắc xin', icon: '📦', price: '4.800.000 đ', description: 'Các mũi phòng bệnh thiết yếu cho người lớn.', inStock: false }, // Hết gói -> Test hàng đợi
 ]
 
-const diseaseVaccineInfo = [
-  { id: 'measles', disease: 'Sởi', vaccine: 'Vắc xin sởi; vắc xin phối hợp MR hoặc MMR', source: 'https://www.who.int/teams/immunization-vaccines-and-biologicals/diseases/measles' },
-  { id: 'influenza', disease: 'Cúm mùa', vaccine: 'Vắc xin cúm mùa', source: 'https://www.who.int/news-room/fact-sheets/detail/influenza-(seasonal)' },
-  { id: 'hpv', disease: 'Nhiễm HPV', vaccine: 'Vắc xin HPV', source: 'https://www.who.int/teams/immunization-vaccines-and-biologicals/diseases/human-papillomavirus-vaccines-%28HPV%29/hpv-clearing-house/vaccines-safety' },
-  { id: 'diphtheria', disease: 'Bạch hầu, ho gà và uốn ván', vaccine: 'Vắc xin phối hợp có thành phần phòng các bệnh tương ứng', source: 'https://www.who.int/teams/immunization-vaccines-and-biologicals/essential-programme-on-immunization' },
-]
+
 
 const offers = [
   { id: 'thang10', title: 'Ưu đãi tiêm chủng tháng 10', code: 'THANG10', discount: 'Giảm 10%', period: '01/10/2026 – 31/10/2026', status: 'Đang áp dụng' },
@@ -40,10 +36,9 @@ function App() {
   const [page, setPage] = useState('home')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('Tất cả')
   const [scheduleTab, setScheduleTab] = useState('Lịch tiêm')
   const [toast, setToast] = useState('')
-  const [selectedService, setSelectedService] = useState(services[0])
+  const [selectedService] = useState(services[0])
   const [draft, setDraft] = useState(initialDraft)
   const [registration, setRegistration] = useState(null)
   const [paymentStatus, setPaymentStatus] = useState('Chờ thanh toán')
@@ -55,7 +50,6 @@ function App() {
     window.__clinicToast = window.setTimeout(() => setToast(''), 3200)
   }
   const go = (next) => { if (next === 'payment') setPaymentFromRegistration(false); setMobileMenuOpen(false); setPage(next); window.scrollTo({ top: 0, behavior: 'smooth' }) }
-  const chooseService = (service) => { if (!service.inStock) return; setSelectedService(service); go('register') }
 
   return (
     <div className="app-shell">
@@ -74,7 +68,7 @@ function App() {
       <main>
         {page === 'account' && <Account account={account} setAccount={setAccount} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} notify={notify} />}
-        {page === 'catalog' && <Catalog query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} chooseService={chooseService} notify={notify} />}
+        {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {page === 'register' && <Register go={go} notify={notify} selectedService={selectedService} draft={draft} setDraft={setDraft} onSubmit={() => { setRegistration(draft); setPaymentStatus(selectedService.inStock ? 'Chờ thanh toán' : 'Đang chờ hàng đợi'); setPaymentFromRegistration(true); setPage('payment'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
         {page === 'payment' && <Payment go={go} selectedService={selectedService} registration={registration} draft={draft} status={paymentStatus} skipIdentityCheck={paymentFromRegistration} onConfirm={() => { setPaymentStatus('Đã thanh toán'); notify('Đã cập nhật trạng thái thanh toán.') }} />}
@@ -125,13 +119,6 @@ function Home({ go, query, setQuery, notify }) {
 function ServiceCard({ icon, title, note, onClick }) { return <button className="service-card" onClick={onClick}><span className="service-icon">{icon}</span><span className="service-title">{title}</span><span className="service-note">{note}</span><span className="card-arrow">↗</span></button> }
 function ProcessStep({ n, icon, title, onClick }) { return <button className="process-step" onClick={onClick}><span className="step-number">{n}</span><span className="step-icon">{icon}</span><b>{title}</b><small>Thao tác nhanh</small></button> }
 function PageIntro({ eyebrow, title, text }) { return <div className="page-intro"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div> }
-
-function Catalog({ query, setQuery, filter, setFilter, chooseService, notify }) {
-  const items = useMemo(() => services.filter((item) => (filter === 'Tất cả' || item.category === filter) && `${item.name} ${item.category}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))), [filter, query])
-  const diseaseItems = useMemo(() => diseaseVaccineInfo.filter(item => `${item.disease} ${item.vaccine}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))), [query])
-  const tabs = ['Tất cả', 'Vắc xin lẻ', 'Gói vắc xin', 'Bệnh & vắc xin']
-  return <section className="catalog-page wrap"><PageIntro eyebrow="DANH MỤC DỊCH VỤ" title="Danh mục mũi lẻ và gói vắc xin" text="Tra cứu các mũi tiêm lẻ và gói vắc xin." /><div className="notice"><span>ⓘ</span><div><b>Thông tin kho vắc xin</b><p>Các sản phẩm tạm hết chưa nhận đăng ký.</p></div></div><div className="catalog-controls"><SearchBox query={query} setQuery={setQuery} onSearch={() => {}} /><div className="filter-tabs" role="tablist" aria-label="Lọc danh mục">{tabs.map((name) => <button role="tab" aria-selected={filter === name} className={filter === name ? 'filter-tab selected' : 'filter-tab'} key={name} onClick={() => setFilter(name)}>{name}</button>)}</div></div>{filter === 'Bệnh & vắc xin' ? <div className="disease-grid">{diseaseItems.map(item => <article className="disease-card" key={item.id}><span className="disease-icon">✚</span><div className="card-kicker">BỆNH CÓ THỂ PHÒNG NGỪA</div><h3>{item.disease}</h3><div className="disease-arrow">↓</div><div className="disease-vaccine"><span>Vắc xin liên quan</span><b>{item.vaccine}</b></div><a href={item.source} target="_blank" rel="noreferrer">Nguồn WHO ↗</a></article>)}</div> : <div className="catalog-grid">{items.map((item, index) => <article className="catalog-card" key={item.id}><div className={`catalog-art art-${index % 3}`}><span>{item.icon}</span></div><div className="catalog-info"><div className="card-kicker">{item.category.toLocaleUpperCase('vi')} {item.inStock ? '· 🟢 Còn thuốc' : '· 🟠 Tạm hết'}</div><h3>{item.name}</h3><p>{item.description}</p><div className="demo-price">{item.price}</div><div className="catalog-actions"><button className="button outline" disabled={!item.inStock} onClick={() => { chooseService(item); notify(`Thông tin ${item.name}.`) }}>Xem chi tiết</button><button className="button primary" disabled={!item.inStock} onClick={() => chooseService(item)}>{item.inStock ? 'Đăng ký ngay' : 'Tạm hết'}</button></div></div></article>)}</div>}{filter === 'Bệnh & vắc xin' && diseaseItems.length === 0 && <div className="empty-state">Không có mục phù hợp với nội dung tìm kiếm.</div>}{filter !== 'Bệnh & vắc xin' && items.length === 0 && <div className="empty-state">Không có mục phù hợp với nội dung tìm kiếm.</div>}</section>
-}
 
 function Offers({ go, notify }) {
   const [query, setQuery] = useState('')

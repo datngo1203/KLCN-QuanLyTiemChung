@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using TiemChung.Contracts;
 using TiemChung.Infrastructure.Data;
 using Xunit;
@@ -12,7 +13,8 @@ namespace TiemChung.Tests;
 public sealed class ApiTests
 {
     private static WebApplicationFactory<Program> Create() => new WebApplicationFactory<Program>()
-        .WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
+        .WithWebHostBuilder(builder => builder.UseEnvironment("Development").ConfigureAppConfiguration((_, config) =>
+            config.AddInMemoryCollection(new Dictionary<string,string?> { ["Catalog:UseDemoData"]="true" })));
 
     [Fact]
     public async Task HealthRunsWithoutDatabase()
