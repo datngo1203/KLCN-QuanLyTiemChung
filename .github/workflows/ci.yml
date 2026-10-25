@@ -33,6 +33,8 @@ jobs:
           echo "IDENTITY_MAIL_DIRECTORY=$IDENTITY_MAIL_DIRECTORY" >> "$GITHUB_ENV"
           echo "M1_SQL_TEST_CONNECTION=Server=localhost,14333;User ID=sa;Password=$MSSQL_SA_PASSWORD;TrustServerCertificate=true" >> "$GITHUB_ENV"
           docker compose -p klcn-s0 -f infra/compose.yaml up -d --build --wait --wait-timeout 180
+          sudo chown "$(docker compose -p klcn-s0 -f infra/compose.yaml exec -T api id -u)" "$IDENTITY_MAIL_DIRECTORY"
+          docker compose -p klcn-s0 -f infra/compose.yaml exec -T api sh -c 'test -w "$Identity__DevelopmentMailDirectory"'
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://localhost:5080/api/v1/catalog/vaccines > /tmp/catalog.json; then
               python3 -c 'import json; assert json.load(open("/tmp/catalog.json"))["source"] == "database"'
