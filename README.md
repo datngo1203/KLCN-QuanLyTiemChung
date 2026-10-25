@@ -61,7 +61,7 @@ infra/                       Docker Compose cho API + SQL Server phát triển
 
 ## Đọc tiếp
 
-- [Cài đặt và chạy](docs/setup.md), [phân công và cách làm Git](docs/team.md), [backlog](docs/backlog.md), [13 issue trên GitHub](docs/task-board.md).
+- [Cài đặt và chạy](docs/setup.md), [phân công và cách làm Git](docs/team.md), [backlog](docs/archive/backlog.md), [13 issue trên GitHub](docs/archive/task-board.md).
 - [Phạm vi và quyết định nghiệp vụ](docs/project-context.md), [kiến trúc](docs/architecture.md), [hợp đồng API](contracts/README.md).
 - [Database](database/README.md), [kiểm thử](docs/testing.md), [trạng thái kiểm chứng](docs/status.md).
 - [UML tham khảo](docs/diagrams/README.md), [nguồn và nguồn gốc giao diện](docs/source-map.md).

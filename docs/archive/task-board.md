@@ -18,4 +18,4 @@ Mỗi issue có phạm vi, điều kiện hoàn tất, nhãn người phụ trá
 | D04 | Đạt | [#12](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/12) |
 | T01 | Cả nhóm | [#13](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/13) |
 
-Các mốc không gán deadline giả: (1) nền tảng/quyền; (2) module nghiệp vụ; (3) tích hợp/kiểm thử. Chi tiết việc ở [backlog](backlog.md), cách phối hợp ở [phân công](team.md).
+Các mốc không gán deadline giả: (1) nền tảng/quyền; (2) module nghiệp vụ; (3) tích hợp/kiểm thử. Chi tiết việc ở [backlog](backlog.md), cách phối hợp ở [phân công](../team.md).

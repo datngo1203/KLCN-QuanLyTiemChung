@@ -10,5 +10,5 @@
 ## Kiểm chứng
 
 - Build: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error.
-- Ảnh dưới 500 KB tại `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`: [bình thường](ui-review/ui-login-a06-a09-a11-a12-a14/a12-normal.png), [CCCD lỗi](ui-review/ui-login-a06-a09-a11-a12-a14/a12-cccd-error.png), [tên đăng nhập lỗi](ui-review/ui-login-a06-a09-a11-a12-a14/a12-username-error.png), [quyền bổ sung](ui-review/ui-login-a06-a09-a11-a12-a14/a12-permissions.png), [rỗng](ui-review/ui-login-a06-a09-a11-a12-a14/a12-empty.png). Đã xem ảnh bình thường sau khi chỉnh độ rộng cột.
+- Ảnh dưới 500 KB tại `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`: [bình thường](../ui-review/ui-login-a06-a09-a11-a12-a14/a12-normal.png), [CCCD lỗi](../ui-review/ui-login-a06-a09-a11-a12-a14/a12-cccd-error.png), [tên đăng nhập lỗi](../ui-review/ui-login-a06-a09-a11-a12-a14/a12-username-error.png), [quyền bổ sung](../ui-review/ui-login-a06-a09-a11-a12-a14/a12-permissions.png), [rỗng](../ui-review/ui-login-a06-a09-a11-a12-a14/a12-empty.png). Đã xem ảnh bình thường sau khi chỉnh độ rộng cột.
 - Chưa kiểm chứng backend, quyền phiên thực, lưu trữ/đồng bộ nhân sự hoặc DPI khác.

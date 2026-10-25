@@ -10,5 +10,5 @@
 ## Kiểm chứng
 
 - Build: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error.
-- Ảnh dưới 500 KB tại `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`: [bình thường](ui-review/ui-login-a06-a09-a11-a12-a14/a14-normal.png), [mật khẩu hiện tại sai](ui-review/ui-login-a06-a09-a11-a12-a14/a14-error.png), [rỗng](ui-review/ui-login-a06-a09-a11-a12-a14/a14-empty.png). Đã xem ảnh lỗi sau khi nạp Theme.
+- Ảnh dưới 500 KB tại `docs/ui-review/ui-login-a06-a09-a11-a12-a14/`: [bình thường](../ui-review/ui-login-a06-a09-a11-a12-a14/a14-normal.png), [mật khẩu hiện tại sai](../ui-review/ui-login-a06-a09-a11-a12-a14/a14-error.png), [rỗng](../ui-review/ui-login-a06-a09-a11-a12-a14/a14-empty.png). Đã xem ảnh lỗi sau khi nạp Theme.
 - Chưa kiểm chứng xác thực/đổi mật khẩu qua API, lưu phiên thật hoặc DPI khác.

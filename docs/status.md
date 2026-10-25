@@ -1,5 +1,12 @@
 # Trạng thái khung — 19/10/2026
 
+## Dọn phạm vi — đợt 1, 25/10/2026
+
+- Đã sửa workflow/đóng góp/hướng dẫn lát, inventory endpoint theo code, setup Compose SQL thật, archive 18 tệp lịch sử và sửa liên kết; bỏ bản Ponytail trong repo, merge Navigation trùng và cho bootstrap Mobile thành tùy chọn. Dùng skill Ponytail chung; chưa làm đợt 2.
+- Windows Release build `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: đạt, 0 warning/error. Parser bootstrap, liên kết Markdown local và `git diff --check` đạt.
+- Lượt đầu Web lint dừng vì thiếu oxlint. Sau yêu cầu tiếp tục: `npm --prefix apps/web ci` đạt (0 vulnerabilities); `npm --prefix apps/web run lint` và `npm --prefix apps/web run build` đều đạt. `dotnet test backend/TiemChung.slnx --configuration Release --no-restore` với SQL Compose `tcp:127.0.0.1,14333`: **42/42 pass, 0 failed, 0 skipped**.
+- Không sửa backend/schema/migration, bộ m1*/m1br*, Sample service, A06/A12 hoặc dependency Pkcs. Chưa kiểm Login → shell → logout; đây là phần đợt 2 chưa thực hiện. Chưa chạy Mobile hoặc SQL-principal acceptance.
+
 ## Chuẩn bị + S0 — 25/10/2026
 
 - Phạm vi hiện hành: [SCOPE.md](SCOPE.md); chỉ triển khai S0. Mobile/UI redesign hoãn. Đã đóng PR #21, #27, #29, #30, #31 theo phạm vi mới; không xóa nhánh/evidence.
@@ -10,7 +17,7 @@
 
 ## Ponytail skill cho dự án — 24/10/2026
 
-- Theo yêu cầu người dùng, cài skill chính [Ponytail](../.agents/skills/ponytail/SKILL.md) từ DietrichGebert/ponytail, pin commit `09c434ab73ca43761c5d8b0c5d341926c2fba710`, tại `.agents/skills/ponytail` (repo scope). Giữ nguyên SKILL upstream, kèm LICENSE/SOURCE; AGENTS hướng dẫn full mặc định theo rule khóa luận. Không cài plugin/hooks/CLI/npm hoặc skill audit bổ sung; không đụng code ứng dụng/SQL/credential.
+- Theo yêu cầu người dùng, cài skill chính Ponytail (bản trong repo đã bỏ ngày 25/10/2026; dùng skill chung `C:/Users/DAT/.agents/skills/ponytail/SKILL.md`) từ DietrichGebert/ponytail, pin commit `09c434ab73ca43761c5d8b0c5d341926c2fba710`, tại `.agents/skills/ponytail` (repo scope). Giữ nguyên SKILL upstream, kèm LICENSE/SOURCE; AGENTS hướng dẫn full mặc định theo rule khóa luận. Không cài plugin/hooks/CLI/npm hoặc skill audit bổ sung; không đụng code ứng dụng/SQL/credential.
 - Kiểm cấu trúc/frontmatter, đối chiếu nội dung skill với blob upstream và diff whitespace; không chạy build/test/runtime vì chỉ cài instructions. Chưa thực hiện một task code với skill để đo hiệu quả, không khẳng định benchmark upstream áp dụng cho dự án.
 
 ## Giới hạn mức khóa luận — 24/10/2026
@@ -129,13 +136,13 @@
 - PR #26 implementa Login riêng và các màn A06 Tiêm & theo dõi, A09 Lịch & nhắc lịch, A11 Báo cáo, A12 Nhân viên & tài khoản, A14 Đổi mật khẩu. Mỗi màn có service/sample service, ảnh review và status riêng; không sửa Theme chung, MainWindow hay menu.
 - Login dùng `IAuthService`/`SampleAuthService`; A06/A09/A11/A12/A14 chỉ thao tác dữ liệu mẫu, chưa có endpoint thật cho các luồng này. README ghi backend chưa có xác thực. Mật khẩu không lưu ở client và cần hash tại backend.
 - Đã reset ViewModel tài khoản/đổi mật khẩu khi bắt đầu phiên mới để không giữ state người dùng trước. A11 xóa snapshot/kết quả xuất khi thay bộ lọc cho đến khi tạo báo cáo lại.
-- Kiểm tra: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error; CI của PR #26 thành công tại lần kiểm tra hiện tại. Các ảnh normal/error/empty và giới hạn từng màn ở `docs/ui-review/ui-login-a06-a09-a11-a12-a14/` và `docs/status-login.md`, `docs/status-a06.md`, `docs/status-a09.md`, `docs/status-a11.md`, `docs/status-a12.md`, `docs/status-a14.md`.
+- Kiểm tra: `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release` — thành công, 0 warning, 0 error; CI của PR #26 thành công tại lần kiểm tra hiện tại. Các ảnh normal/error/empty và giới hạn từng màn ở `docs/ui-review/ui-login-a06-a09-a11-a12-a14/` và `docs/archive/status-login.md`, `docs/archive/status-a06.md`, `docs/archive/status-a09.md`, `docs/archive/status-a11.md`, `docs/archive/status-a12.md`, `docs/archive/status-a14.md`.
 - Chưa kiểm chứng API, phân quyền phiên, ghi dữ liệu nghiệp vụ, gửi nhắc thật, xuất file thật, xác thực/đổi mật khẩu thật hoặc DPI khác.
 
 ## Sửa góp ý review phase3 PR #22 — 2026-10-22
 
 - Nhánh `ui/phase3-review-fixes` xử lý 5 góp ý: bỏ khởi tạo kép `StartupUri`/shell; chuyển nguyên cột kết luận/chỉ định A02 khi thu hẹp; điều hướng nhóm đơn đến màn của nhóm; tải lại snapshot A01 (bảng, luồng, chỉ số) theo cùng khoảng ngày và đặt số liệu về 0 khi rỗng; bind nhãn nguồn A02.
-- Kiểm tra Release build 0 warning/error và harness WPF STA tạm ngoài repo cho 5 luồng đều PASS; ảnh A01/A02, lệnh và giới hạn tại [status riêng](status-phase3-review-fixes.md). Chưa kiểm tra đăng nhập thủ công, DPI/màn hình hoặc backend thật.
+- Kiểm tra Release build 0 warning/error và harness WPF STA tạm ngoài repo cho 5 luồng đều PASS; ảnh A01/A02, lệnh và giới hạn tại [status riêng](archive/status-phase3-review-fixes.md). Chưa kiểm tra đăng nhập thủ công, DPI/màn hình hoặc backend thật.
 
 ## Quy trình UI Windows và phân công tài liệu — 2026-10-22
 
@@ -146,7 +153,7 @@
 ## Chốt tài liệu vai trò, ma trận và token UI — 2026-10-22
 
 - Trên nhánh `ui/docs`, ghi nhận Phương án 1 với sáu chức danh, 12 mã quyền logic cần backend seed, ma trận A01–A12/A14 gồm 78 ô ĐÃ DUYỆT; Login công khai. A04 tách quyền chuyên môn/giá theo nhóm trường, A12 dùng tab Quyền bổ sung. Đây là đặc tả, chưa có seed hoặc kiểm tra quyền chạy thật.
-- A01 đổi đặc tả bộ lọc sang Từ ngày/Đến ngày; Design Spec thêm nhãn cho sáu trạng thái luồng, hết hạn và component Alert.Safety, Alert.Info, Badge, Tab, trạng thái chọn danh sách. Plan được lưu tại `docs/windows-ui-redesign-plan.md` để version cùng các đặc tả; bản ngoài repo được đồng bộ.
+- A01 đổi đặc tả bộ lọc sang Từ ngày/Đến ngày; Design Spec thêm nhãn cho sáu trạng thái luồng, hết hạn và component Alert.Safety, Alert.Info, Badge, Tab, trạng thái chọn danh sách. Plan được lưu tại `docs/archive/windows-ui-redesign-plan.md` để version cùng các đặc tả; bản ngoài repo được đồng bộ.
 - Kiểm tra tài liệu: rà đủ 13 hàng × 6 cột ma trận, 12 mã quyền và `git diff --check`. Chưa build/chạy UI hoặc kiểm tra API vì chỉ sửa tài liệu. Các thay đổi code có sẵn trong working tree không thuộc commit tài liệu này.
 
 ## Hoãn tích hợp quyền UI — 2026-10-22
@@ -193,11 +200,11 @@ Chưa kiểm chứng: chạy migration/transaction trên SQL Server, Docker Comp
 
 Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Username nhóm đã cung cấp: Đạt `datngo1203`, Bảo `giabao9373`, Quý `ngocquydev`. GitHub hiện chỉ trả quyền đọc cho Bảo/Quý; thử gán issue chưa được lưu do tài khoản không đủ quyền assignee. Chưa tự thay đổi mức quyền cộng tác. Thông tin tiến độ nằm ở tài liệu mới này; `ui-checklist-inherited.md` phản ánh lịch sử đợt UI cũ.
 
-Đã tạo 13 issue và 3 milestone; liên kết ở [bảng công việc](task-board.md). Repo hiện public theo yêu cầu ngày 20/10/2026. Branch protection chưa được kiểm tra lại sau khi repo chuyển public; xem [phân công](team.md). Có mẫu Dependabot, nhưng PR nâng phiên bản tự động tạm tắt (giới hạn 0), nhóm có thể bật sau khi bắt đầu tích hợp.
+Đã tạo 13 issue và 3 milestone; liên kết ở [bảng công việc](archive/task-board.md). Repo hiện public theo yêu cầu ngày 20/10/2026. Branch protection chưa được kiểm tra lại sau khi repo chuyển public; xem [phân công](team.md). Có mẫu Dependabot, nhưng PR nâng phiên bản tự động tạm tắt (giới hạn 0), nhóm có thể bật sau khi bắt đầu tích hợp.
 
 ## Phân tích WPF — Giai đoạn 0, 2026-10-21
 
-- Đã lập [Screen Spec dữ liệu và hành vi](analysis/wpf-phase0-screen-spec.md) cho Login, A01–A14 và ngữ cảnh phiên/điều hướng. Mỗi màn có mục đích/vai trò, trường dữ liệu/kiểu/bắt buộc, hành động/điều kiện, trạng thái đặc biệt, validation và dữ liệu chưa được UI kết nối.
+- Đã lập Screen Spec dữ liệu và hành vi (tệp lịch sử không có trong repo) cho Login, A01–A14 và ngữ cảnh phiên/điều hướng. Mỗi màn có mục đích/vai trò, trường dữ liệu/kiểu/bắt buộc, hành động/điều kiện, trạng thái đặc biệt, validation và dữ liệu chưa được UI kết nối.
 - Căn cứ: 27 thực thể Domain, mapping EF, RegistrationRules, CatalogContracts, Windows API client, endpoint hiện có, test source và logic handler C#. Không dùng nội dung XAML cũ để lấy bố cục hoặc style; chưa viết giao diện mới.
 - Chưa có ViewModel/ICommand trong Windows: không thể liệt kê property ViewModel bị UI bỏ quên như thể các lớp đó đã tồn tại. Tài liệu ghi riêng các trường Domain/DTO chưa nối, trạng thái code-behind đã dùng và phần transient state chỉ là đề xuất.
 - Các điểm cần review trước triển khai: dữ liệu dị ứng/chống chỉ định, liên kết chỉ định–mũi tiêm–đăng ký, unique theo dõi mỗi mũi, công thức/đơn vị ưu đãi, báo cáo và chính sách Identity. Các validator không có bằng chứng được ghi là đề xuất/chưa xác nhận.
@@ -206,7 +213,7 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 
 ## Đề xuất bố cục WPF — Giai đoạn 1, 2026-10-21
 
-- Đã lập [đề xuất bố cục mới](design/wpf-phase1-layout-proposal.md) cho khung ứng dụng, LOGIN và A01–A14. Mỗi màn có wireframe ASCII, lý do gom cụm, hành vi/trạng thái và cách chuyển bố cục khi thu hẹp. Trạng thái toàn bộ đề xuất: **chờ người dùng duyệt**, chưa triển khai giao diện.
+- Đã lập đề xuất bố cục mới (tệp lịch sử không có trong repo) cho khung ứng dụng, LOGIN và A01–A14. Mỗi màn có wireframe ASCII, lý do gom cụm, hành vi/trạng thái và cách chuyển bố cục khi thu hẹp. Trạng thái toàn bộ đề xuất: **chờ người dùng duyệt**, chưa triển khai giao diện.
 - Đề xuất điều hướng theo năm nhóm công việc; A13/A14 truy cập từ hồ sơ cá nhân. Các màn dùng cấu trúc theo nhiệm vụ: bàn khám, sổ lô, ca tiêm, đăng ký ba bước, sổ giao dịch, agenda và báo cáo theo tham số. Không dùng XAML cũ làm nguồn bố cục/style.
 - Đã đưa bản sao nguyên nội dung [Design Spec Clinical Emerald](design/design-spec-clinical-emerald.md) vào dự án; SHA256 khớp file gốc trong thư mục Antigravity. Bản gốc không thay đổi. Tinh chỉnh màu nút chính/chữ để dễ đọc được ghi riêng là đề xuất cần duyệt, không sửa Design Spec gốc.
 - Giữ nguyên các giới hạn Giai đoạn 0: thiếu ViewModel và contract nghiệp vụ; không tự suy luận công thức ưu đãi, dị ứng/chống chỉ định, quan hệ chỉ định–mũi tiêm, nhiều người trong một đăng ký hoặc chính sách quyền. Duyệt bố cục không đồng nghĩa duyệt thay schema/contract.
@@ -225,14 +232,14 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 
 ## Chuẩn bị Giai đoạn 3 — 2026-10-21
 
-- Đã kiểm tra lại cấu trúc Windows và contract binding: chưa có ViewModel/ICommand/DataContext trong C# được kiểm kê; yêu cầu còn để `[tên màn]`. Chi tiết và danh sách property/Command shell còn thiếu tại [kiểm tra binding Giai đoạn 3](analysis/wpf-phase3-binding-preflight.md).
+- Đã kiểm tra lại cấu trúc Windows và contract binding: chưa có ViewModel/ICommand/DataContext trong C# được kiểm kê; yêu cầu còn để `[tên màn]`. Chi tiết và danh sách property/Command shell còn thiếu tại kiểm tra binding Giai đoạn 3 (tệp lịch sử không có trong repo).
 - Tuân thủ yêu cầu hỏi trước khi thêm property/logic: chưa tạo binding giả, ViewModel, dữ liệu hoặc màn mới. Không mở XAML trong `_Legacy/` hay XAML màn cũ. Không sửa runtime; chưa có build/kiểm tra UI mới cho Giai đoạn 3.
 - Bước tiếp theo: người dùng chọn mã/tên màn và cung cấp đường dẫn ViewModel, hoặc cho phép tạo ViewModel UI tối thiểu. Sau đó mới chốt mapping và triển khai shell + màn đó trong ViewsV2.
 
 ## Shell + A01 mới — Giai đoạn 3, 2026-10-21
 
 - Người dùng chọn A01 và cho phép tạo ViewModel UI tối thiểu trong `ViewModels/`, một file RelayCommand chung; Sample/TODO riêng, không thay nghiệp vụ/service/data access. Đã liệt kê file dự kiến trước khi làm.
-- Đã viết mới `ViewsV2/MainWindow` và `ViewsV2/OverviewView`, dùng Theme CE. Shell có nhóm ngang/menu dọc khi hẹp, tìm chức năng, menu tài khoản và phản hồi cho màn chưa triển khai. A01 có chọn ngày, lọc/tìm danh sách, trạng thái công việc, tóm tắt và health API riêng. [Mapping binding, cách chạy và giới hạn](../apps/windows/ViewsV2/README.md).
+- Đã viết mới `ViewsV2/MainWindow` và `ViewsV2/OverviewView`, dùng Theme CE. Shell có nhóm ngang/menu dọc khi hẹp, tìm chức năng, menu tài khoản và phản hồi cho màn chưa triển khai. A01 có chọn ngày, lọc/tìm danh sách, trạng thái công việc, tóm tắt và health API riêng. Mapping binding, cách chạy và giới hạn (tệp lịch sử không có trong repo).
 - Tạo đúng `ShellViewModel`, `OverviewViewModel`, `ViewModelBase` và `RelayCommand.cs`; chỉ Sample phục vụ A01 tại `ViewModels/Samples/OverviewSampleData.cs`, có badge/nhãn nguồn/TODO. Không tạo VM cho màn khác; không thêm endpoint, quy tắc tiền/y tế hoặc truy cập SQL.
 - App startup gọi lại Login cục bộ hiện có, sau đăng nhập mở shell V2. Đăng xuất gọi lại Login cũ; chưa thiết kế lại Login. `MainWindow.xaml`/code-behind cũ vẫn giữ nguyên. Không mở XAML trong `_Legacy/` hoặc dùng XAML cũ làm bố cục.
 - Kiểm tra: Release build 0 warnings/0 errors; harness WPF STA **26 checks pass**, không có warning/error binding trong các trạng thái đã chạy. Đã kiểm tra lọc/tìm/ngày không hợp lệ/CanExecute, phản hồi điều hướng, menu/focus, cửa sổ rộng 1440×900 và hẹp 980×620 DIP, summary đổi vị trí, các SystemCommands thu nhỏ/phóng to/khôi phục. Đã rà ảnh render rộng/hẹp/menu/cuối trang.
@@ -248,4 +255,4 @@ Phân công là đề xuất khởi tạo theo yêu cầu người dùng. Userna
 - **3.5:** kiểm tra mạch 40–200, nhiệt độ 35–42, tâm thu > tâm trương; thông báo lỗi cạnh trường. Không áp thêm giới hạn huyết áp ngoài quan hệ tâm thu > tâm trương được yêu cầu.
 - **3.6:** các trường bị giao diện cũ bỏ quên đã có vị trí nhập/hiển thị tương ứng. `MaNhanVien`, `MaPhieuKham`, ID catalog thật và timestamp vẫn chờ phiên/API; không cho người dùng nhập actor tùy ý.
 - Reuse các style `CE.*`; chỉ bổ sung `CE.Alert.Safety` trong `Themes/Cards.xaml`. Không sửa backend, contract, schema hoặc XAML `_Legacy/`.
-- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp [ảnh toàn màn hình A02](screenshots/a02-screen.png) ở trạng thái form Sample hợp lệ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.
+- Build Release `dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release --no-restore`: thành công, **0 warnings, 0 errors**. Harness STA ngoài repo kiểm tra các biên mạch/nhiệt độ, quan hệ huyết áp, gợi ý sốt, dị ứng bắt buộc, chỉ định bắt buộc/chọn danh mục, lý do bắt buộc và CanExecute Lưu. Đã chụp ảnh toàn màn hình A02 (tệp lịch sử không có trong repo) ở trạng thái form Sample hợp lệ. Chưa kiểm chứng API/auth/lưu thật, luồng Login end-to-end hoặc DPI.

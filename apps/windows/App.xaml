@@ -14,7 +14,6 @@
                 <ResourceDictionary Source="Themes/Cards.xaml" />
                 <ResourceDictionary Source="Themes/BadgesAlerts.xaml" />
                 <ResourceDictionary Source="Themes/Navigation.xaml" />
-                <ResourceDictionary Source="Themes/Navigation.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

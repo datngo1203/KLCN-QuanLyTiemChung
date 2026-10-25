@@ -32,7 +32,7 @@ git commit -m "feat(registration): support singles and packages"
 git push -u origin feature/bao-registration
 ```
 
-GitHub Issues là nguồn việc; docs/backlog.md là bản nhóm chức năng. Chưa đặt deadline giả hoặc xem phân công này là đã được các thành viên xác nhận. Repo không tự gửi tin nhắn hoặc mời ai khi thiếu username.
+GitHub Issues là nguồn việc; docs/archive/backlog.md là bản nhóm chức năng. Chưa đặt deadline giả hoặc xem phân công này là đã được các thành viên xác nhận. Repo không tự gửi tin nhắn hoặc mời ai khi thiếu username.
 
 ## Trạng thái bảo vệ nhánh
 
