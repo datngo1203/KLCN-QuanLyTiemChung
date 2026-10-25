@@ -7,7 +7,7 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed class PaymentViewModel : ViewModelBase
 {
     private readonly IPaymentService _service;
-    private string _search = "", _amountText = "", _method = "Tiền mặt", _type = "Đặt cọc", _status = "Thành công", _feedback = "";
+    private string _search = "", _amountText = "", _method = "Tiền mặt", _type = "Toàn bộ", _status = "Thành công", _feedback = "";
     private PaymentInvoice? _selectedInvoice;
     private PaymentRecord? _selectedPayment;
     private bool _isSaving;
@@ -22,7 +22,7 @@ public sealed class PaymentViewModel : ViewModelBase
     public ObservableCollection<PaymentInvoice> Invoices { get; }
     public ObservableCollection<PaymentRecord> History { get; }
     public IReadOnlyList<string> Methods { get; } = ["Tiền mặt", "Chuyển khoản", "Thẻ ngân hàng"];
-    public IReadOnlyList<string> Types { get; } = ["Đặt cọc", "Trả góp / Một phần", "Toàn bộ"];
+    public IReadOnlyList<string> Types { get; } = ["Toàn bộ"];
     public IReadOnlyList<string> Statuses { get; } = ["Thành công", "Đang xử lý", "Thất bại"];
     public RelayCommand TimPhieuCommand { get; }
     public RelayCommand XacNhanThanhToanCommand { get; }
