@@ -16,6 +16,7 @@ public sealed class IdentityRateLimits
         lock(gate) {
             foreach(var key in buckets.Where(x=>x.Value.Count==0 || now-x.Value.Last()>TimeSpan.FromHours(1)).Select(x=>x.Key).ToArray()) buckets.Remove(key);
             if(action=="login") Take("login:"+email+":"+ip,10,TimeSpan.FromMinutes(15),now);
+            else if(action=="changePassword") Take("password:"+ip,10,TimeSpan.FromMinutes(15),now);
             else if(action=="confirm") Take("confirm:"+ip,10,TimeSpan.FromMinutes(15),now);
             else {
                 Take("mail-ip:"+ip,5,TimeSpan.FromHours(1),now);

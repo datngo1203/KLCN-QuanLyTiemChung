@@ -4,7 +4,7 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 
 ## Đã có
 
-Đối chiếu `Program.cs`, `IdentityEndpoints.cs`, `ProfileEndpoints.cs`; OpenAPI ở `/openapi/v1.json` trong Development. Các route dưới đây đã được map, không đồng nghĩa Web/Windows đã tích hợp đăng nhập thật: Windows vẫn dùng SampleAuthService, Web chưa có luồng login backend; Mobile đóng băng.
+Đối chiếu `Program.cs`, `IdentityEndpoints.cs`, `ProfileEndpoints.cs`; OpenAPI ở `/openapi/v1.json` trong Development. S1 nối Web/Windows vào Identity; Mobile đóng băng. Các màn nghiệp vụ mẫu chưa đồng nghĩa đã tích hợp SQL.
 
 | Method/path | Nội dung | Auth |
 |---|---|---|
@@ -18,6 +18,7 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | POST `/api/v1/auth/login` | identifier/password/clientType; cấp access/refresh | Không; kiểm credential, trạng thái và rate limit |
 | POST `/api/v1/auth/refresh` | Đổi token phiên | Refresh token; Web thêm cookie, Origin và CSRF |
 | POST `/api/v1/auth/logout` | Thu hồi phiên | Refresh token; Web thêm cookie, Origin và CSRF |
+| POST `/api/v1/auth/change-password` | `{ currentPassword, newPassword }`; mật khẩu mới 12–128 ký tự, khác hiện tại; trả 204, thu hồi mọi phiên, đăng nhập lại | Bearer; kiểm mật khẩu hiện tại, transaction/hash/audit; sai mật khẩu 401 |
 | GET `/api/v1/auth/me` | Tài khoản, phạm vi và capabilities hiện hành | Bearer access token |
 | GET `/api/v1/customers?search=&page=&pageSize=` | Danh sách khách hàng, có phân trang | Bearer; nhân viên có quyền đọc hoặc khách hàng theo liên kết hồ sơ Active |
 | POST `/api/v1/customers` | Tạo khách hàng | Bearer; nhân viên LeTan theo code hiện tại |
@@ -25,13 +26,15 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | POST `/api/v1/recipients` | Tạo người được tiêm gắn khách hàng | Bearer; nhân viên LeTan theo code hiện tại |
 | PUT `/api/v1/recipients/{id}` | Route đã có nhưng chưa cập nhật: trả 409 identityApprovalRequired sau kiểm quyền/tồn tại/validation | Bearer; nhân viên LeTan |
 
-Phân quyền backend hiện vẫn dùng chức danh/quyền M1; chưa nghiệm thu mô hình hai vai trò S1. Chưa có endpoint đổi mật khẩu hoặc HTTP quản lý tài khoản. Có endpoint không đồng nghĩa CRUD Profiles đã hoàn tất.
+S1 dùng nguyên mô hình chức danh/quyền backend, không làm thêm UI quản trị quyền. Web S1 và Windows dùng `clientType=native` để nhận access/refresh trong response và chỉ giữ trong bộ nhớ; fetch Web dùng `credentials=omit`, không lưu browser storage/cookie. Luồng `clientType=web` cookie/Origin/CSRF hiện có được giữ nguyên. Không phục hồi phiên sau tải lại/đóng ứng dụng; logout gửi refresh token để thu hồi tại API. Chưa có HTTP quản lý tài khoản. Có endpoint không đồng nghĩa CRUD Profiles đã hoàn tất.
+
+Đăng ký demo chỉ nhận địa chỉ `@example.invalid`, vẫn cần xác minh email. Cấu hình Development mail pickup ngoài Git theo `docs/setup.md`; token không được trả qua HTTP hoặc ghi log. Chưa gửi email thật.
 
 ## Dự kiến — chưa có endpoint thực thi
 
 | Module | Endpoint dự kiến | Người làm |
 |---|---|---|
-| Identity | POST auth/change-password; quản lý accounts/permissions | Đạt |
+| Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Profiles | Hoàn thiện cập nhật hồ sơ và CRUD còn thiếu theo S3; không coi PUT đang trả 409 là đã cập nhật được | Bảo |
 | Registration | GET/POST registrations, POST registrations/{id}/items; hỗ trợ lẻ + gói | Bảo |
 | Finance | POST registrations/{id}/payments; GET payments; trạng thái đặt cọc/trả góp | Bảo |

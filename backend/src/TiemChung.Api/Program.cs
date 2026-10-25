@@ -29,6 +29,12 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
+if (args.Contains("--seed-admin"))
+{
+    using var scope = app.Services.CreateScope();
+    await DevelopmentAdminSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment, app.Configuration);
+    return;
+}
 if (args.Contains("--migrate"))
 {
     if (!app.Environment.IsDevelopment()) throw new InvalidOperationException("Migration command is Development only.");

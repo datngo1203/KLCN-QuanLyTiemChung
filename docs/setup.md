@@ -21,6 +21,15 @@ Bootstrap restore .NET tools, backend, Windows và Web. Không commit node_modul
 # Chỉ tạo file nếu chưa có; không ghi đè password của volume đang dùng.
 if (-not (Test-Path infra/.env)) { Copy-Item infra/.env.example infra/.env }
 # Điền MSSQL_SA_PASSWORD synthetic đủ mạnh trong infra/.env local.
+# S1: bổ sung một lần nếu chưa có (giữ nguyên key đã có).
+# Hai key là Base64 của 32 byte ngẫu nhiên độc lập; thư mục mail phải ở ngoài Git.
+$mailDirectory = Join-Path $env:USERPROFILE 'Documents/Codex/KLCN090-Coordination/S1/mail'
+New-Item -ItemType Directory -Force $mailDirectory | Out-Null
+# Điền 3 biến trong infra/.env, không in key/credential ra log:
+# IDENTITY_SIGNING_KEY=<Base64 key 32 bytes>
+# IDENTITY_MAIL_ENCRYPTION_KEY=<Base64 key 32 bytes>
+# IDENTITY_MAIL_DIRECTORY=C:/Users/<user>/Documents/Codex/KLCN090-Coordination/S1/mail
+# Sinh từng key bằng [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).
 docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml up -d --build
 Invoke-RestMethod http://127.0.0.1:5080/api/v1/catalog/vaccines
 ```
@@ -49,7 +58,7 @@ $env:VITE_API_BASE_URL='http://127.0.0.1:5080'
 npm --prefix apps/web run dev
 ```
 
-Mở origin `http://localhost:5173` do CORS backend hiện cho phép origin này; địa chỉ API/SQL vẫn dùng `127.0.0.1`. Đây là ngoại lệ origin trình duyệt, không đổi CORS trong lượt dọn dẹp. Nút Kiểm tra API gọi backend; form còn dùng state cục bộ, chưa login backend thật. Biến VITE_* chỉ chứa giá trị công khai.
+Mở origin `http://localhost:5173` do CORS backend cho phép origin này; địa chỉ API/SQL vẫn dùng `127.0.0.1`. Nút Đăng nhập mở đăng nhập/đăng ký tài khoản khách hàng qua API thật. Token chỉ giữ trong bộ nhớ, tải lại trang cần đăng nhập lại. Biến VITE_* chỉ chứa giá trị công khai. Các form nghiệp vụ ngoài S1 còn dùng state mẫu.
 
 ## Windows
 
@@ -58,7 +67,22 @@ $env:TIEMCHUNG_API_BASE_URL='http://127.0.0.1:5080'
 dotnet run --project apps/windows/TiemChung.Desktop.csproj
 ```
 
-Login hiện dùng SampleAuthService, chưa xác thực backend. Nút Kiểm tra API chỉ kiểm kết nối; không chứng minh client đã lưu dữ liệu SQL. Backend đã có một số endpoint Identity/Profiles, xem [contracts](../contracts/README.md).
+Login nhân viên, Đổi mật khẩu và Đăng xuất gọi API thật; access/refresh token chỉ giữ trong bộ nhớ. Đổi mật khẩu thành công thu hồi mọi phiên, mở lại Login. Nếu logout lỗi mạng, thử lại để API thu hồi phiên. Các màn nghiệp vụ mẫu không chứng minh đã lưu SQL. Xem [contracts](../contracts/README.md).
+
+## S1 — Admin đầu tiên và đăng ký khách hàng demo
+
+Sau migration, chạy seed Development dưới đây. Lấy credential synthetic từ sổ local ngoài Git `C:/Users/DAT/Documents/Codex/KLCN090-Coordination/TEST-ACCOUNTS.local.md`, hoặc chọn và ghi sổ trước khi seed. Không đưa username/password vào repo, PR hay log công khai. Không cần CLI/ACL M1; không dùng bộ m1br*.
+
+```powershell
+# Đặt DevelopmentSeed__Username và DevelopmentSeed__Password trong môi trường shell
+# bằng credential synthetic local (password 12–128 ký tự; username 3–100, không @).
+docker compose --env-file infra/.env -p klcn-s0 -f infra/compose.yaml run --rm -e DevelopmentSeed__Username -e DevelopmentSeed__Password api --seed-admin
+Remove-Item Env:DevelopmentSeed__Username,Env:DevelopmentSeed__Password -ErrorAction SilentlyContinue
+```
+
+Seed chỉ chạy ở `Development`, tạo nhân viên Admin/Technical, hash bằng backend, cấp 12 quyền đã có và audit trong cùng transaction. Nếu DB đã có Admin thì không đổi account, hash hoặc quyền. Không reset dữ liệu hay chạy recovery. Có thể chạy trực tiếp API với `--seed-admin` khi đã đặt connection string local và môi trường Development.
+
+Web: Đăng nhập → Tạo tài khoản khách hàng → dùng email synthetic `@example.invalid` → nhập mã xác minh từ file JSON mới trong thư mục `IDENTITY_MAIL_DIRECTORY` ngoài Git → Đăng nhập → Đăng xuất. File chứa `email` và `token`, mã hết hạn sau 30 phút; gửi lại mã sẽ vô hiệu mã cũ. Đây là mail pickup Development, không gửi mail thật, không tự bỏ xác minh; Production/Test không mở đường pickup Development. Trên DB Compose, bật `Identity:MailMode=Synthetic`, key mã hóa và thư mục tuyệt đối qua Compose như trên. Giữ key để outbox chưa gửi vẫn giải mã được qua lần khởi động sau. File mail là dữ liệu test local, không đưa vào Git/log.
 
 ## Chế độ danh mục demo — tách khỏi S0
 

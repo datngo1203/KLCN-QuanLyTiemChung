@@ -11,6 +11,22 @@ public sealed class IdentitySessions(TiemChungDbContext db, IdentityTokens token
 {
     private static readonly PasswordHasher<TaiKhoan> Hasher = new();
 
+    public async Task ChangePasswordAsync(HttpContext context, IdentityAuthorization auth, string currentPassword,
+        string newPassword, CancellationToken ct)
+    {
+        await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+        var actor = await auth.RequireAsync(context, true, ct);
+        if (!PasswordMatches(actor.Account, currentPassword)) throw new IdentityFailure(401, "invalidCredentials");
+        if (newPassword.Length is < 12 or > 128 || newPassword == currentPassword)
+            throw new IdentityFailure(400, "validation");
+        actor.Account.MatKhauHash = Hasher.HashPassword(actor.Account, newPassword);
+        await IdentityTransactions.RevokeAccountAsync(db, actor.Account, "passwordChanged", context.TraceIdentifier,
+            actor.Account.MaTaiKhoan, ct);
+        IdentityTransactions.Audit(db, "passwordChanged", context.TraceIdentifier, actor.Account.MaTaiKhoan, actor.Account.MaTaiKhoan);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
     public async Task<SessionTokens> LoginAsync(string identifier, string password, string clientType, string trace, CancellationToken ct)
     {
         CheckClient(clientType);

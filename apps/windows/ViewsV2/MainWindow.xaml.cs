@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.SignOutRequested += SignOutRequested;
+        IdentityApiService.Current.PasswordChanged += PasswordChanged;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
         SourceInitialized += (_, _) =>
         {
@@ -43,10 +44,27 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(new Action(() => { FunctionSearch.Focus(); FunctionSearch.SelectAll(); }));
     }
 
-    private void SignOutRequested(object? sender, EventArgs e)
+    private bool _signingOut;
+    private async void SignOutRequested(object? sender, EventArgs e)
+    {
+        if (_signingOut) return;
+        _signingOut = true;
+        try { await IdentityApiService.Current.LogoutAsync(); }
+        catch (Exception) {
+            MessageBox.Show("Chưa đăng xuất được khỏi API. Kiểm tra kết nối và thử lại.", "Đăng xuất");
+            _signingOut = false;
+            return;
+        }
+        ShowLogin();
+        _signingOut = false;
+    }
+
+    private void PasswordChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(ShowLogin));
+
+    private void ShowLogin()
     {
         Hide();
-        var login = new LoginWindow(new LoginViewModel(new SampleAuthService()));
+        var login = new LoginWindow(new LoginViewModel(IdentityApiService.Current));
         if (login.ShowDialog() == true) { _viewModel.BeginLocalSession(login.UserName); Show(); }
         else Close();
     }
@@ -54,6 +72,7 @@ public partial class MainWindow : Window
     private void Window_Closed(object? sender, EventArgs e)
     {
         _viewModel.SignOutRequested -= SignOutRequested;
+        IdentityApiService.Current.PasswordChanged -= PasswordChanged;
         _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
     }
 }

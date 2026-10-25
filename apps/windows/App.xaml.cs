@@ -13,7 +13,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        var login = new ViewsV2.LoginWindow(new LoginViewModel(new SampleAuthService()));
+        var login = new ViewsV2.LoginWindow(new LoginViewModel(IdentityApiService.Current));
         if (login.ShowDialog() != true) { Shutdown(); return; }
 
         var shell = new ViewsV2.MainWindow(new ShellViewModel(login.UserName));

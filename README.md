@@ -28,7 +28,7 @@ cd apps/mobile
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
 ```
 
-Windows dùng `IAuthService`/`SampleAuthService` để trình diễn giao diện đăng nhập; backend hiện chưa có xác thực và không có tài khoản mật khẩu cố định trong UI. Website/Windows có nút **Kiểm tra API** để thử kết nối thật. Các form nghiệp vụ vẫn dùng trạng thái cục bộ. Mobile đọc danh mục từ API mẫu; đăng ký/lịch/hồ sơ thật thuộc backlog.
+S1: Windows đăng nhập/đổi mật khẩu/đăng xuất qua Identity API; Web đăng nhập/đăng ký khách hàng/xác minh email/đăng xuất qua API. Token chỉ giữ trong bộ nhớ; seed Admin Development và mail pickup synthetic xem [setup](docs/setup.md). Các form nghiệp vụ chưa tích hợp vẫn dùng trạng thái mẫu. Mobile đóng băng theo SCOPE.
 
 ## Phân công
 
@@ -67,4 +67,4 @@ infra/                       Docker Compose cho API + SQL Server phát triển
 - [UML tham khảo](docs/diagrams/README.md), [nguồn và nguồn gốc giao diện](docs/source-map.md).
 - [Giới hạn bảo mật trước khi triển khai](SECURITY.md), [cách đóng góp](CONTRIBUTING.md).
 
-Backend công khai hiện chỉ có `/health`, `/api/v1/catalog/vaccines`, `/api/v1/modules`. OpenAPI Development: `/openapi/v1.json`. Các endpoint nghiệp vụ còn lại trong contracts là **kế hoạch**, chưa có thực thi. API tắt dữ liệu mẫu khi chạy Production; không có tài khoản demo ở backend.
+Endpoint thực thi xem [contracts](contracts/README.md); OpenAPI Development: `/openapi/v1.json`. Identity kiểm quyền tại backend; Profiles còn giới hạn theo contracts. API tắt dữ liệu mẫu khi chạy Production; Admin demo chỉ seed ở Development theo cấu hình local.

@@ -5,17 +5,22 @@ using TiemChung.Infrastructure.Data;
 
 namespace TiemChung.Api;
 
-public sealed class SyntheticVerificationSink : IVerificationMailSink
+public sealed class SyntheticVerificationSink(IHostEnvironment? environment = null, IConfiguration? config = null) : IVerificationMailSink
 {
     private readonly ConcurrentDictionary<Guid,(string Address,string Token)> messages=new();
     // Internal host state for test/dev inspection through DI only, never mapped to HTTP/logs.
     public IReadOnlyDictionary<Guid,(string Address,string Token)> Messages=>messages;
-    public Task DeliverAsync(Guid deliveryId,string syntheticAddress,string token,CancellationToken ct)
+    public async Task DeliverAsync(Guid deliveryId,string syntheticAddress,string token,CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if(!IdentityMailReadiness.IsSynthetic(syntheticAddress)) throw new InvalidOperationException("Synthetic recipient required.");
+        if (environment?.IsDevelopment() == true && config?["Identity:DevelopmentMailDirectory"] is { Length: > 0 } directory) {
+            if (!Path.IsPathFullyQualified(directory)) throw new InvalidOperationException("Absolute mail directory required.");
+            Directory.CreateDirectory(directory);
+            await File.WriteAllTextAsync(Path.Combine(directory, $"{deliveryId}.json"),
+                System.Text.Json.JsonSerializer.Serialize(new { email = syntheticAddress, token }), ct);
+        }
         messages.TryAdd(deliveryId,(syntheticAddress,token));
-        return Task.CompletedTask;
     }
 }
 
@@ -34,6 +39,10 @@ public sealed class IdentityMailReadiness(IHostEnvironment env,IConfiguration co
     public async Task RequireAsync(TiemChungDbContext db,string email,CancellationToken ct)
     {
         if(!Running || !Configured) throw new IdentityFailure(503,"dependencyUnavailable");
+        if (env.IsDevelopment() && config["Identity:DevelopmentMailDirectory"] is { Length: > 0 } directory && Path.IsPathFullyQualified(directory)) {
+            if (!IsSynthetic(email)) throw new IdentityFailure(400, "validation");
+            return;
+        }
         try {
             if(!db.Database.GetDbConnection().Database.StartsWith("KLCN_M1_Test_",StringComparison.Ordinal) ||
                 await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM FixtureOnly WHERE Id=1").SingleAsync(ct)!=1)
