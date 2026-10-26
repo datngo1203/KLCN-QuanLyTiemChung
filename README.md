@@ -4,6 +4,8 @@ Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho
 
 Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
+Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. Seed lô/tồn Development/Test sẽ làm trong G5, hiện chưa có; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu, không triển khai các chức năng này. Web hiện chưa có UI đổi mật khẩu; phần này thuộc G1.
+
 ## 1. Cần cài đặt
 
 Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để tải thư viện lần đầu:
@@ -86,7 +88,7 @@ $env:TIEMCHUNG_API_BASE_URL = 'http://127.0.0.1:5080'
 dotnet run --project apps/windows/TiemChung.Desktop.csproj
 ```
 
-Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục để xem dữ liệu hoặc quản lý hồ sơ. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website.
+Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục và xem hồ sơ; thêm/sửa/xóa hồ sơ bằng tài khoản nhân viên yêu cầu chức danh Lễ tân (`LeTan`) tại API. Lệnh `--seed-admin` không tạo tài khoản Lễ tân; không nới quyền Admin để thay thế. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website và chỉ thao tác hồ sơ thuộc phạm vi liên kết của mình.
 
 ## 4. Cấu trúc dự án
 

@@ -41,16 +41,21 @@ Admin đầu tiên: lệnh `--seed-admin` chỉ ở Development, nhận `Develop
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Registration | GET/POST registrations, POST registrations/{id}/items; hỗ trợ lẻ + gói | Bảo |
-| Finance | POST registrations/{id}/payments; GET payments; trạng thái đặt cọc/trả góp | Bảo |
-| Promotions | GET/POST promotions | Bảo |
+| Finance | POST registrations/{id}/payments; GET payments; thanh toán toàn bộ một lần có nhãn mô phỏng, hoãn đặt cọc/trả góp | Bảo |
+| Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
 | Follow-up | GET/POST appointments; PUT appointments/{id}; GET recipients/{id}/history; POST reminders | Quý |
 | Aftercare | GET/POST vaccinations/{id}/follow-ups | Quý |
-| Clinical | POST screenings; POST indications; POST vaccinations | Đạt |
-| Inventory | CRUD vaccines, packages, batches; POST inventory-movements; GET reports | Đạt |
+| Clinical | POST screenings; POST indications; POST vaccinations; kết luận/chỉ định và ghi tiêm an toàn tối thiểu theo SCOPE, không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
+| Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |
+| Reports | GET reports; doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái; hoãn xuất file | Đạt |
 
 Endpoint nghiệp vụ chỉ được mở sau khi có xác thực và kiểm tra quyền tại API. Khách hàng chỉ đọc hồ sơ mình/người được tiêm được ủy quyền; vai trò nhân viên tách theo chức danh. Không lấy quyền từ trường do client gửi lên.
 
-Tên endpoint dự kiến có thể đổi khi review. Sửa DTO, lỗi, nullable hoặc ID phải cập nhật cả hai client Web/Windows; ghi thay đổi vào PR và nhờ một người khác review. Thanh toán/nhập kho cần idempotency key và transaction trước khi nối form ghi thật. Không tự kết nối ngân hàng, SMS hoặc gửi email thật.
+Tên endpoint dự kiến có thể đổi khi review. Sửa DTO, lỗi, nullable hoặc ID phải cập nhật cả hai client Web/Windows; ghi thay đổi vào PR và nhờ một người khác review. Thanh toán và ghi tiêm/trừ tồn cần transaction, chống ghi trùng và kiểm thử cạnh tranh/rollback tại nghiệp vụ; hoãn cơ chế idempotency tổng quát. Không tự kết nối ngân hàng, SMS hoặc gửi email thật.
+
+G5 phải kiểm chứng đúng lịch/người/vắc xin, kết luận/chỉ định hợp lệ cho buổi tiêm, nhân viên Active đúng quyền/chức danh, lô phù hợp được phép sử dụng/còn hạn/tồn dương và điều kiện thanh toán. Ghi mũi, trừ tồn, biến động và audit cùng transaction; thiếu bằng chứng phải từ chối, không fallback Sample hoặc tự tạo chỉ định/lô. Seed lô/tồn tương lai chỉ ghi SQL synthetic `[DEMO]`, có số lô/vắc xin/ngày sản xuất/hạn dùng/số lượng ban đầu và tồn/trạng thái; chạy lại không nhân bản, bù tồn đã dùng, đổi hạn dùng hoặc ghi đè. Fixture hợp lệ/hết hạn/hết tồn nằm trong DB test theo [SCOPE](../../SCOPE.md#an-toàn-tối-thiểu-của-s5--g5--chưa-triển-khai).
+
+G1/G2 có thể phát triển song song sau khi contract, quyền, actor và schema liên quan thống nhất và được review chéo; Đạt điều phối migration, không sửa đồng thời. R00 chỉ sửa mô tả phạm vi dự kiến; không đổi contract thực thi, chốt DTO mới hoặc triển khai endpoint/seed. Mỗi gói được giao riêng, xong thì dừng bàn giao.
 
 ## S2 — Catalog
 
