@@ -12,7 +12,7 @@ public static class ProfileEndpoints
         var group = app.MapGroup("/api/v1").WithTags("Profiles");
         group.AddEndpointFilter(async (invocation,next) => {
             try { return await next(invocation); }
-            catch(IdentityFailure) when(invocation.HttpContext.Request.Method is "POST" or "PUT") {
+            catch(IdentityFailure) when(invocation.HttpContext.Request.Method is "POST" or "PUT" or "DELETE") {
                 var context=invocation.HttpContext;
                 var db=context.RequestServices.GetRequiredService<TiemChungDbContext>();
                 // Failed handler transactions have unwound. Never persist tracked failed writes.
@@ -39,7 +39,7 @@ public static class ProfileEndpoints
                 query = query.Where(c =>
                     c.HoTen.Contains(keyword) ||
                     c.SoDienThoai.Contains(keyword) ||
-                    c.CCCD.Contains(keyword));
+                    (c.CCCD != null && c.CCCD.Contains(keyword)));
             }
 
             var items = await query
@@ -56,15 +56,17 @@ public static class ProfileEndpoints
         {
             await using var transaction = await IdentityTransactions.BeginAsync(db,ct);
             var actor = await auth.RequireAsync(context,true,ct);
-            if (!actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
+            if (!actor.IsCustomer && !actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
             var body = await IdentityEndpoints.Payload(context,["fullName","identityNumber","phoneNumber","email"],ct);
-            var req = new CreateCustomerRequest(IdentityEndpoints.Value(body,"fullName"),IdentityEndpoints.Value(body,"identityNumber"),
+            var req = new CreateCustomerRequest(IdentityEndpoints.Value(body,"fullName"),OptionalIdentity(body),
                 IdentityEndpoints.Value(body,"phoneNumber"),IdentityEndpoints.Value(body,"email"));
             var errors = ValidateCustomer(req);
             if (errors.Count > 0) throw new IdentityFailure(400,"validation") { Errors=errors };
 
-            var normalizedCccd = req.IdentityNumber.Trim();
-            var cccdExists = await db.Customers.AnyAsync(c => c.CCCD == normalizedCccd, ct);
+            if (actor.IsCustomer && await db.Set<AccountProfileLink>().AnyAsync(l => l.AccountId == actor.Account.MaTaiKhoan && l.CustomerId != null && l.State == "Active", ct))
+                throw new IdentityFailure(409,"profileAlreadyExists");
+            var normalizedCccd = string.IsNullOrWhiteSpace(req.IdentityNumber) ? null : req.IdentityNumber.Trim();
+            var cccdExists = normalizedCccd != null && await db.Customers.AnyAsync(c => c.CCCD == normalizedCccd, ct);
             if (cccdExists)
             {
                 throw new IdentityFailure(409,"duplicateIdentity");
@@ -84,6 +86,7 @@ public static class ProfileEndpoints
                 sql.Number is 2601 or 2627 && sql.Message.Contains("IX_KhachHang_CCCD",StringComparison.Ordinal)) {
                 throw new IdentityFailure(409,"duplicateIdentity");
             }
+            if (actor.IsCustomer) db.Add(new AccountProfileLink { AccountId=actor.Account.MaTaiKhoan, CustomerId=entity.MaKhachHang, CreatedAt=DateTimeOffset.UtcNow });
             var audit = IdentityTransactions.Audit(db,"profiles.created",context.TraceIdentifier,actor.Account.MaTaiKhoan);
             audit.ResourceType="Customer"; audit.ResourceId=entity.MaKhachHang.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await db.SaveChangesAsync(ct);
@@ -136,7 +139,7 @@ public static class ProfileEndpoints
         {
             await using var transaction=await IdentityTransactions.BeginAsync(db,ct);
             var actor=await auth.RequireAsync(context,true,ct);
-            if(!actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
+            if(!actor.IsCustomer && !actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
             var body=await IdentityEndpoints.Payload(context,["customerId","fullName","identityNumber","dateOfBirth","gender","relationshipToCustomer"],ct);
             if(!body.TryGetProperty("customerId",out var customer) || customer.ValueKind!=System.Text.Json.JsonValueKind.Number || !customer.TryGetInt32(out var customerId)
                 || !DateOnly.TryParseExact(IdentityEndpoints.Value(body,"dateOfBirth"),"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,
@@ -151,6 +154,7 @@ public static class ProfileEndpoints
             }
             if (errors.Count > 0) throw new IdentityFailure(400,"validation") { Errors=errors };
 
+            if (actor.IsCustomer) await RequireScope(db,actor,req.CustomerId,null,ct);
             var customerExists = await db.Customers.AnyAsync(c => c.MaKhachHang == req.CustomerId, ct);
             if (!customerExists)
             {
@@ -169,6 +173,7 @@ public static class ProfileEndpoints
 
             db.Recipients.Add(entity);
             await db.SaveChangesAsync(ct);
+            if (actor.IsCustomer) db.Add(new AccountProfileLink { AccountId=actor.Account.MaTaiKhoan, RecipientId=entity.MaNguoiDuocTiem, CreatedAt=DateTimeOffset.UtcNow });
             var audit=IdentityTransactions.Audit(db,"profiles.created",context.TraceIdentifier,actor.Account.MaTaiKhoan);
             audit.ResourceType="Recipient"; audit.ResourceId=entity.MaNguoiDuocTiem.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
@@ -188,9 +193,11 @@ public static class ProfileEndpoints
         // PUT /api/v1/recipients/{id}
         group.MapPut("/recipients/{id:int}", async (HttpContext context, IdentityAuthorization auth, int id, TiemChungDbContext db, CancellationToken ct) =>
         {
-            var actor=await auth.RequireAsync(context,false,ct);
-            if(!actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
+            await using var transaction=await IdentityTransactions.BeginAsync(db,ct);
+            var actor=await auth.RequireAsync(context,true,ct);
+            if(!actor.IsCustomer && !actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
 
+            await RequireScope(db,actor,null,id,ct);
             var entity = await db.Recipients.FirstOrDefaultAsync(r => r.MaNguoiDuocTiem == id, ct);
             if (entity is null)
             {
@@ -204,10 +211,67 @@ public static class ProfileEndpoints
                 ? IdentityEndpoints.Value(body,"identityNumber") : null;
             var errors=ValidateRecipient(IdentityEndpoints.Value(body,"fullName"),identity,dob,IdentityEndpoints.Value(body,"gender"),IdentityEndpoints.Value(body,"relationshipToCustomer"));
             if(errors.Count>0) throw new IdentityFailure(400,"validation") { Errors=errors };
-            throw new IdentityFailure(409,"identityApprovalRequired");
+            entity.HoTen=IdentityEndpoints.Value(body,"fullName").Trim();
+            entity.CCCD=string.IsNullOrWhiteSpace(identity) ? null : identity.Trim();
+            entity.NgaySinh=dob; entity.GioiTinh=IdentityEndpoints.Value(body,"gender");
+            entity.QuanHeVoiKhachHang=IdentityEndpoints.Value(body,"relationshipToCustomer").Trim();
+            Audit(db,context,actor,"updated","Recipient",id);
+            await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+            return Results.Ok(new RecipientDto(id,entity.MaKhachHang,entity.HoTen,entity.CCCD,entity.NgaySinh,entity.GioiTinh,entity.QuanHeVoiKhachHang));
         }).WithName("UpdateRecipient");
 
+        group.MapPut("/customers/{id:int}", async (HttpContext context, IdentityAuthorization auth, int id, TiemChungDbContext db, CancellationToken ct) => {
+            await using var transaction=await IdentityTransactions.BeginAsync(db,ct);
+            var actor=await auth.RequireAsync(context,true,ct);
+            await RequireScope(db,actor,id,null,ct);
+            var entity=await db.Customers.SingleOrDefaultAsync(x=>x.MaKhachHang==id,ct) ?? throw new IdentityFailure(404,"resourceNotFound");
+            var body=await IdentityEndpoints.Payload(context,["fullName","identityNumber","phoneNumber","email"],ct);
+            var req=new CreateCustomerRequest(IdentityEndpoints.Value(body,"fullName"),OptionalIdentity(body),IdentityEndpoints.Value(body,"phoneNumber"),IdentityEndpoints.Value(body,"email"));
+            var errors=ValidateCustomer(req);
+            if(errors.Count>0) throw new IdentityFailure(400,"validation") { Errors=errors };
+            var number=string.IsNullOrWhiteSpace(req.IdentityNumber) ? null : req.IdentityNumber.Trim();
+            if(number!=null && await db.Customers.AnyAsync(x=>x.CCCD==number && x.MaKhachHang!=id,ct)) throw new IdentityFailure(409,"duplicateIdentity");
+            entity.HoTen=req.FullName.Trim(); entity.CCCD=number; entity.SoDienThoai=req.PhoneNumber.Trim(); entity.Email=req.Email.Trim();
+            Audit(db,context,actor,"updated","Customer",id);
+            try { await db.SaveChangesAsync(ct); }
+            catch(DbUpdateException e) when(e.InnerException is Microsoft.Data.SqlClient.SqlException sql && sql.Number is 2601 or 2627 && sql.Message.Contains("IX_KhachHang_CCCD",StringComparison.Ordinal)) { throw new IdentityFailure(409,"duplicateIdentity"); }
+            await transaction.CommitAsync(ct);
+            return Results.Ok(new CustomerDto(id,entity.HoTen,entity.CCCD,entity.SoDienThoai,entity.Email));
+        }).WithName("UpdateCustomer");
+
+        foreach(var resource in new[]{"customers","recipients"}) {
+            var customer=resource=="customers";
+            group.MapDelete("/"+resource+"/{id:int}", async (HttpContext context, IdentityAuthorization auth, int id, TiemChungDbContext db, CancellationToken ct) => {
+                await using var transaction=await IdentityTransactions.BeginAsync(db,ct);
+                var actor=await auth.RequireAsync(context,true,ct);
+                await RequireScope(db,actor,customer ? id : null,customer ? null : id,ct);
+                object? entity=customer ? await db.Customers.SingleOrDefaultAsync(x=>x.MaKhachHang==id,ct) : await db.Recipients.SingleOrDefaultAsync(x=>x.MaNguoiDuocTiem==id,ct);
+                if(entity is null) throw new IdentityFailure(404,"resourceNotFound");
+                var links=await db.Set<AccountProfileLink>().Where(l=>customer ? l.CustomerId==id : l.RecipientId==id).ToArrayAsync(ct);
+                db.RemoveRange(links); db.Remove(entity);
+                Audit(db,context,actor,"deleted",customer ? "Customer" : "Recipient",id);
+                try { await db.SaveChangesAsync(ct); }
+                catch(DbUpdateException e) when(e.InnerException is Microsoft.Data.SqlClient.SqlException { Number:547 }) { throw new IdentityFailure(409,"profileReferenced"); }
+                await transaction.CommitAsync(ct);
+                return Results.NoContent();
+            });
+        }
         return app;
+    }
+
+    private static string? OptionalIdentity(System.Text.Json.JsonElement body) => body.TryGetProperty("identityNumber",out var value) && value.ValueKind!=System.Text.Json.JsonValueKind.Null ? IdentityEndpoints.Value(body,"identityNumber") : null;
+
+    private static async Task RequireScope(TiemChungDbContext db, IdentityActor actor, int? customerId, int? recipientId, CancellationToken ct) {
+        if (!actor.IsCustomer) {
+            if (!actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
+            return;
+        }
+        if (!await db.Set<AccountProfileLink>().AnyAsync(l=>l.AccountId==actor.Account.MaTaiKhoan && l.State=="Active" &&
+            (customerId!=null ? l.CustomerId==customerId : l.RecipientId==recipientId),ct)) throw new IdentityFailure(403,"permissionDenied");
+    }
+    private static void Audit(TiemChungDbContext db,HttpContext context,IdentityActor actor,string action,string type,int id) {
+        var audit=IdentityTransactions.Audit(db,"profiles."+action,context.TraceIdentifier,actor.Account.MaTaiKhoan);
+        audit.ResourceType=type; audit.ResourceId=id.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static void ValidateList(string? search,int? page,int? size)
@@ -224,7 +288,7 @@ public static class ProfileEndpoints
             errors["fullName"] = ["Họ tên khách hàng là bắt buộc và tối đa 150 ký tự."];
 
         var cccd = req.IdentityNumber?.Trim() ?? string.Empty;
-        if (cccd.Length != 12 || !cccd.All(char.IsAsciiDigit))
+        if (cccd.Length > 0 && (cccd.Length != 12 || !cccd.All(char.IsAsciiDigit)))
             errors["identityNumber"] = ["CCCD phải gồm đúng 12 chữ số."];
 
         var phone = req.PhoneNumber?.Trim() ?? string.Empty;

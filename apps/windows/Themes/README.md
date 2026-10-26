@@ -1,6 +1,6 @@
 # Clinical Emerald — nền giao diện WPF
 
-Bốn dictionary được viết mới trong Giai đoạn 2, theo [Design Spec](../../../docs/design/design-spec-clinical-emerald.md). Không kế thừa key/style/template từ các dictionary cũ của dự án. Toàn bộ key mới có tiền tố `CE.`.
+Toàn bộ key của theme có tiền tố `CE.`. Không kế thừa key/style/template từ các dictionary cũ của dự án.
 
 ## Nạp tài nguyên
 

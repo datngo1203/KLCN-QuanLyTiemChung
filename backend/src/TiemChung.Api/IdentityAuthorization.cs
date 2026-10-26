@@ -7,8 +7,7 @@ namespace TiemChung.Api;
 public sealed record IdentityActor(TaiKhoan Account, IdentitySession Session, NhanVien? Employee, string[] Permissions)
 {
     public bool IsCustomer => Account.AccountType == "Customer";
-    public bool CanReadProfiles => !IsCustomer && (Employee?.ChucDanh == "LeTan" ||
-        Employee?.ChucDanh == "Admin" && Permissions.Contains("XemHoSo"));
+    public bool CanReadProfiles => !IsCustomer;
     public bool CanCreateProfiles => !IsCustomer && Employee?.ChucDanh == "LeTan";
     public bool CanAdminister => !IsCustomer && Employee?.ChucDanh == "Admin" &&
         Account.AdministrativeDuty != "Director" && Permissions.Contains("QuanLyTaiKhoan");

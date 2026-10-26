@@ -76,7 +76,7 @@ internal static class IdentityModel
         l.HasIndex(x => x.CustomerId).IsUnique().HasFilter("[State]='Active' AND [CustomerId] IS NOT NULL");
         l.HasIndex(x => x.RecipientId).IsUnique().HasFilter("[State]='Active' AND [RecipientId] IS NOT NULL");
         l.HasIndex(x => x.AccountId, "IX_ProfileLink_AccountCustomer").IsUnique().HasFilter("[State]='Active' AND [CustomerId] IS NOT NULL");
-        l.HasIndex(x => x.AccountId, "IX_ProfileLink_AccountRecipient").IsUnique().HasFilter("[State]='Active' AND [RecipientId] IS NOT NULL");
+        l.HasIndex(x => x.AccountId, "IX_ProfileLink_AccountRecipient").HasFilter("[State]='Active' AND [RecipientId] IS NOT NULL");
         l.HasIndex(x => new { x.AccountId, x.State });
 
         var audit = m.Entity<SecurityAudit>();

@@ -15,8 +15,8 @@ public sealed class IdentityPreflightSqlTests
         var cs=new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")??throw new InvalidOperationException("SQL required.")) {
             InitialCatalog="KLCN_M1_Test_"+Guid.NewGuid().ToString("N") };
         await using var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(cs.ConnectionString).Options);
-        var migrations=db.Database.GetMigrations().ToArray();
-        await db.GetService<IMigrator>().MigrateAsync(migrations[^2]);
+        var legacyMigration=db.Database.GetMigrations().First();
+        await db.GetService<IMigrator>().MigrateAsync(legacyMigration);
         await db.Database.ExecuteSqlRawAsync("""
             INSERT INTO KhachHang (HoTen,CCCD,SoDienThoai,Email) VALUES
             (N'Synthetic A','000000000001','0900000000','a@example.invalid'),

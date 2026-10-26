@@ -77,7 +77,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         khachhang.Property(x => x.HoTen).HasColumnType("nvarchar(150)");
         khachhang.Property(x => x.HoTen).IsRequired();
         khachhang.Property(x => x.CCCD).HasColumnType("varchar(12)");
-        khachhang.Property(x => x.CCCD).IsRequired();
+        khachhang.Property(x => x.CCCD).IsRequired(false);
         khachhang.Property(x => x.SoDienThoai).HasColumnType("varchar(15)");
         khachhang.Property(x => x.SoDienThoai).IsRequired();
         khachhang.Property(x => x.Email).HasColumnType("nvarchar(254)");

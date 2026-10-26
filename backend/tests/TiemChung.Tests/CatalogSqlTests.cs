@@ -218,7 +218,7 @@ public sealed class CatalogSqlTests
         Assert.Equal("database",json.RootElement.GetProperty("source").GetString());
         return json.RootElement.GetProperty("items").Clone();
     }
-    private sealed class Fixture : IAsyncDisposable {
+    internal sealed class Fixture : IAsyncDisposable {
         public required TiemChungDbContext Db { get; init; }
         public required WebApplicationFactory<Program> Factory { get; init; }
         public required IConfiguration Config { get; init; }

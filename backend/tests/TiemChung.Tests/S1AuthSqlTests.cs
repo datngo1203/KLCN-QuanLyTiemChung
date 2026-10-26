@@ -107,7 +107,7 @@ public sealed class S1AuthSqlTests
         var session = await Tokens(await client.PostAsJsonAsync("/api/v1/auth/login", new { identifier = "s1@example.invalid", password, clientType = "native" }));
         client.DefaultRequestHeaders.Authorization = new("Bearer", session.GetProperty("accessToken").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/customers", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/customers", new { })).StatusCode);
         Assert.Empty(await db.Set<AccountProfileLink>().ToListAsync());
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new { clientType = "native", refreshToken = session.GetProperty("refreshToken").GetString() })).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);

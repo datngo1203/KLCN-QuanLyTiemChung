@@ -69,7 +69,7 @@ public sealed class IdentityHttpSqlTests
         Assert.Equal(0,hidden.RootElement.GetProperty("items").GetArrayLength());
         using var noInheritedScope=JsonDocument.Parse(await client.GetStringAsync($"/api/v1/recipients?customerId={own.MaKhachHang}"));
         Assert.Equal(0,noInheritedScope.RootElement.GetProperty("items").GetArrayLength());
-        Assert.Equal(HttpStatusCode.Forbidden,(await client.PostAsJsonAsync("/api/v1/customers",new {})).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",new {})).StatusCode);
         var cookies=login.Headers.GetValues("Set-Cookie").ToArray();
         Assert.Contains(cookies,x=>x.StartsWith("__Host-klcn-refresh=") && x.Contains("secure",StringComparison.OrdinalIgnoreCase) && x.Contains("httponly",StringComparison.OrdinalIgnoreCase));
         client.DefaultRequestHeaders.Add("Cookie",string.Join("; ",cookies.Select(x=>x.Split(';')[0])));
@@ -96,7 +96,7 @@ public sealed class IdentityHttpSqlTests
             Assert.Equal(HttpStatusCode.OK,response.StatusCode);
             using var staffTokens=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             client.DefaultRequestHeaders.Authorization=new("Bearer",staffTokens.RootElement.GetProperty("accessToken").GetString());
-            Assert.Equal(title=="LeTan"?HttpStatusCode.OK:HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/customers")).StatusCode);
             if(title=="LeTan") {
                 foreach(var invalid in new[]{
                     new {fullName="",identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"},
@@ -131,7 +131,7 @@ public sealed class IdentityHttpSqlTests
                 Assert.Equal(HttpStatusCode.NotFound,(await client.PutAsJsonAsync("/api/v1/recipients/2147483647",new {})).StatusCode);
             }
             var put=await client.PutAsJsonAsync($"/api/v1/recipients/{recipient.MaNguoiDuocTiem}",new {fullName="Changed",identityNumber=(string?)null,dateOfBirth="2020-01-01",gender="Khác",relationshipToCustomer="Con"});
-            Assert.Equal(title=="LeTan"?HttpStatusCode.Conflict:HttpStatusCode.Forbidden,put.StatusCode);
+            Assert.Equal(title=="LeTan"?HttpStatusCode.OK:HttpStatusCode.Forbidden,put.StatusCode);
             if(title=="Admin") {
                 var permission=new QuyenHan { Code="XemHoSo",TenQuyen="XemHoSo",MoTa="Synthetic" };
                 db.Add(permission); await db.SaveChangesAsync();
@@ -141,7 +141,7 @@ public sealed class IdentityHttpSqlTests
             await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==staff.MaTaiKhoan).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
             Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/auth/me")).StatusCode);
         }
-        Assert.Equal("Synthetic Child",(await db.Recipients.AsNoTracking().SingleAsync(x=>x.MaNguoiDuocTiem==recipient.MaNguoiDuocTiem)).HoTen);
+        Assert.Equal("Changed",(await db.Recipients.AsNoTracking().SingleAsync(x=>x.MaNguoiDuocTiem==recipient.MaNguoiDuocTiem)).HoTen);
         Assert.True(await db.Set<SecurityAudit>().AnyAsync(x=>x.Action=="profiles.writeDenied" && x.ResourceId==null));
         await using var unavailableFactory=factory.WithWebHostBuilder(b=>b.ConfigureServices(services=> {
             services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();

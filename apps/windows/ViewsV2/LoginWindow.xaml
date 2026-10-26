@@ -1,4 +1,4 @@
-<Window x:Class="TiemChung.Desktop.ViewsV2.LoginWindow"
+<Window Icon="/Assets/vac-logo.png" x:Class="TiemChung.Desktop.ViewsV2.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Đăng nhập | Tiêm chủng" Width="900" Height="560" MinWidth="760" MinHeight="500"
@@ -8,8 +8,8 @@
         <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
         <Border Background="{StaticResource CE.Primary}" CornerRadius="6" Padding="36">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="✚" FontSize="38" Foreground="White" Margin="0,0,0,18"/>
-                <TextBlock Text="TIÊM CHỦNG" FontSize="26" FontWeight="SemiBold" Foreground="White"/>
+                <Border Background="White" CornerRadius="16" Padding="12" HorizontalAlignment="Left" Margin="0,0,0,24"><Image Source="/Assets/vac-logo.png" Width="112" Height="112" Stretch="Uniform" AutomationProperties.Name="Logo VAC"/></Border>
+                <TextBlock Text="TIÊM CHỦNG VAC" FontSize="26" FontWeight="SemiBold" Foreground="White"/>
                 <TextBlock Text="HỆ THỐNG QUẢN LÝ TRUNG TÂM" FontSize="12" Foreground="White" Margin="0,8,0,0"/>
                 <TextBlock Text="Quản lý quy trình tiêm chủng tại trung tâm" FontSize="14" Foreground="White" TextWrapping="Wrap" Margin="0,30,0,0"/>
             </StackPanel>

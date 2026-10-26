@@ -8,28 +8,12 @@ secrets.json
 *.pfx
 *.pem
 *.key
-*.jks
-key.properties
 # Build products
 **/bin/
 **/obj/
 **/node_modules/
 **/dist/
 **/build/
-**/.dart_tool/
-**/.flutter-plugins-dependencies
-**/android/.gradle/
-**/android/local.properties
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/ephemeral/
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Flutter/App.framework/
-**/ios/Flutter/Flutter.framework/
-**/ios/Flutter/Flutter.podspec
-**/ios/Runner/GeneratedPluginRegistrant.*
-**/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 **/coverage/
 **/TestResults/
 .vs/
@@ -41,3 +25,4 @@ key.properties
 .DS_Store
 Thumbs.db
 artifacts/
+.review/

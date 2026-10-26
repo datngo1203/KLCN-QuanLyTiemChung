@@ -1,4 +1,4 @@
-<Window x:Class="TiemChung.Desktop.ViewsV2.MainWindow"
+<Window Icon="/Assets/vac-logo.png" x:Class="TiemChung.Desktop.ViewsV2.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels"
@@ -42,11 +42,9 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <Border Style="{StaticResource CE.Badge.Neutral}" Margin="0,0,12,0">
-                        <ui:SymbolIcon Symbol="HeartPulse24" FontSize="24" />
-                    </Border>
+                    <Image Source="/Assets/vac-logo.png" Width="56" Height="56" Margin="0,0,14,0" Stretch="Uniform" AutomationProperties.Name="Logo VAC" />
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="TIÊM CHỦNG" FontWeight="Bold" Foreground="{StaticResource CE.Text}" />
+                        <TextBlock Text="TIÊM CHỦNG VAC" FontWeight="Bold" Foreground="{StaticResource CE.Text}" />
                         <TextBlock Text="Hệ thống trung tâm" Style="{StaticResource CE.Caption}" Margin="0,3,0,0" />
                     </StackPanel>
                 </StackPanel>
