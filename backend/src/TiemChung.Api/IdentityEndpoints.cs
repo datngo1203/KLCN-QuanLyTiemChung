@@ -64,8 +64,8 @@ public static class IdentityEndpoints
                 profileState=a.IsCustomer?(linked?"linked":"unlinked"):"notApplicable",
                 employee=a.Employee is null?null:new { id=a.Employee.MaNhanVien,title=a.Employee.ChucDanh,administrativeDuty=a.Account.AdministrativeDuty },
                 permissions=a.Permissions,
-                capabilities=new { profilesRead=a.IsCustomer || a.CanReadProfiles, profilesCreate=a.CanCreateProfiles,
-                    profilesUpdate=false,selfClaim=false,representatives=false }
+                capabilities=new { profilesRead=a.IsCustomer || a.CanReadProfiles, profilesCreate=a.IsCustomer || a.CanCreateProfiles,
+                    profilesUpdate=a.IsCustomer ? linked : a.CanCreateProfiles,selfClaim=false,representatives=false }
             });
         });
     }

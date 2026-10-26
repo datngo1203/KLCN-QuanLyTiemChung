@@ -10,7 +10,8 @@ public partial class MainWindow : Window
     public static readonly DependencyProperty IsCompactProperty = DependencyProperty.Register(
         nameof(IsCompact), typeof(bool), typeof(MainWindow), new PropertyMetadata(false));
     public bool IsCompact { get => (bool)GetValue(IsCompactProperty); private set => SetValue(IsCompactProperty, value); }
-    private readonly ShellViewModel _viewModel;
+    private ShellViewModel _viewModel;
+    private IdentityApiService _identity = IdentityApiService.Current;
 
     public MainWindow() : this(new ShellViewModel("")) { }
 
@@ -20,7 +21,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.SignOutRequested += SignOutRequested;
-        IdentityApiService.Current.PasswordChanged += PasswordChanged;
+        _identity.PasswordChanged += PasswordChanged;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
         SourceInitialized += (_, _) =>
         {
@@ -49,30 +50,52 @@ public partial class MainWindow : Window
     {
         if (_signingOut) return;
         _signingOut = true;
-        try { await IdentityApiService.Current.LogoutAsync(); }
+        IsEnabled = false;
+        try { await _identity.LogoutAsync(); }
         catch (Exception) {
             MessageBox.Show("Chưa đăng xuất được khỏi API. Kiểm tra kết nối và thử lại.", "Đăng xuất");
             _signingOut = false;
+            IsEnabled = true;
             return;
         }
         ShowLogin();
         _signingOut = false;
+        IsEnabled = true;
     }
 
-    private void PasswordChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(ShowLogin));
+    private void PasswordChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(() => {
+        if (_signingOut) return;
+        _signingOut = true;
+        try { ShowLogin(); }
+        finally { _signingOut = false; }
+    }));
 
     private void ShowLogin()
     {
         Hide();
+        // Discard the entire old shell and its service session, including pending loads.
+        DataContext = null;
+        _viewModel.SignOutRequested -= SignOutRequested;
+        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        _identity.PasswordChanged -= PasswordChanged;
+        IdentityApiService.StartNewSession();
+        _identity = IdentityApiService.Current;
         var login = new LoginWindow(new LoginViewModel(IdentityApiService.Current));
-        if (login.ShowDialog() == true) { _viewModel.BeginLocalSession(login.UserName); Show(); }
+        if (login.ShowDialog() == true) {
+            _viewModel = new ShellViewModel(login.UserName);
+            DataContext = _viewModel;
+            _viewModel.SignOutRequested += SignOutRequested;
+            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+            _identity.PasswordChanged += PasswordChanged;
+            Show();
+        }
         else Close();
     }
 
     private void Window_Closed(object? sender, EventArgs e)
     {
         _viewModel.SignOutRequested -= SignOutRequested;
-        IdentityApiService.Current.PasswordChanged -= PasswordChanged;
+        _identity.PasswordChanged -= PasswordChanged;
         _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
     }
 }

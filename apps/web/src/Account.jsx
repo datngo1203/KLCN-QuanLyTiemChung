@@ -6,6 +6,8 @@ export default function Account({ account, setAccount }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
   const [token, setToken] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -13,8 +15,19 @@ export default function Account({ account, setAccount }) {
   async function run(action) {
     if (busy) return
     setBusy(true); setError(''); setMessage('')
-    try { await action() } catch (failure) { setError(failure.message || 'Không kết nối được dịch vụ.') }
+    try { await action() } catch (failure) {
+      const unavailable = failure instanceof TypeError || failure instanceof SyntaxError || ['AbortError', 'TimeoutError'].includes(failure.name)
+      setError(unavailable ? 'Không kết nối được dịch vụ. Vui lòng thử lại.' : failure.message || 'Không kết nối được dịch vụ.')
+    }
     finally { setBusy(false) }
+  }
+  function changePassword(event) {
+    event.preventDefault()
+    run(async () => {
+      await identity.changePassword(password, newPassword, confirmation)
+      setPassword(''); setNewPassword(''); setConfirmation(''); setAccount(null); setMode('login')
+      setMessage('Đã đổi mật khẩu và thu hồi các phiên. Vui lòng đăng nhập lại.')
+    })
   }
   function submit(event) {
     event.preventDefault()
@@ -36,7 +49,17 @@ export default function Account({ account, setAccount }) {
     <h1>{account ? 'Tài khoản khách hàng' : labels[mode]}</h1>
     {account ? <div className="form-card">
       <p>Đã đăng nhập · Mã tài khoản {account.accountId}</p>
-      <button className="button primary" disabled={busy} onClick={() => run(async () => { await identity.logout(); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') })}>Đăng xuất</button>
+      <button className="button primary" disabled={busy} onClick={() => run(async () => { await identity.logout(); setPassword(''); setNewPassword(''); setConfirmation(''); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') })}>Đăng xuất</button>
+      <form onSubmit={changePassword}>
+        <h2>Đổi mật khẩu</h2>
+        <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
+          <label className="demo-field"><span>Mật khẩu hiện tại</span><input type="password" autoComplete="current-password" required maxLength={128} value={password} onChange={e => setPassword(e.target.value)} /></label>
+          <label className="demo-field"><span>Mật khẩu mới</span><input type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>
+          <label className="demo-field"><span>Xác nhận mật khẩu mới</span><input type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation} onChange={e => setConfirmation(e.target.value)} /></label>
+          <p>Mật khẩu mới 12–128 ký tự, khác mật khẩu hiện tại. Đổi thành công sẽ yêu cầu đăng nhập lại trên mọi thiết bị.</p>
+          <button className="button primary" type="submit">{busy ? 'Đang xử lý…' : 'Đổi mật khẩu'}</button>
+        </fieldset>
+      </form>
     </div> : <form className="form-card" onSubmit={submit}>
       <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
         {mode !== 'confirm' ? <>

@@ -81,7 +81,7 @@ public sealed class ProfilesSqlTests
         await f.Db.Set<NhanVien>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ChucDanh,"LeTan"));
         using var http=f.Factory.CreateClient(); var identity=new IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-        var vm=new ProfilesViewModel(new ProfilesApiService(identity)); await vm.LoadAsync(); Assert.Empty(vm.Customers);
+        var vm=new ProfilesViewModel(new ProfilesApiService(identity), identity.CanWriteProfiles); await vm.LoadAsync(); Assert.Empty(vm.Customers);
         async Task Command(RelayCommand command) {
             Assert.True(command.CanExecute(null)); command.Execute(null);
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));

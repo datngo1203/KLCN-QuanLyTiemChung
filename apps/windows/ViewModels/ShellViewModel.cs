@@ -1,4 +1,5 @@
 using TiemChung.Desktop.ViewsV2;
+using TiemChung.Desktop.Services;
 
 namespace TiemChung.Desktop.ViewModels;
 
@@ -20,10 +21,10 @@ public sealed class ShellViewModel : ViewModelBase
         _selectedScreen = NavigationGroups[0].Screens[0];
         Overview = new OverviewViewModel(Navigate);
         Screening = new ScreeningViewModel();
-        Profiles = new ProfilesViewModel();
+        Profiles = new ProfilesViewModel(canWrite: IdentityApiService.Current.CanWriteProfiles);
         Registration = new RegistrationViewModel();
         Payment = new PaymentViewModel();
-        Catalog = new CatalogViewModel();
+        Catalog = new CatalogViewModel(permissions: IdentityApiService.Current.Permissions);
         Inventory = new InventoryViewModel();
         Promotion = new PromotionViewModel();
         Vaccination = new VaccinationViewModel();
@@ -51,8 +52,7 @@ public sealed class ShellViewModel : ViewModelBase
 
     public event EventHandler? SignOutRequested;
     public IReadOnlyList<NavigationGroup> NavigationGroups { get; }
-    // TODO: Bind permissions from the authenticated shell session when available.
-    public bool CanNavigate => true;
+    public bool CanNavigate => IdentityApiService.Current.IsSignedIn;
     public bool HasSecondaryMenu => SelectedGroup.Screens.Count > 1;
     public NavigationGroup SelectedGroup { get => _selectedGroup; private set { if (Set(ref _selectedGroup, value)) OnPropertyChanged(nameof(HasSecondaryMenu)); } }
     private NavigationItem _selectedScreen = null!;
@@ -92,20 +92,6 @@ public sealed class ShellViewModel : ViewModelBase
     public RelayCommand SignOutCommand { get; }
     public RelayCommand DismissFeedbackCommand { get; }
     public RelayCommand ClosePanelsCommand { get; }
-
-    public void BeginLocalSession(string userName)
-    {
-        Accounts = new AccountViewModel(userName);
-        ChangePassword = new ChangePasswordViewModel();
-        OnPropertyChanged(nameof(Accounts));
-        OnPropertyChanged(nameof(ChangePassword));
-        CurrentUserDisplayName = userName;
-        SelectedGroup = NavigationGroups[0];
-        SelectedScreen = NavigationGroups[0].Screens[0];
-        CurrentView = NavigationRegistry.CreatePage("A01", this);
-        FeedbackMessage = "";
-        ClosePanels();
-    }
 
     private void Navigate(string id)
     {

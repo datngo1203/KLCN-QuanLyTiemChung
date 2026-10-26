@@ -8,23 +8,25 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed class ProfilesViewModel : ViewModelBase
 {
     private readonly IProfilesService _service;
+    private readonly bool _canWrite;
     private string _search = "", _name = "", _nationalId = "", _phone = "", _email = "";
     private string _recipientName = "", _recipientNationalId = "", _gender = "", _relation = "", _feedback = "";
     private DateTime? _birthDate;
     private CustomerRecord? _selectedCustomer;
     private RecipientRecord? _selectedRecipient;
     private bool _showErrors, _isSaving;
-    public ProfilesViewModel(IProfilesService? service = null)
+    public ProfilesViewModel(IProfilesService? service = null, bool canWrite = false)
     {
         _service = service ?? new ProfilesApiService();
+        _canWrite = canWrite;
         Customers = []; Recipients = [];
         TimKiemKhachHangCommand = new RelayCommand(async _ => await LoadAsync(), _ => !_isSaving);
-        TaoHoSoMoiCommand = new RelayCommand(_ => { SelectedCustomer = null; Name = NationalId = Phone = Email = ""; ShowErrors = false; Feedback = "Nhập thông tin khách hàng mới."; });
+        TaoHoSoMoiCommand = new RelayCommand(_ => { SelectedCustomer = null; Name = NationalId = Phone = Email = ""; ShowErrors = false; Feedback = "Nhập thông tin khách hàng mới."; }, _ => !_isSaving && CanEditCustomer);
         LuuKhachHangCommand = new RelayCommand(async _ => await SaveCustomer(), _ => !_isSaving && CanEditCustomer && CustomerValid);
         ThemNguoiDuocTiemCommand = new RelayCommand(async _ => await SaveRecipient(), _ => !_isSaving && CanEditRecipient && RecipientValid);
-        NewRecipientCommand = new RelayCommand(_ => { SelectedRecipient=null; RecipientName=RecipientNationalId=Gender=Relation=""; BirthDate=null; }, _=>!_isSaving);
-        DeleteCustomerCommand = new RelayCommand(async _=>await DeleteAsync(true), _=>!_isSaving && SelectedCustomer!=null);
-        DeleteRecipientCommand = new RelayCommand(async _=>await DeleteAsync(false), _=>!_isSaving && SelectedRecipient!=null);
+        NewRecipientCommand = new RelayCommand(_ => { SelectedRecipient=null; RecipientName=RecipientNationalId=Gender=Relation=""; BirthDate=null; }, _=>!_isSaving && CanEditRecipient);
+        DeleteCustomerCommand = new RelayCommand(async _=>await DeleteAsync(true), _=>!_isSaving && CanEditCustomer && SelectedCustomer!=null);
+        DeleteRecipientCommand = new RelayCommand(async _=>await DeleteAsync(false), _=>!_isSaving && CanEditRecipient && SelectedRecipient!=null);
     }
     public RelayCommand NewRecipientCommand { get; }
     public RelayCommand DeleteCustomerCommand { get; }
@@ -40,9 +42,8 @@ public sealed class ProfilesViewModel : ViewModelBase
     public RelayCommand TaoHoSoMoiCommand { get; }
     public RelayCommand LuuKhachHangCommand { get; }
     public RelayCommand ThemNguoiDuocTiemCommand { get; }
-    // TODO: Resolve reviewed permissions from the authenticated shell session.
-    public bool CanEditCustomer => true;
-    public bool CanEditRecipient => true;
+    public bool CanEditCustomer => _canWrite;
+    public bool CanEditRecipient => _canWrite;
     public string DataSourceLabel => "API / SQL thật";
     public string Search { get => _search; set { if (Set(ref _search, value)) RefreshSearch(); } }
     public IEnumerable<CustomerRecord> FilteredCustomers => Customers.Where(x => $"{x.Name} {x.NationalId} {x.Phone}".Contains(Search.Trim(), StringComparison.CurrentCultureIgnoreCase));
@@ -68,7 +69,7 @@ public sealed class ProfilesViewModel : ViewModelBase
     private static bool ValidEmail(string value) { try { return value.Contains('@') && new MailAddress(value).Address == value; } catch { return false; } }
     private void Change<T>(ref T field, T value) { if (Set(ref field, value)) { _showErrors = true; Refresh(); } }
     private void RefreshSearch() { OnPropertyChanged(nameof(FilteredCustomers)); OnPropertyChanged(nameof(FilteredRecipients)); OnPropertyChanged(nameof(NoCustomers)); OnPropertyChanged(nameof(NoRecipients)); }
-    private void Refresh() { OnPropertyChanged(nameof(CustomerError)); OnPropertyChanged(nameof(RecipientError)); OnPropertyChanged(nameof(CanChooseCustomer)); LuuKhachHangCommand.NotifyCanExecuteChanged(); ThemNguoiDuocTiemCommand.NotifyCanExecuteChanged(); TimKiemKhachHangCommand.NotifyCanExecuteChanged(); DeleteCustomerCommand?.NotifyCanExecuteChanged(); DeleteRecipientCommand?.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(CanInteract)); }
+    private void Refresh() { OnPropertyChanged(nameof(CustomerError)); OnPropertyChanged(nameof(RecipientError)); OnPropertyChanged(nameof(CanChooseCustomer)); LuuKhachHangCommand.NotifyCanExecuteChanged(); ThemNguoiDuocTiemCommand.NotifyCanExecuteChanged(); TimKiemKhachHangCommand.NotifyCanExecuteChanged(); TaoHoSoMoiCommand.NotifyCanExecuteChanged(); NewRecipientCommand.NotifyCanExecuteChanged(); DeleteCustomerCommand?.NotifyCanExecuteChanged(); DeleteRecipientCommand?.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(CanInteract)); }
     public async Task LoadAsync() {
         if (_isSaving) return;
         _isSaving=true; Refresh();
