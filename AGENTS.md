@@ -3,21 +3,24 @@
 ## Khóa phạm vi (ưu tiên cao nhất)
 - Chỉ làm các mục trong SCOPE.md. Muốn thêm gì phải hỏi người dùng trước.
 - Không tạo thêm tài liệu thiết kế, giai đoạn, ma trận hay ảnh review mới.
-- Mỗi thay đổi là một lát dọc: DB → API → client gọi API thật. Không dùng Sample cho chức năng mới.
+- Mỗi thay đổi nghiệp vụ là một lát dọc: DB → API → client gọi API thật. Không dùng Sample cho chức năng mới.
 - Chưa có endpoint thì làm endpoint theo backend/contracts/ trước, rồi mới sửa UI.
 - Giữ luồng ở mức tối thiểu, không thêm trạng thái, bước hay ngoại lệ ngoài SCOPE.md.
-- Mỗi PR một chức năng; build và test trước khi báo xong.
+- Mỗi PR một chức năng; build và test phần bị ảnh hưởng trước khi báo xong. Gói thuần tài liệu như R00 chỉ kiểm nội dung, liên kết và diff; không cần chạy build/test ứng dụng.
+- Mỗi gói phải được giao riêng, chốt phạm vi tệp, tiêu chí nghiệm thu và kiểm thử trên nhánh/PR riêng. Hoàn thành thì dừng bàn giao; lộ trình R01 không cấp phép tự triển khai tiếp G1–G8.
 
 Quyết định 25/10/2026: SCOPE.md thay phạm vi cũ bên dưới khi có xung đột; đặt cọc/trả góp hoãn. Quy tắc bảo mật, dữ liệu và quyền thao tác vẫn giữ.
+Quyết định R00 ngày 27/10/2026: bổ sung kết luận/chỉ định và lô/tồn tối thiểu để ghi tiêm an toàn theo SCOPE.md; ưu đãi giảm tiền VND, không cộng dồn. Không mở module khám/nhập kho đầy đủ.
 
 Đọc README.md, SCOPE.md và AGENTS.md trước khi sửa.
 Khi làm giao diện Windows, tuân thủ mục Giao diện Windows bên dưới.
 Phạm vi hiện tại: Website React và Windows WPF (quyết định người dùng 26/10/2026); dùng chung ASP.NET Core API và SQL Server.
 Không sửa tài liệu gốc/ảnh tham chiếu để hợp thức hóa nghiệp vụ. Thay đổi mô hình phải giải thích trong PR.
-Mỗi nhân viên có đúng một chức danh; đăng ký có thể gồm vắc xin lẻ và gói; hỗ trợ nhiều lần thanh toán/đặt cọc/trả góp.
+Mỗi nhân viên có đúng một chức danh; đăng ký có thể gồm vắc xin lẻ và gói; thanh toán toàn bộ một lần, có nhãn mô phỏng. Đặt cọc/trả góp tiếp tục hoãn.
 Không tự suy diễn dữ liệu hoặc quy trình nội bộ VNVC. Dữ liệu mẫu chỉ dùng phát triển, không đưa thông tin khách hàng thật vào Git.
-Mật khẩu thật phải hash tại backend. admin/123 trong Windows là đăng nhập UI mô phỏng, chưa phải cơ chế bảo vệ.
+Mật khẩu phải hash tại backend. Web/Windows đã dùng Identity API; không dùng đăng nhập mẫu để thay xác thực thật. Ghi hồ sơ bằng tài khoản nhân viên yêu cầu chức danh LeTan theo API hiện tại; không nới quyền Admin để demo chạy.
 Client không truy cập SQL trực tiếp. Mọi kiểm tra quyền, tiền, tồn kho và ghi dữ liệu phải nằm ở API.
+Ghi tiêm phải kiểm chứng chỉ định chuyên môn, đúng lịch/người/vắc xin, quyền nhân viên, lô được phép sử dụng, hạn dùng, tồn dương và điều kiện thanh toán. Ghi mũi, trừ tồn, biến động và audit cùng transaction; chống ghi trùng/tranh liều cuối. Thiếu bằng chứng thì từ chối, không fallback Sample hoặc tự tạo chỉ định/lô.
 Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Không tự thêm GitHub username hoặc quyền cộng tác khi chưa có thông tin.
 Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; báo đúng kết quả và các phần chưa kiểm tra. Tiến độ chỉ cập nhật cột Trạng thái trong SCOPE.md; không tạo file tiến độ khác.
 
@@ -27,7 +30,7 @@ Quyết định trực tiếp của người dùng ngày 24/10/2026. Áp dụng 
 
 ### 1. Chọn giải pháp vừa đủ
 
-Dùng kiến trúc React/WPF → ASP.NET Core API → SQL Server đã chốt. Tái sử dụng thư viện/framework hiện có. Không thêm service, lớp trừu tượng, công cụ vận hành hoặc cơ chế tùy biến nếu cách đơn giản đã đáp ứng luồng hiện tại. Không thiết kế trước mọi tình huống tương lai.
+Dùng kiến trúc Modular Monolith React/WPF → một ASP.NET Core API → một SQL Server database, giữ bốn project backend hiện có. Tái sử dụng thư viện/framework hiện có. Không thêm service, lớp trừu tượng, công cụ vận hành hoặc cơ chế tùy biến nếu cách đơn giản đã đáp ứng luồng hiện tại. Ưu tiên nghiệp vụ trước 08/11/2026; không refactor diện rộng hoặc thiết kế trước mọi tình huống tương lai.
 
 ### 2. Chốt đầu ra trước khi làm
 
@@ -63,7 +66,7 @@ Ví dụ đạt mức khóa luận: đăng nhập → kiểm quyền → tạo h
 
 ## Ponytail cho dự án
 
-Dùng duy nhất skill chung tại `C:/Users/DAT/.agents/skills/ponytail/SKILL.md`; không cài bản sao trong repo. Áp dụng khi viết/sửa/refactor/review code; dùng mức `full` mặc định để chọn thay đổi nhỏ nhất giải quyết đủ yêu cầu, tái sử dụng code/framework và tránh làm trước cho tương lai. Không tự chuyển ultra, chạy audit toàn repo hoặc xóa code ngoài gói. Quy tắc khóa luận/nghiệp vụ/quyền thao tác trong AGENTS vẫn có hiệu lực; Ponytail không cho phép bỏ validation/quyền/test cần thiết. Không cần cài hooks hoặc dịch vụ phụ để dùng skill này.
+Dùng skill Ponytail chung nếu có sẵn trong môi trường, theo danh sách skill hoặc vị trí cài đặt trên máy đang làm việc; không phụ thuộc đường dẫn tuyệt đối của một thành viên và không cài bản sao trong repo. Nếu không có skill, tiếp tục theo các quy tắc tối giản ở đây. Áp dụng khi viết/sửa/refactor/review code; dùng mức `full` mặc định để chọn thay đổi nhỏ nhất giải quyết đủ yêu cầu, tái sử dụng code/framework và tránh làm trước cho tương lai. Không tự chuyển ultra, chạy audit toàn repo hoặc xóa code ngoài gói. Quy tắc khóa luận/nghiệp vụ/quyền thao tác trong AGENTS vẫn có hiệu lực; Ponytail không cho phép bỏ validation/quyền/test cần thiết. Không cần cài hooks hoặc dịch vụ phụ để dùng skill này.
 
 ## Tài khoản test — quyết định người dùng 24/10/2026
 
@@ -80,7 +83,9 @@ Người dùng cho phép các chat tạo, sử dụng và lưu rõ username/pass
 | Đạt | `datngo1203` | Nền Windows/API/DB/CI; danh mục, kho, khám, Identity, báo cáo theo SCOPE. |
 
 Đạt điều phối migration; chỉ một người sửa schema/migration tại một thời điểm. Contract/schema cần người khác review; Bảo/Quý review chéo client, Đạt review dữ liệu/quyền. Không tự cấp quyền GitHub hoặc gán username. GitHub Issues là nguồn việc.
+G1 (phiên/quyền client) và G2 (đăng ký) có thể phát triển song song khi contract, quyền, actor và schema liên quan đã thống nhất và được review chéo. Không yêu cầu toàn bộ G1 xong mới bắt đầu G2; vẫn tách nhánh/PR và vùng sửa, không tự quyết contract/schema mâu thuẫn hoặc sửa migration đồng thời.
 Mỗi lát dùng nhánh `feat/sN-ten-lat` từ `main`, PR nhỏ vào `main`, squash merge sau review. Không commit thẳng/force-push nhánh chung hoặc tự merge. CI xanh phải có bằng chứng từ lần chạy thật. Chưa xác minh branch protection; không khẳng định đã bật. Chưa có giấy phép nguồn mở; không mặc định cho phép tái phân phối.
+R00 là gói thuần tài liệu trên nhánh `feat/r00-scope-alignment` từ `main` sạch; chỉ sửa AGENTS.md, SCOPE.md, README.md và backend/contracts/README.md. Không tự commit, push, merge hoặc triển khai gói tiếp theo.
 
 ## Giao diện Windows
 
