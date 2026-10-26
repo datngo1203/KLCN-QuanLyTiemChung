@@ -1,8 +1,8 @@
 # VAC — Hệ thống quản lý tiêm chủng
 
-Dự án gồm Website dành cho khách hàng, ứng dụng Windows dành cho nhân viên và ứng dụng Mobile Flutter. Cả ba dùng chung ASP.NET Core API; API xử lý nghiệp vụ và lưu dữ liệu trong SQL Server.
+Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho nhân viên. Hai ứng dụng dùng chung ASP.NET Core API; API xử lý nghiệp vụ và lưu dữ liệu trong SQL Server.
 
-Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Mobile mới có màn danh mục đọc API. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
+Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
 ## 1. Cần cài đặt
 
@@ -11,9 +11,8 @@ Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để t�
 - .NET SDK 10.
 - Node.js 24 LTS, kèm npm.
 - Docker Desktop, bật chế độ Linux containers và mở Docker trước khi chạy.
-- Flutter 3.47.7 / Dart 3.13.5 nếu muốn xem Mobile. Chạy Android cần thêm Android SDK và thiết bị hoặc máy ảo; iOS cần macOS/Xcode.
 
-Giải nén dự án vào một thư mục riêng. Mở PowerShell tại thư mục chứa file hướng dẫn này. Các lệnh bên dưới đều chạy từ đây, trừ bước Mobile có lệnh chuyển thư mục.
+Giải nén dự án vào một thư mục riêng. Mở PowerShell tại thư mục chứa file hướng dẫn này. Các lệnh bên dưới đều chạy từ đây.
 
 ## 2. Khởi động SQL Server và API
 
@@ -89,48 +88,52 @@ dotnet run --project apps/windows/TiemChung.Desktop.csproj
 
 Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục để xem dữ liệu hoặc quản lý hồ sơ. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website.
 
-### Mobile Flutter
-
-Xem nhanh chính giao diện Flutter trên trình duyệt:
-
-```powershell
-cd apps/mobile
-flutter pub get
-flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5180 --dart-define=API_BASE_URL=http://127.0.0.1:5080
-```
-
-Mở `http://127.0.0.1:5180`. Nếu Flutter báo chưa cấu hình nền tảng web, chờ đến dòng địa chỉ được phục vụ; bản xem trước vẫn chạy với phiên bản Flutter nêu trên. Mobile hiện đọc danh mục trực tiếp, chưa có đăng nhập.
-
-Nếu đã có máy ảo Android đang mở, thay lệnh `flutter run` bằng:
-
-```powershell
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
-```
-
 ## 4. Cấu trúc dự án
 
 | Thư mục / file | Vai trò |
 |---|---|
 | `apps/web/` | Giao diện Website React; gọi API để lấy và cập nhật dữ liệu. |
 | `apps/windows/` | Ứng dụng nhân viên C# WPF; màn hình trong `ViewsV2`, xử lý giao diện trong `ViewModels`, gọi API trong `Services`. |
-| `apps/mobile/` | Mã Flutter, gồm giao diện và cấu hình Android/iOS. |
 | `backend/src/TiemChung.Api/` | Nhận yêu cầu từ các giao diện, kiểm tra tài khoản/quyền và xử lý nghiệp vụ. |
 | `backend/src/TiemChung.Contracts/` | Cấu trúc dữ liệu trao đổi với API. |
 | `backend/src/TiemChung.Domain/` | Các đối tượng dữ liệu và quy tắc nghiệp vụ. |
 | `backend/src/TiemChung.Infrastructure/` | Kết nối SQL Server và các migration tạo/cập nhật bảng. |
+| `backend/contracts/` | Mô tả API và request mẫu HTTP/Postman. |
+| `backend/database/` | Script SQL bổ trợ; schema chính nằm trong EF migrations. |
+| `backend/tests/`, `backend/tools/` | Kiểm thử và công cụ Identity hiện có. |
 | `backend/Dockerfile`, `infra/compose.yaml` | Đóng gói API và khởi động API cùng SQL Server. |
+| `scripts/` | Cài thư viện và kiểm tra dự án. |
+| `.github/` | CI và cấu hình cộng tác GitHub. |
+| `AGENTS.md`, `SCOPE.md` | Quy tắc phát triển và phạm vi nghiệp vụ. |
 | `global.json`, `Directory.Build.props` | Phiên bản .NET và cấu hình build dùng chung. |
 
-Luồng hoạt động: **Web / Windows / Mobile → API → SQL Server**. Giao diện không kết nối SQL trực tiếp; mật khẩu đăng nhập được hash ở backend.
+Luồng hoạt động: **Web / Windows → API → SQL Server**. Giao diện không kết nối SQL trực tiếp; mật khẩu đăng nhập được hash ở backend.
+
+Thư mục chỉ giữ source, tài nguyên ứng dụng, test, cấu hình và hướng dẫn cần thiết. Thư viện/cache và kết quả build được tạo lại khi restore/build; không chép chúng cùng source. Giữ `infra/.env` riêng trên máy đang dùng để chạy lại với dữ liệu SQL hiện có. Không đưa file này vào Git.
+
+## Kiểm tra source
+
+Chạy từ thư mục gốc:
+
+```powershell
+./scripts/bootstrap.ps1
+./scripts/verify.ps1
+```
+
+`verify.ps1` chạy test backend, lint/test/build Web và build Windows. Suite backend đầy đủ cần `M1_SQL_TEST_CONNECTION` trỏ SQL development/test có quyền tạo DB test riêng; đặt biến trong shell, không ghi credential vào source. Nếu chưa có SQL, chỉ kiểm tra các test không cần DB bằng lệnh dưới; kết quả này không thay cho kiểm thử SQL:
+
+```powershell
+dotnet test backend/TiemChung.slnx --filter 'FullyQualifiedName!~SqlTests'
+```
 
 ## 5. Dừng và chạy lại
 
-Dừng Web/Mobile bằng `Ctrl+C`; đóng cửa sổ Windows. Dừng API và SQL nhưng giữ dữ liệu:
+Dừng Web bằng `Ctrl+C`; đóng cửa sổ Windows. Dừng API và SQL nhưng giữ dữ liệu:
 
 ```powershell
 docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml stop
 ```
 
-Lần sau dùng lại lệnh `up -d` ở bước 2 và mở các giao diện; không cần tạo lại cấu hình hoặc seed. Nếu báo không kết nối API, kiểm tra Docker đang chạy và `http://127.0.0.1:5080/health`. Các cổng 5080, 5173, 5180 và 14333 cần trống trước khi khởi động.
+Lần sau dùng lại lệnh `up -d` ở bước 2 và mở các giao diện; không cần tạo lại cấu hình hoặc seed. Nếu báo không kết nối API, kiểm tra Docker đang chạy và `http://127.0.0.1:5080/health`. Các cổng 5080, 5173 và 14333 cần trống trước khi khởi động.
 
 Tài nguyên giao diện: logo VAC được cung cấp cho dự án; ảnh [tiêm chủng](https://www.pexels.com/photo/man-vaccinating-a-woman-8770702/), [nhân viên y tế](https://www.pexels.com/photo/doctor-holding-vaccine-bottle-6285354/), [chăm sóc khi tiêm](https://www.pexels.com/photo/person-getting-vaccinated-3985170/) của Gustavo Fring/Pexels; icon từ [Lucide](https://lucide.dev/).

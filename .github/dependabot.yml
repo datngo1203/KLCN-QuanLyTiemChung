@@ -13,10 +13,6 @@ updates:
     directory: /apps/windows
     schedule: { interval: weekly }
     open-pull-requests-limit: 0
-  - package-ecosystem: pub
-    directory: /apps/mobile
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }

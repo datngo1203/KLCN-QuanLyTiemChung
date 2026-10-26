@@ -5,5 +5,5 @@
 **/.env
 apps
 .git
-docs
 artifacts
+.review
