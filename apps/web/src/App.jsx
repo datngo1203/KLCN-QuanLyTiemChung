@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { ArrowRight, ArrowLeft, Search, Menu, X, Info, Check, Plus, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, CircleCheck, CircleAlert, ArrowUpRight } from 'lucide-react'
 import './App.css'
-import ApiProbe from './ApiProbe'
 import Account from './Account'
 import Catalog from './Catalog'
+import Home from './Home'
 import './theme.css'
 
 const pages = [
@@ -11,11 +12,11 @@ const pages = [
 ]
 
 const services = [
-  { id: 'vaccine-a', name: 'Vắc xin Sởi - Quai bị - Rubella (MMR)', category: 'Vắc xin lẻ', icon: '💉', price: '320.000 đ', description: 'Phòng 3 bệnh sởi, quai bị, rubella.', inStock: true },
-  { id: 'vaccine-b', name: 'Vắc xin Cúm mùa tứ giá (Vaxigrip Tetra)', category: 'Vắc xin lẻ', icon: '💉', price: '380.000 đ', description: 'Phòng ngừa các chủng cúm mùa mới nhất.', inStock: false }, // Hết thuốc -> Test hàng đợi
-  { id: 'vaccine-c', name: 'Vắc xin ngừa ung thư cổ tử cung (Gardasil 9)', category: 'Vắc xin lẻ', icon: '💉', price: '2.950.000 đ', description: 'Phòng virus HPV và các bệnh đường sinh dục.', inStock: true },
-  { id: 'pack-family', name: 'Gói tiêm chủng Trẻ em toàn diện (0-24 tháng)', category: 'Gói vắc xin', icon: '📦', price: '12.500.000 đ', description: 'Trọn gói các mũi tiêm cơ bản trong 2 năm đầu đời.', inStock: true },
-  { id: 'pack-adult', name: 'Gói tiêm chủng Người lớn & Tiền hôn nhân', category: 'Gói vắc xin', icon: '📦', price: '4.800.000 đ', description: 'Các mũi phòng bệnh thiết yếu cho người lớn.', inStock: false }, // Hết gói -> Test hàng đợi
+  { id: 'vaccine-a', name: 'Vắc xin Sởi - Quai bị - Rubella (MMR)', category: 'Vắc xin lẻ', price: '320.000 đ', description: 'Phòng 3 bệnh sởi, quai bị, rubella.', inStock: true },
+  { id: 'vaccine-b', name: 'Vắc xin Cúm mùa tứ giá (Vaxigrip Tetra)', category: 'Vắc xin lẻ', price: '380.000 đ', description: 'Phòng ngừa các chủng cúm mùa mới nhất.', inStock: false }, // Hết thuốc -> Test hàng đợi
+  { id: 'vaccine-c', name: 'Vắc xin ngừa ung thư cổ tử cung (Gardasil 9)', category: 'Vắc xin lẻ', price: '2.950.000 đ', description: 'Phòng virus HPV và các bệnh đường sinh dục.', inStock: true },
+  { id: 'pack-family', name: 'Gói tiêm chủng Trẻ em toàn diện (0-24 tháng)', category: 'Gói vắc xin', price: '12.500.000 đ', description: 'Trọn gói các mũi tiêm cơ bản trong 2 năm đầu đời.', inStock: true },
+  { id: 'pack-adult', name: 'Gói tiêm chủng Người lớn & Tiền hôn nhân', category: 'Gói vắc xin', price: '4.800.000 đ', description: 'Các mũi phòng bệnh thiết yếu cho người lớn.', inStock: false }, // Hết gói -> Test hàng đợi
 ]
 
 
@@ -53,21 +54,21 @@ function App() {
 
   return (
     <div className="app-shell">
-      <div className="announcement"><span className="announcement-dot" /> Cổng thông tin tiêm chủng <ApiProbe /></div>
+      <div className="announcement"><span className="announcement-dot" /> VAC · Cổng thông tin tiêm chủng</div>
       <header className="site-header">
         <button className="brand" onClick={() => go('home')} aria-label="Về trang chủ">
-          <span className="brand-mark">✚</span><span><b>TRUNG TÂM TIÊM CHỦNG</b><small>CỔNG THÔNG TIN KHÁCH HÀNG</small></span>
+          <img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="64" height="64" /><span><b>TRUNG TÂM TIÊM CHỦNG VAC</b><small>VACCINE ADMINISTRATION CENTER</small></span>
         </button>
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
           {pages.map(([id, label]) => <button key={id} className={page === id ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
         <button className="button outline account-button" onClick={() => go('account')} aria-label="Tài khoản">{account ? 'Tài khoản' : 'Đăng nhập'}</button>
-        <button className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? '×' : '☰'}</button>
+        <button className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
       </header>
 
       <main>
         {page === 'account' && <Account account={account} setAccount={setAccount} />}
-        {page === 'home' && <Home go={go} query={query} setQuery={setQuery} notify={notify} />}
+        {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {page === 'register' && <Register go={go} notify={notify} selectedService={selectedService} draft={draft} setDraft={setDraft} onSubmit={() => { setRegistration(draft); setPaymentStatus(selectedService.inStock ? 'Chờ thanh toán' : 'Đang chờ hàng đợi'); setPaymentFromRegistration(true); setPage('payment'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
@@ -75,49 +76,33 @@ function App() {
         {page === 'schedule' && <Schedule tab={scheduleTab} setTab={setScheduleTab} registration={registration} draft={draft} selectedService={selectedService} paymentStatus={paymentStatus} notify={notify} />}
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-brand"><span className="brand-mark">✚</span><div><b>TRUNG TÂM TIÊM CHỦNG</b><p>Cổng thông tin dịch vụ tiêm chủng</p></div></div>
-        <div className="footer-links">{pages.map(([id, label]) => <button key={id} onClick={() => go(id)}>{label}</button>)}</div>
+      <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">
+        <div className="footer-content wrap">
+          <div className="footer-identity">
+            <div className="footer-brand"><img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="76" height="76" /><div><b>TRUNG TÂM<br />TIÊM CHỦNG VAC</b><small>Vaccine Administration Center</small></div></div>
+            <p>Đồng hành cùng bạn trong việc tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe gia đình.</p>
+          </div>
+          <div className="footer-location">
+            <h2><MapPin aria-hidden="true" />Đến trung tâm VAC</h2>
+            <address>140 Lê Trọng Tấn, Phường Tây Thạnh,<br />Thành phố Hồ Chí Minh</address>
+            <a className="footer-map" href="https://www.google.com/maps/search/?api=1&query=140%20L%C3%AA%20Tr%E1%BB%8Dng%20T%E1%BA%A5n%2C%20Ph%C6%B0%E1%BB%9Dng%20T%C3%A2y%20Th%E1%BA%A1nh%2C%20Th%C3%A0nh%20ph%E1%BB%91%20H%E1%BB%93%20Ch%C3%AD%20Minh" target="_blank" rel="noreferrer">Xem đường đi trên bản đồ <ArrowUpRight aria-hidden="true" /></a>
+          </div>
+          <div className="footer-contact">
+            <h2><Clock3 aria-hidden="true" />Giờ làm việc dự kiến</h2>
+            <strong className="footer-hours">07:30 – 17:00</strong>
+            <p>Thứ Hai – Chủ nhật · Không nghỉ trưa</p>
+            <p className="footer-email"><Mail aria-hidden="true" /><span>Email</span>example@email.com</p>
+          </div>
+        </div>
+        <div className="footer-bottom wrap"><span>© VAC · Trung tâm tiêm chủng</span><span>Chủ động hôm nay, an tâm ngày mai.</span></div>
       </footer>
-      {toast && <div className="toast" role="status"><span>ⓘ</span>{toast}<button onClick={() => setToast('')} aria-label="Đóng thông báo">×</button></div>}
+      {toast && <div className="toast" role="status"><span><Info aria-hidden="true" /></span>{toast}<button onClick={() => setToast('')} aria-label="Đóng thông báo"><X aria-hidden="true" /></button></div>}
     </div>
   )
 }
 
-function SearchBox({ query, setQuery, onSearch }) {
-  return <form className="search-box" onSubmit={(event) => { event.preventDefault(); onSearch?.() }}><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm loại tiêm chủng hoặc vắc xin" aria-label="Tìm loại tiêm chủng hoặc vắc xin" /><button type="submit" className="button primary">Tìm kiếm</button></form>
-}
 function PendingBadge({ children = 'Đang xử lý' }) { if (!children || /minh họa|cần xác nhận|demo/i.test(String(children))) return null; return <span className="pending-badge"><span />{children}</span> }
 
-function Home({ go, query, setQuery, notify }) {
-  return <>
-    <section className="hero wrap">
-      <div className="hero-copy">
-        <div className="eyebrow"><span>✦</span> AN TÂM CHỦ ĐỘNG BẢO VỆ SỨC KHỎE</div>
-        <h1>Chủ động tiêm chủng,<br /><em>an tâm mỗi ngày.</em></h1>
-        <p className="hero-lead">Tra cứu thông tin, tìm hiểu dịch vụ và đăng ký tiêm chủng trên cổng thông tin của Trung tâm.</p>
-        <SearchBox query={query} setQuery={setQuery} onSearch={() => go('catalog')} />
-        <div className="hero-actions"><button className="button primary" onClick={() => go('catalog')}>Khám phá danh mục <span>→</span></button><button className="button text-button" onClick={() => go('register')}>Đăng ký tiêm <span>↗</span></button></div>
-        <div className="hero-assurance"><span>✓</span> Quyết định chỉ định tiêm thuộc quy trình khám sàng lọc tại trung tâm.</div>
-      </div>
-      <div className="hero-art" aria-label="Hình ảnh chăm sóc sức khỏe"><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-sun" /><div className="art-cross">✚</div><div className="art-card card-top"><span className="tiny-icon blue">✚</span><span>Tiêm chủng<br /><b>chủ động</b></span><span className="green-check">✓</span></div><div className="art-card card-bottom"><span className="heart">♡</span><span>Sức khỏe<br /><b>được quan tâm</b></span></div><div className="art-person"><div className="person-head" /><div className="person-body" /><div className="person-arm" /></div><div className="art-leaf leaf-a">❋</div><div className="art-leaf leaf-b">✦</div></div>
-    </section>
-    <section className="trust-strip"><div className="wrap trust-items"><span><i>⌕</i> Tra cứu danh mục</span><span><i>♡</i> Chủ động lựa chọn</span><span><i>▦</i> Theo dõi lịch hẹn</span><span><i>✚</i> Chăm sóc sức khỏe</span></div></section>
-    <section className="section wrap">
-      <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2>Khám phá danh mục dịch vụ</h2><p>Chọn một dịch vụ để xem thông tin và đăng ký.</p></div><button className="button outline" onClick={() => go('catalog')}>Xem danh mục <span>→</span></button></div>
-      <div className="service-grid">
-        <ServiceCard icon="💉" title="Vắc xin Sởi - Quai bị - Rubella" note="Vắc xin lẻ" onClick={() => go('catalog')} />
-        <ServiceCard icon="💉" title="Vắc xin Cúm mùa tứ giá" note="Vắc xin lẻ" onClick={() => go('catalog')} />
-        <ServiceCard icon="📦" title="Gói tiêm Trẻ em toàn diện" note="Gói vắc xin" onClick={() => go('catalog')} />
-      </div>
-    </section>
-    <section className="section process-section"><div className="wrap"><div className="section-heading centered"><div><div className="eyebrow">HÀNH TRÌNH TRÊN CỔNG THÔNG TIN</div><h2>Các bước trải nghiệm dịch vụ</h2><p>Thực hiện lần lượt các bước để sử dụng dịch vụ.</p></div></div><div className="process-grid"><ProcessStep n="01" icon="⌕" title="Khám phá danh mục" onClick={() => go('catalog')} /><ProcessStep n="02" icon="▤" title="Đăng ký tiêm" onClick={() => go('register')} /><ProcessStep n="03" icon="▣" title="Thanh toán" onClick={() => go('payment')} /><ProcessStep n="04" icon="◷" title="Theo dõi lịch" onClick={() => go('schedule')} /></div></div></section>
-    <section className="support-banner wrap"><div className="support-icon">♡</div><div><b>Bạn cần tìm hiểu thêm?</b><p>Tra cứu các kênh hỗ trợ của Trung tâm.</p></div><button className="button outline" onClick={() => notify('Thông tin hỗ trợ sẽ sớm được cập nhật.')}>Thông tin hỗ trợ <span>→</span></button></section>
-  </>
-}
-
-function ServiceCard({ icon, title, note, onClick }) { return <button className="service-card" onClick={onClick}><span className="service-icon">{icon}</span><span className="service-title">{title}</span><span className="service-note">{note}</span><span className="card-arrow">↗</span></button> }
-function ProcessStep({ n, icon, title, onClick }) { return <button className="process-step" onClick={onClick}><span className="step-number">{n}</span><span className="step-icon">{icon}</span><b>{title}</b><small>Thao tác nhanh</small></button> }
 function PageIntro({ eyebrow, title, text }) { return <div className="page-intro"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div> }
 
 function Offers({ go, notify }) {
@@ -131,10 +116,10 @@ function Offers({ go, notify }) {
   })
   return <section className="offers-page wrap">
     <PageIntro eyebrow="CHƯƠNG TRÌNH ƯU ĐÃI" title="Ưu đãi dành cho bạn" text="Khám phá các chương trình ưu đãi đang áp dụng." />
-    <div className="offers-controls"><label className="offer-search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm ưu đãi hoặc mã" aria-label="Tìm ưu đãi hoặc mã" /></label><div className="filter-tabs" role="tablist" aria-label="Lọc ưu đãi">{['Tất cả', 'Đang áp dụng'].map(item => <button key={item} role="tab" aria-selected={filter === item} className={filter === item ? 'filter-tab selected' : 'filter-tab'} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
-    <div className="offers-grid">{filteredOffers.map(offer => <article className="offer-card" key={offer.id}><div className="offer-card-top"><span className="offer-spark">✦</span><span className="offer-status">{offer.status}</span></div><div className="offer-discount">{offer.discount}</div><h2>{offer.title}</h2><div className="offer-code"><span>Mã ưu đãi</span><b>{offer.code}</b></div><div className="offer-period"><span>Thời gian</span><b>{offer.period}</b></div><div className="offer-actions"><button className="button outline" onClick={() => setSelectedOffer(offer)}>Chi tiết</button><button className="button primary" onClick={() => { go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <span>→</span></button></div></article>)}</div>
+    <div className="offers-controls"><label className="offer-search"><span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm ưu đãi hoặc mã" aria-label="Tìm ưu đãi hoặc mã" /></label><div className="filter-tabs" role="tablist" aria-label="Lọc ưu đãi">{['Tất cả', 'Đang áp dụng'].map(item => <button key={item} role="tab" aria-selected={filter === item} className={filter === item ? 'filter-tab selected' : 'filter-tab'} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
+    <div className="offers-grid">{filteredOffers.map(offer => <article className="offer-card" key={offer.id}><div className="offer-card-top"><span className="offer-spark"><Tag aria-hidden="true" /></span><span className="offer-status">{offer.status}</span></div><div className="offer-discount">{offer.discount}</div><h2>{offer.title}</h2><div className="offer-code"><span>Mã ưu đãi</span><b>{offer.code}</b></div><div className="offer-period"><span>Thời gian</span><b>{offer.period}</b></div><div className="offer-actions"><button className="button outline" onClick={() => setSelectedOffer(offer)}>Chi tiết</button><button className="button primary" onClick={() => { go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></div></article>)}</div>
     {filteredOffers.length === 0 && <div className="empty-state">Không có ưu đãi phù hợp.</div>}
-    {selectedOffer && <div className="offer-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedOffer(null) }}><section className="offer-modal" role="dialog" aria-modal="true" aria-labelledby="offer-modal-title"><button className="offer-modal-close" aria-label="Đóng" onClick={() => setSelectedOffer(null)}>×</button><div className="card-kicker">{selectedOffer.status.toLocaleUpperCase('vi')}</div><h2 id="offer-modal-title">{selectedOffer.title}</h2><div className="offer-modal-discount">{selectedOffer.discount}</div><p>Mã ưu đãi: <b>{selectedOffer.code}</b></p><p>Thời gian áp dụng: <b>{selectedOffer.period}</b></p><button className="button primary" onClick={() => { setSelectedOffer(null); go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <span>→</span></button></section></div>}
+    {selectedOffer && <div className="offer-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedOffer(null) }}><section className="offer-modal" role="dialog" aria-modal="true" aria-labelledby="offer-modal-title"><button className="offer-modal-close" aria-label="Đóng" onClick={() => setSelectedOffer(null)}><X aria-hidden="true" /></button><div className="card-kicker">{selectedOffer.status.toLocaleUpperCase('vi')}</div><h2 id="offer-modal-title">{selectedOffer.title}</h2><div className="offer-modal-discount">{selectedOffer.discount}</div><p>Mã ưu đãi: <b>{selectedOffer.code}</b></p><p>Thời gian áp dụng: <b>{selectedOffer.period}</b></p><button className="button primary" onClick={() => { setSelectedOffer(null); go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></section></div>}
   </section>
 }
 
@@ -166,7 +151,7 @@ function Register({ go, notify, selectedService, draft, setDraft, onSubmit }) {
 
   return <section className="form-page wrap">
     <PageIntro eyebrow="CỔNG TIẾP NHẬN TRỰC TUYẾN" title="Đăng ký tiêm chủng (Mũi lẻ & Gói)" text="Điền thông tin đăng ký dịch vụ." />
-    <div className="stepper"><span className="step"><i>✓</i> Chọn dịch vụ</span><span className="step current"><i>2</i> Đăng ký thông tin</span><span className="step"><i>3</i> Thanh toán</span><span className="step"><i>4</i> Theo dõi lịch</span></div>
+    <div className="stepper"><span className="step"><i><Check size={14} aria-hidden="true" /></i> Chọn dịch vụ</span><span className="step current"><i>2</i> Đăng ký thông tin</span><span className="step"><i>3</i> Thanh toán</span><span className="step"><i>4</i> Theo dõi lịch</span></div>
     <form className="form-layout" onSubmit={handleSubmit}>
       <div className="form-content">
         <section className="form-card">
@@ -174,18 +159,18 @@ function Register({ go, notify, selectedService, draft, setDraft, onSubmit }) {
           <div className="details-grid">
             <Detail label="Tên dịch vụ" value={selectedService.name} />
             <Detail label="Hình thức" value={selectedService.category} />
-            <Detail label="Tình trạng kho" value={selectedService.inStock ? '🟢 Còn thuốc tại trung tâm' : '🟠 Tạm hết thuốc (Đăng ký Hàng đợi)'} />
+            <Detail label="Tình trạng kho" value={<span className={selectedService.inStock ? 'stock-status available' : 'stock-status unavailable'}>{selectedService.inStock ? <CircleCheck aria-hidden="true" /> : <CircleAlert aria-hidden="true" />}{selectedService.inStock ? 'Còn thuốc tại trung tâm' : 'Tạm hết thuốc (Đăng ký Hàng đợi)'}</span>} />
           </div>
           {!selectedService.inStock && (
             <div className="notice" style={{ marginTop: '12px', background: '#fffbe6', borderColor: '#fa8c16' }}>
-              <span>ℹ</span>
+              <span><Info aria-hidden="true" /></span>
               <div>
                 <b>Thông báo Hàng đợi vắc xin</b>
                 <p>Sản phẩm này hiện đang tạm hết. Hệ thống sẽ đưa bạn vào <b>Hàng đợi vắc xin</b> và thông báo ngay khi có lô thuốc mới về trung tâm.</p>
               </div>
             </div>
           )}
-          <button type="button" className="button outline" style={{ marginTop: '12px' }} onClick={() => go('catalog')}>← Thay đổi dịch vụ / gói</button>
+          <button type="button" className="button outline" style={{ marginTop: '12px' }} onClick={() => go('catalog')}><ArrowLeft aria-hidden="true" />Thay đổi dịch vụ / gói</button>
         </section>
 
         <section className="form-card"><h2><span>02</span> Thông tin Khách hàng (Người đăng ký)</h2><div className="demo-form-grid"><Field label="Họ và tên khách hàng" value={draft.customerName} onChange={event => update('customerName', event.target.value)} required /><Field label="Số điện thoại liên hệ" value={draft.phone} onChange={event => update('phone', event.target.value)} required /><Field label="Địa chỉ Email" value={draft.email} onChange={event => update('email', event.target.value)} type="email" /><Field label="Số CCCD / Định danh cá nhân" value={draft.identity} onChange={event => update('identity', event.target.value)} /><Field label="Địa chỉ thường trú / Liên hệ" value={draft.address} onChange={event => update('address', event.target.value)} /></div></section>
@@ -196,7 +181,7 @@ function Register({ go, notify, selectedService, draft, setDraft, onSubmit }) {
           {!draft.samePerson && <div className="recipient-list">{recipients.map((person, index) => <div className="recipient-card" key={person.id}>
             <div className="recipient-card-heading"><h3>Người được tiêm {index + 1}</h3>{recipients.length > 1 && <button type="button" className="recipient-remove" onClick={() => removeRecipient(person.id)}>Xóa người này</button>}</div>
             <div className="demo-form-grid"><Field label="Họ tên người được tiêm" value={person.name} onChange={event => updateRecipient(person.id, 'name', event.target.value)} required /><label className="demo-field"><span>Vắc xin / gói đăng ký</span><select value={person.serviceId || selectedService.id} onChange={event => updateRecipient(person.id, 'serviceId', event.target.value)}>{services.map(item => <option key={item.id} value={item.id} disabled={!item.inStock}>{item.name} ({item.category})</option>)}</select></label><Field label="Quan hệ với khách hàng" value={person.relation} onChange={event => updateRecipient(person.id, 'relation', event.target.value)} /><Field label="Ngày sinh" value={person.birthDate} onChange={event => updateRecipient(person.id, 'birthDate', event.target.value)} type="date" /><label className="demo-field"><span>Giới tính</span><select value={person.gender} onChange={event => updateRecipient(person.id, 'gender', event.target.value)}><option>Nữ</option><option>Nam</option><option>Khác</option></select></label><Field label="Số CCCD / Giấy khai sinh" value={person.identity} onChange={event => updateRecipient(person.id, 'identity', event.target.value)} /></div>
-          </div>)}<button type="button" className="button outline add-recipient" onClick={addRecipient}><span aria-hidden="true">＋</span> Thêm người được tiêm</button></div>}
+          </div>)}<button type="button" className="button outline add-recipient" onClick={addRecipient}><Plus aria-hidden="true" /> Thêm người được tiêm</button></div>}
         </section>
         
         <section className="form-card"><h2><span>04</span> Chọn lịch hẹn (Ngày & Khung giờ)</h2><div className="demo-form-grid"><Field label="Chọn ngày hẹn dự kiến" value={draft.appointmentDate} onChange={event => update('appointmentDate', event.target.value)} type="date" required /><label className="demo-field"><span>Khung giờ hẹn <b>*</b></span><select value={draft.slot} onChange={event => update('slot', event.target.value)}><option>09:00</option><option>10:30</option><option>14:00</option></select></label></div></section>
@@ -217,7 +202,7 @@ function Register({ go, notify, selectedService, draft, setDraft, onSubmit }) {
           </b>
         </div>
         <button className="button primary full" type="submit">
-          {selectedService.inStock ? 'Tiếp tục đăng ký →' : 'Xác nhận vào Hàng đợi →'}
+          {selectedService.inStock ? 'Tiếp tục đăng ký' : 'Xác nhận vào Hàng đợi'}<ArrowRight aria-hidden="true" />
         </button>
       </aside>
     </form>
@@ -227,7 +212,7 @@ function SummaryRow({ label, value }) { return <div className="summary-row"><spa
 function Detail({ label, value }) { return <div className="detail-item"><span>{label}</span><b className="demo-value">{value}</b></div> }
 
 function IdentityGate({ value, onChange, onSubmit, error, title, description }) {
-  return <section className="identity-gate form-card"><div className="identity-gate-icon">♙</div><div><div className="card-kicker">TRA CỨU HỒ SƠ</div><h2>{title}</h2><p>{description}</p><form onSubmit={onSubmit}><label className="demo-field"><span>CCCD / Mã định danh của người được tiêm hoặc người giám hộ</span><input value={value} onChange={event => onChange(event.target.value)} autoComplete="off" placeholder="Nhập số CCCD hoặc mã định danh" required /></label>{error && <div className="identity-error" role="alert">{error}</div>}<button className="button primary" type="submit">Tiếp tục xem thông tin <span>→</span></button></form></div></section>
+  return <section className="identity-gate form-card"><div className="identity-gate-icon"><UserRound aria-hidden="true" /></div><div><div className="card-kicker">TRA CỨU HỒ SƠ</div><h2>{title}</h2><p>{description}</p><form onSubmit={onSubmit}><label className="demo-field"><span>CCCD / Mã định danh của người được tiêm hoặc người giám hộ</span><input value={value} onChange={event => onChange(event.target.value)} autoComplete="off" placeholder="Nhập số CCCD hoặc mã định danh" required /></label>{error && <div className="identity-error" role="alert">{error}</div>}<button className="button primary" type="submit">Tiếp tục xem thông tin <ArrowRight aria-hidden="true" /></button></form></div></section>
 }
 
 function getRecipientNames(record) {
@@ -279,7 +264,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
       <section className="payment-page wrap">
         <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán dịch vụ" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." />
         <IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Xác nhận thông tin hồ sơ" description="Sử dụng mã định danh của người được tiêm hoặc người giám hộ đã đăng ký." />
-        <button className="button text-button" onClick={() => go('register')}>← Quay lại đăng ký</button>
+        <button className="button text-button" onClick={() => go('register')}><ArrowLeft aria-hidden="true" />Quay lại đăng ký</button>
       </section>
     )
   }
@@ -327,7 +312,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
     <section className="payment-page wrap">
       <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán & Tài chính" text="Kiểm tra thông tin dịch vụ, áp dụng khuyến mãi và thanh toán." />
       <div className="payment-steps">
-        <span>✓ Chọn dịch vụ</span><span>✓ Đăng ký thông tin</span><b>03 Thanh toán</b><span>04 Theo dõi lịch</span>
+        <span><Check aria-hidden="true" />Chọn dịch vụ</span><span><Check aria-hidden="true" />Đăng ký thông tin</span><b>03 Thanh toán</b><span>04 Theo dõi lịch</span>
       </div>
       
       <div className="payment-layout">
@@ -355,7 +340,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
                   )}
                 </div>
                 {promoError && <p style={{ color: '#ff4d4f', fontSize: '0.85rem', marginTop: '6px' }}>{promoError}</p>}
-                {appliedPromo && <p style={{ color: '#52c41a', fontSize: '0.85rem', marginTop: '6px' }}>✓ Đã áp dụng: <b>{appliedPromo.title}</b> ({appliedPromo.discount})</p>}
+                {appliedPromo && <p style={{ color: '#52c41a', fontSize: '0.85rem', marginTop: '6px' }}><Check aria-hidden="true" />Đã áp dụng: <b>{appliedPromo.title}</b> ({appliedPromo.discount})</p>}
               </div>
             ) : (
               <p className="method-caption">Không áp dụng mã khuyến mãi cho dịch vụ đang trong Hàng đợi.</p>
@@ -366,7 +351,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
             <h2><span>03</span> Hình thức & Phương thức thanh toán</h2>
             {status === 'Đã thanh toán' ? (
               <div className="notice" style={{ background: '#f6ffed', borderColor: '#b7eb8f', marginTop: '12px' }}>
-                <span>✓</span>
+                <span><CircleCheck aria-hidden="true" /></span>
                 <div>
                   <b>Giao dịch đã hoàn tất</b>
                   <p>Cảm ơn bạn. Khoản thanh toán đã được ghi nhận vào hệ thống kế toán.</p>
@@ -398,7 +383,7 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
           </section>
           
           {status !== 'Đã thanh toán' && (
-            <button className="button text-button" onClick={() => go('register')} disabled={processing}>← Quay lại đăng ký</button>
+            <button className="button text-button" onClick={() => go('register')} disabled={processing}><ArrowLeft aria-hidden="true" />Quay lại đăng ký</button>
           )}
         </div>
 
@@ -448,11 +433,11 @@ function Payment({ go, selectedService, registration, draft, status, skipIdentit
 
           {status === 'Đã thanh toán' || status === 'Đang chờ hàng đợi' ? (
             <button className="button primary full" onClick={() => go('schedule')}>
-              Theo dõi lịch <span>→</span>
+              Theo dõi lịch <ArrowRight aria-hidden="true" />
             </button>
           ) : (
             <button className="button primary full" onClick={handlePay} disabled={processing}>
-              {processing ? 'Đang xử lý giao dịch...' : 'Xác nhận thanh toán →'}
+              {processing ? 'Đang xử lý giao dịch...' : 'Xác nhận thanh toán'}<ArrowRight aria-hidden="true" />
             </button>
           )}
         </aside>
@@ -469,6 +454,6 @@ function Schedule({ tab, setTab, registration, draft, selectedService, paymentSt
   if (!unlocked) return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." /><IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Tra cứu lịch tiêm" description="Nhập mã của người được tiêm hoặc người giám hộ đã đăng ký." /></section>
   const name = registration ? getRecipientNames(registration).join(', ') : 'Trần Gia Bảo'
   const appointment = registration ? { id: 'LH-0004', name, service: getRecipientItems(registration, selectedService).map(item => `${item.name}: ${item.service.name}`).join(' · '), date: draft.appointmentDate, time: draft.slot, status: paymentStatus } : { id: 'LH-0002', name, service: 'Vắc xin B', date: '2026-10-17', time: '10:30', status: 'Đã xác nhận' }
-  return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Xem lịch hẹn và lịch sử tiêm." /><div className="schedule-tabs" role="tablist"><button role="tab" aria-selected={tab === 'Lịch tiêm'} className={tab === 'Lịch tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch tiêm')}>▦ Lịch tiêm</button><button role="tab" aria-selected={tab === 'Lịch sử tiêm'} className={tab === 'Lịch sử tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch sử tiêm')}>◷ Lịch sử tiêm</button></div>{tab === 'Lịch tiêm' ? <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>{appointment.date}</b><span>{appointment.time}</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH {appointment.id}</div><h3>{appointment.name}</h3><p>{appointment.service}</p><PendingBadge>{appointment.status}</PendingBadge></div><button className="button outline" onClick={() => notify(`Chi tiết ${appointment.id}.`)}>Xem chi tiết</button></article><article className="demo-record" style={{ display: 'none' }}><div className="record-date"><b>2026-10-19</b><span>14:00</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH LH-0003</div><h3>Phạm Minh Khoa</h3><p>Vắc xin Cúm mùa (Hàng đợi số #03)</p><PendingBadge>Đang chờ hàng đợi</PendingBadge></div><button className="button outline" onClick={() => notify('Đã mở trạng thái hàng đợi.')}>Xem hàng đợi</button></article></div> : <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>2026-09-10</b><span>Hoàn tất</span></div><div className="record-main"><div className="card-kicker">LS-0001</div><h3>Nguyễn An Nhiên</h3><p>Vắc xin A · Mũi 1</p><PendingBadge>Đã ghi nhận</PendingBadge></div><button className="button outline" onClick={() => notify('Đang mở lịch sử tiêm.')}>Xem lịch sử</button></article></div>}</section>
+  return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Xem lịch hẹn và lịch sử tiêm." /><div className="schedule-tabs" role="tablist"><button role="tab" aria-selected={tab === 'Lịch tiêm'} className={tab === 'Lịch tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch tiêm')}><CalendarDays aria-hidden="true" />Lịch tiêm</button><button role="tab" aria-selected={tab === 'Lịch sử tiêm'} className={tab === 'Lịch sử tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch sử tiêm')}><History aria-hidden="true" />Lịch sử tiêm</button></div>{tab === 'Lịch tiêm' ? <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>{appointment.date}</b><span>{appointment.time}</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH {appointment.id}</div><h3>{appointment.name}</h3><p>{appointment.service}</p><PendingBadge>{appointment.status}</PendingBadge></div><button className="button outline" onClick={() => notify(`Chi tiết ${appointment.id}.`)}>Xem chi tiết</button></article><article className="demo-record" style={{ display: 'none' }}><div className="record-date"><b>2026-10-19</b><span>14:00</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH LH-0003</div><h3>Phạm Minh Khoa</h3><p>Vắc xin Cúm mùa (Hàng đợi số #03)</p><PendingBadge>Đang chờ hàng đợi</PendingBadge></div><button className="button outline" onClick={() => notify('Đã mở trạng thái hàng đợi.')}>Xem hàng đợi</button></article></div> : <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>2026-09-10</b><span>Hoàn tất</span></div><div className="record-main"><div className="card-kicker">LS-0001</div><h3>Nguyễn An Nhiên</h3><p>Vắc xin A · Mũi 1</p><PendingBadge>Đã ghi nhận</PendingBadge></div><button className="button outline" onClick={() => notify('Đang mở lịch sử tiêm.')}>Xem lịch sử</button></article></div>}</section>
 }
 export default App

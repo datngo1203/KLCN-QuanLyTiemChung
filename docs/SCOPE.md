@@ -25,13 +25,13 @@ Nguồn sự thật duy nhất về phạm vi. Cập nhật: 25/10/2026. Hạn n
 
 ## Không làm (hoặc chỉ nằm trong sơ đồ/báo cáo)
 
-- Mobile Flutter: đóng băng, chỉ làm nếu còn thời gian sau S8.
+- Mobile Flutter: đóng băng nghiệp vụ, chỉ làm nếu còn thời gian sau S8. Ngoại lệ theo yêu cầu trực tiếp 26/10/2026: đồng bộ logo VAC trên Mobile cùng Web/Windows.
 - Không xây lại 6 chức danh/12 mã quyền đã có ở backend; hoãn UI quản trị quyền và ma trận 78 ô.
 - Kho/lô, biến động tồn kho.
 - Phiếu khám sàng lọc chi tiết, sinh tồn, chỉ định.
 - Đặt cọc, trả góp, idempotency.
 - SMS, tích hợp ngân hàng, xuất file báo cáo.
-- Thiết kế lại UI, thêm tài liệu giai đoạn/ảnh review mới.
+- Thiết kế lại UI ngoài yêu cầu trực tiếp 26/10/2026: chỉnh Web theo ảnh mẫu, responsive trên điện thoại, dùng ảnh thật và đồng bộ logo VAC Web/Windows/Mobile; bổ sung nội dung trang chủ, danh mục đọc API, liên hệ do người dùng cung cấp và màu Web theo theme Windows. Không thêm tài liệu giai đoạn/ảnh review mới.
 
 ## Quy ước làm việc
 

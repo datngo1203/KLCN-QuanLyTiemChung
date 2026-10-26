@@ -1,70 +1,136 @@
-# KLCN090 · Hệ thống quản lý tiêm chủng
+# VAC — Hệ thống quản lý tiêm chủng
 
-> Phạm vi hiện hành: [docs/SCOPE.md](docs/SCOPE.md), S0–S8; Mobile đóng băng. Chạy nền SQL/API thật theo mục Docker Compose trong [docs/setup.md](docs/setup.md). Nội dung phạm vi cũ bên dưới chỉ là lịch sử nếu xung đột.
+Dự án gồm Website dành cho khách hàng, ứng dụng Windows dành cho nhân viên và ứng dụng Mobile Flutter. Cả ba dùng chung ASP.NET Core API; API xử lý nghiệp vụ và lưu dữ liệu trong SQL Server.
 
-Khung dùng chung cho Bảo, Quý, Đạt: **Website React + ứng dụng Windows WPF + Mobile Flutter → ASP.NET Core Web API → SQL Server**.
+Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Mobile mới có màn danh mục đọc API. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
-Repo khởi tạo ngày 19/10/2026. Mobile được bổ sung theo yêu cầu mới của nhóm, giữ cả Website và Windows theo đề cương gốc. Đây là nền để phát triển khóa luận; chưa phải hệ thống quản lý tiêm chủng đã hoàn thiện.
+## 1. Cần cài đặt
 
-## Bắt đầu
+Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để tải thư viện lần đầu:
+
+- .NET SDK 10.
+- Node.js 24 LTS, kèm npm.
+- Docker Desktop, bật chế độ Linux containers và mở Docker trước khi chạy.
+- Flutter 3.47.7 / Dart 3.13.5 nếu muốn xem Mobile. Chạy Android cần thêm Android SDK và thiết bị hoặc máy ảo; iOS cần macOS/Xcode.
+
+Giải nén dự án vào một thư mục riêng. Mở PowerShell tại thư mục chứa file hướng dẫn này. Các lệnh bên dưới đều chạy từ đây, trừ bước Mobile có lệnh chuyển thư mục.
+
+## 2. Khởi động SQL Server và API
+
+### Thiết lập lần đầu
+
+Đoạn lệnh sau tạo cấu hình riêng cho máy người nhận. Chỉ chạy một lần; giữ nguyên file `infra/.env` ở những lần sử dụng tiếp theo.
 
 ```powershell
-git clone https://github.com/datngo1203/KLCN-QuanLyTiemChung.git
-cd KLCN-QuanLyTiemChung
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+if (Test-Path infra/.env) { throw 'Da co infra/.env; bo qua buoc tao cau hinh.' }
+function New-VacKey {
+    $bytes = New-Object byte[] 32
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes); [Convert]::ToBase64String($bytes) }
+    finally { $rng.Dispose() }
+}
+$vacMailDir = Join-Path $env:LOCALAPPDATA 'VAC-Demo/Mail'
+New-Item -ItemType Directory -Force $vacMailDir | Out-Null
+@(
+    "MSSQL_SA_PASSWORD=VacSql!$([Guid]::NewGuid().ToString('N'))A1"
+    "IDENTITY_SIGNING_KEY=$(New-VacKey)"
+    "IDENTITY_MAIL_ENCRYPTION_KEY=$(New-VacKey)"
+    "IDENTITY_MAIL_DIRECTORY=$($vacMailDir.Replace('\','/'))"
+) | Set-Content -Encoding ascii infra/.env
 ```
 
-Mở các terminal riêng:
+Khởi động từ mã nguồn:
 
 ```powershell
-# Backend: http://localhost:5080 — cần SQL và cấu hình local theo docs/setup.md
-dotnet run --project backend/src/TiemChung.Api
-# Website: http://localhost:5173
-npm --prefix apps/web run dev
-# Windows: Windows + .NET 10 SDK
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml up -d --build
+Invoke-RestMethod http://127.0.0.1:5080/health
+```
+
+Lần đầu Docker cần tải các image nên có thể mất vài phút. Khi sẵn sàng, lệnh kiểm tra trả `status: ok`. SQL Server chạy tại `127.0.0.1,14333`; API chạy tại `http://127.0.0.1:5080`. Cấu trúc bảng được tạo tự động bằng migration.
+
+### Tạo dữ liệu và tài khoản demo
+
+Tạo danh mục vắc xin/gói tiêm mẫu:
+
+```powershell
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm api --seed-catalog
+```
+
+Tạo Admin để đăng nhập ứng dụng Windows; tự chọn mật khẩu có ít nhất 12 ký tự và ghi nhớ mật khẩu vừa nhập:
+
+```powershell
+$env:DevelopmentSeed__Username = 'demo.admin'
+$env:DevelopmentSeed__Password = Read-Host 'Nhap mat khau Admin demo (it nhat 12 ky tu)'
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm -e DevelopmentSeed__Username -e DevelopmentSeed__Password api --seed-admin
+Remove-Item Env:DevelopmentSeed__Username, Env:DevelopmentSeed__Password
+```
+
+Các lệnh seed không ghi đè tài khoản Admin hoặc nhân bản danh mục đã có. Dữ liệu có nhãn `[DEMO]` và giá giả, chỉ dùng để xem thử.
+
+## 3. Mở các giao diện
+
+Giữ Docker đang chạy. Mỗi giao diện mở trong một cửa sổ PowerShell riêng.
+
+### Website
+
+```powershell
+npm --prefix apps/web ci
+npm --prefix apps/web run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
+
+Mở `http://localhost:5173`. Trang chủ và Danh mục có thể xem ngay. Để thử hồ sơ, chọn **Đăng nhập → Tạo tài khoản khách hàng**, dùng email dạng `ten@example.invalid` và mật khẩu 12–128 ký tự. Mở file JSON mới nhất trong `%LOCALAPPDATA%\VAC-Demo\Mail`, lấy trường `token` nhập vào bước xác minh email, rồi đăng nhập. Thư xác minh được lưu local, không gửi email ra ngoài.
+
+### Ứng dụng Windows
+
+```powershell
+$env:TIEMCHUNG_API_BASE_URL = 'http://127.0.0.1:5080'
 dotnet run --project apps/windows/TiemChung.Desktop.csproj
-# Mobile: Android emulator + Flutter (xem docs/setup.md cho thiết bị thật/iOS)
+```
+
+Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục để xem dữ liệu hoặc quản lý hồ sơ. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website.
+
+### Mobile Flutter
+
+Xem nhanh chính giao diện Flutter trên trình duyệt:
+
+```powershell
 cd apps/mobile
+flutter pub get
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5180 --dart-define=API_BASE_URL=http://127.0.0.1:5080
+```
+
+Mở `http://127.0.0.1:5180`. Nếu Flutter báo chưa cấu hình nền tảng web, chờ đến dòng địa chỉ được phục vụ; bản xem trước vẫn chạy với phiên bản Flutter nêu trên. Mobile hiện đọc danh mục trực tiếp, chưa có đăng nhập.
+
+Nếu đã có máy ảo Android đang mở, thay lệnh `flutter run` bằng:
+
+```powershell
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5080
 ```
 
-S1: Windows đăng nhập/đổi mật khẩu/đăng xuất qua Identity API; Web đăng nhập/đăng ký khách hàng/xác minh email/đăng xuất qua API. Token chỉ giữ trong bộ nhớ; seed Admin Development và mail pickup synthetic xem [setup](docs/setup.md). Các form nghiệp vụ chưa tích hợp vẫn dùng trạng thái mẫu. Mobile đóng băng theo SCOPE.
+## 4. Cấu trúc dự án
 
-## Phân công
+| Thư mục / file | Vai trò |
+|---|---|
+| `apps/web/` | Giao diện Website React; gọi API để lấy và cập nhật dữ liệu. |
+| `apps/windows/` | Ứng dụng nhân viên C# WPF; màn hình trong `ViewsV2`, xử lý giao diện trong `ViewModels`, gọi API trong `Services`. |
+| `apps/mobile/` | Mã Flutter, gồm giao diện và cấu hình Android/iOS. |
+| `backend/src/TiemChung.Api/` | Nhận yêu cầu từ các giao diện, kiểm tra tài khoản/quyền và xử lý nghiệp vụ. |
+| `backend/src/TiemChung.Contracts/` | Cấu trúc dữ liệu trao đổi với API. |
+| `backend/src/TiemChung.Domain/` | Các đối tượng dữ liệu và quy tắc nghiệp vụ. |
+| `backend/src/TiemChung.Infrastructure/` | Kết nối SQL Server và các migration tạo/cập nhật bảng. |
+| `backend/Dockerfile`, `infra/compose.yaml` | Đóng gói API và khởi động API cùng SQL Server. |
+| `global.json`, `Directory.Build.props` | Phiên bản .NET và cấu hình build dùng chung. |
 
-| Thành viên | Đầu mối giao diện | Module backend và tích hợp |
-|---|---|---|
-| Diệp Nguyễn Gia Bảo | `apps/web` | Hồ sơ, đăng ký, thanh toán, ưu đãi |
-| Nguyễn Ngọc Quý | `apps/mobile` | Lịch, lịch sử tiêm, nhắc lịch, theo dõi sau tiêm |
-| Ngô Thành Đạt | `apps/windows` | Danh mục, kho, khám/chỉ định, tài khoản/phân quyền; nền API/DB/CI |
+Luồng hoạt động: **Web / Windows / Mobile → API → SQL Server**. Giao diện không kết nối SQL trực tiếp; mật khẩu đăng nhập được hash ở backend.
 
-Đây là phân công khởi tạo để nhóm bắt đầu; chi tiết phạm vi và người review ở [docs/team.md](docs/team.md). Mỗi người làm cả phần API liên quan đến module mình, không dồn toàn bộ backend cho một thành viên.
+## 5. Dừng và chạy lại
 
-## Cấu trúc
+Dừng Web/Mobile bằng `Ctrl+C`; đóng cửa sổ Windows. Dừng API và SQL nhưng giữ dữ liệu:
 
-```text
-apps/web/                    React + Vite; kế thừa UI đã làm
-apps/windows/                C# WPF + WPF UI; kế thừa UI đã làm
-apps/mobile/                 Flutter Android/iOS
-backend/src/TiemChung.Api/    HTTP API, OpenAPI, CORS, xử lý lỗi
-backend/src/TiemChung.Domain/ thực thể và quy tắc nghiệp vụ
-backend/src/TiemChung.Infrastructure/ EF Core + SQL Server + migrations
-backend/src/TiemChung.Contracts/ DTO dùng chung .NET
-backend/tests/               unit tests và API smoke tests
-contracts/                   danh sách endpoint và mẫu gọi HTTP
-database/                    lược đồ SQL sinh từ migration
-docs/                        phạm vi, phân công, roadmap, UML, hướng dẫn
-scripts/                     cài dependencies, chạy và kiểm tra
-infra/                       Docker Compose cho API + SQL Server phát triển
-.github/                     CI, mẫu issue/PR, Dependabot
+```powershell
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml stop
 ```
 
-## Đọc tiếp
+Lần sau dùng lại lệnh `up -d` ở bước 2 và mở các giao diện; không cần tạo lại cấu hình hoặc seed. Nếu báo không kết nối API, kiểm tra Docker đang chạy và `http://127.0.0.1:5080/health`. Các cổng 5080, 5173, 5180 và 14333 cần trống trước khi khởi động.
 
-- [Cài đặt và chạy](docs/setup.md), [phân công và cách làm Git](docs/team.md), [backlog](docs/archive/backlog.md), [13 issue trên GitHub](docs/archive/task-board.md).
-- [Phạm vi và quyết định nghiệp vụ](docs/project-context.md), [kiến trúc](docs/architecture.md), [hợp đồng API](contracts/README.md).
-- [Database](database/README.md), [kiểm thử](docs/testing.md), [trạng thái kiểm chứng](docs/status.md).
-- [UML tham khảo](docs/diagrams/README.md), [nguồn và nguồn gốc giao diện](docs/source-map.md).
-- [Giới hạn bảo mật trước khi triển khai](SECURITY.md), [cách đóng góp](CONTRIBUTING.md).
-
-Endpoint thực thi xem [contracts](contracts/README.md); OpenAPI Development: `/openapi/v1.json`. Identity kiểm quyền tại backend; Profiles còn giới hạn theo contracts. API tắt dữ liệu mẫu khi chạy Production; Admin demo chỉ seed ở Development theo cấu hình local.
+Tài nguyên giao diện: logo VAC được cung cấp cho dự án; ảnh [tiêm chủng](https://www.pexels.com/photo/man-vaccinating-a-woman-8770702/), [nhân viên y tế](https://www.pexels.com/photo/doctor-holding-vaccine-bottle-6285354/), [chăm sóc khi tiêm](https://www.pexels.com/photo/person-getting-vaccinated-3985170/) của Gustavo Fring/Pexels; icon từ [Lucide](https://lucide.dev/).

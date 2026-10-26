@@ -8,12 +8,12 @@ class TiemChungApp extends StatelessWidget {
   final CatalogRepository? repository;
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Tiêm chủng',
+    title: 'VAC · Tiêm chủng',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff2563eb)),
-      scaffoldBackgroundColor: const Color(0xfff8f9ff),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff007cba)),
+      scaffoldBackgroundColor: const Color(0xfff5f8fa),
     ),
     home: HomePage(repository: repository),
   );
@@ -44,7 +44,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Tiêm chủng')),
+    appBar: AppBar(
+      toolbarHeight: 80,
+      backgroundColor: Colors.white,
+      title: Row(
+        children: [
+          Image.asset('assets/branding/vac-logo.png', width: 56, height: 56,
+            semanticLabel: 'Logo VAC'),
+          const SizedBox(width: 12),
+          const Flexible(child: Text('Tiêm chủng VAC')),
+        ],
+      ),
+    ),
     body: IndexedStack(
       index: _index,
       children: [

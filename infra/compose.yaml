@@ -39,6 +39,10 @@ services:
       Identity__MailEncryptionKey: ${IDENTITY_MAIL_ENCRYPTION_KEY:?Set IDENTITY_MAIL_ENCRYPTION_KEY in infra/.env}
       Identity__MailMode: Synthetic
       Identity__DevelopmentMailDirectory: /var/local/klcn-mail
+      Cors__Origins__0: http://localhost:5173
+      Cors__Origins__1: http://127.0.0.1:5173
+      Cors__Origins__2: http://localhost:5180
+      Cors__Origins__3: http://127.0.0.1:5180
     volumes:
       - type: bind
         source: ${IDENTITY_MAIL_DIRECTORY:?Set absolute IDENTITY_MAIL_DIRECTORY outside Git}
