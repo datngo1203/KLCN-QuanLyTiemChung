@@ -20,16 +20,18 @@ public sealed record CatalogRow(int Id, string Name, string Description = "", de
 public sealed class CatalogViewModel : ViewModelBase
 {
     private readonly CatalogApiService _service;
+    private readonly IReadOnlyCollection<string> _permissions;
     private string _tab = "Vắc xin", _name = "", _description = "", _manufacturer = "", _origin = "", _price = "", _search = "", _feedback = "";
     private bool _busy;
     private CatalogRow? _selected;
     private CatalogType? _vaccineType, _injectionType;
-    public CatalogViewModel(CatalogApiService? service = null) {
+    public CatalogViewModel(CatalogApiService? service = null, IReadOnlyCollection<string>? permissions = null) {
         _service = service ?? new();
+        _permissions = permissions?.ToArray() ?? [];
         LoadCommand = new RelayCommand(async _ => await Run(Load), _ => !_busy);
-        SaveCommand = new RelayCommand(async _ => await Run(Save), _ => !_busy && !string.IsNullOrWhiteSpace(Name));
-        DeleteCommand = new RelayCommand(async _ => await Run(Delete), _ => !_busy && Selected is not null);
-        NewCommand = new RelayCommand(_ => Clear(), _ => !_busy);
+        SaveCommand = new RelayCommand(async _ => await Run(Save), _ => !_busy && CanWrite && !string.IsNullOrWhiteSpace(Name));
+        DeleteCommand = new RelayCommand(async _ => await Run(Delete), _ => !_busy && CanWrite && Selected is not null);
+        NewCommand = new RelayCommand(_ => Clear(), _ => !_busy && CanWrite);
         SelectTabCommand = new RelayCommand(async p => { if (p is string tab) { if (Tab != tab) Rows.Clear(); Tab=tab; Clear(); await Run(Load); } }, _ => !_busy);
     }
     public IReadOnlyList<string> Tabs { get; } = ["Loại tiêm chủng", "Loại vắc xin", "Vắc xin", "Gói vắc xin"];
@@ -47,6 +49,8 @@ public sealed class CatalogViewModel : ViewModelBase
     public bool ShowPackage => Tab == "Gói vắc xin";
     public bool ShowLookup => !ShowVaccine && !ShowPackage;
     public bool ShowPrice => !ShowLookup;
+    public bool CanWrite => _permissions.Contains("QuanLyDanhMucChuyenMon") && (ShowLookup || _permissions.Contains("QuanLyDanhMucGia"));
+    public bool CanEdit => CanInteract && CanWrite;
     public bool CanInteract => !_busy;
     public string DataSourceLabel => "API / SQL thật · [DEMO] là dữ liệu giả";
     public string Name { get => _name; set { Set(ref _name,value); Refresh(); } }
@@ -114,5 +118,5 @@ public sealed class CatalogViewModel : ViewModelBase
         Selected=null; Name=Description=Manufacturer=Origin=Price=""; VaccineType=InjectionType=null;
         foreach (var choice in PackageChoices) { choice.Included=false; choice.Quantity="1"; }
     }
-    private void Refresh() { OnPropertyChanged(nameof(CanInteract)); SaveCommand?.NotifyCanExecuteChanged(); DeleteCommand?.NotifyCanExecuteChanged(); LoadCommand?.NotifyCanExecuteChanged(); NewCommand?.NotifyCanExecuteChanged(); SelectTabCommand?.NotifyCanExecuteChanged(); }
+    private void Refresh() { OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanWrite)); OnPropertyChanged(nameof(CanEdit)); SaveCommand?.NotifyCanExecuteChanged(); DeleteCommand?.NotifyCanExecuteChanged(); LoadCommand?.NotifyCanExecuteChanged(); NewCommand?.NotifyCanExecuteChanged(); SelectTabCommand?.NotifyCanExecuteChanged(); }
 }

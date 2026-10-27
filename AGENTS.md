@@ -92,6 +92,8 @@ R00 là gói thuần tài liệu trên nhánh `feat/r00-scope-alignment` từ `m
 Làm trong `apps/windows/ViewsV2/`, tái sử dụng `Themes/` và token `CE.*`. Thống nhất vùng sửa khi cùng làm một màn hình. Giữ nhãn Dữ liệu mẫu cho màn mẫu; không coi state UI là dữ liệu SQL. Không kết nối SQL từ WPF.
 Kiểm tra bình thường/lỗi/rỗng, bàn phím và nút vô hiệu; giữ validation, xử lý lỗi và ngăn gửi trùng. Build Windows và kiểm dữ liệu lưu/đọc lại cùng quyền API khi nối nghiệp vụ. Báo lệnh/kết quả/phần chưa kiểm trong bàn giao hoặc PR; tiến độ chỉ cập nhật SCOPE.
 
+UX dùng chung Web/Windows: quyền chỉ xem phải thể hiện bằng trường read-only và lời giải thích ngắn; vẫn cho tìm/chọn/xem. Phân biệt rõ tạo mới với sửa hồ sơ đã chọn, reset lựa chọn và bản nháp khi tạo tiếp. Đặt feedback gần thao tác, đủ loading/empty/error, chặn gửi trùng; kiểm bàn phím và responsive phù hợp client. Chọn danh sách/chi tiết, form, drawer hoặc dialog theo nghiệp vụ; không áp một mẫu cho mọi màn, không biến màn Sample thành chức năng thật.
+
 ## Bí mật và môi trường
 
 Không lưu secret/JWT trong Git hoặc biến VITE_*. Dùng user-secrets, biến môi trường hoặc `.env` local; không ghi CCCD/thông tin y tế vào log. Khi triển khai cần HTTPS và CORS đúng origin. Khi lộ secret, thu hồi/đổi secret trước; không tự xóa lịch sử Git hoặc dữ liệu để che sự cố.

@@ -8,47 +8,49 @@
    <TextBlock Text="Tìm theo tên, CCCD hoặc SĐT" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/>
    <DockPanel><Button DockPanel.Dock="Right" Content="Tìm kiếm" Command="{Binding TimKiemKhachHangCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0,0,0"/><TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm hồ sơ"/></DockPanel>
   </StackPanel></Border>
+  <TextBlock Text="Bạn có quyền xem hồ sơ. Vui lòng liên hệ Lễ tân khi cần cập nhật thông tin." Visibility="{Binding IsReadOnly, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
   <TabControl IsEnabled="{Binding CanInteract}">
    <TabItem Header="Khách hàng"><Grid Margin="12"><Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <Border Style="{StaticResource CE.Card}" Grid.Column="0"><StackPanel>
      <TextBlock Text="Danh sách khách hàng" Style="{StaticResource CE.SectionHeading}"/>
      <TextBlock Text="Không tìm thấy hồ sơ." Visibility="{Binding NoCustomers, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
-     <Button Content="Tạo hồ sơ mới" Command="{Binding TaoHoSoMoiCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8"/>
-     <ListBox ItemsSource="{Binding FilteredCustomers}" SelectedItem="{Binding SelectedCustomer}" DisplayMemberPath="Name" MinHeight="180" AutomationProperties.Name="Khách hàng"/>
+     <Button Content="Tạo hồ sơ mới" Command="{Binding TaoHoSoMoiCommand}" Click="NewCustomer_Click" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8"/>
+     <ListBox ItemsSource="{Binding FilteredCustomers}" SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" DisplayMemberPath="Name" MinHeight="180" AutomationProperties.Name="Khách hàng"/>
     </StackPanel></Border>
     <Border Style="{StaticResource CE.Card}" Grid.Column="2"><StackPanel>
-     <TextBlock Text="Thông tin khách hàng" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
-     <TextBlock Text="Họ tên *" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="CCCD (có thể bỏ trống)" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding NationalId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="Số điện thoại * (10–11 chữ số)" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="Email *" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="{Binding CustomerFormTitle}" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
+     <TextBlock Text="Họ tên *" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" x:Name="CustomerNameInput" AutomationProperties.Name="Họ tên khách hàng" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="CCCD (có thể bỏ trống)" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" Text="{Binding NationalId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Số điện thoại * (10–11 chữ số)" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Email *" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
      <TextBlock Text="{Binding CustomerError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,0,0,8"/>
      <Button Content="Xóa khách hàng" Command="{Binding DeleteCustomerCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
-     <Button Content="Lưu khách hàng" Command="{Binding LuuKhachHangCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left"/>
+     <WrapPanel><Button Content="Lưu khách hàng" Command="{Binding LuuKhachHangCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,8,8"/><Button Content="Lưu và tạo tiếp" Command="{Binding SaveAndNewCustomerCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/></WrapPanel>
+     <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,8,0,0"/>
     </StackPanel></Border>
    </Grid></TabItem>
    <TabItem Header="Người được tiêm"><Grid Margin="12"><Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <Border Style="{StaticResource CE.Card}" Grid.Column="0"><StackPanel>
      <TextBlock Text="Danh sách người được tiêm" Style="{StaticResource CE.SectionHeading}"/>
      <TextBlock Text="Không tìm thấy hồ sơ." Visibility="{Binding NoRecipients, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
-     <ListBox ItemsSource="{Binding FilteredRecipients}" SelectedItem="{Binding SelectedRecipient}" DisplayMemberPath="Name" MinHeight="180" AutomationProperties.Name="Người được tiêm"/>
+     <ListBox ItemsSource="{Binding FilteredRecipients}" SelectedItem="{Binding SelectedRecipient, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" DisplayMemberPath="Name" MinHeight="180" AutomationProperties.Name="Người được tiêm"/>
      <Button Content="Mới" Command="{Binding NewRecipientCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,8"/>
      <Button Content="Xóa người được tiêm" Command="{Binding DeleteRecipientCommand}" Style="{StaticResource CE.Button.Secondary}"/>
     </StackPanel></Border>
     <Border Style="{StaticResource CE.Card}" Grid.Column="2"><StackPanel>
-     <TextBlock Text="Thêm người được tiêm" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
-     <TextBlock Text="Khách hàng bảo trợ *" Style="{StaticResource CE.Caption}"/><ComboBox IsEnabled="{Binding CanChooseCustomer}" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}" DisplayMemberPath="Name" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="Họ tên *" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding RecipientName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="CCCD (có thể bỏ trống)" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding RecipientNationalId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="Ngày sinh *" Style="{StaticResource CE.Caption}"/><DatePicker SelectedDate="{Binding BirthDate}" Style="{StaticResource CE.DatePicker}" Margin="0,4,0,8"/>
+     <TextBlock Text="{Binding RecipientFormTitle}" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
+     <TextBlock Text="Khách hàng bảo trợ *" Style="{StaticResource CE.Caption}"/><ComboBox IsEnabled="{Binding CanChooseCustomer}" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" DisplayMemberPath="Name" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Họ tên *" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" Text="{Binding RecipientName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="CCCD (có thể bỏ trống)" Style="{StaticResource CE.Caption}"/><TextBox IsReadOnly="{Binding IsReadOnly}" Text="{Binding RecipientNationalId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Ngày sinh *" Style="{StaticResource CE.Caption}"/><DatePicker IsEnabled="{Binding CanEditRecipient}" SelectedDate="{Binding BirthDate}" Style="{StaticResource CE.DatePicker}" Margin="0,4,0,8"/>
 
-     <TextBlock Text="Giới tính *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
-     <TextBlock Text="Quan hệ *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Relations}" SelectedItem="{Binding Relation}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Giới tính *" Style="{StaticResource CE.Caption}"/><ComboBox IsEnabled="{Binding CanEditRecipient}" ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
+     <TextBlock Text="Quan hệ *" Style="{StaticResource CE.Caption}"/><ComboBox IsEnabled="{Binding CanEditRecipient}" ItemsSource="{Binding Relations}" SelectedItem="{Binding Relation}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/>
      <TextBlock Text="{Binding RecipientError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,0,0,8"/>
      <Button Content="Lưu người được tiêm" Command="{Binding ThemNguoiDuocTiemCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left"/>
+     <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,8,0,0"/>
     </StackPanel></Border>
    </Grid></TabItem>
   </TabControl>
-  <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" Margin="0,12,0,0"/>
  </StackPanel></ScrollViewer>
 </UserControl>

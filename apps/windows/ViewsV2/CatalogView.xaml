@@ -10,7 +10,7 @@
     <DockPanel><Button DockPanel.Dock="Right" Content="Tìm / Tải lại" Command="{Binding LoadCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBox Text="{Binding Search,UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanInteract}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm theo tên" Margin="0,0,8,0"/></DockPanel>
     <DataGrid Grid.Row="1" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" IsEnabled="{Binding CanInteract}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,12,0,0"><DataGrid.Columns><DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="60"/><DataGridTextColumn Header="Tên" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Giá VND" Binding="{Binding Price,StringFormat={}{0:N0}}" Width="120"/></DataGrid.Columns></DataGrid>
    </Grid></Border>
-   <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding CanInteract}">
+   <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding CanEdit}">
     <TextBlock Text="{Binding Tab}" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
     <TextBlock Text="Tên *"/><TextBox Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tên danh mục" Margin="0,5,0,10"/>
     <StackPanel Visibility="{Binding ShowLookup,Converter={StaticResource Vis}}"><TextBlock Text="Mô tả"/><TextBox Text="{Binding Description}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mô tả" Margin="0,5,0,10"/></StackPanel>

@@ -36,6 +36,12 @@ if (args.Contains("--seed-admin"))
     await DevelopmentAdminSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment, app.Configuration);
     return;
 }
+if (args.Contains("--seed-reception"))
+{
+    using var scope = app.Services.CreateScope();
+    await DevelopmentReceptionSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment, app.Configuration);
+    return;
+}
 if (args.Contains("--migrate"))
 {
     if (!app.Environment.IsDevelopment()) throw new InvalidOperationException("Migration command is Development only.");

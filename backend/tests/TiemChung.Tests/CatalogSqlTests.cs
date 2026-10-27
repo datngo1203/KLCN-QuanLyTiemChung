@@ -173,7 +173,7 @@ public sealed class CatalogSqlTests
         using var http=f.Factory.CreateClient();
         var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-        var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity));
+        var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity), identity.Permissions);
         await vm.InitializeAsync(); Assert.Equal(2,vm.Rows.Count);
         async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command, object? parameter=null) {
             Assert.True(command.CanExecute(parameter)); command.Execute(parameter);

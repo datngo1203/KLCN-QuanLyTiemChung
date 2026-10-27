@@ -7,9 +7,19 @@ namespace TiemChung.Desktop.Services;
 // One process-local session. Nothing is written to disk.
 public sealed class IdentityApiService : IAuthService, IChangePasswordService
 {
-    public static IdentityApiService Current { get; } = new();
+    public static IdentityApiService Current { get; private set; } = new();
+    public static void StartNewSession()
+    {
+        if (Current.IsSignedIn) throw new InvalidOperationException("Sign out before starting a new session.");
+        Current = new();
+    }
     private readonly HttpClient _client;
     private Tokens? _tokens;
+    private Account? _account;
+    private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    public bool CanReadProfiles => IsSignedIn && _account?.Capabilities?.ProfilesRead == true;
+    public bool CanWriteProfiles => IsSignedIn && _account?.Capabilities is { ProfilesCreate: true, ProfilesUpdate: true };
+    public IReadOnlyCollection<string> Permissions => IsSignedIn ? _account?.Permissions ?? [] : [];
     public bool UseSampleData { get; set; } = false;
     public bool IsSignedIn => _tokens is not null;
     public event EventHandler? PasswordChanged;
@@ -21,32 +31,44 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
 
     public async Task<AuthResult> LoginAsync(string userName, string password, CancellationToken cancellationToken = default)
     {
-        _tokens = null;
-        using var response = await _client.PostAsJsonAsync("api/v1/auth/login", new { identifier = userName, password, clientType = "native" }, cancellationToken);
-        if (!response.IsSuccessStatusCode) return new(false, "", await ErrorAsync(response));
-        var tokens = await response.Content.ReadFromJsonAsync<Tokens>(cancellationToken) ?? throw new HttpRequestException("Invalid login response.");
-        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/auth/me");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
-        using var me = await _client.SendAsync(request, cancellationToken);
-        if (!me.IsSuccessStatusCode) {
-            await RevokeAsync(tokens.RefreshToken);
-            return new(false, "", await ErrorAsync(me));
+        await _sessionGate.WaitAsync(cancellationToken);
+        try {
+            if (_tokens is not null) await RevokeAsync(_tokens.RefreshToken);
+            _tokens = null;
+            _account = null;
+            using var response = await _client.PostAsJsonAsync("api/v1/auth/login", new { identifier = userName, password, clientType = "native" }, cancellationToken);
+            if (!response.IsSuccessStatusCode) return new(false, "", await ErrorAsync(response));
+            var tokens = await response.Content.ReadFromJsonAsync<Tokens>(cancellationToken) ?? throw new HttpRequestException("Invalid login response.");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/auth/me");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+            using var me = await _client.SendAsync(request, cancellationToken);
+            if (!me.IsSuccessStatusCode) {
+                await RevokeAsync(tokens.RefreshToken);
+                return new(false, "", await ErrorAsync(me));
+            }
+            var account = await me.Content.ReadFromJsonAsync<Account>(cancellationToken);
+            if (account?.AccountType != "employee") {
+                await RevokeAsync(tokens.RefreshToken);
+                return new(false, "", "Ứng dụng Windows dành cho nhân viên.");
+            }
+            _tokens = tokens;
+            _account = account;
+            return new(true, userName, "Đăng nhập thành công.");
         }
-        var account = await me.Content.ReadFromJsonAsync<Account>(cancellationToken);
-        if (account?.AccountType != "employee") {
-            await RevokeAsync(tokens.RefreshToken);
-            return new(false, "", "Ứng dụng Windows dành cho nhân viên.");
-        }
-        _tokens = tokens;
-        return new(true, userName, "Đăng nhập thành công.");
+        finally { _sessionGate.Release(); }
     }
 
     public async Task LogoutAsync()
     {
-        if (_tokens is not { } tokens) return;
-        // Retain the session on network failure so the user can retry revocation.
-        await RevokeAsync(tokens.RefreshToken);
-        _tokens = null;
+        await _sessionGate.WaitAsync();
+        try {
+            if (_tokens is not { } tokens) return;
+            // Retain the session on network failure so the user can retry revocation.
+            await RevokeAsync(tokens.RefreshToken);
+            _tokens = null;
+            _account = null;
+        }
+        finally { _sessionGate.Release(); }
     }
 
     private async Task RevokeAsync(string refreshToken)
@@ -57,25 +79,29 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
 
     public async Task<ChangePasswordResult> ChangePasswordAsync(string currentPassword, string newPassword)
     {
-        if (_tokens is not { } tokens) return new(false, "Phiên đã hết hạn. Vui lòng đăng nhập lại.");
-        using var refresh = await _client.PostAsJsonAsync("api/v1/auth/refresh", new { clientType = "native", refreshToken = tokens.RefreshToken });
-        if (!refresh.IsSuccessStatusCode) return new(false, await ErrorAsync(refresh));
-        _tokens = await refresh.Content.ReadFromJsonAsync<Tokens>() ?? throw new HttpRequestException("Invalid refresh response.");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/auth/change-password") {
-            Content = JsonContent.Create(new { currentPassword, newPassword })
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _tokens.AccessToken);
-        using var response = await _client.SendAsync(request);
-        if (!response.IsSuccessStatusCode) return new(false, await ErrorAsync(response));
-        _tokens = null;
-        PasswordChanged?.Invoke(this, EventArgs.Empty);
-        return new(true, "Đã đổi mật khẩu. Vui lòng đăng nhập lại.");
+        await _sessionGate.WaitAsync();
+        try {
+            if (_tokens is not { } tokens) return new(false, "Phiên đã hết hạn. Vui lòng đăng nhập lại.");
+            using var refresh = await _client.PostAsJsonAsync("api/v1/auth/refresh", new { clientType = "native", refreshToken = tokens.RefreshToken });
+            if (!refresh.IsSuccessStatusCode) return new(false, await ErrorAsync(refresh));
+            _tokens = await refresh.Content.ReadFromJsonAsync<Tokens>() ?? throw new HttpRequestException("Invalid refresh response.");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/auth/change-password") {
+                Content = JsonContent.Create(new { currentPassword, newPassword })
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _tokens.AccessToken);
+            using var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return new(false, await ErrorAsync(response));
+            _tokens = null;
+            _account = null;
+            PasswordChanged?.Invoke(this, EventArgs.Empty);
+            return new(true, "Đã đổi mật khẩu. Vui lòng đăng nhập lại.");
+        }
+        finally { _sessionGate.Release(); }
     }
 
-    private readonly SemaphoreSlim _catalogGate = new(1, 1);
     public async Task<HttpResponseMessage> SendCatalogAsync(HttpMethod method, string path, object? body = null)
     {
-        await _catalogGate.WaitAsync();
+        await _sessionGate.WaitAsync();
         try {
             async Task<HttpResponseMessage> Send() {
                 using var request = new HttpRequestMessage(method, path);
@@ -91,7 +117,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
             response.Dispose();
             return await Send();
         }
-        finally { _catalogGate.Release(); }
+        finally { _sessionGate.Release(); }
     }
 
     private static async Task<string> ErrorAsync(HttpResponseMessage response)
@@ -108,6 +134,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
     }
 
     private sealed record Tokens(string AccessToken, string RefreshToken);
-    private sealed record Account(string AccountType);
+    private sealed record Account(string AccountType, string[]? Permissions, Capabilities? Capabilities);
+    private sealed record Capabilities(bool ProfilesRead, bool ProfilesCreate, bool ProfilesUpdate);
     private sealed record Problem(string Code);
 }

@@ -31,9 +31,13 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 
 S1 dùng nguyên mô hình chức danh/quyền backend, không làm thêm UI quản trị quyền. Web S1 và Windows dùng `clientType=native` để nhận access/refresh trong response và chỉ giữ trong bộ nhớ; fetch Web dùng `credentials=omit`, không lưu browser storage/cookie. Luồng `clientType=web` cookie/Origin/CSRF hiện có được giữ nguyên. Không phục hồi phiên sau tải lại/đóng ứng dụng; logout gửi refresh token để thu hồi tại API. Chưa có HTTP quản lý tài khoản. Profiles S3 đã nối Web/Windows theo mục S3 bên dưới.
 
+G1 sửa giá trị capabilities của `/auth/me` cho khớp API Profiles S3, không thêm trường/endpoint: `profilesRead=true` cho khách hàng đã xác minh và nhân viên Active; `profilesCreate=true` cho khách hàng (tạo hồ sơ bản thân/người được tiêm theo điều kiện S3) hoặc nhân viên `LeTan`; `profilesUpdate=true` cho khách hàng có liên kết Active hoặc nhân viên `LeTan`. Đây là khả năng theo tài khoản, API vẫn kiểm từng hồ sơ/liên kết khi ghi/sửa/xóa; Admin và các chức danh khác không được ghi hồ sơ. `selfClaim`/`representatives` vẫn false. Windows dùng capabilities cho ghi hồ sơ và hai mã quyền danh mục hiện có cho các nút ghi; mỗi lần đổi người dùng tạo shell và phiên bộ nhớ mới.
+
 Đăng ký demo chỉ nhận địa chỉ `@example.invalid`, vẫn cần xác minh email. Cấu hình Development mail pickup ngoài Git theo `README.md` ở gốc dự án; token không được trả qua HTTP hoặc ghi log. Chưa gửi email thật.
 
 Admin đầu tiên: lệnh `--seed-admin` chỉ ở Development, nhận `DevelopmentSeed:Username`/`DevelopmentSeed:Password` từ cấu hình local hoặc biến môi trường; không có credential cố định trong repo. Lệnh tạo Admin/Technical và quyền backend trong transaction, không đổi account/hash/quyền nếu đã có Admin; Production bị từ chối. Cách chạy Compose và sổ credential ngoài Git xem [README](../../README.md#tạo-dữ-liệu-và-tài-khoản-demo). Đây là lệnh khởi tạo local, không phải endpoint HTTP.
+
+G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `DevelopmentSeed:Username`/`Password`: tạo nhân viên `[DEMO]` `LeTan`/Active và tài khoản Employee/None/Active, không có quyền mở rộng, hash/transaction/audit tại backend. Lặp lại theo username chuẩn hóa không đổi hash/trạng thái/dữ liệu; username thuộc chức danh khác bị từ chối. Production/Test không chạy lệnh này; test SQL có fixture riêng. Không đổi schema/migration hoặc quyền endpoint. Lệnh `provision-employee` trong IdentityOperator vẫn yêu cầu bản ghi nhân viên có sẵn và kiểm tra operator/Admin; không thêm HTTP quản trị.
 
 ## Dự kiến — chưa có endpoint thực thi
 

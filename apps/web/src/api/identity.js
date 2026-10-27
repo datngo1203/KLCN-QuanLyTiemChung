@@ -13,6 +13,7 @@ const messages = {
 export function createIdentityClient(baseUrl, request = globalThis.fetch) {
   let tokens = null
   let refreshing = null
+  let sessionVersion = 0
   async function call(path, body, accessToken) {
     const response = await request(`${baseUrl}/api/v1/auth/${path}`, {
       method: body === undefined ? 'GET' : 'POST',
@@ -24,27 +25,40 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     })
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
-      throw new Error(messages[problem.code] || `Không thực hiện được yêu cầu (HTTP ${response.status}).`)
+      const passwordMessage = path === 'change-password' && ({
+        invalidCredentials: 'Mật khẩu hiện tại không đúng.',
+        validation: 'Mật khẩu mới cần 12–128 ký tự và khác mật khẩu hiện tại.',
+      })[problem.code]
+      throw new Error(passwordMessage || messages[problem.code] || `Không thực hiện được yêu cầu (HTTP ${response.status}).`)
     }
     return response.status === 204 ? null : response.json()
   }
+  function refresh(session) {
+    if (tokens !== session) throw new Error(messages.invalidSession)
+    refreshing ||= call('refresh', { clientType: 'native', refreshToken: session.refreshToken })
+      .then(renewed => {
+        if (tokens !== session) throw new Error(messages.invalidSession)
+        tokens = renewed
+      }).finally(() => { refreshing = null })
+    return refreshing
+  }
   async function profiles(path, method = 'GET', body) {
     if (!tokens) throw new Error(messages.invalidSession)
+    const version = sessionVersion
     const send = () => request(`${baseUrl}/api/v1/${path}`, {
       method, credentials: 'omit', headers: { Authorization: `Bearer ${tokens.accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000),
     })
-    const accessToken = tokens.accessToken
+    const session = tokens
     let response = await send()
+    if (version !== sessionVersion) throw new Error(messages.invalidSession)
     if (response.status === 401) {
-      if (tokens?.accessToken === accessToken) {
-        refreshing ||= call('refresh', { clientType: 'native', refreshToken: tokens.refreshToken })
-          .then(session => { tokens = session }).finally(() => { refreshing = null })
-        await refreshing
-      }
+      if (tokens === session) await refresh(session)
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
       if (!tokens) throw new Error(messages.invalidSession)
       response = await send()
     }
+    if (version !== sessionVersion) throw new Error(messages.invalidSession)
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
       const details = Object.values(problem.errors || {}).flat().join(' ')
@@ -54,15 +68,34 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
   }
   return {
     profiles,
+    async changePassword(currentPassword, newPassword, confirmation) {
+      if (!currentPassword) throw new Error('Nhập mật khẩu hiện tại.')
+      if (newPassword.length < 12 || newPassword.length > 128 || newPassword === currentPassword)
+        throw new Error('Mật khẩu mới cần 12–128 ký tự và khác mật khẩu hiện tại.')
+      if (newPassword !== confirmation) throw new Error('Xác nhận mật khẩu không khớp.')
+      if (!tokens) throw new Error(messages.invalidSession)
+      const version = sessionVersion
+      // Finish any Profiles refresh before revoking every session.
+      if (refreshing) await refreshing
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
+      await refresh(tokens)
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
+      await call('change-password', { currentPassword, newPassword }, tokens.accessToken)
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
+      tokens = null
+      sessionVersion++
+    },
     register: (email, password) => call('register', { email, password }),
     confirm: token => call('email-verifications/confirm', { token }),
     resend: email => call('email-verifications/resend', { email }),
     async login(identifier, password) {
       tokens = null
+      const version = ++sessionVersion
       const session = await call('login', { identifier, password, clientType: 'native' })
       try {
         const account = await call('me', undefined, session.accessToken)
         if (account.accountType !== 'customer') throw new Error('Cổng này dành cho tài khoản khách hàng.')
+        if (version !== sessionVersion) throw new Error(messages.invalidSession)
         tokens = session
         return account
       } catch (error) {
@@ -71,8 +104,14 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       }
     },
     async logout() {
+      const version = sessionVersion
+      // Logout accepts the last credential even if refresh failed or already rotated it.
+      if (refreshing) await refreshing.catch(() => {})
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
       if (tokens) await call('logout', { clientType: 'native', refreshToken: tokens.refreshToken })
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
       tokens = null
+      sessionVersion++
     },
   }
 }

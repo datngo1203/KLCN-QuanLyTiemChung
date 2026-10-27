@@ -3,4 +3,6 @@ using TiemChung.Desktop.ViewModels;
 namespace TiemChung.Desktop.ViewsV2;
 public partial class ProfilesView : UserControl {
     public ProfilesView() { InitializeComponent(); Loaded += async (_,_)=> { if(DataContext is ProfilesViewModel vm) await vm.LoadAsync(); }; }
+    private void NewCustomer_Click(object sender, System.Windows.RoutedEventArgs e) =>
+        Dispatcher.BeginInvoke(new Action(() => CustomerNameInput.Focus()));
 }

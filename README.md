@@ -4,7 +4,7 @@ Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho
 
 Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
-Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. Seed lô/tồn Development/Test sẽ làm trong G5, hiện chưa có; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu, không triển khai các chức năng này. Web hiện chưa có UI đổi mật khẩu; phần này thuộc G1.
+Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. Seed lô/tồn Development/Test sẽ làm trong G5, hiện chưa có; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu, không triển khai các chức năng này. Web đổi mật khẩu tại **Tài khoản → Đổi mật khẩu**; thành công thu hồi mọi phiên và yêu cầu đăng nhập lại.
 
 ## 1. Cần cài đặt
 
@@ -67,6 +67,17 @@ Remove-Item Env:DevelopmentSeed__Username, Env:DevelopmentSeed__Password
 ```
 
 Các lệnh seed không ghi đè tài khoản Admin hoặc nhân bản danh mục đã có. Dữ liệu có nhãn `[DEMO]` và giá giả, chỉ dùng để xem thử.
+
+Tạo Lễ tân Development để ghi hồ sơ qua API thật (không cấp quyền này cho Admin):
+
+```powershell
+$env:DevelopmentSeed__Username = 'demo.reception'
+$env:DevelopmentSeed__Password = Read-Host 'Nhap mat khau Le tan demo (12-128 ky tu)'
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm -e DevelopmentSeed__Username -e DevelopmentSeed__Password api --seed-reception
+Remove-Item Env:DevelopmentSeed__Username, Env:DevelopmentSeed__Password
+```
+
+Lệnh chỉ chạy ở Development, tạo nhân viên `[DEMO]` chức danh `LeTan` và tài khoản Active, hash tại backend, không thêm quyền mở rộng. Chạy lại giữ nguyên mật khẩu, trạng thái và dữ liệu hiện có; username đã thuộc chức danh khác bị từ chối. Đây không phải chức năng quản lý nhân viên. Credential test được ghi trong sổ local theo AGENTS, ngoài Git.
 
 ## 3. Mở các giao diện
 
