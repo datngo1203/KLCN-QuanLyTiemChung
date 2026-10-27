@@ -114,6 +114,31 @@ while ($true) { Start-Sleep -Seconds 1 }
     Stop-Demo
     $after=Containers
     Assert ($after.Id -eq 'fixture-container' -and $after.Running) 'Stop ignores container whose ID does not match'
+    # Rebuild regression uses fixtures only; it must not stop/delete any real container.
+    Set-Content "$fixture/infra/.env" 'fixture-only'
+    function Ensure-Docker {}
+    $sqlFixture=[pscustomobject]@{Id='fixture-sql';Service='sqlserver';Running=$true}
+    $apiFixture=[pscustomobject]@{Id='fixture-api';Service='api';Running=$true}
+    $migrateFixture=[pscustomobject]@{Id='fixture-migrate';Service='migrate';Running=$false}
+    $script:State.Containers=@($sqlFixture)
+    $script:RebuildRows=@($sqlFixture,$apiFixture,$migrateFixture)
+    $script:RebuildEvents=@(); $script:RebuildReply=''; $script:RebuildRmCode=0
+    function Containers { return $script:RebuildRows }
+    function Read-Host { param($Prompt) return $script:RebuildReply }
+    function Compose { param([string[]]$Arguments) $script:RebuildEvents+=('compose:'+($Arguments -join '|')); return '' }
+    function Docker-Result { param([string[]]$Arguments) $script:RebuildEvents+=('docker:'+($Arguments -join '|')); return @{Code=$script:RebuildRmCode;Text='fixture-only'} }
+    Assert-Throws { Rebuild-Api } 'API/migrate còn chạy' 'Rebuild refuses running API outside launcher'
+    Assert ($script:RebuildEvents.Count -eq 0) 'running API refusal performs no build, stop or removal'
+    $apiFixture.Running=$false
+    Rebuild-Api
+    Assert ($script:RebuildEvents.Count -eq 0) 'cancelled Rebuild performs no Docker mutations'
+    $script:RebuildReply='REBUILD'
+    Rebuild-Api
+    Assert ($script:RebuildEvents[0] -eq 'compose:build|api|migrate') 'confirmed Rebuild builds only application images'
+    Assert ($script:RebuildEvents[1] -eq 'docker:container|rm|fixture-api|fixture-migrate') 'Rebuild removes only confirmed app IDs without force or volume flags'
+    Assert ($script:State.Containers.Count -eq 1 -and $script:State.Containers[0].Id -eq 'fixture-sql') 'Rebuild preserves SQL ownership and container'
+    $script:RebuildRmCode=1
+    Assert-Throws { Rebuild-Api } 'không tự dừng container' 'Rebuild fails safely if confirmed container starts before removal'
     $script:Root=$realRoot
     $AccountsFile=$null
     Assert-Throws { Open-Accounts } 'Chưa cấu hình VAC_TEST_ACCOUNTS_FILE' 'account book requires local configuration'

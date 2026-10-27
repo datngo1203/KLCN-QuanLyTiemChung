@@ -340,12 +340,27 @@ function Run-Test {
 function Rebuild-Api {
     if (-not (Test-Path "$script:Root/infra/.env")) { throw 'Chưa có infra/.env. Thiết lập theo README trước.' }
     Ensure-Docker
-    $running = @(Containers | Where-Object { $_.Service -in @('api','migrate') -and $_.Running })
+    $applications = @(Containers | Where-Object { $_.Service -in @('api','migrate') })
+    $running = @($applications | Where-Object Running)
     if ($running.Count) { throw 'API/migrate còn chạy. Dùng VAC-Stop trước; nếu chạy ngoài launcher, hãy tự dừng bằng Docker. Sau đó chọn Rebuild.' }
+    if ($applications.Count) {
+        Write-Host "CẢNH BÁO: Rebuild sẽ xóa các container API/migrate đã dừng bên dưới của project $ComposeProject; Start sẽ tạo lại chúng. SQL và volume được giữ nguyên." -ForegroundColor Yellow
+        foreach ($container in $applications) {
+            $owned = @($script:State.Containers | Where-Object { $_.Id -eq $container.Id -and $_.Service -eq $container.Service }).Count -gt 0
+            Write-Host ("  {0} ({1}): {2}" -f $container.Service,$container.Id,$(if ($owned) {'launcher quản lý'} else {'có sẵn ngoài launcher'}))
+        }
+        if ((Read-Host 'Nhập đúng REBUILD để đồng ý build và xóa các container trên; Enter để hủy') -cne 'REBUILD') {
+            Write-Host 'Đã hủy Rebuild; không build hoặc xóa container.'
+            return
+        }
+    }
     Write-Host 'Đang build API/migrate từ source hiện tại. Chỉ dùng khi source backend hoặc Dockerfile đổi.'
     $null = Compose @('build','api','migrate')
-    # Remove only stopped application containers; keep SQL container and volume intact.
-    $null = Compose @('rm','-f','api','migrate')
+    if ($applications.Count) {
+        # Exact confirmed IDs, without force/volume flags: running or replacement containers cannot be removed.
+        $removed = Docker-Result (@('container','rm') + @($applications.Id))
+        if ($removed.Code -ne 0) { throw 'Không xóa được container API/migrate đã xác nhận; có thể container đã chạy hoặc thay đổi. Launcher không tự dừng container; SQL và volume được giữ nguyên.' }
+    }
     $script:State.Containers = @($script:State.Containers | Where-Object Service -eq 'sqlserver'); Save-State
     Write-Host 'Build xong. Chạy VAC-Start để dùng image mới; SQL và volume được giữ nguyên.'
 }
