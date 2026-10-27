@@ -16,6 +16,22 @@ Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để t�
 
 Giải nén dự án vào một thư mục riêng. Mở PowerShell tại thư mục chứa file hướng dẫn này. Các lệnh bên dưới đều chạy từ đây.
 
+### Chạy một chạm trên Windows
+
+Sau khi thiết lập lần đầu ở mục 2 để có `infra/.env` và các image Compose (chọn đúng project bên dưới), mở thư mục [`scripts/devtools/`](scripts/devtools/) và nhấp đúp:
+
+- **VAC-Start.cmd**: kiểm tra/mở Docker Desktop, khởi động SQL/API bằng image có sẵn, chờ API, mở Web tại port 5173 và Windows WPF. Start lặp lại dùng lại tiến trình do launcher quản lý; không tự seed hoặc chạy full test.
+- **VAC-Check.cmd**: chạy smoke **chỉ đọc** (trạng thái SQL/API/Web/WPF và GET danh mục SQL), rồi hiện menu **F** full test, **A** mở sổ tài khoản, **R** rebuild API, **S** status. Chỉ rebuild khi backend/Dockerfile đổi hoặc chưa có image; Stop trước khi rebuild. Nếu cần xóa container API/migrate đã dừng, launcher liệt kê ID/phạm vi quản lý và yêu cầu nhập **REBUILD** để xác nhận; không xóa container SQL hoặc volume.
+- **VAC-Stop.cmd**: chỉ dừng tiến trình/container launcher đã quản lý, dùng Compose `stop` để giữ database/volume; giữ nguyên thành phần chạy từ trước. Nếu port bị chương trình khác chiếm, launcher báo lỗi và giữ nguyên chương trình đó.
+
+Tạo shortcut Desktop: chuột phải từng `.cmd` → **Show more options → Send to → Desktop (create shortcut)**; giữ file gốc trong repository. Launcher tự tìm thư mục gốc, không cần sửa đường dẫn máy.
+
+**Chọn đúng Compose project:** launcher mặc định **`klcn-s0`**, là demo hiện đang dùng. Các lệnh thủ công bên dưới dùng **`vac-demo`**, một môi trường khác với volume riêng (`klcn-s0_sqlserver-data` khác `vac-demo_sqlserver-data`); đổi tên project không chuyển dữ liệu và có thể xung đột các port chung. Khi thao tác demo hiện tại, thay mọi `-p vac-demo` bên dưới bằng `-p klcn-s0`. Chỉ đặt biến môi trường `VAC_COMPOSE_PROJECT` (hoặc tham số `-ComposeProject` của `VAC.ps1`) khi chủ động dùng project khác; dùng cùng giá trị cho Start/Check/Stop. Không tạo lại `.env` hoặc seed lại để xử lý nhầm project.
+
+Menu **A** yêu cầu biến môi trường `VAC_TEST_ACCOUNTS_FILE` trỏ tới file sổ tài khoản local tuyệt đối **ngoài repository** (hoặc `-AccountsFile` khi gọi `VAC.ps1`). Chưa cấu hình/file không tồn tại sẽ báo rõ; launcher chỉ mở file, không tạo sổ, sao chép hay in mật khẩu. Không đưa sổ hoặc cấu hình chứa credential vào Git.
+
+Smoke không thay kiểm thử nghiệp vụ. **Full test** gọi `scripts/verify.ps1`, cần `M1_SQL_TEST_CONNECTION` của SQL development/test có quyền tạo DB test riêng; thiếu biến sẽ báo **CHƯA CHẠY**, không tự tạo SQL login hay đổi quyền/mật khẩu. Kiểm tra riêng launcher, không cần Docker/SQL chạy: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC.SelfTest.ps1`.
+
 ## 2. Khởi động SQL Server và API
 
 ### Thiết lập lần đầu
