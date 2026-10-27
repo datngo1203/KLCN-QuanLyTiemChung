@@ -280,3 +280,9 @@ html { scroll-behavior: smooth; scroll-padding-top: 180px; }
 p:has(> .lucide) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .footer-content h2 > .lucide { color: #b2d7c5; }
 @media (max-width: 900px) { .mobile-menu { display: inline-flex; } }
+.account-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.account-password-form { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.account-password-form fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; }
+.password-visibility { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.password-visibility input { width: 18px; height: 18px; accent-color: var(--primary); }
+@media (max-width: 700px) { .account-actions > .button { flex: 1 1 180px; } }

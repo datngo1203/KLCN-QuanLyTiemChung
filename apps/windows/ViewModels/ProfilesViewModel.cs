@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Net.Mail;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using TiemChung.Desktop.Services;
 
@@ -21,8 +22,9 @@ public sealed class ProfilesViewModel : ViewModelBase
         _canWrite = canWrite;
         Customers = []; Recipients = [];
         TimKiemKhachHangCommand = new RelayCommand(async _ => await LoadAsync(), _ => !_isSaving);
-        TaoHoSoMoiCommand = new RelayCommand(_ => { SelectedCustomer = null; Name = NationalId = Phone = Email = ""; ShowErrors = false; Feedback = "Nhập thông tin khách hàng mới."; }, _ => !_isSaving && CanEditCustomer);
+        TaoHoSoMoiCommand = new RelayCommand(_ => { ResetCustomerForm(); Feedback = "Nhập thông tin khách hàng mới."; }, _ => !_isSaving && CanEditCustomer);
         LuuKhachHangCommand = new RelayCommand(async _ => await SaveCustomer(), _ => !_isSaving && CanEditCustomer && CustomerValid);
+        SaveAndNewCustomerCommand = new RelayCommand(async _ => await SaveCustomer(true), _ => !_isSaving && CanEditCustomer && SelectedCustomer is null && CustomerValid);
         ThemNguoiDuocTiemCommand = new RelayCommand(async _ => await SaveRecipient(), _ => !_isSaving && CanEditRecipient && RecipientValid);
         NewRecipientCommand = new RelayCommand(_ => { SelectedRecipient=null; RecipientName=RecipientNationalId=Gender=Relation=""; BirthDate=null; }, _=>!_isSaving && CanEditRecipient);
         DeleteCustomerCommand = new RelayCommand(async _=>await DeleteAsync(true), _=>!_isSaving && CanEditCustomer && SelectedCustomer!=null);
@@ -31,8 +33,11 @@ public sealed class ProfilesViewModel : ViewModelBase
     public RelayCommand NewRecipientCommand { get; }
     public RelayCommand DeleteCustomerCommand { get; }
     public RelayCommand DeleteRecipientCommand { get; }
-    public bool CanChooseCustomer => SelectedRecipient is null;
+    public bool CanChooseCustomer => CanEditRecipient && SelectedRecipient is null;
     public bool CanInteract => !_isSaving;
+    public bool IsReadOnly => !_canWrite;
+    public string CustomerFormTitle => IsReadOnly ? "Thông tin khách hàng (chỉ xem)" : SelectedCustomer is null ? "Tạo hồ sơ khách hàng" : "Thông tin khách hàng";
+    public string RecipientFormTitle => IsReadOnly ? "Thông tin người được tiêm (chỉ xem)" : SelectedRecipient is null ? "Thêm người được tiêm" : "Cập nhật người được tiêm";
     public RecipientRecord? SelectedRecipient { get=>_selectedRecipient; set { if(Set(ref _selectedRecipient,value) && value!=null) { SelectedCustomer=Customers.FirstOrDefault(c=>c.Id==value.CustomerId); RecipientName=value.Name; RecipientNationalId=value.NationalId??""; BirthDate=value.BirthDate.ToDateTime(TimeOnly.MinValue); Gender=value.Gender; Relation=value.Relation; } Refresh(); } }
     public ObservableCollection<CustomerRecord> Customers { get; }
     public ObservableCollection<RecipientRecord> Recipients { get; }
@@ -41,6 +46,7 @@ public sealed class ProfilesViewModel : ViewModelBase
     public RelayCommand TimKiemKhachHangCommand { get; }
     public RelayCommand TaoHoSoMoiCommand { get; }
     public RelayCommand LuuKhachHangCommand { get; }
+    public RelayCommand SaveAndNewCustomerCommand { get; }
     public RelayCommand ThemNguoiDuocTiemCommand { get; }
     public bool CanEditCustomer => _canWrite;
     public bool CanEditRecipient => _canWrite;
@@ -67,9 +73,18 @@ public sealed class ProfilesViewModel : ViewModelBase
     public bool CustomerValid => !string.IsNullOrWhiteSpace(Name) && (NationalId.Length == 0 || Regex.IsMatch(NationalId, @"^[0-9]{12}$")) && Regex.IsMatch(Phone, @"^[0-9]{10,11}$") && ValidEmail(Email);
     public bool RecipientValid => SelectedCustomer is not null && !string.IsNullOrWhiteSpace(RecipientName) && BirthDate is DateTime date && date.Date <= DateTime.Today && (RecipientNationalId.Length == 0 || Regex.IsMatch(RecipientNationalId, @"^[0-9]{12}$")) && Genders.Contains(Gender) && Relations.Contains(Relation);
     private static bool ValidEmail(string value) { try { return value.Contains('@') && new MailAddress(value).Address == value; } catch { return false; } }
-    private void Change<T>(ref T field, T value) { if (Set(ref field, value)) { _showErrors = true; Refresh(); } }
+    private void Change<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) { if (Set(ref field, value, propertyName)) { _showErrors = true; Refresh(); } }
     private void RefreshSearch() { OnPropertyChanged(nameof(FilteredCustomers)); OnPropertyChanged(nameof(FilteredRecipients)); OnPropertyChanged(nameof(NoCustomers)); OnPropertyChanged(nameof(NoRecipients)); }
-    private void Refresh() { OnPropertyChanged(nameof(CustomerError)); OnPropertyChanged(nameof(RecipientError)); OnPropertyChanged(nameof(CanChooseCustomer)); LuuKhachHangCommand.NotifyCanExecuteChanged(); ThemNguoiDuocTiemCommand.NotifyCanExecuteChanged(); TimKiemKhachHangCommand.NotifyCanExecuteChanged(); TaoHoSoMoiCommand.NotifyCanExecuteChanged(); NewRecipientCommand.NotifyCanExecuteChanged(); DeleteCustomerCommand?.NotifyCanExecuteChanged(); DeleteRecipientCommand?.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(CanInteract)); }
+    private void Refresh() { OnPropertyChanged(nameof(CustomerError)); OnPropertyChanged(nameof(RecipientError)); OnPropertyChanged(nameof(CanChooseCustomer)); OnPropertyChanged(nameof(CustomerFormTitle)); OnPropertyChanged(nameof(RecipientFormTitle)); LuuKhachHangCommand.NotifyCanExecuteChanged(); SaveAndNewCustomerCommand.NotifyCanExecuteChanged(); ThemNguoiDuocTiemCommand.NotifyCanExecuteChanged(); TimKiemKhachHangCommand.NotifyCanExecuteChanged(); TaoHoSoMoiCommand.NotifyCanExecuteChanged(); NewRecipientCommand.NotifyCanExecuteChanged(); DeleteCustomerCommand?.NotifyCanExecuteChanged(); DeleteRecipientCommand?.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(CanInteract)); }
+    private void ResetCustomerForm()
+    {
+        SelectedRecipient = null;
+        SelectedCustomer = null;
+        Name = NationalId = Phone = Email = "";
+        RecipientName = RecipientNationalId = Gender = Relation = "";
+        BirthDate = null;
+        ShowErrors = false;
+    }
     public async Task LoadAsync() {
         if (_isSaving) return;
         _isSaving=true; Refresh();
@@ -91,10 +106,10 @@ public sealed class ProfilesViewModel : ViewModelBase
         } catch(Exception e) { Feedback=e.Message; }
         finally { _isSaving=false; Refresh(); }
     }
-    private async Task SaveCustomer()
+    private async Task SaveCustomer(bool createNext = false)
     {
         ShowErrors = true; if (!CustomerValid) return; _isSaving = true; Refresh();
-        try { var saved = await _service.SaveCustomer(new(SelectedCustomer?.Id ?? 0, Name.Trim(), NationalId, Phone, Email.Trim())); var old = Customers.FirstOrDefault(x => x.Id == saved.Id); if (old is not null) Customers.Remove(old); Customers.Add(saved); SelectedCustomer = saved; Feedback = "Đã lưu khách hàng vào máy chủ."; RefreshSearch(); }
+        try { var saved = await _service.SaveCustomer(new(SelectedCustomer?.Id ?? 0, Name.Trim(), NationalId, Phone, Email.Trim())); var old = Customers.FirstOrDefault(x => x.Id == saved.Id); if (old is not null) Customers.Remove(old); Customers.Add(saved); SelectedCustomer = saved; if (createNext) ResetCustomerForm(); Feedback = createNext ? "Đã lưu khách hàng. Có thể nhập hồ sơ tiếp theo." : "Đã lưu khách hàng vào máy chủ."; RefreshSearch(); }
         catch (Exception e) { Feedback = e.Message; }
         finally { _isSaving = false; Refresh(); }
     }

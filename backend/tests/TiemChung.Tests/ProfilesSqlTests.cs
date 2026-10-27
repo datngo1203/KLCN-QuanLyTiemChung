@@ -98,6 +98,17 @@ public sealed class ProfilesSqlTests
         vm.SelectedCustomer=vm.Customers.Single(); await Command(vm.DeleteCustomerCommand); Assert.Contains("đang được sử dụng",vm.Feedback);
         vm.SelectedRecipient=vm.Recipients.Single(); await Command(vm.DeleteRecipientCommand); Assert.Empty(vm.Recipients);
         await Command(vm.DeleteCustomerCommand); Assert.Empty(vm.Customers);
+        foreach (var name in new[] { "[DEMO] consecutive first", "[DEMO] consecutive second" }) {
+            await Command(vm.TaoHoSoMoiCommand);
+            Assert.Null(vm.SelectedCustomer); Assert.Null(vm.SelectedRecipient); Assert.Equal("", vm.Name);
+            vm.Name=name; vm.Phone="0900000000"; vm.Email="next@example.invalid";
+            await Command(vm.SaveAndNewCustomerCommand);
+            Assert.Contains("Đã lưu khách hàng",vm.Feedback);
+            Assert.Null(vm.SelectedCustomer); Assert.Equal("",vm.Name);
+        }
+        Assert.Equal(2,await f.Db.Customers.CountAsync());
+        await vm.LoadAsync(); Assert.Equal(2,vm.Customers.Count);
+        vm.SelectedCustomer=vm.Customers.First(); Assert.False(vm.SaveAndNewCustomerCommand.CanExecute(null));
         await identity.LogoutAsync(); vm.Name="Denied"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid"; await Command(vm.LuuKhachHangCommand); Assert.DoesNotContain("Đã lưu",vm.Feedback); Assert.Equal("Denied",vm.Name);
     }
 }
