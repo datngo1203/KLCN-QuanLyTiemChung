@@ -92,7 +92,20 @@ R00 là gói thuần tài liệu trên nhánh `feat/r00-scope-alignment` từ `m
 Làm trong `apps/windows/ViewsV2/`, tái sử dụng `Themes/` và token `CE.*`. Thống nhất vùng sửa khi cùng làm một màn hình. Giữ nhãn Dữ liệu mẫu cho màn mẫu; không coi state UI là dữ liệu SQL. Không kết nối SQL từ WPF.
 Kiểm tra bình thường/lỗi/rỗng, bàn phím và nút vô hiệu; giữ validation, xử lý lỗi và ngăn gửi trùng. Build Windows và kiểm dữ liệu lưu/đọc lại cùng quyền API khi nối nghiệp vụ. Báo lệnh/kết quả/phần chưa kiểm trong bàn giao hoặc PR; tiến độ chỉ cập nhật SCOPE.
 
-UX dùng chung Web/Windows: quyền chỉ xem phải thể hiện bằng trường read-only và lời giải thích ngắn; vẫn cho tìm/chọn/xem. Phân biệt rõ tạo mới với sửa hồ sơ đã chọn, reset lựa chọn và bản nháp khi tạo tiếp. Đặt feedback gần thao tác, đủ loading/empty/error, chặn gửi trùng; kiểm bàn phím và responsive phù hợp client. Chọn danh sách/chi tiết, form, drawer hoặc dialog theo nghiệp vụ; không áp một mẫu cho mọi màn, không biến màn Sample thành chức năng thật.
+### Nguyên tắc UX dùng chung Web và Windows
+
+1. Trước khi triển khai UI của mỗi module, phân tích ngắn ngay trong kế hoạch thực hiện: actor và mục tiêu sử dụng; luồng thao tác chính; thông tin cần thấy ngay và thông tin chỉ hiển thị khi cần; các hành động xem, tạo, sửa, xóa hoặc xác nhận; quyền thao tác và trạng thái dữ liệu; loại bố cục phù hợp. Không tạo tài liệu thiết kế riêng cho phần phân tích này.
+2. Tổ chức giao diện theo tác vụ và thứ tự sử dụng. Không thiết kế bằng cách đơn giản liệt kê tất cả input, nút bấm và form trên cùng một trang.
+3. Mặc định ưu tiên xem/tra cứu thông tin, mở biểu mẫu thêm/sửa khi người dùng cần. Đây là nguyên tắc định hướng, không bắt buộc với màn chuyên môn cần nhập liệu liên tục; chọn cách phù hợp luồng thực tế.
+4. Chọn mẫu giao diện theo nghiệp vụ: Website khách hàng cần dễ hiểu, hướng dẫn rõ và responsive; Windows nhân viên cần thao tác nhanh, dễ tra cứu và phù hợp sử dụng liên tục. Dùng dialog cho tác vụ ngắn; trang hoặc workspace riêng cho tác vụ dài, nhiều dữ liệu hoặc cần xác nhận nghiệp vụ; bảng/danh sách kết hợp chi tiết cho quản lý nhiều bản ghi.
+5. Thiết kế rõ các trạng thái: chưa chọn dữ liệu, đang tải, không có dữ liệu, xem/chỉnh sửa/tạo mới, thiếu quyền, đang lưu, thành công/thất bại, mất kết nối hoặc cần thử lại. Quyền chỉ xem phải thể hiện bằng thông tin hoặc trường read-only và lời giải thích ngắn; vẫn cho tìm/chọn/xem. Đặt thông báo kết quả gần thao tác.
+6. Bảo toàn dữ liệu người dùng: API lỗi phải giữ bản nháp để thử lại; không ghi đè nhầm bản ghi đang chọn, gửi trùng yêu cầu hoặc liên kết sai khách hàng/người được tiêm. Phân biệt rõ tạo mới và chỉnh sửa; reset lựa chọn và bản nháp khi người dùng chọn tạo tiếp. Có xác nhận dễ hiểu, phù hợp cho hành động không thể hoàn tác.
+7. Với giao diện chuyên môn y tế và tài chính, ưu tiên đúng dữ liệu, quyền và điều kiện nghiệp vụ hơn việc tối giản thao tác. Không bỏ validation/kiểm quyền để rút ngắn luồng; không tự thêm quy trình y tế hoặc trạng thái thanh toán ngoài SCOPE.md.
+8. Giữ nhận diện VAC, tái sử dụng style/token có sẵn; thống nhất typography, khoảng cách và icon phù hợp tác vụ. Không thêm thư viện lớn chỉ để làm đẹp.
+9. Khi hoàn thành module, bắt buộc kiểm chứng UX: Web kiểm desktop/mobile, bàn phím, focus và overflow; Windows kiểm kích thước cửa sổ làm việc thực tế, cuộn, nút thao tác và keyboard navigation. Cả hai kiểm normal/empty/loading/error, phân quyền và kết quả API thật. Nếu chưa có runtime hoặc screenshot thực tế, phải báo rõ phần chưa kiểm; không đánh dấu PASS bằng build/CI thay cho tương tác chưa chạy.
+10. Không áp cùng một bố cục cho mọi module. UX-01 là ví dụ về tư duy thiết kế theo tác vụ, không phải template bắt buộc.
+11. Không dùng dữ liệu Sample hoặc state UI để chứng minh nghiệp vụ thật. Màn mock phải có nhãn rõ và chỉ chuyển thành màn thật trong gói nghiệp vụ tương ứng, gọi API thật theo phạm vi đã giao.
+12. Áp dụng các quy tắc UX trên ngay trong quá trình phát triển từng gói G2–G8. Mỗi gói vẫn tuân thủ phạm vi, tiêu chí nghiệm thu và điểm dừng đã giao; các quy tắc này không tự cấp phép triển khai gói tiếp theo.
 
 ## Bí mật và môi trường
 
