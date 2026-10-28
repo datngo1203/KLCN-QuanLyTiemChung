@@ -1,9 +1,18 @@
+import { parseRegistrationJson, catalogServices } from '../registrationForm.js'
+
 const baseUrl = (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5080').replace(/\/$/, '')
 
-export async function apiGet(path) {
+export async function apiGet(path, exactMoney = false) {
   const response = await fetch(`${baseUrl}${path}`, { signal: AbortSignal.timeout(8000) })
   if (!response.ok) throw new Error(`API trả HTTP ${response.status}`)
-  return response.json()
+  return exactMoney ? parseRegistrationJson(await response.text()) : response.json()
+}
+
+export async function getRegistrationCatalog() {
+  const [vaccines, packages] = await Promise.all([
+    apiGet('/api/v1/catalog/vaccines', true), apiGet('/api/v1/catalog/packages', true),
+  ])
+  return catalogServices(vaccines, packages)
 }
 
 export const getHealth = () => apiGet('/health')

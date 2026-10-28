@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ArrowRight, ArrowLeft, Search, Menu, X, Info, Check, Plus, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, CircleCheck, CircleAlert, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Search, Menu, X, Info, Check, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, CircleCheck, ArrowUpRight } from 'lucide-react'
 import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
+import Registrations from './Registrations'
 import Home from './Home'
 import './theme.css'
 
@@ -40,39 +41,40 @@ function App() {
   const [scheduleTab, setScheduleTab] = useState('Lịch tiêm')
   const [toast, setToast] = useState('')
   const [selectedService] = useState(services[0])
-  const [draft, setDraft] = useState(initialDraft)
-  const [registration, setRegistration] = useState(null)
+  const draft = initialDraft
+  const registration = null
+  const [registrationBusy, setRegistrationBusy] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState('Chờ thanh toán')
-  const [paymentFromRegistration, setPaymentFromRegistration] = useState(false)
 
   const notify = (message) => {
     setToast(message)
     window.clearTimeout(window.__clinicToast)
     window.__clinicToast = window.setTimeout(() => setToast(''), 3200)
   }
-  const go = (next) => { if (next === 'payment') setPaymentFromRegistration(false); setMobileMenuOpen(false); setPage(next); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  const go = (next) => { if (registrationBusy) return; setMobileMenuOpen(false); setPage(next); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   return (
     <div className="app-shell">
       <div className="announcement"><span className="announcement-dot" /> VAC · Cổng thông tin tiêm chủng</div>
       <header className="site-header">
-        <button className="brand" onClick={() => go('home')} aria-label="Về trang chủ">
+        <button disabled={registrationBusy} className="brand" onClick={() => go('home')} aria-label="Về trang chủ">
           <img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="64" height="64" /><span><b>TRUNG TÂM TIÊM CHỦNG VAC</b><small>VACCINE ADMINISTRATION CENTER</small></span>
         </button>
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
-          {pages.map(([id, label]) => <button key={id} className={page === id ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
+          {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} className={page === id ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
-        <button className="button outline account-button" onClick={() => go('account')} aria-label="Tài khoản">{account ? 'Tài khoản' : 'Đăng nhập'}</button>
-        <button className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
+        <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')} aria-label="Tài khoản">{account ? 'Tài khoản' : 'Đăng nhập'}</button>
+        <button disabled={registrationBusy} className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
       </header>
 
       <main>
+        {['promotions', 'payment', 'schedule'].includes(page) && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
         {page === 'account' && <Account account={account} setAccount={setAccount} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
-        {page === 'register' && <Register go={go} notify={notify} selectedService={selectedService} draft={draft} setDraft={setDraft} onSubmit={() => { setRegistration(draft); setPaymentStatus(selectedService.inStock ? 'Chờ thanh toán' : 'Đang chờ hàng đợi'); setPaymentFromRegistration(true); setPage('payment'); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
-        {page === 'payment' && <Payment go={go} selectedService={selectedService} registration={registration} draft={draft} status={paymentStatus} skipIdentityCheck={paymentFromRegistration} onConfirm={() => { setPaymentStatus('Đã thanh toán'); notify('Đã cập nhật trạng thái thanh toán.') }} />}
+        {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
+        {page === 'payment' && <Payment go={go} selectedService={selectedService} registration={registration} draft={draft} status={paymentStatus} skipIdentityCheck={false} onConfirm={() => { setPaymentStatus('Đã thanh toán'); notify('Đã cập nhật trạng thái thanh toán.') }} />}
         {page === 'schedule' && <Schedule tab={scheduleTab} setTab={setScheduleTab} registration={registration} draft={draft} selectedService={selectedService} paymentStatus={paymentStatus} notify={notify} />}
       </main>
 
@@ -123,92 +125,6 @@ function Offers({ go, notify }) {
   </section>
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text', required = false }) {
-  return <label className="demo-field"><span>{label}{required && <b> *</b>}</span><input type={type} value={value} onChange={onChange} placeholder={placeholder} required={required} /></label>
-}
-
-function Register({ go, notify, selectedService, draft, setDraft, onSubmit }) {
-  const update = (key, value) => setDraft(current => ({ ...current, [key]: value }))
-  const recipients = draft.recipients || []
-  const createRecipient = () => ({ id: `${Date.now()}-${Math.random()}`, name: '', relation: 'Con', birthDate: '2020-01-01', gender: 'Nữ', identity: '', serviceId: selectedService.id })
-  const updateRecipient = (id, key, value) => update('recipients', recipients.map(person => person.id === id ? { ...person, [key]: value } : person))
-  const addRecipient = () => update('recipients', [...recipients, createRecipient()])
-  const removeRecipient = id => update('recipients', recipients.filter(person => person.id !== id))
-  const chooseRelatives = () => {
-    if (!recipients.length) update('recipients', [createRecipient()])
-    update('samePerson', false)
-  }
-  const recipientSummary = draft.samePerson ? draft.customerName : recipients.map(person => {
-    const service = services.find(item => item.id === person.serviceId) || selectedService
-    return person.name ? `${person.name} · ${service.name}` : ''
-  }).filter(Boolean).join(', ')
-
-  const handleSubmit = event => {
-    event.preventDefault()
-    onSubmit()
-    notify(selectedService.inStock ? 'Đã tiếp nhận đăng ký. Tiếp tục đến bước thanh toán.' : 'Đã ghi nhận vào Hàng đợi vắc xin thành công.')
-  }
-
-  return <section className="form-page wrap">
-    <PageIntro eyebrow="CỔNG TIẾP NHẬN TRỰC TUYẾN" title="Đăng ký tiêm chủng (Mũi lẻ & Gói)" text="Điền thông tin đăng ký dịch vụ." />
-    <div className="stepper"><span className="step"><i><Check size={14} aria-hidden="true" /></i> Chọn dịch vụ</span><span className="step current"><i>2</i> Đăng ký thông tin</span><span className="step"><i>3</i> Thanh toán</span><span className="step"><i>4</i> Theo dõi lịch</span></div>
-    <form className="form-layout" onSubmit={handleSubmit}>
-      <div className="form-content">
-        <section className="form-card">
-          <h2><span>01</span> Dịch vụ / vắc xin đã chọn</h2>
-          <div className="details-grid">
-            <Detail label="Tên dịch vụ" value={selectedService.name} />
-            <Detail label="Hình thức" value={selectedService.category} />
-            <Detail label="Tình trạng kho" value={<span className={selectedService.inStock ? 'stock-status available' : 'stock-status unavailable'}>{selectedService.inStock ? <CircleCheck aria-hidden="true" /> : <CircleAlert aria-hidden="true" />}{selectedService.inStock ? 'Còn thuốc tại trung tâm' : 'Tạm hết thuốc (Đăng ký Hàng đợi)'}</span>} />
-          </div>
-          {!selectedService.inStock && (
-            <div className="notice" style={{ marginTop: '12px', background: '#fffbe6', borderColor: '#fa8c16' }}>
-              <span><Info aria-hidden="true" /></span>
-              <div>
-                <b>Thông báo Hàng đợi vắc xin</b>
-                <p>Sản phẩm này hiện đang tạm hết. Hệ thống sẽ đưa bạn vào <b>Hàng đợi vắc xin</b> và thông báo ngay khi có lô thuốc mới về trung tâm.</p>
-              </div>
-            </div>
-          )}
-          <button type="button" className="button outline" style={{ marginTop: '12px' }} onClick={() => go('catalog')}><ArrowLeft aria-hidden="true" />Thay đổi dịch vụ / gói</button>
-        </section>
-
-        <section className="form-card"><h2><span>02</span> Thông tin Khách hàng (Người đăng ký)</h2><div className="demo-form-grid"><Field label="Họ và tên khách hàng" value={draft.customerName} onChange={event => update('customerName', event.target.value)} required /><Field label="Số điện thoại liên hệ" value={draft.phone} onChange={event => update('phone', event.target.value)} required /><Field label="Địa chỉ Email" value={draft.email} onChange={event => update('email', event.target.value)} type="email" /><Field label="Số CCCD / Định danh cá nhân" value={draft.identity} onChange={event => update('identity', event.target.value)} /><Field label="Địa chỉ thường trú / Liên hệ" value={draft.address} onChange={event => update('address', event.target.value)} /></div></section>
-        
-        <section className="form-card">
-          <h2><span>03</span> Thông tin Người được tiêm</h2>
-          <div className="radio-options"><label><input type="radio" checked={draft.samePerson} onChange={() => update('samePerson', true)} /> Người được tiêm là chính khách hàng</label><label><input type="radio" checked={!draft.samePerson} onChange={chooseRelatives} /> Đăng ký cho người thân</label></div>
-          {!draft.samePerson && <div className="recipient-list">{recipients.map((person, index) => <div className="recipient-card" key={person.id}>
-            <div className="recipient-card-heading"><h3>Người được tiêm {index + 1}</h3>{recipients.length > 1 && <button type="button" className="recipient-remove" onClick={() => removeRecipient(person.id)}>Xóa người này</button>}</div>
-            <div className="demo-form-grid"><Field label="Họ tên người được tiêm" value={person.name} onChange={event => updateRecipient(person.id, 'name', event.target.value)} required /><label className="demo-field"><span>Vắc xin / gói đăng ký</span><select value={person.serviceId || selectedService.id} onChange={event => updateRecipient(person.id, 'serviceId', event.target.value)}>{services.map(item => <option key={item.id} value={item.id} disabled={!item.inStock}>{item.name} ({item.category})</option>)}</select></label><Field label="Quan hệ với khách hàng" value={person.relation} onChange={event => updateRecipient(person.id, 'relation', event.target.value)} /><Field label="Ngày sinh" value={person.birthDate} onChange={event => updateRecipient(person.id, 'birthDate', event.target.value)} type="date" /><label className="demo-field"><span>Giới tính</span><select value={person.gender} onChange={event => updateRecipient(person.id, 'gender', event.target.value)}><option>Nữ</option><option>Nam</option><option>Khác</option></select></label><Field label="Số CCCD / Giấy khai sinh" value={person.identity} onChange={event => updateRecipient(person.id, 'identity', event.target.value)} /></div>
-          </div>)}<button type="button" className="button outline add-recipient" onClick={addRecipient}><Plus aria-hidden="true" /> Thêm người được tiêm</button></div>}
-        </section>
-        
-        <section className="form-card"><h2><span>04</span> Chọn lịch hẹn (Ngày & Khung giờ)</h2><div className="demo-form-grid"><Field label="Chọn ngày hẹn dự kiến" value={draft.appointmentDate} onChange={event => update('appointmentDate', event.target.value)} type="date" required /><label className="demo-field"><span>Khung giờ hẹn <b>*</b></span><select value={draft.slot} onChange={event => update('slot', event.target.value)}><option>09:00</option><option>10:30</option><option>14:00</option></select></label></div></section>
-      </div>
-
-      <aside className="summary-card">
-        <div className="card-kicker">TÓM TẮT ĐĂNG KÝ</div>
-        <h3>Kiểm tra thông tin</h3>
-        <SummaryRow label="Dịch vụ" value={selectedService.name} />
-        <SummaryRow label="Loại hình" value={selectedService.category} />
-        <SummaryRow label="Người đăng ký" value={draft.customerName || 'Chưa nhập'} />
-        <SummaryRow label="Người được tiêm" value={recipientSummary || 'Chưa nhập'} />
-        <SummaryRow label="Thời gian" value={`${draft.appointmentDate} · ${draft.slot}`} />
-        <div className="summary-total">
-          <span>Hình thức</span>
-          <b className="demo-value" style={{ color: selectedService.inStock ? 'var(--primary)' : '#fa8c16' }}>
-            {selectedService.inStock ? 'Đăng ký trực tiếp' : 'Vào Hàng đợi vắc xin'}
-          </b>
-        </div>
-        <button className="button primary full" type="submit">
-          {selectedService.inStock ? 'Tiếp tục đăng ký' : 'Xác nhận vào Hàng đợi'}<ArrowRight aria-hidden="true" />
-        </button>
-      </aside>
-    </form>
-  </section>
-}
-function SummaryRow({ label, value }) { return <div className="summary-row"><span>{label}</span><b className="demo-value">{value}</b></div> }
 function Detail({ label, value }) { return <div className="detail-item"><span>{label}</span><b className="demo-value">{value}</b></div> }
 
 function IdentityGate({ value, onChange, onSubmit, error, title, description }) {
