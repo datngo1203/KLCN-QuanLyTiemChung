@@ -112,7 +112,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dangkydichvu.HasOne<KhuyenMai>().WithMany().HasForeignKey(x => x.MaKhuyenMai).OnDelete(DeleteBehavior.Restrict);
         dangkydichvu.Property(x => x.NgayDangKy).HasColumnType("datetime2");
         dangkydichvu.Property(x => x.HinhThucTiem).HasColumnType("nvarchar(50)");
-        dangkydichvu.Property(x => x.HinhThucTiem).IsRequired();
+        dangkydichvu.Property(x => x.HinhThucTiem).IsRequired(false);
         dangkydichvu.Property(x => x.ThoiGianDuKien).HasColumnType("datetime2");
         dangkydichvu.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         dangkydichvu.Property(x => x.TrangThai).IsRequired();

@@ -251,7 +251,6 @@ namespace TiemChung.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDangKy"));
 
                     b.Property<string>("HinhThucTiem")
-                        .IsRequired()
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("MaKhachHang")
@@ -263,7 +262,7 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int>("MaNguoiDuocTiem")
                         .HasColumnType("int");
 
-                    b.Property<int>("MaNhanVien")
+                    b.Property<int?>("MaNhanVien")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("NgayDangKy")
@@ -274,7 +273,7 @@ namespace TiemChung.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<DateTime>("ThoiGianDuKien")
+                    b.Property<DateTime?>("ThoiGianDuKien")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TrangThai")
@@ -1418,8 +1417,7 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasOne("TiemChung.Domain.Entities.NhanVien", null)
                         .WithMany()
                         .HasForeignKey("MaNhanVien")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.EmailVerification", b =>

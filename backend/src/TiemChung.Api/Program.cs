@@ -66,7 +66,8 @@ app.Use(async (context, next) => {
         await context.Response.WriteAsJsonAsync(new { type="about:blank", title=failure.Code, status=failure.Status,
             code=failure.Code, traceId=context.TraceIdentifier, errors=failure.Errors });
     }
-    catch (BadHttpRequestException failure) when (context.Request.Path.StartsWithSegments("/api/v1/catalog")) {
+    catch (BadHttpRequestException failure) when (context.Request.Path.StartsWithSegments("/api/v1/catalog") ||
+        context.Request.Path.StartsWithSegments("/api/v1/registrations")) {
         context.Response.StatusCode = failure.StatusCode;
         var code = failure.StatusCode == 400 ? "validation" : "invalidRequest";
         await context.Response.WriteAsJsonAsync(new { type="about:blank", title=code, status=failure.StatusCode,
@@ -92,6 +93,7 @@ app.MapGet("/api/v1/modules", () => new ModuleDto[] {
 
 app.MapProfileEndpoints();
 app.MapIdentityEndpoints();
+app.MapRegistrationEndpoints();
 
 app.Run();
 
