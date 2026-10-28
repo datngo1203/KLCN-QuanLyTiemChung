@@ -1,3 +1,5 @@
+import { parseRegistrationJson, registrationBody } from '../registrationForm.js'
+
 const messages = {
   invalidCredentials: 'Email hoặc mật khẩu không đúng.',
   emailVerificationRequired: 'Cần xác minh email trước khi đăng nhập.',
@@ -42,12 +44,12 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       }).finally(() => { refreshing = null })
     return refreshing
   }
-  async function profiles(path, method = 'GET', body) {
-    if (!tokens) throw new Error(messages.invalidSession)
+  async function profiles(path, method = 'GET', body, registration = false) {
+    if (!tokens) throw Object.assign(new Error(messages.invalidSession), { status: 401 })
     const version = sessionVersion
     const send = () => request(`${baseUrl}/api/v1/${path}`, {
       method, credentials: 'omit', headers: { Authorization: `Bearer ${tokens.accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000),
+      body: body ? (registration ? registrationBody(body) : JSON.stringify(body)) : undefined, signal: AbortSignal.timeout(15000),
     })
     const session = tokens
     let response = await send()
@@ -62,12 +64,16 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
       const details = Object.values(problem.errors || {}).flat().join(' ')
-      throw new Error(details || ({ validation: 'Kiểm tra thông tin hồ sơ.', permissionDenied: 'Bạn không có quyền thao tác hồ sơ này.', duplicateIdentity: 'CCCD đã tồn tại.', profileAlreadyExists: 'Bạn đã có hồ sơ. Hãy tải lại.', profileReferenced: 'Hồ sơ đang được sử dụng, không thể xóa.' })[problem.code] || messages[problem.code] || `API trả HTTP ${response.status}`)
+      throw Object.assign(new Error(details || (registration ? { validation: 'Kiểm tra hồ sơ, dịch vụ và số lượng đăng ký.', permissionDenied: 'Bạn không có quyền truy cập đăng ký này.', catalogChanged: 'Giá hoặc thành phần dịch vụ đã thay đổi.', resourceNotFound: 'Hồ sơ hoặc dịch vụ không còn tồn tại.' } : { validation: 'Kiểm tra thông tin hồ sơ.', permissionDenied: 'Bạn không có quyền thao tác hồ sơ này.', duplicateIdentity: 'CCCD đã tồn tại.', profileAlreadyExists: 'Bạn đã có hồ sơ. Hãy tải lại.', profileReferenced: 'Hồ sơ đang được sử dụng, không thể xóa.' })[problem.code] || messages[problem.code] || `API trả HTTP ${response.status}`), { status: response.status, code: problem.code })
     }
+    if (registration && method === 'POST' && response.status !== 201)
+      throw Object.assign(new Error('API chưa xác nhận tạo đăng ký (cần HTTP 201). Hãy kiểm tra danh sách trước khi tạo lại.'), { uncertain: true })
+    if (registration) return parseRegistrationJson(await response.text())
     return response.status === 204 ? null : response.json()
   }
   return {
     profiles,
+    registrations: (path = '', method = 'GET', body) => profiles(`registrations${path}`, method, body, true),
     async changePassword(currentPassword, newPassword, confirmation) {
       if (!currentPassword) throw new Error('Nhập mật khẩu hiện tại.')
       if (newPassword.length < 12 || newPassword.length > 128 || newPassword === currentPassword)
