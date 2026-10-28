@@ -69,11 +69,11 @@ public sealed class DangKyDichVu
     public int MaDangKy { get; set; }
     public int MaKhachHang { get; set; }
     public int MaNguoiDuocTiem { get; set; }
-    public int MaNhanVien { get; set; }
+    public int? MaNhanVien { get; set; }
     public int? MaKhuyenMai { get; set; }
     public DateTime NgayDangKy { get; set; }
-    public string HinhThucTiem { get; set; } = string.Empty;
-    public DateTime ThoiGianDuKien { get; set; }
+    public string? HinhThucTiem { get; set; }
+    public DateTime? ThoiGianDuKien { get; set; }
     public string TrangThai { get; set; } = string.Empty;
 }
 

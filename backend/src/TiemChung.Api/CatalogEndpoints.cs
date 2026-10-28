@@ -143,11 +143,23 @@ public static class CatalogEndpoints
         });
         group.MapPut("/packages/{id:int}", async (int id, PackageRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-            var actor = await RequireWrite(context, auth, true, ct); await ValidatePackage(req, db, ct);
-            var row = await db.Set<GoiVacXin>().FindAsync([id], ct) ?? throw new IdentityFailure(404,"resourceNotFound");
+            var actor = await RequireWrite(context, auth, true, ct);
+            // Registration takes the same package lock before reading components/prices.
+            var row = await db.Set<GoiVacXin>().FromSqlInterpolated(
+                $"SELECT * FROM GoiVacXin WITH (UPDLOCK,HOLDLOCK) WHERE MaGoi={id}").SingleOrDefaultAsync(ct)
+                ?? throw new IdentityFailure(404,"resourceNotFound");
+            await ValidatePackage(req, db, ct);
+            var current = await db.Set<GoiVacXin_VacXin>().Where(x => x.MaGoi == id).ToArrayAsync(ct);
+            var changed = !current.OrderBy(x => x.MaVacXin).Select(x => (x.MaVacXin, x.SoLuong))
+                .SequenceEqual(req.Items.OrderBy(x => x.VaccineId).Select(x => (x.VaccineId, x.Quantity)));
+            if (changed && await db.RegistrationPackageItems.AnyAsync(x => x.MaGoi == id, ct))
+                throw new IdentityFailure(409, "catalogReferenced");
             row.TenGoi = req.Name.Trim(); row.GiaGoi = req.Price;
-            db.RemoveRange(await db.Set<GoiVacXin_VacXin>().Where(x => x.MaGoi == id).ToArrayAsync(ct)); await db.SaveChangesAsync(ct);
-            SetItems(db, id, req.Items); await Audit(db, context, actor, "updated", "packages", id, ct); await tx.CommitAsync(ct);
+            if (changed) {
+                db.RemoveRange(current); await db.SaveChangesAsync(ct);
+                SetItems(db, id, req.Items);
+            }
+            await Audit(db, context, actor, "updated", "packages", id, ct); await tx.CommitAsync(ct);
             return Results.Ok(new PackageDto(id,row.TenGoi,row.GiaGoi,req.Items));
         });
         group.MapDelete("/packages/{id:int}", async (int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {

@@ -28,6 +28,9 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | GET `/api/v1/recipients?customerId=&search=&page=&pageSize=` | Danh sách người được tiêm, có phân trang | Bearer; nhân viên Active hoặc khách hàng theo liên kết hồ sơ Active |
 | POST `/api/v1/recipients` | Tạo người được tiêm gắn khách hàng | Bearer; LeTan hoặc khách hàng tạo hồ sơ của chính mình |
 | PUT `/api/v1/recipients/{id}` | Cập nhật thông tin người được tiêm | Bearer; LeTan hoặc khách hàng có liên kết hồ sơ Active |
+| POST `/api/v1/registrations` | Tạo đầu đăng ký và toàn bộ chi tiết lẻ/gói trong một transaction; 201 + Location | Bearer; Customer có cả hai liên kết Active hoặc nhân viên Active LeTan |
+| GET `/api/v1/registrations?customerId=&recipientId=&page=&pageSize=` | Danh sách đăng ký SQL trong phạm vi hiện hành | Bearer; cùng quyền G2 |
+| GET `/api/v1/registrations/{id}` | Chi tiết đăng ký, đơn giá đã chốt và thành phần gói | Bearer; cùng quyền G2 |
 
 S1 dùng nguyên mô hình chức danh/quyền backend, không làm thêm UI quản trị quyền. Web S1 và Windows dùng `clientType=native` để nhận access/refresh trong response và chỉ giữ trong bộ nhớ; fetch Web dùng `credentials=omit`, không lưu browser storage/cookie. Luồng `clientType=web` cookie/Origin/CSRF hiện có được giữ nguyên. Không phục hồi phiên sau tải lại/đóng ứng dụng; logout gửi refresh token để thu hồi tại API. Chưa có HTTP quản lý tài khoản. Profiles S3 đã nối Web/Windows theo mục S3 bên dưới.
 
@@ -44,7 +47,6 @@ G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `Deve
 | Module | Endpoint dự kiến | Người làm |
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
-| Registration | GET/POST registrations, POST registrations/{id}/items; hỗ trợ lẻ + gói | Bảo |
 | Finance | POST registrations/{id}/payments; GET payments; thanh toán toàn bộ một lần có nhãn mô phỏng, hoãn đặt cọc/trả góp | Bảo |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
 | Follow-up | GET/POST appointments; PUT appointments/{id}; GET recipients/{id}/history; POST reminders | Quý |
@@ -67,7 +69,7 @@ Các route `/api/v1/catalog/{injection-types|vaccine-types|vaccines|packages}` h
 
 - Loại: `{ id, name, description }`; POST/PUT bỏ id. Tên bắt buộc tối đa 120, mô tả tối đa 500 (chuỗi rỗng được phép).
 - Vắc xin: `{ id, name, manufacturer, origin, price, vaccineTypeId, injectionTypeId }`; POST/PUT bỏ id. Tên/nhà sản xuất bắt buộc tối đa 150, xuất xứ 100; hai mã loại phải tồn tại.
-- Gói: `{ id, name, price, items: [{ vaccineId, quantity, vaccineName }] }` (vaccineName chỉ bổ sung trong GET, POST/PUT chỉ cần vaccineId/quantity); POST/PUT bỏ id. Tên tối đa 150; 1–100 vắc xin khác nhau, quantity 1–100; mã vắc xin phải tồn tại. PUT thay toàn bộ thành phần trong transaction.
+- Gói: `{ id, name, price, items: [{ vaccineId, quantity, vaccineName }] }` (vaccineName chỉ bổ sung trong GET, POST/PUT chỉ cần vaccineId/quantity); POST/PUT bỏ id. Tên tối đa 150; 1–100 vắc xin khác nhau, quantity 1–100; mã vắc xin phải tồn tại. PUT thay thành phần trong transaction nếu tập ID/số lượng thực sự đổi. G2: nếu đã có `ChiTietGoiVacXin` tham chiếu thì thay thành phần trả 409 `catalogReferenced`, không đổi giá/tên/thành phần một phần; cùng thành phần (không phụ thuộc thứ tự) vẫn cho đổi giá/tên. Catalog PUT và Registration khóa cùng bản ghi gói trước khi kiểm tra/cập nhật, giữ tới commit.
 - Giá là số nguyên VND không âm, tối đa 9.999.999.999.999.999. Không ghi trường y tế/kho trong S2; giữ dữ liệu trường cũ khi sửa.
 - Ghi yêu cầu Bearer của nhân viên Active có `QuanLyDanhMucChuyenMon`; vaccines/packages yêu cầu thêm `QuanLyDanhMucGia` vì form ghi cả giá. API kiểm quyền hiện hành trong transaction; không lấy quyền từ client. Thiếu phiên 401, thiếu quyền 403, đầu vào sai 400 `validation`, không tồn tại 404 `resourceNotFound`, FK ngăn xóa 409 `catalogReferenced`. Xóa gói chỉ xóa thành phần sở hữu; nếu đăng ký đang tham chiếu gói thì rollback toàn bộ. Mỗi ghi thành công có audit người thực hiện/thời điểm.
 
@@ -84,3 +86,59 @@ Tái sử dụng Profiles M1 và AccountProfileLink. Nhân viên Active đọc �
 - Ghi kiểm phiên/quyền/phạm vi ở API trong transaction, lưu audit người thực hiện/thời điểm. Thiếu phiên 401, trái phạm vi/quyền 403, dữ liệu sai 400 `validation`, thiếu hồ sơ 404, CCCD khách hàng trùng 409 `duplicateIdentity`.
 
 Web: Tài khoản → Hồ sơ của tôi, tạo/sửa hồ sơ và người được tiêm. Windows: Hồ sơ → tải/tìm, tạo/sửa/xóa khách hàng và bé qua API thật. Nullable CustomerDto.IdentityNumber là thay đổi contract cần review chéo trước merge.
+
+## G2B — Registration (backend, chưa nối Web/Windows)
+
+Một đăng ký gồm một khách hàng, một người được tiêm và 1–100 dòng vắc xin lẻ/gói. Không mở sửa/xóa/hủy/chuyển trạng thái hoặc `POST registrations/{id}/items`. Không có giỏ hàng SQL, giữ tồn, hàng đợi, lịch, thanh toán, khám, ghi tiêm hoặc ưu đãi trong G2. Thành công chỉ có nghĩa đã lưu đăng ký, không có nghĩa đủ điều kiện tiêm.
+
+### Tạo đăng ký
+
+`POST /api/v1/registrations` nhận:
+
+```json
+{
+  "customerId": 12,
+  "recipientId": 34,
+  "items": [
+    { "kind": "vaccine", "serviceId": 5, "quantity": 2, "expectedUnitPrice": 150000 },
+    { "kind": "package", "serviceId": 3, "quantity": 1, "expectedUnitPrice": 350000,
+      "expectedComponents": [ { "vaccineId": 5, "quantity": 1 }, { "vaccineId": 6, "quantity": 1 } ] }
+  ]
+}
+```
+
+- ID nguyên dương; `kind` chỉ `vaccine` hoặc `package`; số lượng nguyên 1–100. Không trùng `(kind, serviceId)` trong request. Không tự gộp/xóa dịch vụ chỉ vì một vắc xin cũng nằm trong gói.
+- `expectedUnitPrice` bắt buộc kể cả giá 0, số nguyên VND từ 0 đến 9.999.999.999.999.999. Tổng tiền cũng không vượt giới hạn này. Các giới hạn số dòng/số lượng là giới hạn kỹ thuật của request, không phải phác đồ hoặc điều kiện y khoa.
+- Dòng gói bắt buộc `expectedComponents`: 1–100 vaccine ID khác nhau, quantity 1–100; so sánh tập ID/số lượng không phụ thuộc thứ tự. Dòng lẻ bỏ trường này hoặc gửi null. Thuộc tính JSON không được định nghĩa bị từ chối ở cả request, dòng và thành phần.
+- Các trường expected chỉ kiểm nội dung người dùng đã xem. API đọc giá/trạng thái/thành phần SQL trong transaction; giá gói lấy `GiaGoi`, không cộng giá thành phần. Giá/thành phần khác expected trả 409 `catalogChanged`; không tạo đăng ký. Client tải lại danh mục, giữ bản nháp và cho người dùng xem/xác nhận lại; không tự retry POST khi timeout.
+- Dịch vụ và vắc xin thành phần phải tồn tại, có trạng thái `Active`; gói không rỗng, số lượng thành phần hợp lệ. Không kiểm tồn/tuổi/phác đồ/chỉ định trong G2. Danh mục mẫu qua `Catalog:UseDemoData` không được dùng làm nguồn đăng ký; POST luôn đọc SQL, không fallback.
+- Server tự gán `id`, `createdAt` UTC, `status="DaDangKy"`, `employeeId` từ phiên nhân viên hoặc null với Customer. `HinhThucTiem`, `ThoiGianDuKien`, `MaKhuyenMai` để NULL. Không nhận nhân viên, quyền, trạng thái, tổng tiền, thời điểm, hồ sơ mới hoặc ưu đãi từ request.
+- Đầu đăng ký, hai loại chi tiết có `GiaTaiThoiDiemDangKy` và `SecurityAudit` (`registrations.created`, ActorAccountId, SessionId, OccurredAt, ResourceType/ResourceId) commit cùng nhau. Lỗi xác thực/validation/danh mục/ghi/audit rollback toàn bộ. Dùng transaction Serializable hiện có; gói được khóa theo thứ tự ID và Catalog PUT dùng cùng khóa gói, giá vắc xin được giữ ổn định tới commit. Chưa có idempotency tổng quát.
+
+201 trả `Location: /api/v1/registrations/{id}` và `RegistrationDto`:
+
+```text
+{ id, createdAt, status,
+  customer: { id, fullName }, recipient: { id, fullName }, employeeId: int|null,
+  items: [{ id, kind, serviceId, name, quantity, unitPrice, lineTotal,
+            components: null | [{ vaccineId, quantity, vaccineName }] }],
+  subtotal, currency: "VND" }
+```
+
+`id` của dòng là khóa chi tiết tương ứng; cần đi cùng `kind` vì hai bảng có thể trùng ID số. Các dòng trả lẻ trước, gói sau, mỗi loại theo ID tăng dần. `unitPrice` đọc giá đã lưu; `lineTotal=quantity*unitPrice`; `subtotal` cộng các dòng, không lấy giá Catalog mới. `components.quantity` là số lượng trong **một** gói. Tên khách hàng/người tiêm/dịch vụ vẫn là tên hiện hành, không có snapshot tên. Thành phần gói được bảo toàn bằng chặn sửa gói đã tham chiếu, không thêm bảng snapshot.
+
+### Đọc và phân quyền
+
+- Customer: tài khoản Active, email đã xác minh, phiên hợp lệ; cần liên kết `AccountProfileLink` Active trực tiếp với **cả** Customer và Recipient, và `NguoiDuocTiem.MaKhachHang` đúng khách hàng đăng ký. Không tự nhận hồ sơ bằng CCCD/email, không suy quyền từ liên kết Customer sang mọi Recipient.
+- Nhân viên Active chức danh `LeTan` được tạo/xem mọi đăng ký phục vụ tiếp nhận; các chức danh khác, kể cả Admin, bị 403. Không thêm mã quyền/capabilities Identity. Client dùng `accountType`/`employee.title` hiện có để thể hiện UI; API vẫn kiểm hiện hành.
+- Quyền xem theo liên kết hiện tại, không theo tài khoản từng tạo: khách hàng đủ liên kết xem được đăng ký do Lễ tân tạo; mất một liên kết thì đăng ký biến mất khỏi danh sách, detail bị từ chối.
+- GET danh sách trả `{ items: [{ id, createdAt, status, customer, recipient, employeeId, subtotal, currency }] }`. Bộ lọc customerId/recipientId chỉ thu hẹp phạm vi. Mặc định page=1/pageSize=25, pageSize tối đa 100, thứ tự ID giảm dần; trang rỗng trả `items: []`. Không trả count tổng hoặc chi tiết dịch vụ trong danh sách.
+- GET detail trả cùng `RegistrationDto` như POST. Customer gặp ID không tồn tại hoặc ngoài phạm vi đều nhận 403 `permissionDenied` để không phân biệt sự tồn tại. Lễ tân gặp ID không tồn tại nhận 404. ID/query không hợp lệ trả 400. Response Registration đặt `Cache-Control: no-store`.
+
+Lỗi dùng `{ type, title, status, code, traceId, errors? }`: 400 `validation` (kể cả JSON sai/trường lạ), 401 `invalidSession`, 403 `permissionDenied`/`emailVerificationRequired`, 404 `resourceNotFound` (hồ sơ/dịch vụ thiếu trong phạm vi được phép), 409 `catalogChanged`; lỗi phụ thuộc SQL/ghi dữ liệu trả 503 `dependencyUnavailable` không chứa SQL/PII/credential. Không tạo audit thành công ngoài transaction đã rollback.
+
+### Schema và ranh giới tích hợp
+
+Migration mới `20261028172727_G2RegistrationNullableFields` chỉ cho phép NULL ở ba cột `DangKyDichVu.MaNhanVien`, `HinhThucTiem`, `ThoiGianDuKien`, giữ FK và dữ liệu cũ; không thêm bảng/cột khác. Nâng cấp qua EF migrations trên DB test riêng; không tự áp dụng database demo. Down từ chối nếu còn bản ghi có NULL ở ba cột, không điền nhân viên/thời gian/chuỗi giả để rollback.
+
+G3 dùng giá chi tiết đã chốt cho thanh toán một lần có nhãn mô phỏng; tổng 0 được phép ở G2 nhưng không tạo thanh toán 0. G4 dùng ID đăng ký/chi tiết và thời gian nhân viên nhập; chưa sửa `LichHenTiem` trong G2. G5 tự kiểm chỉ định/thanh toán/lô/tồn/quyền khi ghi tiêm. G6 sẽ thêm chọn ưu đãi và snapshot giảm VND lúc tạo; không hồi tố giá/ưu đãi cho đăng ký G2 cũ. G2B chưa thay UI hoặc đánh dấu S4 hoàn tất; contract/schema vẫn cần review chéo trước merge.
