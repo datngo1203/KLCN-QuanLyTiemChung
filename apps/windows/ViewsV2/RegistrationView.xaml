@@ -12,7 +12,7 @@
   </StackPanel>
   <WrapPanel Grid.Row="1" Margin="0,0,0,12" Visibility="{Binding HasAccess, Converter={StaticResource Visible}}">
    <Button Content="Danh sách / Tra cứu" Command="{Binding ListCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,6"/>
-   <Button Content="{Binding NewLabel}" Command="{Binding NewCommand}" Click="New_Click" Style="{StaticResource CE.Button.Primary}" Margin="0,0,8,6"/>
+   <Button Content="{Binding NewLabel}" Command="{Binding NewCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,8,6"/>
    <Button Content="Trở lại bản nháp" Command="{Binding ResumeDraftCommand}" Style="{StaticResource CE.Button.Ghost}" Margin="0,0,0,6"/>
   </WrapPanel>
   <StackPanel Grid.Row="2" Margin="0,0,0,8">
@@ -44,7 +44,7 @@
       </WrapPanel>
      </StackPanel></Border>
      <Button Content="Tải lại chi tiết" Command="{Binding RetryDetailCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,0,0,12" Visibility="{Binding HasDetailId, Converter={StaticResource Visible}}"/>
-     <Border x:Name="DetailPanel" Style="{StaticResource CE.Card}" Visibility="{Binding ShowDetail, Converter={StaticResource Visible}}"><StackPanel>
+     <Border x:Name="DetailPanel" Focusable="True" Style="{StaticResource CE.Card}" Visibility="{Binding ShowDetail, Converter={StaticResource Visible}}"><StackPanel>
       <TextBlock Text="{Binding Detail.Id, StringFormat=Đăng ký #{0} · đã lưu}" Style="{StaticResource CE.SectionHeading}"/>
       <TextBlock Text="{Binding Detail.Customer.FullName, StringFormat=Khách hàng: {0}}" Margin="0,8,0,4"/>
       <TextBlock Text="{Binding Detail.Recipient.FullName, StringFormat=Người được tiêm: {0}}"/>

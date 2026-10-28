@@ -19,7 +19,7 @@ public partial class RegistrationView : UserControl
     {
         if (e.PropertyName == nameof(RegistrationViewModel.Detail) && sender is RegistrationViewModel { Detail: not null })
             Dispatcher.BeginInvoke(new Action(() => { DetailPanel.BringIntoView(); DetailPanel.Focus(); }));
+        if (e.PropertyName == nameof(RegistrationViewModel.IsBusy) && sender is RegistrationViewModel { IsBusy: false, IsCreating: true, Customer: null })
+            Dispatcher.BeginInvoke(new Action(() => { CustomerSearchInput.BringIntoView(); CustomerSearchInput.Focus(); }));
     }
-    private void New_Click(object sender, System.Windows.RoutedEventArgs e) =>
-        Dispatcher.BeginInvoke(new Action(() => CustomerSearchInput.Focus()));
 }
