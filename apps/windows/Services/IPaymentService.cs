@@ -61,9 +61,9 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
             method == HttpMethod.Post ? new { } : null, retryUnauthorized: method != HttpMethod.Post, expectedSessionRevision: _revision);
         if (response.IsSuccessStatusCode) return response;
         using (response) {
-            // A gateway/server error outside the reviewed contract does not prove rollback.
+            // A POST server error, including 503, does not prove rollback.
             if (method == HttpMethod.Post && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized
-                or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict or HttpStatusCode.ServiceUnavailable))
+                or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
                 throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Hãy đối chiếu bằng GET; không gửi lại tự động.");
             string? code = null;
             try {

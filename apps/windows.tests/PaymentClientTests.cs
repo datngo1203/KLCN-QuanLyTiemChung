@@ -45,19 +45,71 @@ public sealed class PaymentClientTests
     }
 
     [Theory]
-    [InlineData(400, "validation")]
-    [InlineData(401, "invalidSession")]
-    [InlineData(403, "permissionDenied")]
-    [InlineData(409, "paymentAlreadyRecorded")]
-    [InlineData(409, "paymentNotRequired")]
-    [InlineData(409, "paymentDataConflict")]
-    [InlineData(503, "dependencyUnavailable")]
-    public async Task ApiErrorsAreSanitizedAnd401NeverReplaysPayment(int status, string code)
+    [InlineData(400, "validation", "validation")]
+    [InlineData(401, "invalidSession", "invalidSession")]
+    [InlineData(403, "permissionDenied", "permissionDenied")]
+    [InlineData(409, "paymentAlreadyRecorded", "paymentAlreadyRecorded")]
+    [InlineData(409, "paymentNotRequired", "paymentNotRequired")]
+    [InlineData(409, "paymentDataConflict", "paymentDataConflict")]
+    [InlineData(503, "dependencyUnavailable", "outcomeUnknown")]
+    public async Task ApiErrorsAreSanitizedAnd401NeverReplaysPayment(int status, string code, string expectedCode)
     {
         var handler = new Handler { PostStatus = (HttpStatusCode)status, Code = code };
         var api = new PaymentApiService(await Login(handler));
         var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7));
-        Assert.Equal(code, error.Code); Assert.DoesNotContain("SQL token", error.Message);
+        Assert.Equal(expectedCode, error.Code); Assert.DoesNotContain("SQL token", error.Message);
+        Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("<html>SQL token</html>")]
+    public async Task Post503IsUnknownRegardlessOfResponseBody(string body)
+    {
+        var handler = new Handler { PostStatus = HttpStatusCode.ServiceUnavailable, PostErrorBody = body };
+        var api = new PaymentApiService(await Login(handler));
+        var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7));
+        Assert.Equal("outcomeUnknown", error.Code); Assert.DoesNotContain("SQL token", error.Message);
+        Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get503RemainsDependencyUnavailableAndCanRetryOnlyGet(bool list)
+    {
+        var handler = new Handler { GetStatus = HttpStatusCode.ServiceUnavailable, Code = "dependencyUnavailable" };
+        var api = new PaymentApiService(await Login(handler));
+        var error = await Assert.ThrowsAsync<PaymentApiException>(async () => {
+            if (list) await api.SearchAsync("", 1); else await api.GetAsync(7);
+        });
+        Assert.Equal("dependencyUnavailable", error.Code); Assert.DoesNotContain("SQL token", error.Message);
+        handler.GetStatus = HttpStatusCode.OK;
+        if (list) Assert.Single(await api.SearchAsync("", 1)); else Assert.Equal(7, (await api.GetAsync(7)).RegistrationId);
+        Assert.Equal(0, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Post503KeepsRegistrationLockedUntilUserReconcilesThroughGet(bool committed)
+    {
+        var handler = new Handler { PostStatus = HttpStatusCode.ServiceUnavailable, Code = "dependencyUnavailable" };
+        var identity = await Login(handler); var api = new PaymentApiService(identity); var vm = new PaymentViewModel(api, identity);
+        await vm.LoadPageAsync(1); vm.SelectedRegistration = Assert.Single(vm.Registrations); await vm.LoadDetailAsync();
+        Assert.NotNull(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
+        Assert.Equal(7, vm.SelectedRegistration!.Id); Assert.Equal(7, vm.Detail!.RegistrationId);
+        Assert.True(vm.UnknownOutcome); Assert.False(vm.CanRecord); Assert.False(vm.CanAcknowledgeRisk);
+        Assert.Contains("GET", vm.Feedback); Assert.Null(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
+        Assert.Equal(1, handler.PostCount);
+
+        handler.GetStatus = HttpStatusCode.ServiceUnavailable; await vm.LoadDetailAsync();
+        Assert.Equal(7, vm.SelectedRegistration.Id); Assert.True(vm.UnknownOutcome);
+        Assert.False(vm.CanRecord); Assert.False(vm.CanAcknowledgeRisk);
+        handler.GetStatus = HttpStatusCode.OK; handler.PaymentRecorded = committed; await vm.LoadDetailAsync();
+        Assert.False(vm.CanRecord); Assert.Equal(!committed, vm.UnknownOutcome);
+        Assert.Equal(!committed, vm.CanAcknowledgeRisk); Assert.Equal(committed, vm.Detail!.Payment is not null);
+        if (!committed) { vm.AcknowledgeRisk(); Assert.True(vm.CanRecord); }
         Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
     }
 
@@ -155,7 +207,7 @@ public sealed class PaymentClientTests
 
     [Theory]
     [InlineData("validation", true)]
-    [InlineData("dependencyUnavailable", true)]
+    [InlineData("outcomeUnknown", false)]
     [InlineData("paymentDataConflict", false)]
     [InlineData("invalidSession", false)]
     [InlineData("permissionDenied", false)]
@@ -164,6 +216,7 @@ public sealed class PaymentClientTests
         var fake = new Fake { Error = code }; var vm = await Ready(fake);
         vm.BeginConfirmation(); await vm.ConfirmAsync(true);
         Assert.Equal(canRetry, vm.CanRecord); Assert.Equal(1, fake.PostCount);
+        if (code == "outcomeUnknown") { Assert.True(vm.UnknownOutcome); Assert.Equal(7, vm.SelectedRegistration!.Id); Assert.False(vm.CanAcknowledgeRisk); }
         if (code is "invalidSession" or "permissionDenied") { Assert.False(vm.HasAccess); Assert.Empty(vm.Registrations); Assert.Null(vm.Detail); }
         if (code == "paymentDataConflict") { await vm.LoadDetailAsync(); Assert.False(vm.CanRecord); }
     }
@@ -238,7 +291,8 @@ public sealed class PaymentClientTests
     {
         public string Title = "ThuNgan", Code = "validation", Failure = "";
         public string[] Grants = ["XemThanhToan", "GhiThanhToan"];
-        public HttpStatusCode PostStatus = HttpStatusCode.Created;
+        public HttpStatusCode PostStatus = HttpStatusCode.Created, GetStatus = HttpStatusCode.OK;
+        public string? PostErrorBody; public bool PaymentRecorded;
         public int PostCount, RefreshCount; public string? PostBody; public List<string> Paths = [];
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
@@ -252,9 +306,11 @@ public sealed class PaymentClientTests
                 if (Failure == "timeout") throw new TaskCanceledException();
                 if (Failure == "invalid201") return Json(new { unknown = true }, HttpStatusCode.Created);
                 if (Failure == "200") return Json(Paid);
+                if (PostErrorBody is not null) return new(PostStatus) { Content = new StringContent(PostErrorBody) };
                 return PostStatus == HttpStatusCode.Created ? Json(Paid, PostStatus) : Json(new { code = Code, title = "SQL token" }, PostStatus);
             }
-            return path.Contains("payment-registrations?") ? Json(new { items = new[] { Row } }) : Json(Unpaid);
+            if (GetStatus != HttpStatusCode.OK) return Json(new { code = Code, title = "SQL token" }, GetStatus);
+            return path.Contains("payment-registrations?") ? Json(new { items = new[] { Row } }) : Json(PaymentRecorded ? Paid : Unpaid);
         }
         private static HttpResponseMessage Json(object body, HttpStatusCode status = HttpStatusCode.OK) => new(status) { Content = JsonContent.Create(body) };
     }
