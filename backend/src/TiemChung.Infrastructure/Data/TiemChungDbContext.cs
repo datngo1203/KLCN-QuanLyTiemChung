@@ -149,6 +149,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         thanhtoan.HasKey(x => x.MaThanhToan);
         thanhtoan.Property(x => x.MaThanhToan).HasColumnType("int");
         thanhtoan.Property(x => x.MaDangKy).HasColumnType("int");
+        thanhtoan.HasIndex(x => x.MaDangKy).IsUnique();
         thanhtoan.HasOne<DangKyDichVu>().WithMany().HasForeignKey(x => x.MaDangKy).OnDelete(DeleteBehavior.Restrict);
         thanhtoan.Property(x => x.MaNhanVien).HasColumnType("int");
         thanhtoan.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);

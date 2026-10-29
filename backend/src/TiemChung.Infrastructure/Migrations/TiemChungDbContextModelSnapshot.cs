@@ -1201,7 +1201,8 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasKey("MaThanhToan");
 
-                    b.HasIndex("MaDangKy");
+                    b.HasIndex("MaDangKy")
+                        .IsUnique();
 
                     b.HasIndex("MaNhanVien");
 

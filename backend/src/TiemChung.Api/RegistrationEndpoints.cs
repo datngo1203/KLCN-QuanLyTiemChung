@@ -145,7 +145,7 @@ public static class RegistrationEndpoints
         db.Set<AccountProfileLink>().AnyAsync(x => x.AccountId == actor.Account.MaTaiKhoan && x.State == "Active" &&
             (customerId != null ? x.CustomerId == customerId : x.RecipientId == recipientId), ct);
 
-    private static IQueryable<DangKyDichVu> Scope(TiemChungDbContext db, IdentityActor actor)
+    internal static IQueryable<DangKyDichVu> Scope(TiemChungDbContext db, IdentityActor actor)
     {
         var query = db.Registrations.AsNoTracking();
         if (!actor.IsCustomer) return query;
@@ -172,7 +172,7 @@ public static class RegistrationEndpoints
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private static async Task<RegistrationDto> Detail(TiemChungDbContext db, DangKyDichVu row, CancellationToken ct)
+    internal static async Task<RegistrationDto> Detail(TiemChungDbContext db, DangKyDichVu row, CancellationToken ct)
     {
         var customer = await db.Customers.AsNoTracking().SingleAsync(x => x.MaKhachHang == row.MaKhachHang, ct);
         var recipient = await db.Recipients.AsNoTracking().SingleAsync(x => x.MaNguoiDuocTiem == row.MaNguoiDuocTiem, ct);

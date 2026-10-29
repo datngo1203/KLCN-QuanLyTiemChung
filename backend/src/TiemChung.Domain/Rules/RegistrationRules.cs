@@ -13,12 +13,13 @@ public static class RegistrationRules
         return lines.Sum(x => x.Quantity * x.UnitPrice);
     }
 
-    // Pass only successful payments; execute the read/check/write in one DB transaction.
+    // One successful full payment only; execute read/check/write in one DB transaction.
     public static decimal RemainingAmount(decimal totalDue, IEnumerable<decimal> successfulPayments)
     {
         if (totalDue < 0) throw new ArgumentOutOfRangeException(nameof(totalDue));
         var payments = successfulPayments.ToArray();
-        if (payments.Any(x => x <= 0)) throw new ArgumentException("Khoản thanh toán phải dương.");
+        if (payments.Length > 1 || payments.Any(x => x <= 0 || x != totalDue))
+            throw new ArgumentException("Chỉ ghi nhận một lần thanh toán toàn bộ, số tiền phải dương.");
         var paid = payments.Sum();
         if (paid > totalDue) throw new ArgumentException("Tổng thanh toán vượt số tiền cần thu.");
         return totalDue - paid;
