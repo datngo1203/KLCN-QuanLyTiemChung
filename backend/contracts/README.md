@@ -31,6 +31,9 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | POST `/api/v1/registrations` | Tạo đầu đăng ký và toàn bộ chi tiết lẻ/gói trong một transaction; 201 + Location | Bearer; Customer có cả hai liên kết Active hoặc nhân viên Active LeTan |
 | GET `/api/v1/registrations?customerId=&recipientId=&page=&pageSize=` | Danh sách đăng ký SQL trong phạm vi hiện hành | Bearer; cùng quyền G2 |
 | GET `/api/v1/registrations/{id}` | Chi tiết đăng ký, đơn giá đã chốt và thành phần gói | Bearer; cùng quyền G2 |
+| GET `/api/v1/payment-registrations?search=&customerId=&recipientId=&page=&pageSize=` | Tra cứu đăng ký SQL và tiền phải thu | Bearer; ThuNgan Active + XemThanhToan |
+| GET `/api/v1/registrations/{id}/payment` | Dịch vụ, giá snapshot và kết quả thanh toán mô phỏng | Bearer; ThuNgan + XemThanhToan hoặc Customer đủ ownership G2 |
+| POST `/api/v1/registrations/{id}/payment` | JSON `{}`; ghi nhận toàn bộ một lần, 201 + Location | Bearer; ThuNgan Active + XemThanhToan + GhiThanhToan |
 
 S1 dùng nguyên mô hình chức danh/quyền backend, không làm thêm UI quản trị quyền. Web S1 và Windows dùng `clientType=native` để nhận access/refresh trong response và chỉ giữ trong bộ nhớ; fetch Web dùng `credentials=omit`, không lưu browser storage/cookie. Luồng `clientType=web` cookie/Origin/CSRF hiện có được giữ nguyên. Không phục hồi phiên sau tải lại/đóng ứng dụng; logout gửi refresh token để thu hồi tại API. Chưa có HTTP quản lý tài khoản. Profiles S3 đã nối Web/Windows theo mục S3 bên dưới.
 
@@ -47,7 +50,6 @@ G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `Deve
 | Module | Endpoint dự kiến | Người làm |
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
-| Finance | POST registrations/{id}/payments; GET payments; thanh toán toàn bộ một lần có nhãn mô phỏng, hoãn đặt cọc/trả góp | Bảo |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
 | Follow-up | GET/POST appointments; PUT appointments/{id}; GET recipients/{id}/history; POST reminders | Quý |
 | Aftercare | GET/POST vaccinations/{id}/follow-ups | Quý |
@@ -142,3 +144,68 @@ Lỗi dùng `{ type, title, status, code, traceId, errors? }`: 400 `validation` 
 Migration mới `20261028172727_G2RegistrationNullableFields` chỉ cho phép NULL ở ba cột `DangKyDichVu.MaNhanVien`, `HinhThucTiem`, `ThoiGianDuKien`, giữ FK và dữ liệu cũ; không thêm bảng/cột khác. Nâng cấp qua EF migrations trên DB test riêng; không tự áp dụng database demo. Down từ chối nếu còn bản ghi có NULL ở ba cột, không điền nhân viên/thời gian/chuỗi giả để rollback.
 
 G3 dùng giá chi tiết đã chốt cho thanh toán một lần có nhãn mô phỏng; tổng 0 được phép ở G2 nhưng không tạo thanh toán 0. G4 dùng ID đăng ký/chi tiết và thời gian nhân viên nhập; chưa sửa `LichHenTiem` trong G2. G5 tự kiểm chỉ định/thanh toán/lô/tồn/quyền khi ghi tiêm. G6 sẽ thêm chọn ưu đãi và snapshot giảm VND lúc tạo; không hồi tố giá/ưu đãi cho đăng ký G2 cũ. G2B chưa thay UI hoặc đánh dấu S4 hoàn tất; contract/schema vẫn cần review chéo trước merge.
+
+## G3B — Thanh toán toàn bộ một lần (mô phỏng)
+
+Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác nhận tiền thật. Không có đặt cọc, trả góp, thu một phần, hoàn tiền, cổng ngân hàng, hóa đơn thật, SMS hoặc hàng đợi. G3B chỉ nối backend; Web/Windows Payment vẫn là màn mẫu cho tới gói client tương ứng. Không có alias `/payments` hoặc đường dẫn `registrations/{id}/payments`.
+
+### Quyền và ownership
+
+- Mọi endpoint kiểm phiên/tài khoản/nhân viên hiện hành bằng Identity. Nhân viên phải Active. GET danh sách chỉ cho `ThuNgan` có `XemThanhToan`; GET chi tiết cũng cho Customer có email xác minh và đủ cả hai liên kết `AccountProfileLink` Active, đúng cặp Customer/Recipient theo G2.
+- POST chỉ cho `ThuNgan` có đồng thời `XemThanhToan` và `GhiThanhToan`. Thu ngân chỉ có quyền xem vẫn tra cứu và đọc chi tiết, `canRecordPayment=false`. Admin, LeTan và chức danh khác bị 403 kể cả có các mã quyền này. Không thay seed/quyền/capabilities Identity hoặc quyền endpoint đăng ký G2.
+- Customer không được gọi danh sách Thu ngân hoặc POST. GET chi tiết ngoài ownership và ID không tồn tại đều trả 403 `permissionDenied`; Thu ngân đủ quyền gặp ID không tồn tại nhận 404 `resourceNotFound`. Thu hồi một trong hai liên kết là mất quyền xem, không dựa vào người đã tạo đăng ký hay CCCD/email.
+- Tất cả response tài chính, kể cả lỗi binding/validation, có `Cache-Control: no-store`.
+
+### Tra cứu và DTO
+
+`GET /api/v1/payment-registrations?search=&customerId=&recipientId=&page=&pageSize=`: search sau trim tối đa 100 ký tự, tìm mã đăng ký số hoặc `DK-0001`, tên Customer/Recipient hiện hành; bộ lọc customerId/recipientId chỉ thu hẹp kết quả. ID bộ lọc phải dương; page mặc định 1, pageSize mặc định 25, tối đa 100; chặn skip vượt int. Thứ tự ID giảm dần, trang rỗng trả `items: []`; không có tổng count.
+
+```text
+PaymentRegistrationListResponse = { items: PaymentRegistrationSummaryDto[] }
+PaymentRegistrationSummaryDto = {
+  id, createdAt, customer: { id, fullName }, recipient: { id, fullName },
+  subtotal, totalDue, paidAmount, remainingAmount, paymentId: int|null, currency: "VND"
+}
+```
+
+`GET /api/v1/registrations/{id}/payment` trả 200 `RegistrationPaymentDto`; đăng ký chưa có giao dịch vẫn trả 200 với `payment:null`:
+
+```text
+RegistrationPaymentDto = {
+  registrationId, registrationStatus, customer, recipient,
+  items: [{ id, kind, serviceId, name, quantity, unitPrice, lineTotal, components }],
+  subtotal, totalDue, paidAmount, remainingAmount, currency: "VND",
+  requiresPayment, canRecordPayment, isSimulation: true, message,
+  payment: null | PaymentDto
+}
+PaymentDto = {
+  id, registrationId, amount, employeeId, occurredAt,
+  type: "ToanBo", method: "MoPhong", status: "ThanhCong", isSimulation: true
+}
+```
+
+`customer`/`recipient` và `items` dùng DTO G2, cùng quy tắc ID dòng phải đi với kind, giá snapshot và thành phần gói. Tên là tên hiện hành, không tạo snapshot tên mới. `createdAt`/`occurredAt` là ISO UTC. Tiền là JSON decimal VND nguyên, từ 0 đến `9999999999999999` như G2; client Web phải giữ chính xác các trường tiền lớn hơn Number.MAX_SAFE_INTEGER.
+
+Server tính `subtotal = Σ(SoLuong*GiaTaiThoiDiemDangKy) + Σ(SoLuongGoi*GiaTaiThoiDiemDangKy)`, không cộng lại giá thành phần gói, không đọc giá Catalog hiện hành. G3 có `totalDue=subtotal`; `paidAmount` là số tiền của một giao dịch G3 hợp lệ hoặc 0, `remainingAmount=totalDue-paidAmount`. `requiresPayment` chỉ true khi còn phải thu; `canRecordPayment` còn yêu cầu đúng quyền ghi. Hai cờ đều false sau thanh toán hoặc khi tổng 0.
+
+Tổng 0: subtotal/totalDue/paidAmount/remainingAmount đều 0, payment=null, requiresPayment=false, canRecordPayment=false, message="Không phát sinh khoản thu."; không gọi đây là đã thanh toán. Nhãn mô phỏng có ở isSimulation, giao dịch và message. Không có trạng thái giao dịch Đặt cọc/Trả góp/Đang xử lý/Thất bại.
+
+### Ghi nhận, cạnh tranh và lỗi
+
+`POST /api/v1/registrations/{id}/payment` bắt buộc JSON object `{}`; không nhận thuộc tính khác (bao gồm amount, employeeId, status, method, type, discount, paidAt). Thành công trả 201, Location `/api/v1/registrations/{id}/payment` và `RegistrationPaymentDto` sau ghi. ID số phải dương; route `{id:int}` không khớp chuỗi không phải int.
+
+Transaction Serializable dùng lại `IdentityTransactions`: kiểm/khóa account → session, quyền/nhân viên hiện hành → `DangKyDichVu WITH (UPDLOCK,HOLDLOCK)` → kiểm đúng cặp hồ sơ, trạng thái `DaDangKy`, chưa có ưu đãi chưa snapshot, 1–100 dòng, số lượng 1–100 và giá VND hợp lệ → kiểm giao dịch cũ → ghi ThanhToan → ghi SecurityAudit → commit. Không cập nhật trạng thái đăng ký hoặc tạo lịch/chỉ định/mũi tiêm. SecurityAudit có action `payments.recorded`, outcome `Success`, ResourceType `Payment`, ResourceId là payment ID, ActorAccountId/SessionId từ phiên. Lỗi thanh toán hoặc audit trước commit rollback cả hai.
+
+Giao dịch cũ phải đúng chính xác loại/phương thức/trạng thái G3 và SoTien dương bằng toàn bộ tổng snapshot. Giao dịch cũ không tương thích, tổng vượt giới hạn/không nguyên, đăng ký thiếu dòng/sai cặp/trạng thái ngoài G2 hoặc có MaKhuyenMai chưa snapshot: từ chối 409 `paymentDataConflict`, không coi đã thanh toán, không ghi tiếp hoặc sửa dữ liệu. Danh sách có dòng mâu thuẫn trong trang cũng trả 409, không trả số tiền suy đoán hoặc bỏ qua dòng lỗi.
+
+Đã có giao dịch hợp lệ trả 409 `paymentAlreadyRecorded`; tổng 0 trả 409 `paymentNotRequired`. Hai Thu ngân cùng ghi được tuần tự hóa theo khóa đăng ký; unique `IX_ThanhToan_MaDangKy` bảo vệ cuối cùng. Chỉ SqlException 2601/2627 xác định đúng index này được ánh xạ lỗi trùng; lỗi DbUpdateException khác trả 503 `dependencyUnavailable`.
+
+Lỗi có `{ type, title, status, code, traceId, errors? }`: 400 `validation` cho query/ID/body sai; 401 `invalidSession`; 403 `permissionDenied`/`emailVerificationRequired`; 404 `resourceNotFound` theo quyền trên; 409 các mã tiền vừa nêu; 503 `dependencyUnavailable` cho phụ thuộc SQL/ghi/audit. Không trả SQL, credential/token hoặc thông tin hồ sơ qua lỗi.
+
+Không retry POST tự động. Mất phản hồi/timeout sau commit là kết quả chưa xác định; G3C/G3D phải dùng GET theo registration ID để đối chiếu, giữ nguyên lựa chọn và chặn gửi trùng. Nếu đã nhận 201 thì giao dịch đã commit; GET tải mới lỗi không có nghĩa thanh toán thất bại. Không thêm idempotency tổng quát hoặc bảng theo dõi retry.
+
+### Migration và ranh giới
+
+`20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.
+
+G5 với tổng dương phải kiểm giao dịch G3 hợp lệ, toàn bộ số tiền và đúng đăng ký; `DaDangKy` hay remainingAmount=0 không đủ làm bằng chứng. Điều kiện tiền khi tổng 0 chờ quyết định ở G5, không tự coi đủ điều kiện tiêm. G6 sẽ snapshot khoản giảm lúc đăng ký; G3 không đọc MucUuDai hiện hành, áp ưu đãi hoặc hồi tố giá/khoản giảm.
