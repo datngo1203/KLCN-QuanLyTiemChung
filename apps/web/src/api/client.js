@@ -24,6 +24,13 @@ function catalogQuery(search = '', filters = {}) {
   return params.toString()
 }
 export const getVaccines = (search = '', filters = {}) => apiGet(`/api/v1/catalog/vaccines?${catalogQuery(search, filters)}`)
+// Catalog currently exposes a list endpoint only; resolve the exact ID from it.
+export async function getVaccine(id) {
+  if (!/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id))) return null
+  const catalog = await getVaccines()
+  if (catalog.source !== 'database') throw new Error('Chưa có danh mục từ cơ sở dữ liệu.')
+  return catalog.items.find(item => item.id === Number(id)) || null
+}
 export const getPackages = (search = '', filters = {}) => apiGet(`/api/v1/catalog/packages?${catalogQuery(search, filters)}`)
 export const getVaccineTypes = () => apiGet('/api/v1/catalog/vaccine-types')
 export const getInjectionTypes = () => apiGet('/api/v1/catalog/injection-types')
