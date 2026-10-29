@@ -29,6 +29,8 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
     public bool CanReadProfiles => IsSignedIn && _account?.Capabilities?.ProfilesRead == true;
     public bool CanWriteProfiles => IsSignedIn && _account?.Capabilities is { ProfilesCreate: true, ProfilesUpdate: true };
     public bool CanUseRegistrations => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "LeTan" };
+    public bool CanReadPayments => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuNgan" } && Permissions.Contains("XemThanhToan");
+    public bool CanWritePayments => CanReadPayments && Permissions.Contains("GhiThanhToan");
     public IReadOnlyCollection<string> Permissions => IsSignedIn ? _account?.Permissions ?? [] : [];
     public bool UseSampleData { get; set; } = false;
     public bool IsSignedIn => _tokens is not null;
@@ -106,10 +108,14 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
         finally { _sessionGate.Release(); }
     }
 
-    public async Task<HttpResponseMessage> SendCatalogAsync(HttpMethod method, string path, object? body = null)
+    public async Task<HttpResponseMessage> SendCatalogAsync(HttpMethod method, string path, object? body = null,
+        bool retryUnauthorized = true, int? expectedSessionRevision = null)
     {
         await _sessionGate.WaitAsync();
         try {
+            // A queued request from a previous screen must not use the next employee's token.
+            if (expectedSessionRevision is { } revision && (revision != SessionRevision || !IsSignedIn))
+                throw new OperationCanceledException();
             async Task<HttpResponseMessage> Send() {
                 using var request = new HttpRequestMessage(method, path);
                 if (body is not null) request.Content = JsonContent.Create(body);
@@ -117,7 +123,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
                 return await _client.SendAsync(request);
             }
             var response = await Send();
-            if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized || _tokens is null) return response;
+            if (!retryUnauthorized || response.StatusCode != System.Net.HttpStatusCode.Unauthorized || _tokens is null) return response;
             using var refresh = await _client.PostAsJsonAsync("api/v1/auth/refresh", new { clientType = "native", refreshToken = _tokens.RefreshToken });
             if (!refresh.IsSuccessStatusCode) return response;
             _tokens = await refresh.Content.ReadFromJsonAsync<Tokens>() ?? throw new HttpRequestException("Invalid refresh response.");
