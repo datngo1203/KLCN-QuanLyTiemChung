@@ -1,42 +1,124 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace TiemChung.Desktop.Services;
 
-public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, string Method, string Type, string Status, DateTime OccurredAt)
+public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, int EmployeeId,
+    DateTimeOffset OccurredAt, string Type, string Method, string Status, bool IsSimulation)
 {
-    public string Code => $"TT-{Id:0000}";
-    public string AmountLabel => Amount.ToString("N0") + " đ";
-    public string TimeLabel => OccurredAt.ToString("dd/MM/yyyy HH:mm");
+    public string RecordedLabel => $"TT-{Id:0000} · Nhân viên #{EmployeeId} · {OccurredAt.ToLocalTime():dd/MM/yyyy HH:mm:ss}";
 }
-public sealed record PaymentInvoice(int RegistrationId, string RecipientName, decimal Total, IReadOnlyList<PaymentRecord> History)
+public sealed record PaymentRegistration(int Id, DateTimeOffset CreatedAt, RegistrationPerson Customer,
+    RegistrationPerson Recipient, decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount,
+    int? PaymentId, string Currency)
+{
+    public string Code => $"DK-{Id:0000}";
+    public string State => PaymentId is not null ? "Đã ghi nhận mô phỏng" : TotalDue == 0 ? "Không phát sinh khoản thu" : "Chưa ghi nhận thanh toán";
+}
+public sealed record PaymentLine(int Id, string Kind, int ServiceId, string Name, int Quantity, decimal UnitPrice,
+    decimal LineTotal, RegistrationComponent[]? Components)
+{
+    public string KindLabel => Kind == "package" ? "Gói" : "Vắc xin lẻ";
+    public string ComponentLabel => string.Join("; ", Components?.Select(x => $"{x.VaccineName} × {x.Quantity} / gói") ?? []);
+}
+public sealed record RegistrationPayment(int RegistrationId, string RegistrationStatus, RegistrationPerson Customer,
+    RegistrationPerson Recipient, PaymentLine[] Items, decimal Subtotal,
+    [property: JsonRequired] decimal TotalDue, [property: JsonRequired] decimal PaidAmount,
+    [property: JsonRequired] decimal RemainingAmount, string Currency,
+    [property: JsonRequired] bool RequiresPayment, [property: JsonRequired] bool CanRecordPayment,
+    [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment)
 {
     public string Code => $"DK-{RegistrationId:0000}";
-    public decimal Paid => History.Where(x => x.Status == "Thành công").Sum(x => x.Amount);
-    public decimal Remaining => Math.Max(0, Total - Paid);
-    public string TotalLabel => Total.ToString("N0") + " đ";
-    public string PaidLabel => Paid.ToString("N0") + " đ";
-    public string RemainingLabel => Remaining.ToString("N0") + " đ";
-    public string State => Remaining == 0 ? "Đã hoàn tất" : Paid > 0 ? "Thanh toán một phần" : "Chờ thanh toán";
+    public string State => Payment is not null ? "Đã ghi nhận thanh toán mô phỏng" : !RequiresPayment && TotalDue == 0
+        ? "Không phát sinh khoản thu (tổng 0)" : "Chưa ghi nhận thanh toán";
+    public string RecordedLabel => Payment?.RecordedLabel ?? "Chưa có giao dịch.";
 }
 
-// TODO: Replace with reviewed payment read/write contract, API authorization and idempotency key.
+public sealed class PaymentApiException(string code, string message) : Exception(message)
+{
+    public string Code { get; } = code;
+}
 public interface IPaymentService
 {
-    bool UseSampleData { get; set; }
-    IReadOnlyList<PaymentInvoice> GetInvoices();
-    PaymentRecord AddPayment(int registrationId, decimal amount, string method, string type, string status);
+    Task<PaymentRegistration[]> SearchAsync(string search, int page);
+    Task<RegistrationPayment> GetAsync(int registrationId);
+    Task<RegistrationPayment> RecordAsync(int registrationId);
 }
 
-public sealed class SamplePaymentService : IPaymentService
+public sealed class PaymentApiService(IdentityApiService? identity = null) : IPaymentService
 {
-    private readonly List<(int Id, string Recipient, decimal Total)> _invoices = [(1, "Nguyễn Gia Minh", 250000m), (2, "Trần An Bình", 500000m), (3, "Lê Mai Anh", 180000m)];
-    private readonly List<PaymentRecord> _payments = [new(1, 2, 100000m, "Tiền mặt", "Đặt cọc", "Thành công", DateTime.Now.AddDays(-1)), new(2, 2, 50000m, "Chuyển khoản", "Trả góp / Một phần", "Thất bại", DateTime.Now.AddHours(-3)), new(3, 3, 180000m, "Thẻ ngân hàng", "Toàn bộ", "Thành công", DateTime.Now.AddDays(-2))];
-    public bool UseSampleData { get; set; } = true;
-    public IReadOnlyList<PaymentInvoice> GetInvoices() => UseSampleData ? _invoices.Select(x => new PaymentInvoice(x.Id, x.Recipient, x.Total, _payments.Where(p => p.RegistrationId == x.Id).ToArray())).ToArray() : [];
-    public PaymentRecord AddPayment(int registrationId, decimal amount, string method, string type, string status)
+    public const int PageSize = 25;
+    private readonly IdentityApiService _identity = identity ?? IdentityApiService.Current;
+    private readonly int _revision = (identity ?? IdentityApiService.Current).SessionRevision;
+    private sealed record ListResponse(PaymentRegistration[] Items);
+
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path)
     {
-        if (!UseSampleData) throw new InvalidOperationException("Chưa có nguồn dữ liệu.");
-        var invoice = GetInvoices().First(x => x.RegistrationId == registrationId);
-        if (amount <= 0 || amount > invoice.Remaining) throw new ArgumentOutOfRangeException(nameof(amount), "Số tiền phải lớn hơn 0 và không vượt số còn lại.");
-        var row = new PaymentRecord(_payments.Max(x => x.Id) + 1, registrationId, amount, method, type, status, DateTime.Now);
-        _payments.Add(row); return row;
+        var response = await _identity.SendCatalogAsync(method, "api/v1/" + path,
+            method == HttpMethod.Post ? new { } : null, retryUnauthorized: method != HttpMethod.Post, expectedSessionRevision: _revision);
+        if (response.IsSuccessStatusCode) return response;
+        using (response) {
+            // A POST server error, including 503, does not prove rollback.
+            if (method == HttpMethod.Post && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized
+                or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
+                throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Hãy đối chiếu bằng GET; không gửi lại tự động.");
+            string? code = null;
+            try {
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                if (json.RootElement.TryGetProperty("code", out var value) && value.ValueKind == JsonValueKind.String) code = value.GetString();
+            } catch (JsonException) { }
+            code = response.StatusCode switch {
+                HttpStatusCode.Unauthorized => "invalidSession",
+                HttpStatusCode.Forbidden => "permissionDenied",
+                HttpStatusCode.BadRequest => "validation",
+                _ => code ?? "requestFailed"
+            };
+            throw new PaymentApiException(code, code switch {
+                "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại để đối chiếu.",
+                "permissionDenied" => "Thiếu quyền Thu ngân. Vui lòng đăng nhập lại bằng tài khoản phù hợp.",
+                "validation" => "Yêu cầu không hợp lệ. Kiểm tra lại từ khóa hoặc tra cứu lại đăng ký.",
+                "paymentAlreadyRecorded" => "Đăng ký đã có giao dịch. Đang đọc lại kết quả từ API.",
+                "paymentNotRequired" => "Không phát sinh khoản thu. Đang đọc lại chi tiết.",
+                "paymentDataConflict" => "Dữ liệu thanh toán mâu thuẫn. Đã khóa ghi; cần người phụ trách kiểm tra dữ liệu.",
+                "resourceNotFound" => "Không tìm thấy đăng ký. Hãy tra cứu lại.",
+                _ => "Máy chủ chưa xử lý được yêu cầu. Hãy thử lại thao tác tải / đối chiếu."
+            });
+        }
+    }
+    public async Task<PaymentRegistration[]> SearchAsync(string search, int page)
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"payment-registrations?search={Uri.EscapeDataString(search.Trim())}&page={page}&pageSize={PageSize}");
+        return (await response.Content.ReadFromJsonAsync<ListResponse>())?.Items ?? throw new JsonException();
+    }
+    private static async Task<RegistrationPayment> ReadAsync(HttpResponseMessage response, int id)
+    {
+        var result = await response.Content.ReadFromJsonAsync<RegistrationPayment>() ?? throw new JsonException();
+        if (result.RegistrationId != id || result.Customer is null || result.Recipient is null || result.Items is not { Length: > 0 }
+            || result.Currency != "VND" || !result.IsSimulation) throw new JsonException();
+        return result;
+    }
+    public async Task<RegistrationPayment> GetAsync(int registrationId)
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"registrations/{registrationId}/payment");
+        return await ReadAsync(response, registrationId);
+    }
+    public async Task<RegistrationPayment> RecordAsync(int registrationId)
+    {
+        var created = false;
+        try {
+            using var response = await SendAsync(HttpMethod.Post, $"registrations/{registrationId}/payment");
+            if (response.StatusCode != HttpStatusCode.Created) throw new JsonException();
+            created = true;
+            var saved = await ReadAsync(response, registrationId);
+            if (saved.Payment is null) throw new JsonException();
+            return saved;
+        }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException) {
+            if (created) throw new PaymentApiException("recordedUnreadable", "Đã nhận HTTP 201 nhưng không đọc được kết quả. Chỉ đối chiếu bằng GET, không ghi lại.");
+            throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Không gửi lại. Dùng Đối chiếu bằng GET để kiểm tra giao dịch đã lưu.");
+        }
     }
 }

@@ -1,55 +1,66 @@
 <UserControl x:Class="TiemChung.Desktop.ViewsV2.PaymentView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Language="vi-VN">
  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/Payment.xaml"/></ResourceDictionary.MergedDictionaries><BooleanToVisibilityConverter x:Key="Visible"/></ResourceDictionary></UserControl.Resources>
- <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24"><StackPanel>
-  <TextBlock Text="TIẾP NHẬN / A08" Style="{StaticResource CE.Caption}"/>
-  <TextBlock Text="Thu ngân &amp; thanh toán" Style="{StaticResource CE.Heading}" Margin="0,4,0,8"/>
-  <Border Style="{StaticResource CE.Badge.Sample}" HorizontalAlignment="Left" Margin="0,0,0,16"><TextBlock Text="{Binding DataSourceLabel}"/></Border>
-  <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="310"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-   <Border Grid.Column="0" Style="{StaticResource CE.Card}" VerticalAlignment="Top"><StackPanel>
-    <TextBlock Text="Tìm phiếu đăng ký" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
-    <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm phiếu đăng ký"/>
-    <Button Content="Tìm phiếu" Command="{Binding TimPhieuCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,8"/>
-    <TextBlock Text="Không tìm thấy phiếu đăng ký." Visibility="{Binding NoResults, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}" Margin="0,8"/>
-    <ListBox ItemsSource="{Binding FilteredInvoices}" SelectedItem="{Binding SelectedInvoice}" ItemContainerStyle="{StaticResource Payment.ListItem}" MinHeight="210" AutomationProperties.Name="Danh sách phiếu đăng ký"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="2,5">
-     <DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding TotalLabel}" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding Code}" Style="{StaticResource CE.Body}" FontWeight="SemiBold"/></DockPanel>
-     <TextBlock Text="{Binding RecipientName}" Style="{StaticResource CE.Caption}" Margin="0,3"/>
-     <Border Style="{StaticResource Payment.InvoiceBadge}" HorizontalAlignment="Left"><TextBlock Text="{Binding State}"/></Border>
-    </StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
+ <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24"><StackPanel>
+  <TextBlock Text="THU NGÂN / A08" Style="{StaticResource CE.Caption}"/>
+  <TextBlock Text="Ghi nhận thanh toán" Style="{StaticResource CE.Heading}" Margin="0,4,0,8"/>
+  <TextBlock Text="API / SQL · Thanh toán toàn bộ một lần · Mô phỏng" Style="{StaticResource CE.Caption}" Margin="0,0,0,12"/>
+  <ContentControl Style="{StaticResource CE.Alert.Warning}" Margin="0,0,0,16"><TextBlock Text="Chỉ ghi nhận mô phỏng phục vụ hệ thống; không xử lý hoặc xác nhận tiền thật." TextWrapping="Wrap"/></ContentControl>
+  <ContentControl Style="{StaticResource CE.Alert.Warning}" Visibility="{Binding NoAccess, Converter={StaticResource Visible}}"><TextBlock Text="Thiếu phiên hoặc quyền. Chỉ nhân viên Active chức danh Thu ngân có XemThanhToan được tra cứu; cần thêm GhiThanhToan để ghi nhận. Vui lòng đăng nhập bằng tài khoản phù hợp." TextWrapping="Wrap"/></ContentControl>
+  <Grid Visibility="{Binding HasAccess, Converter={StaticResource Visible}}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+   <Border Style="{StaticResource CE.Card}" VerticalAlignment="Top"><StackPanel>
+    <TextBlock Text="Tra cứu đăng ký" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
+    <TextBlock Text="Mã đăng ký, khách hàng hoặc người được tiêm" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+    <TextBox x:Name="SearchInput" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm đăng ký thanh toán" IsEnabled="{Binding CanBrowse}">
+     <TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding SearchCommand}"/></TextBox.InputBindings>
+    </TextBox>
+    <WrapPanel Margin="0,8,0,8"><Button Content="_Tìm" Command="{Binding SearchCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,8,4"/><Button Content="Tải lại" Command="{Binding ReloadCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,4"/></WrapPanel>
+    <TextBlock Text="{Binding ListFeedback}" TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,0,0,8"/>
+    <TextBlock Text="Không có kết quả." Visibility="{Binding NoResults, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}"/>
+    <ListBox ItemsSource="{Binding Registrations}" SelectedItem="{Binding SelectedRegistration}" SelectionChanged="RegistrationChanged" IsEnabled="{Binding CanBrowse}" ItemContainerStyle="{StaticResource Payment.ListItem}" MaxHeight="380" MinHeight="100" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Danh sách đăng ký thanh toán">
+     <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,4">
+      <TextBlock Text="{Binding Code}" Style="{StaticResource CE.Body}" FontWeight="SemiBold"/>
+      <TextBlock Text="{Binding Customer.FullName, StringFormat=Khách hàng: {0}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding Recipient.FullName, StringFormat=Người tiêm: {0}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding TotalDue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.Body}"/>
+      <TextBlock Text="{Binding State}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+     </StackPanel></DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <WrapPanel Margin="0,12,0,0"><Button Content="Trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page, StringFormat=Trang {0}}" VerticalAlignment="Center" Margin="8,0"/><Button Content="Sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></WrapPanel>
    </StackPanel></Border>
    <StackPanel Grid.Column="2">
-    <ContentControl Style="{StaticResource CE.Alert.Info}" Visibility="{Binding HasNoSelection, Converter={StaticResource Visible}}"><TextBlock Text="Chọn một phiếu để xem công nợ và các lần thu."/></ContentControl>
-    <Border Style="{StaticResource CE.Card}" Visibility="{Binding HasSelection, Converter={StaticResource Visible}}" Margin="0,0,0,16"><StackPanel>
-     <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Complete}" Visibility="{Binding IsPaidInFull, Converter={StaticResource Visible}}"><TextBlock Text="Đã hoàn tất"/></Border><TextBlock Text="Công nợ phiếu" Style="{StaticResource CE.SectionHeading}"/></DockPanel>
-     <TextBlock Text="{Binding SelectedInvoice.Code}" Style="{StaticResource CE.Body}" Margin="0,8,0,12"/>
-     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-      <StackPanel><TextBlock Text="Tổng phải thu" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding SelectedInvoice.TotalLabel}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
-      <StackPanel Grid.Column="1"><TextBlock Text="Đã thanh toán" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding SelectedInvoice.PaidLabel}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
-      <StackPanel Grid.Column="2"><TextBlock Text="Còn lại" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding SelectedInvoice.RemainingLabel}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
-     </Grid>
-    </StackPanel></Border>
-    <Border Style="{StaticResource CE.Card}" Visibility="{Binding HasSelection, Converter={StaticResource Visible}}" Margin="0,0,0,16"><StackPanel>
-     <TextBlock Text="Lịch sử các lần thu" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
-     <TextBlock Text="Chưa có lần thu nào."><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource CE.Caption}"><Style.Triggers><DataTrigger Binding="{Binding History.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers><Setter Property="Visibility" Value="Collapsed"/></Style></TextBlock.Style></TextBlock>
-     <ListBox ItemsSource="{Binding History}" SelectedItem="{Binding SelectedPayment}" ItemContainerStyle="{StaticResource Payment.ListItem}" MinHeight="110" AutomationProperties.Name="Lịch sử thu"><ListBox.ItemTemplate><DataTemplate><Grid Margin="2,5"><Grid.ColumnDefinitions><ColumnDefinition Width="85"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/><ColumnDefinition Width="110"/></Grid.ColumnDefinitions>
-      <TextBlock Text="{Binding Code}" Style="{StaticResource CE.Body}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding Type}" Style="{StaticResource CE.Body}"/><TextBlock Text="{Binding TimeLabel}" Style="{StaticResource CE.Caption}"/></StackPanel>
-      <TextBlock Grid.Column="2" Text="{Binding AmountLabel}" Style="{StaticResource CE.Body}"/>
-      <Border Grid.Column="3" Style="{StaticResource Payment.TransactionBadge}" HorizontalAlignment="Left" VerticalAlignment="Center"><TextBlock Text="{Binding Status}"/></Border>
-     </Grid></DataTemplate></ListBox.ItemTemplate></ListBox>
-     <Button Content="In biên lai" Command="{Binding InBienLaiCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-    </StackPanel></Border>
-    <Border Style="{StaticResource CE.Card}" Visibility="{Binding HasSelection, Converter={StaticResource Visible}}"><StackPanel IsEnabled="{Binding CanEnterPayment}">
-     <TextBlock Text="Ghi lần thu mới" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
-     <TextBlock Text="Số tiền lần này * (đ)" Style="{StaticResource CE.Caption}"/><TextBox Text="{Binding AmountText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,4,0,0" AutomationProperties.Name="Số tiền thu"/>
-     <TextBlock Text="{Binding AmountError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,4,0,8"/>
-     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-      <StackPanel><TextBlock Text="Phương thức *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Methods}" SelectedItem="{Binding Method}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/></StackPanel>
-      <StackPanel Grid.Column="2"><TextBlock Text="Loại thanh toán *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,8"/></StackPanel>
-     </Grid>
-     <TextBlock Text="Trạng thái giao dịch *" Style="{StaticResource CE.Caption}"/><ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status}" Style="{StaticResource CE.ComboBox}" Margin="0,4,0,12"/>
-     <Button Content="Xác nhận thanh toán" Command="{Binding XacNhanThanhToanCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left"/>
+    <ContentControl Style="{StaticResource CE.Alert.Info}" Visibility="{Binding IsReadOnly, Converter={StaticResource Visible}}" Margin="0,0,0,12"><TextBlock Text="Bạn có quyền xem. Có thể tìm và chọn đăng ký; ghi nhận cần quyền GhiThanhToan." TextWrapping="Wrap"/></ContentControl>
+    <ContentControl Style="{StaticResource CE.Alert.Info}" Visibility="{Binding NoSelection, Converter={StaticResource Visible}}"><TextBlock Text="Chọn đăng ký để kiểm tra khách hàng, người được tiêm, dịch vụ và số tiền." TextWrapping="Wrap"/></ContentControl>
+    <Border Style="{StaticResource CE.Card}" Visibility="{Binding HasSelection, Converter={StaticResource Visible}}"><StackPanel>
+     <TextBlock Text="{Binding SelectedRegistration.Code}" Style="{StaticResource CE.SectionHeading}"/>
+     <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="0,8" AutomationProperties.LiveSetting="Polite"/>
+     <TextBlock Text="Đang tải dữ liệu…" Visibility="{Binding IsLoading, Converter={StaticResource Visible}}" Style="{StaticResource CE.Caption}"/>
+     <Button Content="Đối chiếu bằng _GET / Thử lại" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,0,0,12"/>
+     <StackPanel x:Name="DetailPanel" DataContext="{Binding Detail}">
+      <TextBlock Text="{Binding Customer.FullName, StringFormat=Khách hàng: {0}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding Recipient.FullName, StringFormat=Người được tiêm: {0}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="0,4,0,12"/>
+      <TextBlock Text="Dịch vụ và giá chốt" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
+      <ItemsControl ItemsSource="{Binding Items}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource CE.Border}" BorderThickness="0,0,0,1" Padding="0,4,0,8" Margin="0,0,0,8"><StackPanel>
+       <TextBlock Text="{Binding KindLabel}" Style="{StaticResource CE.Caption}"/>
+       <TextBlock Text="{Binding Name}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
+       <WrapPanel><TextBlock Text="{Binding Quantity, StringFormat=SL: {0}}" Margin="0,0,12,0"/><TextBlock Text="{Binding UnitPrice, StringFormat=Giá chốt: {0:N0} đ}"/></WrapPanel>
+       <TextBlock Text="{Binding LineTotal, StringFormat=Thành tiền: {0:N0} đ}" Style="{StaticResource CE.Body}"/>
+       <TextBlock Text="{Binding ComponentLabel}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+      </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+      <WrapPanel Margin="0,4,0,12">
+       <StackPanel Margin="0,0,20,8"><TextBlock Text="Tổng phải thu" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding TotalDue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
+       <StackPanel Margin="0,0,20,8"><TextBlock Text="Đã ghi nhận" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding PaidAmount, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
+       <StackPanel Margin="0,0,0,8"><TextBlock Text="Còn lại" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding RemainingAmount, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
+      </WrapPanel>
+      <TextBlock Text="{Binding State}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding RecordedLabel}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+     </StackPanel>
+     <TextBlock Text="Kết quả POST chưa xác định. Đối chiếu bằng GET trước khi quyết định ghi lại." Visibility="{Binding UnknownOutcome, Converter={StaticResource Visible}}" TextWrapping="Wrap" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,8"/>
+     <Button Content="Đã đối chiếu — xác nhận rủi ro ghi lại" Click="AcknowledgeRisk" IsEnabled="{Binding CanAcknowledgeRisk}" Visibility="{Binding UnknownOutcome, Converter={StaticResource Visible}}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,0,0,12"/>
+     <Button x:Name="RecordButton" Click="ConfirmPayment" IsEnabled="{Binding CanRecord}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,8,0,0"><TextBlock Text="Ghi nhận thanh toán mô phỏng" TextWrapping="Wrap"/></Button>
+     <TextBlock Text="Đang gửi. Không đóng ứng dụng hoặc gửi lại; nếu mất phản hồi hãy dùng GET đối chiếu." Visibility="{Binding IsSaving, Converter={StaticResource Visible}}" TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8,0,0"/>
     </StackPanel></Border>
    </StackPanel>
   </Grid>
-  <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" Margin="0,12,0,0"/>
  </StackPanel></ScrollViewer>
 </UserControl>
