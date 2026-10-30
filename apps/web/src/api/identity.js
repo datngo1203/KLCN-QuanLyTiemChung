@@ -31,7 +31,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
         invalidCredentials: 'Mật khẩu hiện tại không đúng.',
         validation: 'Mật khẩu mới cần 12–128 ký tự và khác mật khẩu hiện tại.',
       })[problem.code]
-      throw new Error(passwordMessage || messages[problem.code] || `Không thực hiện được yêu cầu (HTTP ${response.status}).`)
+      throw Object.assign(new Error(passwordMessage || messages[problem.code] || `Không thực hiện được yêu cầu (HTTP ${response.status}).`), { status: response.status, code: problem.code })
     }
     return response.status === 204 ? null : response.json()
   }
@@ -48,7 +48,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     if (!tokens) throw Object.assign(new Error(messages.invalidSession), { status: 401 })
     const version = sessionVersion
     const send = () => request(`${baseUrl}/api/v1/${path}`, {
-      method, credentials: 'omit', headers: { Authorization: `Bearer ${tokens.accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      method, credentials: 'omit', cache: 'no-store', headers: { Authorization: `Bearer ${tokens.accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? (registration ? registrationBody(body) : JSON.stringify(body)) : undefined, signal: AbortSignal.timeout(15000),
     })
     const session = tokens
@@ -63,17 +63,20 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
+      if (version !== sessionVersion) throw new Error(messages.invalidSession)
       const details = Object.values(problem.errors || {}).flat().join(' ')
       throw Object.assign(new Error(details || (registration ? { validation: 'Kiểm tra hồ sơ, dịch vụ và số lượng đăng ký.', permissionDenied: 'Bạn không có quyền truy cập đăng ký này.', catalogChanged: 'Giá hoặc thành phần dịch vụ đã thay đổi.', resourceNotFound: 'Hồ sơ hoặc dịch vụ không còn tồn tại.' } : { validation: 'Kiểm tra thông tin hồ sơ.', permissionDenied: 'Bạn không có quyền thao tác hồ sơ này.', duplicateIdentity: 'CCCD đã tồn tại.', profileAlreadyExists: 'Bạn đã có hồ sơ. Hãy tải lại.', profileReferenced: 'Hồ sơ đang được sử dụng, không thể xóa.' })[problem.code] || messages[problem.code] || `API trả HTTP ${response.status}`), { status: response.status, code: problem.code })
     }
     if (registration && method === 'POST' && response.status !== 201)
       throw Object.assign(new Error('API chưa xác nhận tạo đăng ký (cần HTTP 201). Hãy kiểm tra danh sách trước khi tạo lại.'), { uncertain: true })
-    if (registration) return parseRegistrationJson(await response.text())
-    return response.status === 204 ? null : response.json()
+    const result = registration ? parseRegistrationJson(await response.text()) : response.status === 204 ? null : await response.json()
+    if (version !== sessionVersion) throw new Error(messages.invalidSession)
+    return result
   }
   return {
     profiles,
     registrations: (path = '', method = 'GET', body) => profiles(`registrations${path}`, method, body, true),
+    getRegistrationPayment: id => profiles(`registrations/${id}/payment`, 'GET', undefined, true),
     async changePassword(currentPassword, newPassword, confirmation) {
       if (!currentPassword) throw new Error('Nhập mật khẩu hiện tại.')
       if (newPassword.length < 12 || newPassword.length > 128 || newPassword === currentPassword)

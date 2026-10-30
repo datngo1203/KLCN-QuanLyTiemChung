@@ -1,5 +1,5 @@
 export const maxMoney = 9999999999999999n
-const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal'])
+const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal', 'totalDue', 'paidAmount', 'remainingAmount', 'amount'])
 
 // VND exceeds Number.MAX_SAFE_INTEGER in the contract; preserve the JSON number text.
 export function parseRegistrationJson(text) {

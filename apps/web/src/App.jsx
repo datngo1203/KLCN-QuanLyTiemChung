@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, ArrowLeft, Search, Menu, X, Info, Check, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, CircleCheck, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, Search, Menu, X, Info, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, ArrowUpRight } from 'lucide-react'
 import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
+import Payments from './Payments'
 import Home from './Home'
 import './theme.css'
 import './Catalog.css'
@@ -52,7 +53,6 @@ function App() {
   const draft = initialDraft
   const registration = null
   const [registrationBusy, setRegistrationBusy] = useState(false)
-  const [paymentStatus, setPaymentStatus] = useState('Chờ thanh toán')
 
   const notify = (message) => {
     setToast(message)
@@ -89,15 +89,15 @@ function App() {
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
-        {['promotions', 'payment', 'schedule'].includes(page) && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
+        {['promotions', 'schedule'].includes(page) && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
         {page === 'account' && <Account account={account} setAccount={setAccount} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
-        {page === 'payment' && <Payment go={go} selectedService={selectedService} registration={registration} draft={draft} status={paymentStatus} skipIdentityCheck={false} onConfirm={() => { setPaymentStatus('Đã thanh toán'); notify('Đã cập nhật trạng thái thanh toán.') }} />}
-        {page === 'schedule' && <Schedule tab={scheduleTab} setTab={setScheduleTab} registration={registration} draft={draft} selectedService={selectedService} paymentStatus={paymentStatus} notify={notify} />}
+        {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} go={go} />}
+        {page === 'schedule' && <Schedule tab={scheduleTab} setTab={setScheduleTab} registration={registration} draft={draft} selectedService={selectedService} notify={notify} />}
       </main>
 
       <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">
@@ -147,8 +147,6 @@ function Offers({ go, notify }) {
   </section>
 }
 
-function Detail({ label, value }) { return <div className="detail-item"><span>{label}</span><b className="demo-value">{value}</b></div> }
-
 function IdentityGate({ value, onChange, onSubmit, error, title, description }) {
   return <section className="identity-gate form-card"><div className="identity-gate-icon"><UserRound aria-hidden="true" /></div><div><div className="card-kicker">TRA CỨU HỒ SƠ</div><h2>{title}</h2><p>{description}</p><form onSubmit={onSubmit}><label className="demo-field"><span>CCCD / Mã định danh của người được tiêm hoặc người giám hộ</span><input value={value} onChange={event => onChange(event.target.value)} autoComplete="off" placeholder="Nhập số CCCD hoặc mã định danh" required /></label>{error && <div className="identity-error" role="alert">{error}</div>}<button className="button primary" type="submit">Tiếp tục xem thông tin <ArrowRight aria-hidden="true" /></button></form></div></section>
 }
@@ -172,226 +170,14 @@ function getRecipientItems(record, fallbackService) {
   return [{ name: getRecipientNames(record)[0] || '', service: fallbackService }]
 }
 
-function formatPrice(value) {
-  return `${new Intl.NumberFormat('vi-VN').format(value)} đ`
-}
-
-function Payment({ go, selectedService, registration, draft, status, skipIdentityCheck, onConfirm }) {
-  const [method, setMethod] = useState('Thanh toán tại quầy')
-  const [identity, setIdentity] = useState('')
-  const [unlocked, setUnlocked] = useState(false)
-  const [error, setError] = useState('')
-  const [processing, setProcessing] = useState(false)
-  
-  // --- B04: State Khuyến mãi ---
-  const [promoInput, setPromoInput] = useState('')
-  const [appliedPromo, setAppliedPromo] = useState(null)
-  const [promoError, setPromoError] = useState('')
-
-  const verify = event => { 
-    event.preventDefault()
-    if (matchesIdentity(identity, registration, draft)) { 
-      setError(''); setUnlocked(true) 
-    } else {
-      setError('Không tìm thấy hồ sơ phù hợp với mã định danh này.') 
-    }
-  }
-
-  if (!unlocked && !skipIdentityCheck) {
-    return (
-      <section className="payment-page wrap">
-        <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán dịch vụ" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." />
-        <IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Xác nhận thông tin hồ sơ" description="Sử dụng mã định danh của người được tiêm hoặc người giám hộ đã đăng ký." />
-        <button className="button text-button" onClick={() => go('register')}><ArrowLeft aria-hidden="true" />Quay lại đăng ký</button>
-      </section>
-    )
-  }
-
-  const items = getRecipientItems(registration || draft, selectedService)
-  const isWaitlist = !selectedService.inStock
-  const peopleAndServices = items.map(item => `${item.name}: ${item.service.name}`).join('; ')
-
-  // --- B04: Logic Tính tiền & Giảm giá ---
-  const subtotal = isWaitlist ? 0 : items.reduce((sum, item) => sum + Number(String(item.service.price).replace(/[^\d]/g, '')), 0)
-  
-  const handleApplyPromo = () => {
-    // Tìm mã trong danh sách offers (khai báo ở đầu file App.jsx)
-    const found = offers.find(o => o.code.toUpperCase() === promoInput.trim().toUpperCase() && o.status === 'Đang áp dụng')
-    if (found) {
-      setAppliedPromo(found)
-      setPromoError('')
-    } else {
-      setAppliedPromo(null)
-      setPromoError('Mã ưu đãi không hợp lệ, đã hết hạn hoặc không tồn tại.')
-    }
-  }
-
-  let discountAmount = 0
-  if (appliedPromo && !isWaitlist) {
-    if (appliedPromo.discount.includes('%')) {
-      const percent = parseInt(appliedPromo.discount.replace(/\D/g, '')) || 0
-      discountAmount = (subtotal * percent) / 100
-    } else {
-      discountAmount = parseInt(appliedPromo.discount.replace(/\D/g, '')) || 0
-    }
-  }
-  
-  const total = Math.max(0, subtotal - discountAmount)
-
-  const handlePay = () => {
-    setProcessing(true)
-    setTimeout(() => {
-      setProcessing(false)
-      onConfirm()
-    }, 1500)
-  }
-
-  return (
-    <section className="payment-page wrap">
-      <PageIntro eyebrow="HOÀN TẤT ĐĂNG KÝ" title="Thanh toán & Tài chính" text="Kiểm tra thông tin dịch vụ, áp dụng khuyến mãi và thanh toán." />
-      <div className="payment-steps">
-        <span><Check aria-hidden="true" />Chọn dịch vụ</span><span><Check aria-hidden="true" />Đăng ký thông tin</span><b>03 Thanh toán</b><span>04 Theo dõi lịch</span>
-      </div>
-      
-      <div className="payment-layout">
-        <div className="payment-main">
-          <section className="form-card">
-            <h2><span>01</span> Dịch vụ và người thụ hưởng</h2>
-            <div className="details-grid">
-              <Detail label="Khách hàng (Người đăng ký)" value={registration?.customerName || draft.customerName} />
-              <Detail label="Chi tiết vắc xin / Dịch vụ" value={peopleAndServices} />
-              <Detail label="Thời gian hẹn dự kiến" value={`${draft.appointmentDate} · ${draft.slot}`} />
-            </div>
-          </section>
-
-          {/* Module B04: Form nhập mã khuyến mãi */}
-          <section className="form-card">
-            <h2><span>02</span> Khuyến mãi & Ưu đãi</h2>
-            {!isWaitlist ? (
-              <div className="promo-box">
-                <div style={{ display: 'flex', gap: '8px', maxWidth: '400px' }}>
-                  <input type="text" value={promoInput} onChange={e => setPromoInput(e.target.value)} placeholder="Nhập mã ưu đãi (VD: THANG10)" style={{ flex: 1, padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: '4px' }} disabled={appliedPromo || status === 'Đã thanh toán'} />
-                  {!appliedPromo ? (
-                    <button type="button" className="button outline" onClick={handleApplyPromo} disabled={status === 'Đã thanh toán' || !promoInput.trim()}>Áp dụng</button>
-                  ) : (
-                    <button type="button" className="button outline" onClick={() => { setAppliedPromo(null); setPromoInput(''); setPromoError('') }} disabled={status === 'Đã thanh toán'}>Hủy mã</button>
-                  )}
-                </div>
-                {promoError && <p style={{ color: '#ff4d4f', fontSize: '0.85rem', marginTop: '6px' }}>{promoError}</p>}
-                {appliedPromo && <p style={{ color: '#52c41a', fontSize: '0.85rem', marginTop: '6px' }}><Check aria-hidden="true" />Đã áp dụng: <b>{appliedPromo.title}</b> ({appliedPromo.discount})</p>}
-              </div>
-            ) : (
-              <p className="method-caption">Không áp dụng mã khuyến mãi cho dịch vụ đang trong Hàng đợi.</p>
-            )}
-          </section>
-
-          <section className="form-card">
-            <h2><span>03</span> Hình thức & Phương thức thanh toán</h2>
-            {status === 'Đã thanh toán' ? (
-              <div className="notice" style={{ background: '#f6ffed', borderColor: '#b7eb8f', marginTop: '12px' }}>
-                <span><CircleCheck aria-hidden="true" /></span>
-                <div>
-                  <b>Giao dịch đã hoàn tất</b>
-                  <p>Cảm ơn bạn. Khoản thanh toán đã được ghi nhận vào hệ thống kế toán.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="method-caption">{isWaitlist ? 'Dịch vụ đang chờ hàng đợi (Chưa phát sinh thanh toán trước)' : 'Chọn phương thức thanh toán'}</p>
-                <div className="radio-options payment-methods">
-                  {['Thanh toán tại quầy', 'Thanh toán điện tử (VNPay/QR)'].filter(item => item === 'Thanh toán tại quầy').map(item => (
-                    <label key={item}>
-                      <input type="radio" checked={method === item} onChange={() => setMethod(item)} disabled={isWaitlist || processing} /> 
-                      {item}
-                    </label>
-                  ))}
-                </div>
-
-                {method === 'Thanh toán điện tử (VNPay/QR)' && !isWaitlist && (
-                  <div style={{ marginTop: '20px', padding: '20px', border: '1px dashed #ccc', borderRadius: '8px', textAlign: 'center', background: '#fafafa' }}>
-                    <div style={{ width: '150px', height: '150px', background: '#fff', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '4px solid #000', borderRadius: '8px' }}>
-                      <span style={{ fontSize: '2rem' }}>📱 QR</span>
-                    </div>
-                    <b>Quét mã QR bằng ứng dụng ngân hàng</b>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#666' }}>Hệ thống sẽ tự động xác nhận khi nhận được tiền.</p>
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-          
-          {status !== 'Đã thanh toán' && (
-            <button className="button text-button" onClick={() => go('register')} disabled={processing}><ArrowLeft aria-hidden="true" />Quay lại đăng ký</button>
-          )}
-        </div>
-
-        <aside className="summary-card invoice-card" style={{ position: 'relative' }}>
-          {status === 'Đã thanh toán' && (
-            <div style={{ position: 'absolute', top: '20px', right: '20px', color: 'var(--primary)', border: '2px solid var(--primary)', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', transform: 'rotate(15deg)', opacity: 0.8 }}>
-              ĐÃ THANH TOÁN
-            </div>
-          )}
-          
-          <div className="card-kicker">BIÊN LAI ĐIỆN TỬ</div>
-          <h3>Chi tiết thanh toán</h3>
-          
-          {items.map((item, index) => (
-            <div className="invoice-row" key={`${item.name}-${item.service.id}-${index}`}>
-              <span>{item.name || 'Người được tiêm'} · {item.service.name}</span>
-              <b className="demo-value">{isWaitlist ? '0 đ' : item.service.price}</b>
-            </div>
-          ))}
-          
-          <div className="invoice-row" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '12px', marginTop: '12px' }}>
-            <span>Tạm tính</span>
-            <b className="demo-value">{formatPrice(subtotal)}</b>
-          </div>
-          
-          {appliedPromo && !isWaitlist && (
-            <div className="invoice-row" style={{ color: '#52c41a' }}>
-              <span>Khuyến mãi ({appliedPromo.code})</span>
-              <b className="demo-value">- {formatPrice(discountAmount)}</b>
-            </div>
-          )}
-
-          <div className="invoice-row">
-            <span>Phương thức</span>
-            <b className="demo-value">{isWaitlist ? 'Không yêu cầu' : method}</b>
-          </div>
-          
-          <div className="invoice-row">
-            <span>Trạng thái</span>
-            <b className="demo-value" style={{ color: status === 'Đã thanh toán' ? 'var(--primary)' : 'inherit' }}>{status}</b>
-          </div>
-          
-          <div className="invoice-total">
-            <span>Tổng thanh toán</span>
-            <strong>{formatPrice(total)}</strong>
-          </div>
-
-          {status === 'Đã thanh toán' || status === 'Đang chờ hàng đợi' ? (
-            <button className="button primary full" onClick={() => go('schedule')}>
-              Theo dõi lịch <ArrowRight aria-hidden="true" />
-            </button>
-          ) : (
-            <button className="button primary full" onClick={handlePay} disabled={processing}>
-              {processing ? 'Đang xử lý giao dịch...' : 'Xác nhận thanh toán'}<ArrowRight aria-hidden="true" />
-            </button>
-          )}
-        </aside>
-      </div>
-    </section>
-  )
-}
-
-function Schedule({ tab, setTab, registration, draft, selectedService, paymentStatus, notify }) {
+function Schedule({ tab, setTab, registration, draft, selectedService, notify }) {
   const [identity, setIdentity] = useState('')
   const [unlocked, setUnlocked] = useState(false)
   const [error, setError] = useState('')
   const verify = event => { event.preventDefault(); if (matchesIdentity(identity, registration, draft)) { setError(''); setUnlocked(true) } else setError('Không tìm thấy hồ sơ phù hợp với mã định danh này.') }
   if (!unlocked) return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." /><IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Tra cứu lịch tiêm" description="Nhập mã của người được tiêm hoặc người giám hộ đã đăng ký." /></section>
   const name = registration ? getRecipientNames(registration).join(', ') : 'Trần Gia Bảo'
-  const appointment = registration ? { id: 'LH-0004', name, service: getRecipientItems(registration, selectedService).map(item => `${item.name}: ${item.service.name}`).join(' · '), date: draft.appointmentDate, time: draft.slot, status: paymentStatus } : { id: 'LH-0002', name, service: 'Vắc xin B', date: '2026-10-17', time: '10:30', status: 'Đã xác nhận' }
+  const appointment = registration ? { id: 'LH-0004', name, service: getRecipientItems(registration, selectedService).map(item => `${item.name}: ${item.service.name}`).join(' · '), date: draft.appointmentDate, time: draft.slot, status: 'Mô phỏng · Chờ xác nhận lịch' } : { id: 'LH-0002', name, service: 'Vắc xin B', date: '2026-10-17', time: '10:30', status: 'Đã xác nhận' }
   return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Xem lịch hẹn và lịch sử tiêm." /><div className="schedule-tabs" role="tablist"><button role="tab" aria-selected={tab === 'Lịch tiêm'} className={tab === 'Lịch tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch tiêm')}><CalendarDays aria-hidden="true" />Lịch tiêm</button><button role="tab" aria-selected={tab === 'Lịch sử tiêm'} className={tab === 'Lịch sử tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch sử tiêm')}><History aria-hidden="true" />Lịch sử tiêm</button></div>{tab === 'Lịch tiêm' ? <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>{appointment.date}</b><span>{appointment.time}</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH {appointment.id}</div><h3>{appointment.name}</h3><p>{appointment.service}</p><PendingBadge>{appointment.status}</PendingBadge></div><button className="button outline" onClick={() => notify(`Chi tiết ${appointment.id}.`)}>Xem chi tiết</button></article><article className="demo-record" style={{ display: 'none' }}><div className="record-date"><b>2026-10-19</b><span>14:00</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH LH-0003</div><h3>Phạm Minh Khoa</h3><p>Vắc xin Cúm mùa (Hàng đợi số #03)</p><PendingBadge>Đang chờ hàng đợi</PendingBadge></div><button className="button outline" onClick={() => notify('Đã mở trạng thái hàng đợi.')}>Xem hàng đợi</button></article></div> : <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>2026-09-10</b><span>Hoàn tất</span></div><div className="record-main"><div className="card-kicker">LS-0001</div><h3>Nguyễn An Nhiên</h3><p>Vắc xin A · Mũi 1</p><PendingBadge>Đã ghi nhận</PendingBadge></div><button className="button outline" onClick={() => notify('Đang mở lịch sử tiêm.')}>Xem lịch sử</button></article></div>}</section>
 }
 export default App
