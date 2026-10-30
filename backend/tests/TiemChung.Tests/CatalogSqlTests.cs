@@ -235,7 +235,7 @@ public sealed class CatalogSqlTests
             Client.DefaultRequestHeaders.Authorization=new("Bearer",json.RootElement.GetProperty("accessToken").GetString());
         }
         internal required OwnedSqlTestDatabase Database { get; init; }
-        public static async Task<Fixture> Create() {
+        public static async Task<Fixture> Create(Func<TiemChungDbContext, Task>? afterDatabaseCreated = null) {
             var owner = await OwnedSqlTestDatabase.CreateAsync(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")
                 ?? throw new InvalidOperationException("SQL required."));
             TiemChungDbContext? db = null;
@@ -249,6 +249,7 @@ public sealed class CatalogSqlTests
                     ["DevelopmentSeed:Username"]="s2.seed",["DevelopmentSeed:Password"]=Guid.NewGuid().ToString("N")
                 }).Build();
                 db = new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
+                if (afterDatabaseCreated is not null) await afterDatabaseCreated(db);
                 await db.Database.MigrateAsync();
                 await DevelopmentAdminSeed.RunAsync(db,new SeedEnvironment("Development"),config);
                 factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b=>b.UseEnvironment("Development").ConfigureAppConfiguration((_,c)=>c.AddConfiguration(config)).ConfigureServices(s=> {
