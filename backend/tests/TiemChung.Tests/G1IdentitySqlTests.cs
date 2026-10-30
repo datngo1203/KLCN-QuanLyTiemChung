@@ -17,7 +17,7 @@ public sealed class G1IdentitySqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task ReceptionSeedPreservesExistingDataAndCapabilitiesMatchEmployeeWrites()
     {
-        await using var f = await CatalogSqlTests.Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
         f.Config["DevelopmentSeed:Username"] = "g1.reception";
         var password = Guid.NewGuid().ToString("N");
         f.Config["DevelopmentSeed:Password"] = password;
@@ -65,12 +65,13 @@ public sealed class G1IdentitySqlTests
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/catalog/injection-types", new { name = "denied", description = "" })).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new { clientType = "native", refreshToken = session.GetProperty("refreshToken").GetString() })).StatusCode);
         }
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task CustomerCapabilitiesAndPasswordChangeRevokeEveryAccessAndRefreshToken()
     {
-        await using var f = await CatalogSqlTests.Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
         var password = Guid.NewGuid().ToString("N");
         var next = Guid.NewGuid().ToString("N");
         var account = new TaiKhoan { AccountType = "Customer", LoginEmail = "g1@example.invalid", NormalizedEmail = "G1@EXAMPLE.INVALID",
@@ -100,6 +101,7 @@ public sealed class G1IdentitySqlTests
         var current = await Login(client, account.LoginEmail, next);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new { clientType = "native", refreshToken = current.GetProperty("refreshToken").GetString() })).StatusCode);
         Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "passwordChanged" && a.SubjectAccountId == account.MaTaiKhoan));
+        });
     }
 
     private static async Task<JsonElement> Login(HttpClient client, string identifier, string password)
