@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getVaccine, getVaccines, getPackages, getVaccineTypes, getInjectionTypes } from './client.js'
+import { getVaccine, getVaccines, getPackages, getVaccineTypes, getInjectionTypes, getRegistrationCatalog } from './client.js'
+import { money } from '../registrationForm.js'
 
 test('catalog sends encoded search and type/price filters to the public API', async () => {
   const calls = []
@@ -30,7 +31,7 @@ test('catalog surfaces HTTP failures', async () => {
 
 test('vaccine detail resolves the exact ID from the unfiltered database catalog', async () => {
   const original = globalThis.fetch
-  const vaccine = { id: 12, name: '[DEMO] Same name', manufacturer: 'Test', origin: 'Test', price: 250000 }
+  const vaccine = { id: 12, name: '[DEMO] Same name', manufacturer: 'Test', origin: 'Test', price: '250000' }
   globalThis.fetch = async url => {
     const request = new URL(url)
     assert.equal(request.pathname, '/api/v1/catalog/vaccines')
@@ -60,3 +61,27 @@ test('vaccine detail does not fall back to demo data or hide API failures', asyn
     await assert.rejects(getVaccine('1'), /HTTP 503/)
   } finally { globalThis.fetch = original }
 })
+
+for (const [rawPrice, exactPrice, display] of [
+  ['9999999999999999.00', '9999999999999999', '9.999.999.999.999.999 đ'],
+  ['250000.00', '250000', '250.000 đ'],
+  ['0.00', '0', '0 đ'],
+]) {
+  test(`catalog and G2 preserve and format raw JSON price ${rawPrice} exactly`, async () => {
+    const original = globalThis.fetch
+    // Keep decimal tokens in the response body; constructing a Number would lose precision.
+    globalThis.fetch = async () => new Response(`{"source":"database","items":[{"id":12,"name":"[DEMO] Test","price":${rawPrice},"items":[{"vaccineId":12,"quantity":1}]}]}`)
+    try {
+      const vaccines = await getVaccines()
+      const packages = await getPackages()
+      const detail = await getVaccine('12')
+      const registration = await getRegistrationCatalog()
+      for (const item of [vaccines.items[0], packages.items[0], detail, ...registration]) {
+        assert.equal(item.price, exactPrice)
+        assert.equal(money(item.price), display)
+      }
+      assert.equal(vaccines.items[0].id, 12)
+      assert.deepEqual(packages.items[0].items, [{ vaccineId: 12, quantity: 1 }])
+    } finally { globalThis.fetch = original }
+  })
+}

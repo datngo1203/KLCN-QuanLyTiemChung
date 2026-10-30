@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { getVaccines, getPackages, getVaccineTypes, getInjectionTypes } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
+import { money } from './registrationForm'
 
-const money = value => `${Number(value).toLocaleString('vi-VN')} đ`
 export default function Catalog({ query, setQuery }) {
   const [vaccineTypes, setVaccineTypes] = useState([])
   const [injectionTypes, setInjectionTypes] = useState([])

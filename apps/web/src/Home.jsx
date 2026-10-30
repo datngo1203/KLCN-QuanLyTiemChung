@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowUpRight, ArrowRight, ArrowDown, Search, ChevronDown } from 'lucide-react'
 import { getVaccines, getPackages } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
+import { money } from './registrationForm'
 
 export default function Home({ go, query, setQuery }) {
   return <>
@@ -93,7 +94,7 @@ function HomeCatalog({ go, setQuery }) {
       {(data.demo || items.some(item => item.name.includes('[DEMO]'))) && <p className="vac-reference">Các mục có nhãn [DEMO] hoặc nguồn dữ liệu mẫu sử dụng thông tin và giá giả để trình diễn.</p>}
       <div className="service-grid">{items.map(item => <article className="service-card vac-service-preview" key={item.key}>
         <ProductPlaceholder />
-        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{item.name}</a> : item.name}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{Number(item.price).toLocaleString('vi-VN')} đ</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${item.name}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
+        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{item.name}</a> : item.name}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{money(item.price)}</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${item.name}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
       </article>)}</div>
       {items.length === 0 && <div className="vac-catalog-state">Danh mục dịch vụ đang được cập nhật. Bạn có thể quay lại sau.</div>}
     </>}

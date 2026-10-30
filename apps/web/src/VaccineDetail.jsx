@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, ImageOff } from 'lucide-react'
 import { getVaccine } from './api/client'
+import { money } from './registrationForm'
 
 export function ProductPlaceholder() {
   return <div className="product-placeholder"><ImageOff aria-hidden="true" /><span>Chưa có hình ảnh sản phẩm được xác minh</span></div>
@@ -34,7 +35,7 @@ export default function VaccineDetail({ id, go }) {
           <dl className="vaccine-facts">
             <div><dt>Nhà sản xuất</dt><dd>{vaccine.manufacturer || 'Chưa có thông tin'}</dd></div>
             <div><dt>Nước sản xuất / xuất xứ</dt><dd>{vaccine.origin || 'Chưa có thông tin'}</dd></div>
-            <div><dt>Giá niêm yết</dt><dd className="vaccine-price">{Number(vaccine.price).toLocaleString('vi-VN')} đ</dd></div>
+            <div><dt>Giá niêm yết</dt><dd className="vaccine-price">{money(vaccine.price)}</dd></div>
           </dl>
           <button className="button primary" onClick={() => go('register')}>Đăng ký dịch vụ<ArrowRight aria-hidden="true" /></button>
           <p className="vac-reference">Chọn vắc xin và người được tiêm trong trang đăng ký. Đăng ký dịch vụ không xác nhận đủ điều kiện tiêm.</p>
