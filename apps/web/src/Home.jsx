@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, ArrowRight, ArrowDown, Search, ChevronDown } from 'lucide-react'
 import { getVaccines, getPackages } from './api/client'
+import { ProductPlaceholder } from './VaccineDetail'
+import { money } from './registrationForm'
 
 export default function Home({ go, query, setQuery }) {
   return <>
@@ -81,8 +83,8 @@ function HomeCatalog({ go, setQuery }) {
     return () => { active = false }
   }, [reload])
   const items = [
-    ...data.vaccines.slice(0, 2).map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', image: '/images/clinical-care.jpg', description: [item.manufacturer, item.origin].filter(Boolean).join(' · ') })),
-    ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', image: '/images/vaccine-care.jpg', description: item.description || item.items?.map(vaccine => `${vaccine.vaccineName} × ${vaccine.quantity}`).join(', ') })),
+    ...data.vaccines.slice(0, 2).map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', href: `#catalog/vaccines/${item.id}`, description: [item.manufacturer, item.origin].filter(Boolean).join(' · ') })),
+    ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', description: item.items?.map(vaccine => `${vaccine.vaccineName} × ${vaccine.quantity}`).join(', ') })),
   ]
   return <section className="vac-discover section" aria-labelledby="home-catalog-title"><div className="wrap">
     <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2 id="home-catalog-title">Khám phá vắc xin và gói tiêm chủng.</h2><p>Tham khảo thông tin và giá dịch vụ để chuẩn bị cho lần đến trung tâm.</p></div><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
@@ -91,8 +93,8 @@ function HomeCatalog({ go, setQuery }) {
     {!loading && !error && <>
       {(data.demo || items.some(item => item.name.includes('[DEMO]'))) && <p className="vac-reference">Các mục có nhãn [DEMO] hoặc nguồn dữ liệu mẫu sử dụng thông tin và giá giả để trình diễn.</p>}
       <div className="service-grid">{items.map(item => <article className="service-card vac-service-preview" key={item.key}>
-        <img src={item.image} alt="Ảnh minh họa dịch vụ tiêm chủng" loading="lazy" width="800" height="533" />
-        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.name}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{Number(item.price).toLocaleString('vi-VN')} đ</strong><button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button></div>
+        <ProductPlaceholder />
+        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{item.name}</a> : item.name}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{money(item.price)}</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${item.name}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
       </article>)}</div>
       {items.length === 0 && <div className="vac-catalog-state">Danh mục dịch vụ đang được cập nhật. Bạn có thể quay lại sau.</div>}
     </>}

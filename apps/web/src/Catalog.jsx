@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { getVaccines, getPackages, getVaccineTypes, getInjectionTypes } from './api/client'
+import { ProductPlaceholder } from './VaccineDetail'
+import { money } from './registrationForm'
 
-const money = value => `${Number(value).toLocaleString('vi-VN')} đ`
 export default function Catalog({ query, setQuery }) {
   const [vaccineTypes, setVaccineTypes] = useState([])
   const [injectionTypes, setInjectionTypes] = useState([])
@@ -26,10 +27,9 @@ export default function Catalog({ query, setQuery }) {
     return () => { active = false }
   }, [submitted, reload])
   const changeFilter = event => setFilters(previous => ({ ...previous, [event.target.name]: event.target.value }))
-  const items = [
-    ...(kind === 'Gói vắc xin' ? [] : data.vaccines.map(v => ({ ...v, key: `v-${v.id}`, kind: 'Vắc xin lẻ', description: `${v.manufacturer} · ${v.origin}`, type: vaccineTypes.find(t => t.id === v.vaccineTypeId)?.name, injection: injectionTypes.find(t => t.id === v.injectionTypeId)?.name }))),
-    ...(kind === 'Vắc xin lẻ' ? [] : data.packages.map(p => ({ ...p, key: `p-${p.id}`, kind: 'Gói vắc xin' }))),
-  ]
+  const vaccines = kind === 'Gói vắc xin' ? [] : data.vaccines
+  const packages = kind === 'Vắc xin lẻ' ? [] : data.packages
+  const count = vaccines.length + packages.length
   return <section className="catalog-page wrap">
     <div className="page-intro"><div className="eyebrow">DANH MỤC DỊCH VỤ</div><h1>Vắc xin và gói tiêm chủng</h1><p>Tra cứu tên, loại và giá dịch vụ. Các mục có nhãn [DEMO] dùng dữ liệu và giá giả để trình diễn.</p></div>
     <form className="catalog-controls" onSubmit={event => { event.preventDefault(); setLoading(true); setError(''); setSubmitted({ search: query, filters: { ...filters } }) }}>
@@ -44,10 +44,24 @@ export default function Catalog({ query, setQuery }) {
     </form>
     {loading && <p role="status">Đang tải danh mục…</p>}
     {error && <div role="alert" className="notice">{error} <button className="button outline" onClick={() => { setLoading(true); setError(''); setReload(x => x + 1) }}>Thử lại</button></div>}
-    {!loading && !error && <><p className="muted">{data.source === 'database' ? 'Danh mục từ cơ sở dữ liệu' : 'Danh mục mẫu'} · {items.length} kết quả</p><div className="catalog-grid">{items.map((item) => <article className="catalog-card" key={item.key}>
-      <div className="catalog-art"><img src={item.kind === 'Gói vắc xin' ? '/images/vaccine-care.jpg' : '/images/clinical-care.jpg'} alt="Ảnh minh họa dịch vụ tiêm chủng" loading="lazy" width="800" height="533" /></div><div className="catalog-info"><div className="card-kicker">{item.kind}</div><h3>{item.name}</h3><p>{item.description}</p>{item.type && <p>{item.type} · {item.injection}</p>}
-      {item.items && <p>Thành phần: {item.items.map(v => `${v.vaccineName} × ${v.quantity}`).join(', ')}</p>}
-      <div className="demo-price">{money(item.price)}</div></div>
-    </article>)}</div>{items.length === 0 && <div className="empty-state">Không có mục phù hợp.</div>}</>}
+    {!loading && !error && <><p className="muted" role="status">{data.source === 'database' ? 'Danh mục từ cơ sở dữ liệu' : 'Danh mục mẫu'} · {count} kết quả</p>
+      {vaccines.length > 0 && <div className="catalog-table-scroll" role="region" aria-label="Bảng vắc xin, cuộn ngang để xem thêm" tabIndex={0}>
+        <table className="catalog-table">
+          <caption>Vắc xin lẻ · Giá niêm yết (VND)<span className="catalog-table-hint">Cuộn ngang để xem đầy đủ các cột.</span></caption>
+          <thead><tr><th scope="col">Tên vắc xin</th><th scope="col">Nhà sản xuất</th><th scope="col">Nước sản xuất / xuất xứ</th><th scope="col" className="catalog-price">Giá</th><th scope="col">Chi tiết</th></tr></thead>
+          <tbody>{vaccines.map(vaccine => <tr key={vaccine.id}>
+            <th scope="row"><a className="catalog-name" href={`#catalog/vaccines/${vaccine.id}`}>{vaccine.name}</a></th>
+            <td>{vaccine.manufacturer || 'Chưa có thông tin'}</td><td>{vaccine.origin || 'Chưa có thông tin'}</td>
+            <td className="catalog-price">{money(vaccine.price)}</td>
+            <td><a className="button outline" href={`#catalog/vaccines/${vaccine.id}`} aria-label={`Xem chi tiết ${vaccine.name}`}>Xem chi tiết</a></td>
+          </tr>)}</tbody>
+        </table>
+      </div>}
+      {packages.length > 0 && <><h2 className="catalog-packages-title">Gói vắc xin</h2><div className="catalog-grid">{packages.map(item => <article className="catalog-card" key={item.id}>
+        <ProductPlaceholder /><div className="catalog-info"><div className="card-kicker">Gói vắc xin</div><h3>{item.name}</h3>
+        <p>Thành phần: {item.items.map(v => `${v.vaccineName} × ${v.quantity}`).join(', ')}</p>
+        <div className="demo-price">{money(item.price)}</div></div>
+      </article>)}</div></>}
+      {count === 0 && <div className="empty-state">Không có mục phù hợp.</div>}</>}
   </section>
 }
