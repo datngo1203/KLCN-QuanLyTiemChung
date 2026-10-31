@@ -12,7 +12,7 @@ public sealed class ProfilesSqlTests
     [Fact, Trait("Category","SqlIntegration")]
     public async Task CustomerOwnCrudMultipleChildrenScopeValidationAndReferencedDelete()
     {
-        await using var f=await CatalogSqlTests.Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
         var client=f.Client;
         Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/v1/customers",new {})).StatusCode);
         var password=Guid.NewGuid().ToString("N");
@@ -72,12 +72,13 @@ public sealed class ProfilesSqlTests
         Assert.Equal(HttpStatusCode.NoContent,(await client.DeleteAsync($"/api/v1/customers/{own.Id}")).StatusCode);
         Assert.Empty((await client.GetFromJsonAsync<CustomerListResponse>("/api/v1/customers"))!.Items);
         Assert.All(await f.Db.Set<SecurityAudit>().Where(x=>x.Action=="profiles.updated" || x.Action=="profiles.deleted").ToArrayAsync(),a=>Assert.NotNull(a.ActorAccountId));
+        });
     }
 
     [Fact, Trait("Category","SqlIntegration")]
     public async Task WindowsCommandsPersistCustomersAndChildrenAndShowApiDenial()
     {
-        await using var f=await CatalogSqlTests.Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
         await f.Db.Set<NhanVien>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ChucDanh,"LeTan"));
         using var http=f.Factory.CreateClient(); var identity=new IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
@@ -110,5 +111,6 @@ public sealed class ProfilesSqlTests
         await vm.LoadAsync(); Assert.Equal(2,vm.Customers.Count);
         vm.SelectedCustomer=vm.Customers.First(); Assert.False(vm.SaveAndNewCustomerCommand.CanExecute(null));
         await identity.LogoutAsync(); vm.Name="Denied"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid"; await Command(vm.LuuKhachHangCommand); Assert.DoesNotContain("Đã lưu",vm.Feedback); Assert.Equal("Denied",vm.Name);
+        });
     }
 }

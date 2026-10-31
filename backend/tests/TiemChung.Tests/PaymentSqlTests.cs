@@ -32,7 +32,7 @@ public sealed class PaymentSqlTests
     [InlineData("mixed")]
     public async Task FullPaymentUsesSnapshotsAndPersistsWithAuditAndFreshGet(string kind)
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register(kind);
         await f.Db.Vaccines.ExecuteUpdateAsync(s => s.SetProperty(x => x.Gia, 777000m));
         await f.Db.Set<GoiVacXin>().ExecuteUpdateAsync(s => s.SetProperty(x => x.GiaGoi, 999000m));
@@ -67,6 +67,7 @@ public sealed class PaymentSqlTests
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentAlreadyRecorded");
         Assert.Equal(1, await fresh.Payments.CountAsync());
         Assert.Equal(1, await fresh.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded"));
+        });
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
@@ -75,7 +76,7 @@ public sealed class PaymentSqlTests
     public async Task DifferentCashiersSerializeInBothOrders(bool secondCashierFirst)
     {
         var gate = new PaymentGate();
-        await using var f = await Fixture.Create(gate);
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(gate), async f => {
         var registration = await f.Register();
         var other = await f.Actor("ThuNgan", "XemThanhToan", "GhiThanhToan");
         var firstActor = secondCashierFirst ? other : f.Cashier;
@@ -96,12 +97,13 @@ public sealed class PaymentSqlTests
         Assert.Equal(firstActor.Employee!.MaNhanVien, payment.MaNhanVien);
         var audit = Assert.Single(await fresh.Set<SecurityAudit>().Where(a => a.Action == "payments.recorded").ToArrayAsync());
         Assert.Equal(firstActor.Account.MaTaiKhoan, audit.ActorAccountId);
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task EveryRouteEnforcesRoleGrantsAndCurrentIdentityState()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         async Task Denied(HttpClient client, int expected) {
             await Problem(await client.GetAsync(ListPath), expected);
@@ -138,12 +140,13 @@ public sealed class PaymentSqlTests
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.TrangThai, "Locked"));
         await Denied(locked.Client, 401);
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task CustomerReadRequiresBothCurrentLinksAndCorrectPair()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { });
         var own = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
@@ -172,12 +175,13 @@ public sealed class PaymentSqlTests
         await f.Db.Set<TaiKhoan>().Where(a => a.MaTaiKhoan == f.Customer.Account.MaTaiKhoan)
             .ExecuteUpdateAsync(s => s.SetProperty(a => a.EmailVerifiedAt, (DateTimeOffset?)null));
         await Problem(await f.Customer.Client.GetAsync(Path(registration.Id)), 403, "emailVerificationRequired");
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task ZeroTotalHasNoPaymentAndCannotBeRecorded()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         await f.Db.Vaccines.ExecuteUpdateAsync(s => s.SetProperty(x => x.Gia, 0m));
         var registration = await f.Register("single");
         var detail = await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
@@ -187,12 +191,13 @@ public sealed class PaymentSqlTests
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentNotRequired");
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
         Assert.False(await f.Db.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task LargestG2VndAmountRemainsExactThroughSqlAndJson()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         const decimal limit = 9999999999999999m;
         await f.Db.Vaccines.ExecuteUpdateAsync(s => s.SetProperty(v => v.Gia, limit));
         var vaccine = await f.Db.Vaccines.AsNoTracking().FirstAsync();
@@ -207,18 +212,20 @@ public sealed class PaymentSqlTests
         Assert.Equal(limit, saved.TotalDue); Assert.Equal(limit, saved.Payment!.Amount);
         await using var fresh = f.NewDb();
         Assert.Equal(limit, (await fresh.Payments.SingleAsync()).SoTien);
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task UnrelatedUniqueViolationIsNotReportedAsDuplicatePayment()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var first = await f.Register(); var second = await f.Register();
         Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(first.Id), new { })).StatusCode);
         await f.Db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX G3FixtureOtherUnique ON dbo.ThanhToan(SoTien);");
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(second.Id), new { }), 503, "dependencyUnavailable");
         Assert.Equal(1, await f.Db.Payments.CountAsync());
         Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded"));
+        });
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
@@ -226,7 +233,7 @@ public sealed class PaymentSqlTests
     [InlineData("audit")]
     public async Task PaymentOrAuditFailureRollsBackBothAndLeavesRegistrationUnchanged(string failure)
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         await f.Db.Database.ExecuteSqlRawAsync(failure == "payment"
             ? "ALTER TABLE dbo.ThanhToan ADD CONSTRAINT G3FixtureFailure CHECK (SoTien < 0);"
@@ -239,12 +246,13 @@ public sealed class PaymentSqlTests
         await f.Db.Database.ExecuteSqlRawAsync(failure == "payment"
             ? "ALTER TABLE dbo.ThanhToan DROP CONSTRAINT G3FixtureFailure;" : "DROP TRIGGER dbo.G3FixtureFailure;");
         Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { })).StatusCode);
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SearchPaginationFiltersAndValidationAreStableAndDoNotWrite()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var first = await f.Register("single"); var second = await f.Register("package");
         var all = (await f.Cashier.Client.GetFromJsonAsync<PaymentRegistrationListResponse>(ListPath))!.Items;
         Assert.Equal(new[] { second.Id, first.Id }, all.Select(x => x.Id));
@@ -271,6 +279,7 @@ public sealed class PaymentSqlTests
         foreach (var json in new[] { "{", "null", "[]" })
             await Problem(await f.Cashier.Client.PostAsync(Path(first.Id), new StringContent(json, Encoding.UTF8, "application/json")), 400, "validation");
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
+        });
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
@@ -282,7 +291,7 @@ public sealed class PaymentSqlTests
     [InlineData("space")]
     public async Task IncompatibleExistingPaymentsAreNeitherAcceptedNorOverwritten(string kind)
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         var payment = f.Payment(registration);
         Corrupt(payment, kind); f.Db.Add(payment); await f.Db.SaveChangesAsync();
@@ -294,6 +303,7 @@ public sealed class PaymentSqlTests
         await using var fresh = f.NewDb();
         Assert.Equal(before, JsonSerializer.Serialize(await fresh.Payments.SingleAsync()));
         Assert.False(await fresh.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
+        });
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
@@ -305,7 +315,7 @@ public sealed class PaymentSqlTests
     [InlineData("promotion")]
     public async Task InvalidStoredRegistrationMoneyFailsClosed(string kind)
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register("single");
         switch (kind) {
             case "overflow": await f.Db.RegistrationVaccineItems.ExecuteUpdateAsync(s => s.SetProperty(x => x.GiaTaiThoiDiemDangKy, 9999999999999999m)); break;
@@ -321,6 +331,7 @@ public sealed class PaymentSqlTests
         await Problem(await f.Cashier.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentDataConflict");
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
+        });
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
@@ -334,7 +345,7 @@ public sealed class PaymentSqlTests
     [InlineData("space")]
     public async Task MigrationPreservesCompatibleDataAndStopsBeforeDdlForConflicts(string kind)
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         var migrator = f.Db.GetService<IMigrator>();
         await migrator.MigrateAsync("20261028172727_G2RegistrationNullableFields");
@@ -358,12 +369,13 @@ public sealed class PaymentSqlTests
         }
         Assert.Equal(before, JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().OrderBy(p => p.MaThanhToan).ToArrayAsync()));
         Assert.Equal(registration.Subtotal, (await f.Customer.Client.GetFromJsonAsync<RegistrationDto>("/api/v1/registrations/" + registration.Id))!.Subtotal);
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task OpenApiHasOnlyApprovedPaymentRoutesAndActualDtos()
     {
-        await using var f = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         using var json = JsonDocument.Parse(await f.Base.Client.GetStringAsync("/openapi/v1.json"));
         var paths = json.RootElement.GetProperty("paths");
         Assert.Equal(new[] { "get" }, paths.GetProperty(ListPath).EnumerateObject().Select(x => x.Name));
@@ -378,6 +390,7 @@ public sealed class PaymentSqlTests
         foreach (var field in new[] { "registrationId", "registrationStatus", "customer", "recipient", "items", "subtotal", "totalDue", "paidAmount", "remainingAmount", "requiresPayment", "canRecordPayment", "isSimulation", "payment" })
             Assert.True(props.TryGetProperty(field, out _), field);
         Assert.Contains("RegistrationPaymentDto", detail.GetProperty("post").GetProperty("responses").GetProperty("201").GetRawText());
+        });
     }
 
     private static Task<int> UniqueIndex(TiemChungDbContext db) => db.Database.SqlQueryRaw<int>(
@@ -494,7 +507,10 @@ public sealed class PaymentSqlTests
         }
         public static async Task<Fixture> Create(PaymentGate? gate = null)
         {
-            var b = await CatalogSqlTests.Fixture.Create(); await b.Login();
+            var b = await CatalogSqlTests.Fixture.Create();
+            Fixture? partial = null;
+            try {
+            await b.Login();
             await DevelopmentCatalogSeed.RunAsync(b.Db, new SeedEnvironment());
             var customer = new KhachHang { HoTen = "[DEMO] G3 Customer", Email = "g3@example.invalid" };
             b.Db.Add(customer); await b.Db.SaveChangesAsync();
@@ -502,6 +518,7 @@ public sealed class PaymentSqlTests
                 NgaySinh = new(2020, 1, 1), GioiTinh = "Khác", QuanHeVoiKhachHang = "Con" };
             b.Db.Add(recipient); await b.Db.SaveChangesAsync();
             var f = new Fixture { Base = b, CustomerProfile = customer, Recipient = recipient };
+            partial = f;
             if (gate is not null) f._factory = b.Factory.WithWebHostBuilder(builder => builder.ConfigureServices(services => {
                 services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();
                 services.AddDbContext<TiemChungDbContext>(o => o.UseSqlServer(b.Db.Database.GetConnectionString()).AddInterceptors(gate));
@@ -510,13 +527,17 @@ public sealed class PaymentSqlTests
             b.Db.AddRange(new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, CustomerId = customer.MaKhachHang },
                 new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, RecipientId = recipient.MaNguoiDuocTiem });
             await b.Db.SaveChangesAsync(); return f;
+            } catch (Exception failure) {
+                await SqlFixtureLifecycle.CleanupAfterFailureAsync(failure, () => partial is null ? b.DisposeAsync() : partial.DisposeAsync());
+                throw;
+            }
         }
-        public async ValueTask DisposeAsync()
-        {
-            foreach (var client in _clients) client.Dispose();
-            if (_factory is not null) await _factory.DisposeAsync();
-            await Base.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => SqlFixtureLifecycle.CleanupAsync(
+            () => SqlFixtureLifecycle.CleanupAsync(_clients.Select<HttpClient, Func<ValueTask>>(client => () => {
+                client.Dispose(); return ValueTask.CompletedTask;
+            }).ToArray()),
+            () => _factory?.DisposeAsync() ?? ValueTask.CompletedTask,
+            Base.DisposeAsync);
     }
 
     private sealed class SeedEnvironment : Microsoft.Extensions.Hosting.IHostEnvironment

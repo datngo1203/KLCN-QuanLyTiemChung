@@ -23,7 +23,7 @@ public sealed class CatalogSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task CrudValidationReferencesAndPublicFiltersPersistInSql()
     {
-        await using var fixture = await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async fixture => {
         var client = fixture.Client;
         var types = new Dictionary<string,int>();
         foreach (var route in new[] { "injection-types", "vaccine-types" }) {
@@ -96,12 +96,13 @@ public sealed class CatalogSqlTests
         Assert.All(await fixture.Db.Set<SecurityAudit>().Where(x=>x.Action.StartsWith("catalog.")).ToArrayAsync(), x => {
             Assert.NotNull(x.ActorAccountId); Assert.NotNull(x.ResourceId); Assert.True(x.OccurredAt > DateTimeOffset.UtcNow.AddHours(-1));
         });
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task EveryWriteChecksCurrentEmployeePermissionsAndCustomerIsReadOnly()
     {
-        await using var f=await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var routes=new[] { "injection-types","vaccine-types","vaccines","packages" };
         object Payload(string route) => route switch {
             "vaccines" => new VaccineRequest("Vaccine","Maker","Origin",1,1,1),
@@ -135,12 +136,13 @@ public sealed class CatalogSqlTests
         await Denied(HttpStatusCode.Forbidden);
         session.RevokedAt=DateTimeOffset.UtcNow; await f.Db.SaveChangesAsync();
         await Denied(HttpStatusCode.Unauthorized);
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SeedIsDevelopmentOnlyRepeatableAndWindowsServiceWritesActualSql()
     {
-        await using var f=await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         await Assert.ThrowsAsync<InvalidOperationException>(()=>DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Production")));
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
         var first=await f.Db.Vaccines.FirstAsync(); first.Gia=123456; await f.Db.SaveChangesAsync();
@@ -163,12 +165,13 @@ public sealed class CatalogSqlTests
         Assert.Empty(await desktop.ListAsync<TiemChung.Desktop.Services.CatalogType>("injection-types","Windows"));
         await identity.LogoutAsync();
         await Assert.ThrowsAsync<HttpRequestException>(()=>desktop.SaveAsync("injection-types",null,new { name="Denied",description="" }));
+        });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task WindowsCommandsManageAllFourCatalogsWithoutSampleState()
     {
-        await using var f=await Fixture.Create();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
         using var http=f.Factory.CreateClient();
         var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
@@ -204,6 +207,7 @@ public sealed class CatalogSqlTests
         await Command(vm.SelectTabCommand,"Vắc xin"); vm.Selected=vm.Rows.First();
         await Command(vm.DeleteCommand); Assert.Contains("đang được tham chiếu",vm.Feedback); Assert.Equal(2,vm.Rows.Count);
         await identity.LogoutAsync();
+        });
     }
 
     private static string Path(string route, int? id=null)=>"/api/v1/catalog/"+route+(id.HasValue ? $"/{id}" : "");
@@ -230,23 +234,43 @@ public sealed class CatalogSqlTests
             using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             Client.DefaultRequestHeaders.Authorization=new("Bearer",json.RootElement.GetProperty("accessToken").GetString());
         }
-        public static async Task<Fixture> Create() {
-            var connection=new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL required.")) { InitialCatalog="KLCN_M1_Test_"+Guid.NewGuid().ToString("N") }.ConnectionString;
-            var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> {
-                ["ConnectionStrings:TiemChung"]=connection,["Catalog:UseDemoData"]="false",["Identity:MailMode"]="Disabled",
-                ["Identity:SigningKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
-                ["DevelopmentSeed:Username"]="s2.seed",["DevelopmentSeed:Password"]=Guid.NewGuid().ToString("N")
-            }).Build();
-            var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
-            await db.Database.MigrateAsync();
-            await DevelopmentAdminSeed.RunAsync(db,new SeedEnvironment("Development"),config);
-            var factory=new WebApplicationFactory<Program>().WithWebHostBuilder(b=>b.UseEnvironment("Development").ConfigureAppConfiguration((_,c)=>c.AddConfiguration(config)).ConfigureServices(s=> {
-                s.RemoveAll<DbContextOptions<TiemChungDbContext>>(); s.RemoveAll<TiemChungDbContext>(); s.AddDbContext<TiemChungDbContext>(o=>o.UseSqlServer(connection));
-            }));
-            return new Fixture { Db=db,Factory=factory,Client=factory.CreateClient(),Config=config,Password=config["DevelopmentSeed:Password"]! };
+        internal required OwnedSqlTestDatabase Database { get; init; }
+        public static async Task<Fixture> Create(Func<TiemChungDbContext, Task>? afterDatabaseCreated = null) {
+            var owner = await OwnedSqlTestDatabase.CreateAsync(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")
+                ?? throw new InvalidOperationException("SQL required."));
+            TiemChungDbContext? db = null;
+            WebApplicationFactory<Program>? factory = null;
+            HttpClient? client = null;
+            try {
+                var connection = owner.ConnectionString;
+                var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> {
+                    ["ConnectionStrings:TiemChung"]=connection,["Catalog:UseDemoData"]="false",["Identity:MailMode"]="Disabled",
+                    ["Identity:SigningKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
+                    ["DevelopmentSeed:Username"]="s2.seed",["DevelopmentSeed:Password"]=Guid.NewGuid().ToString("N")
+                }).Build();
+                db = new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
+                if (afterDatabaseCreated is not null) await afterDatabaseCreated(db);
+                await db.Database.MigrateAsync();
+                await DevelopmentAdminSeed.RunAsync(db,new SeedEnvironment("Development"),config);
+                factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b=>b.UseEnvironment("Development").ConfigureAppConfiguration((_,c)=>c.AddConfiguration(config)).ConfigureServices(s=> {
+                    s.RemoveAll<DbContextOptions<TiemChungDbContext>>(); s.RemoveAll<TiemChungDbContext>(); s.AddDbContext<TiemChungDbContext>(o=>o.UseSqlServer(connection));
+                }));
+                client = factory.CreateClient();
+                return new Fixture { Database=owner, Db=db,Factory=factory,Client=client,Config=config,Password=config["DevelopmentSeed:Password"]! };
+            } catch (Exception failure) {
+                await SqlFixtureLifecycle.CleanupAfterFailureAsync(failure, () => SqlFixtureLifecycle.CleanupAsync(
+                    () => { client?.Dispose(); return ValueTask.CompletedTask; },
+                    () => factory?.DisposeAsync() ?? ValueTask.CompletedTask,
+                    () => db?.DisposeAsync() ?? ValueTask.CompletedTask,
+                    owner.DisposeAsync));
+                throw;
+            }
         }
-        public async ValueTask DisposeAsync() { Client.Dispose(); await Factory.DisposeAsync(); await Db.DisposeAsync(); }
+        public ValueTask DisposeAsync() => SqlFixtureLifecycle.CleanupAsync(
+            () => { Client.Dispose(); return ValueTask.CompletedTask; },
+            Factory.DisposeAsync, Db.DisposeAsync, Database.DisposeAsync);
     }
+
     private sealed class SeedEnvironment(string name) : IHostEnvironment {
         public string EnvironmentName { get; set; }=name;
         public string ApplicationName { get; set; }="CatalogTests";
