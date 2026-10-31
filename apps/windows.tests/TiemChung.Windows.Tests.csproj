@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../windows/Services/IAppointmentService.cs;../windows/ViewModels/AppointmentViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IPaymentService.cs;../windows/ViewModels/PaymentViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IRegistrationService.cs;../windows/Services/IProfilesService.cs;../windows/Services/ICatalogService.cs;../windows/Services/IdentityApiService.cs;../windows/Services/IAuthService.cs;../windows/Services/IChangePasswordService.cs;../windows/ViewModels/RegistrationViewModel.cs;../windows/ViewModels/ViewModelBase.cs;../windows/ViewModels/RelayCommand.cs" Link="Windows/%(Filename)%(Extension)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

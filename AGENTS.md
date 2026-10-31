@@ -21,7 +21,7 @@ Không tự suy diễn dữ liệu hoặc quy trình nội bộ VNVC. Dữ liệ
 Mật khẩu phải hash tại backend. Web/Windows đã dùng Identity API; không dùng đăng nhập mẫu để thay xác thực thật. Ghi hồ sơ bằng tài khoản nhân viên yêu cầu chức danh LeTan theo API hiện tại; không nới quyền Admin để demo chạy.
 Client không truy cập SQL trực tiếp. Mọi kiểm tra quyền, tiền, tồn kho và ghi dữ liệu phải nằm ở API.
 Ghi tiêm phải kiểm chứng chỉ định chuyên môn, đúng lịch/người/vắc xin, quyền nhân viên, lô được phép sử dụng, hạn dùng, tồn dương và điều kiện thanh toán. Ghi mũi, trừ tồn, biến động và audit cùng transaction; chống ghi trùng/tranh liều cuối. Thiếu bằng chứng thì từ chối, không fallback Sample hoặc tự tạo chỉ định/lô.
-Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Không tự thêm GitHub username hoặc quyền cộng tác khi chưa có thông tin.
+Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Ngoại lệ theo quyết định người dùng 31/10/2026: trong giai đoạn phát triển một người bằng Codex, Đạt được triển khai các module đã giao cho Bảo/Quý; giữ nguyên phân công học thuật và lịch sử đóng góp. Có thể self-review độc lập bằng Codex và phải ghi đúng bản chất, không giả nhận review thành viên khác. Không tự thêm GitHub username hoặc quyền cộng tác khi chưa có thông tin.
 Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; báo đúng kết quả và các phần chưa kiểm tra. Tiến độ chỉ cập nhật cột Trạng thái trong SCOPE.md; không tạo file tiến độ khác.
 
 ## Giới hạn triển khai ở mức khóa luận tốt nghiệp

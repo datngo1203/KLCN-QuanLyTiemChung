@@ -4,6 +4,8 @@ Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho
 
 Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
+S5.1: Windows **Lịch hẹn & lịch sử** đã tạo/xem buổi hẹn qua API/SQL từ dòng dịch vụ lẻ hoặc gói. Tài khoản cần Lễ tân Active có quyền `QuanLyLichHen`; các lệnh seed hiện tại không tự cấp quyền này. Chưa có Web xem lịch, đổi/hủy lịch, ghi tiêm hoặc nhắc lịch thật. Lịch hẹn không phải kết luận đủ điều kiện tiêm.
+
 Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. Seed lô/tồn Development/Test sẽ làm trong G5, hiện chưa có; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu, không triển khai các chức năng này. Web đổi mật khẩu tại **Tài khoản → Đổi mật khẩu**; thành công thu hồi mọi phiên và yêu cầu đăng nhập lại.
 
 ## 1. Cần cài đặt

@@ -101,6 +101,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var dangkydichvu = model.Entity<DangKyDichVu>();
         dangkydichvu.ToTable("DangKyDichVu");
         dangkydichvu.HasKey(x => x.MaDangKy);
+        dangkydichvu.HasAlternateKey(x => new { x.MaDangKy, x.MaNguoiDuocTiem });
         dangkydichvu.Property(x => x.MaDangKy).HasColumnType("int");
         dangkydichvu.Property(x => x.MaKhachHang).HasColumnType("int");
         dangkydichvu.HasOne<KhachHang>().WithMany().HasForeignKey(x => x.MaKhachHang).OnDelete(DeleteBehavior.Restrict);
@@ -121,6 +122,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var ctvacxin = model.Entity<ChiTietVacXinLe>();
         ctvacxin.ToTable("ChiTietVacXinLe");
         ctvacxin.HasKey(x => x.MaChiTietVacXin);
+        ctvacxin.HasAlternateKey(x => new { x.MaDangKy, x.MaChiTietVacXin });
         ctvacxin.Property(x => x.MaChiTietVacXin).HasColumnType("int");
         ctvacxin.Property(x => x.MaDangKy).HasColumnType("int");
         ctvacxin.HasOne<DangKyDichVu>().WithMany().HasForeignKey(x => x.MaDangKy).OnDelete(DeleteBehavior.Restrict);
@@ -134,6 +136,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var ctgoivacxin = model.Entity<ChiTietGoiVacXin>();
         ctgoivacxin.ToTable("ChiTietGoiVacXin");
         ctgoivacxin.HasKey(x => x.MaChiTietGoi);
+        ctgoivacxin.HasAlternateKey(x => new { x.MaDangKy, x.MaChiTietGoi });
         ctgoivacxin.Property(x => x.MaChiTietGoi).HasColumnType("int");
         ctgoivacxin.Property(x => x.MaDangKy).HasColumnType("int");
         ctgoivacxin.HasOne<DangKyDichVu>().WithMany().HasForeignKey(x => x.MaDangKy).OnDelete(DeleteBehavior.Restrict);
@@ -356,6 +359,23 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var lichhentiem = model.Entity<LichHenTiem>();
         lichhentiem.ToTable("LichHenTiem");
         lichhentiem.HasKey(x => x.MaLichHen);
+        lichhentiem.HasOne<DangKyDichVu>().WithMany()
+            .HasForeignKey(x => new { x.MaDangKy, x.MaNguoiDuocTiem })
+            .HasPrincipalKey(x => new { x.MaDangKy, x.MaNguoiDuocTiem }).OnDelete(DeleteBehavior.Restrict);
+        lichhentiem.HasOne<ChiTietVacXinLe>().WithMany()
+            .HasForeignKey(x => new { x.MaDangKy, x.MaChiTietVacXin })
+            .HasPrincipalKey(x => new { x.MaDangKy, x.MaChiTietVacXin }).OnDelete(DeleteBehavior.Restrict);
+        lichhentiem.HasOne<ChiTietGoiVacXin>().WithMany()
+            .HasForeignKey(x => new { x.MaDangKy, x.MaChiTietGoi })
+            .HasPrincipalKey(x => new { x.MaDangKy, x.MaChiTietGoi }).OnDelete(DeleteBehavior.Restrict);
+        lichhentiem.ToTable(t => t.HasCheckConstraint("CK_LichHenTiem_NguonDichVu",
+            "([MaDangKy] IS NULL AND [MaChiTietVacXin] IS NULL AND [MaChiTietGoi] IS NULL) OR " +
+            "([MaDangKy] IS NOT NULL AND (([MaChiTietVacXin] IS NOT NULL AND [MaChiTietGoi] IS NULL) OR " +
+            "([MaChiTietVacXin] IS NULL AND [MaChiTietGoi] IS NOT NULL)))"));
+        lichhentiem.HasIndex(x => new { x.MaChiTietVacXin, x.ThoiGianHen }).IsUnique()
+            .HasDatabaseName("IX_LichHenTiem_VaccineTime").HasFilter("[MaChiTietVacXin] IS NOT NULL");
+        lichhentiem.HasIndex(x => new { x.MaChiTietGoi, x.ThoiGianHen }).IsUnique()
+            .HasDatabaseName("IX_LichHenTiem_PackageTime").HasFilter("[MaChiTietGoi] IS NOT NULL");
         lichhentiem.Property(x => x.MaLichHen).HasColumnType("int");
         lichhentiem.Property(x => x.MaNguoiDuocTiem).HasColumnType("int");
         lichhentiem.HasOne<NguoiDuocTiem>().WithMany().HasForeignKey(x => x.MaNguoiDuocTiem).OnDelete(DeleteBehavior.Restrict);

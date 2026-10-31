@@ -1,20 +1,69 @@
 <UserControl x:Class="TiemChung.Desktop.ViewsV2.AppointmentView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels">
-    <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/Appointment.xaml"/></ResourceDictionary.MergedDictionaries><BooleanToVisibilityConverter x:Key="Vis"/>
-        <DataTemplate DataType="{x:Type vm:AppointmentViewModel}">
-            <Grid Margin="28" Background="{StaticResource CE.Canvas}">
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,16"><StackPanel><TextBlock Text="Lịch &amp; nhắc lịch" Style="{StaticResource CE.Heading}"/><TextBlock Text="Quản lý lịch hẹn, trạng thái và lịch sử nhắc" Style="{StaticResource CE.Caption}" Margin="0,5,0,0"/></StackPanel><Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Sample}"><TextBlock Text="{Binding DataSourceLabel}"/></Border></DockPanel>
-                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.25*"/></Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource CE.Card}" Padding="14"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="Danh sách lịch hẹn" Style="{StaticResource CE.SectionHeading}"/><ListView Grid.Row="1" ItemsSource="{Binding Appointments}" SelectedItem="{Binding Selected}" Style="{StaticResource CE.ListView}" Margin="0,8"><ListView.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Recipient}" Style="{StaticResource CE.Body}" FontWeight="SemiBold"/><TextBlock Text="{Binding ScheduledAt,StringFormat={}{0:dd/MM/yyyy HH:mm}}" Style="{StaticResource CE.Caption}" Margin="0,3,0,0"/><TextBlock Text="{Binding Location}" Style="{StaticResource CE.Caption}"/><Border Style="{StaticResource A09.StatusBadge}" HorizontalAlignment="Left" Margin="0,4,0,0"><TextBlock Text="{Binding DisplayStatus}"/></Border><TextBlock Text="Đã nhắc gần đây" Visibility="{Binding HasRecentReminder,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0"/></StackPanel></DataTemplate></ListView.ItemTemplate></ListView><TextBlock Grid.Row="1" Text="Chưa có lịch hẹn trong nguồn dữ liệu." Visibility="{Binding HasNoAppointments,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" HorizontalAlignment="Center" VerticalAlignment="Center"/><TextBlock Grid.Row="2" Text="{Binding Feedback}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/></Grid></Border>
-                    <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="1.05*"/><RowDefinition Height="14"/><RowDefinition Height="0.95*"/></Grid.RowDefinitions>
-                        <Border Style="{StaticResource CE.Card}" Padding="16"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions><StackPanel Grid.ColumnSpan="2"><TextBlock Text="Tạo / đổi lịch" Style="{StaticResource CE.SectionHeading}"/><TextBlock Text="Người được tiêm" Style="{StaticResource CE.Caption}" Margin="0,10,0,4"/><ComboBox ItemsSource="{Binding Recipients}" SelectedItem="{Binding Recipient}" Style="{StaticResource CE.ComboBox}"/><Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Ngày hẹn" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><DatePicker SelectedDate="{Binding AppointmentDate}" Style="{StaticResource CE.DatePicker}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Giờ hẹn (07:30–17:30)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><TextBox Text="{Binding Time,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Tag="HH:mm"/></StackPanel></Grid><TextBlock Text="Địa điểm" Style="{StaticResource CE.Caption}" Margin="0,10,0,4"/><TextBox Text="{Binding Location,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}"/><TextBlock Text="{Binding Validation}" Style="{StaticResource CE.Caption}" Margin="0,5,0,0"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0"><Button Content="Tạo lịch" Command="{Binding CreateAppointmentCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,8,0"/><Button Content="Đổi lịch" Command="{Binding RescheduleCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel></StackPanel></Grid></Border>
-                        <Border Grid.Row="2" Style="{StaticResource CE.Card}" Padding="16"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DockPanel><TextBlock Text="Lịch sử nhắc" Style="{StaticResource CE.SectionHeading}"/><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding Channel}" Style="{StaticResource CE.ComboBox}" Width="120" Margin="0,0,8,0"/><Button Content="Gửi nhắc" Command="{Binding SendReminderCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel></DockPanel><DataGrid Grid.Row="1" Style="{StaticResource CE.DataGrid}" ItemsSource="{Binding Selected.Reminders}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,8"><DataGrid.Columns><DataGridTextColumn Header="Kênh" Binding="{Binding Channel}" Width="100"/><DataGridTextColumn Header="Thời điểm" Binding="{Binding SentAt,StringFormat={}{0:dd/MM HH:mm}}" Width="140"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="130"/></DataGrid.Columns></DataGrid><TextBlock Grid.Row="1" Text="Chọn lịch để xem lịch sử nhắc." Visibility="{Binding HasNoSelection,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid></Border>
-                    </Grid>
-                </Grid>
-            </Grid>
-        </DataTemplate>
-    </ResourceDictionary></UserControl.Resources><ContentControl Content="{Binding}"/>
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="../Themes/Screens/Appointment.xaml"/></ResourceDictionary.MergedDictionaries><BooleanToVisibilityConverter x:Key="Vis"/></ResourceDictionary></UserControl.Resources>
+ <Grid Margin="24" Background="{StaticResource CE.Canvas}">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+  <DockPanel Margin="0,0,0,12">
+   <StackPanel><TextBlock Text="Lịch hẹn tiêm chủng" Style="{StaticResource CE.Heading}"/><TextBlock Text="Dịch vụ đã chốt · Thời gian do nhân viên nhập" Style="{StaticResource CE.Caption}" Margin="0,4,0,0"/></StackPanel>
+   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Tải lại lịch" Command="{Binding ReloadCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="12,0,8,0"/><Button Content="Tạo lịch mới" Click="NewClicked" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.Button.Primary}"/></StackPanel>
+  </DockPanel>
+  <TextBlock Grid.Row="1" Text="Chỉ Lễ tân đang hoạt động và có quyền Quản lý lịch hẹn được sử dụng." Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+  <StackPanel Grid.Row="2" Margin="0,0,0,12">
+   <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+   <TextBlock Text="Đang xử lý…" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}"/>
+   <StackPanel Orientation="Horizontal" Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,0"><Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
+  </StackPanel>
+  <Grid Grid.Row="3" Visibility="{Binding HasAccess,Converter={StaticResource Vis}}">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="1*" MinWidth="240"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.3*" MinWidth="340"/></Grid.ColumnDefinitions>
+   <Border Style="{StaticResource CE.Card}" Padding="16"><Grid>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <TextBlock Text="Danh sách lịch hẹn" Style="{StaticResource CE.SectionHeading}"/>
+    <ListView Style="{StaticResource CE.ListView}" Grid.Row="1" ItemsSource="{Binding Appointments}" SelectedItem="{Binding Selected}" SelectionChanged="AppointmentChanged" IsEnabled="{Binding CanBrowse}" Margin="0,10" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Danh sách lịch hẹn">
+     <ListView.ItemTemplate><DataTemplate><StackPanel Margin="6"><TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding TimeLabel}" Margin="0,4,0,0"/><TextBlock Text="{Binding SourceLabel}" TextWrapping="Wrap"/><TextBlock Text="{Binding Location}" TextWrapping="Wrap"/><TextBlock Text="{Binding StatusLabel}" Style="{StaticResource CE.Caption}"/></StackPanel></DataTemplate></ListView.ItemTemplate>
+    </ListView>
+    <TextBlock Grid.Row="1" Text="Chưa có lịch trong trang này." Visibility="{Binding NoResults,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <StackPanel Grid.Row="2" Orientation="Horizontal"><Button Content="Trang trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page,StringFormat=Trang {0}}" VerticalAlignment="Center" Margin="10,0"/><Button Content="Trang sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
+   </Grid></Border>
+   <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel>
+     <StackPanel Visibility="{Binding IsViewing,Converter={StaticResource Vis}}">
+      <TextBlock Text="Chi tiết lịch hẹn" Style="{StaticResource CE.SectionHeading}"/>
+      <TextBlock Text="Chọn lịch bên trái để xem. Thông tin chỉ đọc; đổi/hủy lịch chưa triển khai." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,12"/>
+      <TextBlock Text="{Binding Detail.Label}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,14,0,8"/>
+      <TextBlock Text="{Binding Detail.SourceLabel}" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding Detail.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding Detail.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding Detail.TimeLabel,StringFormat=Thời gian trên máy: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding Detail.Location,StringFormat=Địa điểm: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding Detail.StatusLabel}" Margin="0,8,0,0"/>
+      <TextBlock Text="Lịch hẹn chưa phải kết luận đủ điều kiện tiêm." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,18,0,0"/>
+     </StackPanel>
+     <StackPanel Visibility="{Binding IsCreating,Converter={StaticResource Vis}}">
+      <TextBlock Text="Tạo lịch từ đăng ký" Style="{StaticResource CE.SectionHeading}"/>
+      <StackPanel IsEnabled="{Binding CanEdit}">
+       <TextBlock Text="Mã đăng ký (tùy chọn, ví dụ DK-0001)" Style="{StaticResource CE.Caption}" Margin="0,14,0,4"/>
+       <DockPanel><Button DockPanel.Dock="Right" Content="Tra cứu" Command="{Binding FindSourceCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0,0,0"/><TextBox x:Name="SourceCodeInput" Text="{Binding SourceCode,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã đăng ký"/></DockPanel>
+       <TextBlock Text="Hoặc chọn trong danh sách đăng ký" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
+       <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" DisplayMemberPath="Display" SelectionChanged="SourceChanged" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Đăng ký nguồn"/>
+       <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button Content="Trước" Command="{Binding PreviousSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding SourcePage,StringFormat=Trang {0}}" Margin="10,0" VerticalAlignment="Center"/><Button Content="Sau" Command="{Binding NextSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
+       <TextBlock Text="{Binding Source.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+       <TextBlock Text="{Binding Source.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+       <TextBlock Text="Dòng dịch vụ đã chốt" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
+       <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" DisplayMemberPath="Label" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Dòng dịch vụ"/>
+       <TextBlock Text="Một buổi hẹn cho dòng dịch vụ đã chọn; không tự chia gói thành các mũi." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
+       <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <StackPanel><TextBlock Text="Ngày hẹn" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><DatePicker SelectedDate="{Binding AppointmentDate}" Style="{StaticResource CE.DatePicker}" AutomationProperties.Name="Ngày hẹn"/></StackPanel>
+        <StackPanel Grid.Column="2"><TextBlock Text="Giờ hẹn (HH:mm)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><TextBox Text="{Binding Time,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Giờ hẹn"/></StackPanel>
+       </Grid>
+       <TextBlock Text="Thời gian theo múi giờ máy đang sử dụng, phải ở tương lai." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
+       <TextBlock Text="Địa điểm (1–200 ký tự)" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
+       <TextBox Text="{Binding Location,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" MaxLength="200" AutomationProperties.Name="Địa điểm"/>
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"><Button Content="Hủy bản nháp" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Lưu lịch hẹn" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel>
+     </StackPanel>
+    </StackPanel>
+   </ScrollViewer></Border>
+  </Grid>
+ </Grid>
 </UserControl>
