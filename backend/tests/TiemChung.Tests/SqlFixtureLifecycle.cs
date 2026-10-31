@@ -49,7 +49,10 @@ internal sealed class OwnedSqlTestDatabase : IAsyncDisposable
     private OwnedSqlTestDatabase(string source)
     {
         Name = "KLCN_M1_Test_" + _token.ToString("N");
-        ConnectionString = new SqlConnectionStringBuilder(source) { InitialCatalog = Name }.ConnectionString;
+        // EF Core 10 otherwise injects Application Name, creating a pool ClearPool would miss.
+        ConnectionString = new SqlConnectionStringBuilder(source) {
+            InitialCatalog = Name, ApplicationName = "KLCN-SqlFixture"
+        }.ConnectionString;
         _masterConnection = new SqlConnectionStringBuilder(source) { InitialCatalog = "master", Pooling = false }.ConnectionString;
     }
 

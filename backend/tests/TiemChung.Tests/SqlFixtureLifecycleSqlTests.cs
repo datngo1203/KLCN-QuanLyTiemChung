@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using TiemChung.Infrastructure.Data;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -84,6 +85,27 @@ public sealed class SqlFixtureLifecycleSqlTests(ITestOutputHelper output)
         output.WriteLine("Partial Create cleaned up; fixture databases remaining: 0.");
     }
 
+    [LifecycleSmokeFact, Trait("Category", "SqlIntegration")]
+    public async Task MissingApplicationNameStillClearsTheEfPool()
+    {
+        await using var master = await OpenIsolatedMasterAsync();
+        var baseline = await CatalogAsync(master);
+        var source = new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")!);
+        source.Remove("Application Name"); // Match the CI connection string that exposed SQL 3702.
+        string? name = null;
+        await SqlFixtureLifecycle.RunAsync(() => OwnedSqlTestDatabase.CreateAsync(source.ConnectionString), async owner => {
+            name = owner.Name;
+            output.WriteLine("Created fixture: " + name);
+            await using var db = new TiemChungDbContext(
+                new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(owner.ConnectionString).Options);
+            Assert.Equal(owner.ConnectionString, db.Database.GetConnectionString());
+            Assert.Equal(1, await db.Database.SqlQueryRaw<int>("SELECT 1 AS Value").SingleAsync());
+            // Disposing the context returns an idle physical connection to its pool before DROP.
+        });
+        Assert.NotNull(name);
+        await AssertGoneAsync(master, name);
+        Assert.Equal(baseline, await CatalogAsync(master));
+    }
     private static async Task<SqlConnection> OpenIsolatedMasterAsync()
     {
         Assert.Equal("1", Environment.GetEnvironmentVariable("KLCN_SQL_LIFECYCLE_SMOKE"));
