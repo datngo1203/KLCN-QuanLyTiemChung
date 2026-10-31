@@ -28,6 +28,9 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | GET `/api/v1/recipients?customerId=&search=&page=&pageSize=` | Danh sách người được tiêm, có phân trang | Bearer; nhân viên Active hoặc khách hàng theo liên kết hồ sơ Active |
 | POST `/api/v1/recipients` | Tạo người được tiêm gắn khách hàng | Bearer; LeTan hoặc khách hàng tạo hồ sơ của chính mình |
 | PUT `/api/v1/recipients/{id}` | Cập nhật thông tin người được tiêm | Bearer; LeTan hoặc khách hàng có liên kết hồ sơ Active |
+| POST `/api/v1/appointments` | Tạo buổi hẹn từ dòng dịch vụ đăng ký; 201 + Location | Bearer; LeTan Active + QuanLyLichHen |
+| GET `/api/v1/appointments` | Danh sách lịch SQL đã liên kết nguồn; phân trang/bộ lọc theo S5.1 | Bearer; cùng quyền tạo lịch |
+| GET `/api/v1/appointments/{id}` | Chi tiết buổi hẹn, thời gian UTC | Bearer; cùng quyền tạo lịch |
 | POST `/api/v1/registrations` | Tạo đầu đăng ký và toàn bộ chi tiết lẻ/gói trong một transaction; 201 + Location | Bearer; Customer có cả hai liên kết Active hoặc nhân viên Active LeTan |
 | GET `/api/v1/registrations?customerId=&recipientId=&page=&pageSize=` | Danh sách đăng ký SQL trong phạm vi hiện hành | Bearer; cùng quyền G2 |
 | GET `/api/v1/registrations/{id}` | Chi tiết đăng ký, đơn giá đã chốt và thành phần gói | Bearer; cùng quyền G2 |
@@ -51,7 +54,7 @@ G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `Deve
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
-| Follow-up | GET/POST appointments; PUT appointments/{id}; GET recipients/{id}/history; POST reminders | Quý |
+| Follow-up | PUT appointments/{id}; GET recipients/{id}/history; POST reminders (tạo/xem lịch đã có trong S5.1 bên dưới) | Quý |
 | Aftercare | GET/POST vaccinations/{id}/follow-ups | Quý |
 | Clinical | POST screenings; POST indications; POST vaccinations; kết luận/chỉ định và ghi tiêm an toàn tối thiểu theo SCOPE, không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
 | Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |
@@ -209,3 +212,19 @@ Không retry POST tự động. Mất phản hồi/timeout sau commit là kết 
 `20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.
 
 G5 với tổng dương phải kiểm giao dịch G3 hợp lệ, toàn bộ số tiền và đúng đăng ký; `DaDangKy` hay remainingAmount=0 không đủ làm bằng chứng. Điều kiện tiền khi tổng 0 chờ quyết định ở G5, không tự coi đủ điều kiện tiêm. G6 sẽ snapshot khoản giảm lúc đăng ký; G3 không đọc MucUuDai hiện hành, áp ưu đãi hoặc hồi tố giá/khoản giảm.
+
+
+## S5.1 — Lịch hẹn từ dịch vụ đã chốt (Windows)
+
+Chỉ tạo/xem buổi hẹn; không đồng nghĩa đủ điều kiện tiêm. Không tự bung số lượng/gói thành mũi, suy phác đồ, kiểm tiền trước khi xếp hẹn hoặc tạo chỉ định/lô. Không đổi/hủy lịch, ghi tiêm, nhắc lịch hoặc mở Customer GET trong S5.1.
+
+- Cả ba endpoint yêu cầu phiên/tài khoản/nhân viên Active, chức danh `LeTan` và mã quyền hiện hữu `QuanLyLichHen`. Không cấp quyền qua seed. Customer, Admin và chức danh khác bị 403 dù có mã quyền. Chưa có quyền đọc lịch riêng; chế độ xem chi tiết trên WPF là read-only, tạo là tác vụ riêng. Ownership Customer dành cho S5.2, chưa được mở.
+- `POST /api/v1/appointments`: `{ registrationId, itemKind: "vaccine"|"package", registrationItemId, scheduledAt, location }`. ID nguyên dương; registrationItemId là **ID dòng chi tiết**, không phải ID danh mục. Từ chối trường JSON lạ. API lấy người tiêm từ đăng ký, kiểm đúng cặp hồ sơ, trạng thái `DaDangKy` và dòng thuộc đăng ký; không nhận người tiêm/actor/status từ client.
+- scheduledAt bắt buộc ISO `YYYY-MM-DDTHH:mm:ss[.fffffff]Z` hoặc có offset `±HH:mm`; sau thời điểm API nhận tạo, chuẩn hóa UTC chính xác tới 7 chữ số thập phân. Không áp giờ mở cửa/phác đồ mẫu. location sau trim dài 1–200. Trạng thái server gán `DaXepLich`.
+- 201 + Location `/api/v1/appointments/{id}`, trả `AppointmentDto = { id, registrationId, customer: { id, fullName }, recipient: { id, fullName }, itemKind, registrationItemId, serviceId, serviceName, scheduledAt, location, status }`. GET trả cùng DTO; thời gian UTC `+00:00`, tên hiện hành. Không trả giá/thông tin khám.
+- `GET /api/v1/appointments?registrationId=&recipientId=&page=&pageSize=` trả `{ items: AppointmentDto[] }`, ID giảm dần, mặc định 1/25, tối đa 100; query chỉ thu hẹp kết quả, không có tổng count. Đối chiếu POST dùng thêm `itemKind` + `registrationItemId` (đi cùng nhau) và `scheduledAt` bằng thời điểm UTC chính xác. Bộ lọc thời gian cho phép lịch quá khứ để đối chiếu.
+- `GET /api/v1/appointments/{id}`: 200 hoặc 404. Lịch legacy thiếu nguồn giữ nguyên trong SQL, không xuất hiện trong API S5.1 và không được tự đoán nguồn.
+- Ghi lịch và audit `appointments.created` / ResourceType `Appointment`, ResourceId ID lịch, actor/session/thời điểm thật cùng transaction Serializable. Khóa đăng ký tuần tự hóa yêu cầu; hai unique filtered indexes chặn cùng dòng tại cùng thời điểm UTC, cho phép đặt thời điểm khác. Không tạo payment/mũi/nhắc lịch hoặc đổi trạng thái đăng ký.
+- Problem Details có code/traceId: 400 `validation`, 401 `invalidSession`, 403 `permissionDenied`, 404 `resourceNotFound` (đăng ký/lịch thiếu), 409 `appointmentAlreadyExists` hoặc `appointmentSourceConflict` (trạng thái/cặp hồ sơ nguồn không hợp lệ), 503 `dependencyUnavailable`. Mọi response kể cả lỗi binding có `Cache-Control: no-store`; không lộ SQL/PII trong lỗi.
+- POST không retry tự động. Khi mất response/503 hoặc đọc 201 lỗi, giữ nguyên request và khóa tạo mới; GET với đúng nguồn/thời điểm trước khi thử lại. Nếu GET chưa thấy thì retry thủ công **cùng request**; unique DB vẫn bảo vệ kết quả POST cũ đến muộn. Đã nhận 201 không POST lại, chỉ tải lại bằng GET.
+- Migration `S5AppointmentSource` thêm ba cột nullable `MaDangKy`, `MaChiTietVacXin`, `MaChiTietGoi`; CHECK cho phép toàn NULL (legacy) hoặc đúng một dòng chi tiết; FK ghép bảo đảm cùng đăng ký và người tiêm. Không backfill/xóa dữ liệu. Down từ chối khi còn lịch đã liên kết. Chỉ áp dụng trên DB test riêng trong nghiệm thu; DB demo cần giao triển khai riêng.

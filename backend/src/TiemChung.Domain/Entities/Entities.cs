@@ -241,6 +241,9 @@ public sealed class TheoDoiSauTiem
 public sealed class LichHenTiem
 {
     public int MaLichHen { get; set; }
+    public int? MaDangKy { get; set; }
+    public int? MaChiTietVacXin { get; set; }
+    public int? MaChiTietGoi { get; set; }
     public int MaNguoiDuocTiem { get; set; }
     public DateTime ThoiGianHen { get; set; }
     public string DiemTiem { get; set; } = string.Empty;
