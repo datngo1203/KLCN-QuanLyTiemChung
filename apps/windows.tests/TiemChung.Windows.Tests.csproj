@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../backend/tests/TiemChung.Tests/SqlFixtureLifecycle.cs" Link="Tests/SqlFixtureLifecycle.cs" />
+    <Compile Include="../windows/Services/IScreeningService.cs;../windows/ViewModels/ScreeningViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IAppointmentService.cs;../windows/ViewModels/AppointmentViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IPaymentService.cs;../windows/ViewModels/PaymentViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IRegistrationService.cs;../windows/Services/IProfilesService.cs;../windows/Services/ICatalogService.cs;../windows/Services/IdentityApiService.cs;../windows/Services/IAuthService.cs;../windows/Services/IChangePasswordService.cs;../windows/ViewModels/RegistrationViewModel.cs;../windows/ViewModels/ViewModelBase.cs;../windows/ViewModels/RelayCommand.cs" Link="Windows/%(Filename)%(Extension)" />

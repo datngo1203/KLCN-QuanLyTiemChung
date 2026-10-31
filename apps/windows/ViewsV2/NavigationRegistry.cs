@@ -10,7 +10,7 @@ public static class NavigationRegistry
     [
         new("Tổng quan", [new("A01", "Tổng quan")]),
         new("Tiếp nhận", [new("A03", "Hồ sơ khách hàng"), new("A07", "Đăng ký dịch vụ"), new("A08", "Thanh toán")]),
-        new("Chuyên môn", [new("A06", "Tiêm & theo dõi")]),
+        new("Chuyên môn", [new("A02", "Kết luận & chỉ định"), new("A06", "Tiêm & theo dõi")]),
         new("Danh mục", [new("A04", "Danh mục"), new("A10", "Ưu đãi")]),
         new("Quản trị", [new("A09", "Lịch hẹn & lịch sử"), new("A11", "Báo cáo"), new("A12", "Nhân viên & tài khoản"), new("A14", "Đổi mật khẩu")])
     ];

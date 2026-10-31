@@ -128,7 +128,7 @@ public static partial class AppointmentEndpoints
         }).WithName("GetAppointment").Produces<AppointmentDto>();
     }
 
-    private static IQueryable<AppointmentDto> Query(TiemChungDbContext db, IQueryable<LichHenTiem> rows) =>
+    internal static IQueryable<AppointmentDto> Query(TiemChungDbContext db, IQueryable<LichHenTiem> rows) =>
         from a in rows.AsNoTracking()
         join r in db.Registrations on a.MaDangKy equals r.MaDangKy
         join c in db.Customers on r.MaKhachHang equals c.MaKhachHang

@@ -198,11 +198,13 @@ public sealed class BienDongKho
 public sealed class PhieuKhamSangLoc
 {
     public int MaPhieuKham { get; set; }
+    public int? MaLichHen { get; set; }
+    public DateTimeOffset? ThoiDiemKham { get; set; }
     public int MaDangKy { get; set; }
     public int MaNguoiDuocTiem { get; set; }
     public int MaNhanVien { get; set; }
-    public string ChiSoSinhTon { get; set; } = string.Empty;
-    public string TienSuBenhLy { get; set; } = string.Empty;
+    public string? ChiSoSinhTon { get; set; }
+    public string? TienSuBenhLy { get; set; }
     public string KetLuan { get; set; } = string.Empty;
     public string? LyDoHoan { get; set; }
 }

@@ -1,238 +1,169 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Windows.Data;
 using TiemChung.Desktop.Services;
-using TiemChung.Desktop.ViewModels.Samples;
 
 namespace TiemChung.Desktop.ViewModels;
 
-/// <summary>A02 presentation and form validation. Persistence and authorization remain unavailable.</summary>
-public sealed class ScreeningViewModel : ViewModelBase
+public sealed class ClinicalVaccineOption(ClinicalVaccine vaccine, Func<bool> canEdit, Action changed) : ViewModelBase
 {
-    private string _searchText = "";
-    private string _statusFilter = "Tất cả";
-    private ScreeningQueueSample? _selectedEncounter;
-    private string _pulseText = "";
-    private string _systolicText = "";
-    private string _diastolicText = "";
-    private string _temperatureText = "";
-    private string _allergyHistory = "";
-    private string _chronicConditions = "";
-    private string _doctorNote = "";
-    private string _conclusion = "";
-    private string _deferReason = "";
-    private string _feedback = "";
-    private bool _isDirty;
-    private bool _isDangerousAllergy;
-    private int _safetyConfirmationStep;
-    private readonly IScreeningService _screeningService;
-
-    public ScreeningViewModel(IScreeningService? screeningService = null)
-    {
-        _screeningService = screeningService ?? new SampleScreeningService();
-        Queue = new ObservableCollection<ScreeningQueueSample>(_screeningService.GetQueue());
-        Queue.CollectionChanged += (_, _) => { if (SelectedEncounter is not null && !Queue.Contains(SelectedEncounter)) { IsDirty = false; SelectedEncounter = null; ResetDraft(); Feedback = ""; } RefreshFilter(); };
-        VaccineCatalog = _screeningService.GetVaccineCatalog();
-        QueueView = CollectionViewSource.GetDefaultView(Queue);
-        QueueView.Filter = MatchesFilter;
-        Indications = new ObservableCollection<ScreeningIndicationDraft>();
-        Indications.CollectionChanged += (_, _) => { ObserveIndications(); DraftChanged(); };
-
-        SelectEncounterCommand = new RelayCommand(p => SelectEncounter(p as ScreeningQueueSample));
-        RefreshQueueCommand = new RelayCommand(_ => { QueueView.Refresh(); Feedback = "Đã áp dụng lại bộ lọc trên hàng đợi."; });
-        ResetDraftCommand = new RelayCommand(_ => ResetDraft(), _ => IsDirty);
-        AddIndicationCommand = new RelayCommand(_ => AddIndication(), _ => AreIndicationsEnabled);
-        RemoveIndicationCommand = new RelayCommand(p => { if (p is ScreeningIndicationDraft row) Indications.Remove(row); },
-            p => AreIndicationsEnabled && p is ScreeningIndicationDraft);
-        ConfirmSafetyCommand = new RelayCommand(_ => { SafetyConfirmationStep++; Feedback = SafetyConfirmationStep == 1 ? "Đã đọc cảnh báo. Xác nhận lần hai trước khi lưu." : "Đã xác nhận hai bước về cảnh báo dị ứng."; }, _ => IsDangerousAllergy && SafetyConfirmationStep < 2);
-        SetConclusionCommand = new RelayCommand(p => Conclusion = p as string ?? "");
-        LuuPhieuKhamVaChiDinhCommand = new RelayCommand(_ => SaveDraftFeedback(), _ => CanSave);
-        ObserveIndications();
-    }
-
-    public ObservableCollection<ScreeningQueueSample> Queue { get; }
-    public ICollectionView QueueView { get; }
-    public IReadOnlyList<VaccineCatalogSample> VaccineCatalog { get; }
-    public ObservableCollection<ScreeningIndicationDraft> Indications { get; }
-    public IReadOnlyList<string> StatusFilters { get; } = ["Tất cả", "Chờ khám"];
-    public IReadOnlyList<string> ConclusionOptions { get; } = ["Đủ điều kiện", "Tạm hoãn", "Chống chỉ định"];
-    public RelayCommand SelectEncounterCommand { get; }
-    public RelayCommand RefreshQueueCommand { get; }
-    public RelayCommand ResetDraftCommand { get; }
-    public RelayCommand AddIndicationCommand { get; }
-    public RelayCommand RemoveIndicationCommand { get; }
-    public RelayCommand ConfirmSafetyCommand { get; }
-    public RelayCommand SetConclusionCommand { get; }
-    public RelayCommand LuuPhieuKhamVaChiDinhCommand { get; }
-
-    // TODO: Bind the reviewed clinical permission from the authenticated shell session.
-    public bool CanSaveScreening => true;
-    public bool IsDangerousAllergy { get => _isDangerousAllergy; set { if (Set(ref _isDangerousAllergy, value)) { SafetyConfirmationStep = 0; RefreshValidation(); } } }
-    public int SafetyConfirmationStep { get => _safetyConfirmationStep; private set { if (Set(ref _safetyConfirmationStep, value)) { OnPropertyChanged(nameof(SafetyConfirmationLabel)); ConfirmSafetyCommand.NotifyCanExecuteChanged(); RefreshValidation(); } } }
-    public string SafetyConfirmationLabel => SafetyConfirmationStep == 0 ? "Xác nhận đã đọc cảnh báo" : "Xác nhận lần hai";
-    public bool NeedsSafetyConfirmation => IsDangerousAllergy && SafetyConfirmationStep < 2;
-    public bool IsEligible => Conclusion == "Đủ điều kiện";
-    public bool IsDeferred => Conclusion == "Tạm hoãn";
-    public bool IsContraindicated => Conclusion == "Chống chỉ định";
-    public bool NeedsDeferReason => Conclusion is "Tạm hoãn" or "Chống chỉ định";
-    public string DataSourceLabel => _screeningService.UseSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
-    public string SearchText { get => _searchText; set { if (Set(ref _searchText, value)) RefreshFilter(); } }
-    public string StatusFilter { get => _statusFilter; set { if (Set(ref _statusFilter, value)) RefreshFilter(); } }
-    public bool HasNoQueueResults => Queue.Count > 0 && QueueView.IsEmpty;
-    public bool HasEmptyQueue => Queue.Count == 0;
-    public string QueueCountLabel => $"{QueueView.Cast<object>().Count()} lượt";
-    public ScreeningQueueSample? SelectedEncounter { get => _selectedEncounter; private set { if (Set(ref _selectedEncounter, value)) { foreach (var row in Queue) row.IsSelected = row == value; OnPropertyChanged(nameof(HasSelection)); RefreshValidation(); } } }
-    public bool HasSelection => SelectedEncounter is not null;
-
-    public string PulseText { get => _pulseText; set => SetDraft(ref _pulseText, value); }
-    public string SystolicText { get => _systolicText; set => SetDraft(ref _systolicText, value); }
-    public string DiastolicText { get => _diastolicText; set => SetDraft(ref _diastolicText, value); }
-    public string TemperatureText { get => _temperatureText; set => SetDraft(ref _temperatureText, value); }
-    public string AllergyHistory { get => _allergyHistory; set => SetDraft(ref _allergyHistory, value); }
-    public string ChronicConditions { get => _chronicConditions; set => SetDraft(ref _chronicConditions, value); }
-    public string DoctorNote { get => _doctorNote; set => SetDraft(ref _doctorNote, value); }
-    public string Conclusion
-    {
-        get => _conclusion;
-        set => SetDraft(ref _conclusion, value);
-    }
-    public string DeferReason { get => _deferReason; set => SetDraft(ref _deferReason, value); }
-    public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
-    public bool IsDirty { get => _isDirty; private set { if (Set(ref _isDirty, value)) ResetDraftCommand.NotifyCanExecuteChanged(); } }
-
-    public string PulseError => RequiredIntegerError(PulseText, "Mạch", out int pulse) ??
-        (pulse is < 40 or > 200 ? "Mạch phải trong khoảng 40–200 lần/phút." : "");
-    public string SystolicError => RequiredIntegerError(SystolicText, "Huyết áp tâm thu", out int systolic) ??
-        (TryInteger(DiastolicText, out int diastolic) && systolic <= diastolic ? "Tâm thu phải lớn hơn tâm trương." : "");
-    public string DiastolicError => RequiredIntegerError(DiastolicText, "Huyết áp tâm trương", out int diastolic) ??
-        (TryInteger(SystolicText, out int systolic) && systolic <= diastolic ? "Tâm thu phải lớn hơn tâm trương." : "");
-    public string TemperatureError => RequiredDecimalError(TemperatureText, "Nhiệt độ", out decimal temperature) ??
-        (temperature is < 35m or > 42m ? "Nhiệt độ phải trong khoảng 35–42 °C." : "");
-    public string TemperatureSuggestion => TryDecimal(TemperatureText, out decimal temperature) && temperature >= 38m
-        ? "Gợi ý: Tạm hoãn. Đây chỉ là gợi ý, không tự đổi kết luận." : "";
-    public string AllergyError => string.IsNullOrWhiteSpace(AllergyHistory) ? "Tiền sử dị ứng là bắt buộc." : "";
-    public string ConclusionError => !ConclusionOptions.Contains(Conclusion) ? "Chọn một trong ba kết luận." : "";
-    public string DeferReasonError => (Conclusion is "Tạm hoãn" or "Chống chỉ định") && string.IsNullOrWhiteSpace(DeferReason)
-        ? "Nhập lý do khi kết luận khác “Đủ điều kiện”." : "";
-    public string IndicationsError => Conclusion == "Đủ điều kiện" && Indications.Count == 0
-        ? "Cần ít nhất một chỉ định khi đủ điều kiện."
-        : Conclusion == "Đủ điều kiện" && Indications.Any(x => x.Vaccine is null) ? "Chọn vắc xin cho mọi dòng chỉ định." : "";
-    public string AllergyAlertText => string.IsNullOrWhiteSpace(AllergyHistory)
-        ? "Tiền sử dị ứng chưa được nhập hoặc đánh giá. Không diễn giải ô trống là không dị ứng."
-        : "Đã khai báo tiền sử dị ứng. Bác sĩ cần đánh giá trước khi đưa ra kết luận.";
-    public bool AreIndicationsEnabled => HasSelection && Conclusion == "Đủ điều kiện";
-    public bool VitalsAreValid => PulseError.Length == 0 && SystolicError.Length == 0 && DiastolicError.Length == 0 && TemperatureError.Length == 0;
-    public bool IsFormValid => HasSelection && VitalsAreValid && AllergyError.Length == 0 && ConclusionError.Length == 0 &&
-        DeferReasonError.Length == 0 && IndicationsError.Length == 0 &&
-        (Conclusion != "Đủ điều kiện" || Indications.All(x => x.Vaccine is not null));
-    public bool CanSave => CanSaveScreening && IsFormValid && !NeedsSafetyConfirmation;
-    public string ValidationSummary => CanSave ? "Thông tin hợp lệ theo kiểm tra trên giao diện." : "Hoàn thành các trường bắt buộc và sửa lỗi để bật nút lưu.";
-
-    private bool SetDraft(ref string field, string value, [CallerMemberName] string? propertyName = null)
-    {
-        if (!Set(ref field, value, propertyName)) return false;
-        if (propertyName == nameof(AllergyHistory)) SafetyConfirmationStep = 0;
-        if (propertyName == nameof(Conclusion) && Conclusion != "Đủ điều kiện") Indications.Clear();
-        IsDirty = true; DraftChanged();
-        return true;
-    }
-
-    private void DraftChanged()
-    {
-        RefreshValidation();
-        IsDirty = true;
-    }
-
-    private void RefreshValidation()
-    {
-        OnPropertyChanged(nameof(PulseError)); OnPropertyChanged(nameof(SystolicError)); OnPropertyChanged(nameof(DiastolicError));
-        OnPropertyChanged(nameof(TemperatureError)); OnPropertyChanged(nameof(TemperatureSuggestion)); OnPropertyChanged(nameof(AllergyError));
-        OnPropertyChanged(nameof(AllergyAlertText));
-        OnPropertyChanged(nameof(ConclusionError)); OnPropertyChanged(nameof(DeferReasonError)); OnPropertyChanged(nameof(IndicationsError));
-        OnPropertyChanged(nameof(AreIndicationsEnabled)); OnPropertyChanged(nameof(IsEligible)); OnPropertyChanged(nameof(IsDeferred)); OnPropertyChanged(nameof(IsContraindicated)); OnPropertyChanged(nameof(NeedsDeferReason)); OnPropertyChanged(nameof(NeedsSafetyConfirmation)); OnPropertyChanged(nameof(VitalsAreValid)); OnPropertyChanged(nameof(IsFormValid));
-        OnPropertyChanged(nameof(CanSave)); OnPropertyChanged(nameof(ValidationSummary));
-        LuuPhieuKhamVaChiDinhCommand.NotifyCanExecuteChanged(); AddIndicationCommand.NotifyCanExecuteChanged();
-        RemoveIndicationCommand.NotifyCanExecuteChanged();
-        ConfirmSafetyCommand.NotifyCanExecuteChanged();
-    }
-
-    private void ObserveIndications()
-    {
-        foreach (var row in Indications) row.PropertyChanged -= Indication_PropertyChanged;
-        foreach (var row in Indications) row.PropertyChanged += Indication_PropertyChanged;
-        RefreshValidation();
-    }
-
-    private void Indication_PropertyChanged(object? sender, PropertyChangedEventArgs e) => DraftChanged();
-
-    private bool MatchesFilter(object item) => item is ScreeningQueueSample row &&
-        (StatusFilter == "Tất cả" || row.Status == StatusFilter) &&
-        (string.IsNullOrWhiteSpace(SearchText) || $"{row.Id} {row.RecipientName} {row.RegistrationId}".Contains(SearchText.Trim(), StringComparison.CurrentCultureIgnoreCase));
-
-    private void RefreshFilter()
-    {
-        QueueView.Refresh();
-        OnPropertyChanged(nameof(HasNoQueueResults)); OnPropertyChanged(nameof(HasEmptyQueue)); OnPropertyChanged(nameof(QueueCountLabel));
-    }
-
-    private void SelectEncounter(ScreeningQueueSample? row)
-    {
-        if (row is null || row == SelectedEncounter) return;
-        if (IsDirty) { Feedback = "Bản nháp hiện tại chưa lưu. Hủy thay đổi trước khi chọn lượt khác."; return; }
-        SelectedEncounter = row;
-        Feedback = $"Đang xem {row.RecipientName}.";
-    }
-
-    private void AddIndication()
-    {
-        if (!AreIndicationsEnabled) return;
-        Indications.Add(new ScreeningIndicationDraft());
-        Feedback = "Đã thêm một dòng chỉ định bản nháp.";
-    }
-
-    private void ResetDraft()
-    {
-        PulseText = ""; SystolicText = ""; DiastolicText = ""; TemperatureText = "";
-        AllergyHistory = ""; ChronicConditions = ""; DoctorNote = ""; _conclusion = ""; OnPropertyChanged(nameof(Conclusion));
-        DeferReason = ""; Indications.Clear(); IsDangerousAllergy = false; SafetyConfirmationStep = 0; IsDirty = false; RefreshValidation();
-        Feedback = "Đã hủy bản nháp cục bộ.";
-    }
-
-    private void SaveDraftFeedback()
-    {
-        if (!CanSave) return;
-        // TODO: Connect a reviewed screening command/API and authorized doctor session before persistence.
-        Feedback = "Thông tin hợp lệ nhưng chưa được lưu vào hệ thống.";
-    }
-
-    private static string? RequiredIntegerError(string text, string label, out int value)
-    {
-        if (string.IsNullOrWhiteSpace(text)) { value = default; return $"{label} là bắt buộc."; }
-        return int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value) ? null : $"{label} phải là số nguyên.";
-    }
-
-    private static string? RequiredDecimalError(string text, string label, out decimal value)
-    {
-        if (string.IsNullOrWhiteSpace(text)) { value = default; return $"{label} là bắt buộc."; }
-        return TryDecimal(text, out value) ? null : $"{label} phải là số hợp lệ.";
-    }
-
-    private static bool TryInteger(string text, out int value) => int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out value);
-    private static bool TryDecimal(string text, out decimal value)
-    {
-        const NumberStyles decimalNumber = NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint;
-        return decimal.TryParse(text, decimalNumber, CultureInfo.CurrentCulture, out value) ||
-               decimal.TryParse(text, decimalNumber, CultureInfo.InvariantCulture, out value);
-    }
+    private bool _selected;
+    public int Id => vaccine.Id;
+    public string Name => vaccine.Name;
+    public bool IsSelected { get => _selected; set { if (canEdit() && Set(ref _selected, value)) changed(); } }
+    internal void Clear() { _selected=false; OnPropertyChanged(nameof(IsSelected)); }
 }
 
-public sealed class ScreeningIndicationDraft : INotifyPropertyChanged
+public sealed class ScreeningViewModel : ViewModelBase
 {
-    private VaccineCatalogSample? _vaccine;
-    private string _note = "";
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public VaccineCatalogSample? Vaccine { get => _vaccine; set { if (_vaccine == value) return; _vaccine = value; PropertyChanged?.Invoke(this, new(nameof(Vaccine))); } }
-    public string Note { get => _note; set { if (_note == value) return; _note = value; PropertyChanged?.Invoke(this, new(nameof(Note))); } }
+    private readonly IScreeningService _service;
+    private readonly IdentityApiService _identity;
+    private readonly int _revision;
+    private bool _busy, _denied, _confirming, _committed, _reconciled, _loadError;
+    private int _page=1, _pendingId;
+    private string _search="", _feedback="", _conclusion="", _reason="";
+    private AppointmentRecord? _selected;
+    private ClinicalDetail? _detail;
+    private ClinicalAssessment? _assessment;
+    private AssessmentRequest? _pending, _confirmation;
+    public ScreeningViewModel(IScreeningService? screeningService = null, IdentityApiService? identity = null)
+    {
+        _identity=identity??IdentityApiService.Current; _revision=_identity.SessionRevision;
+        _service=screeningService??new ScreeningApiService(_identity);
+        _identity.SessionCleared+=(_,_)=>ClearSessionData();
+        ReloadCommand=new(async _=>await LoadAsync(1),_=>CanBrowse);
+        PreviousCommand=new(async _=>await LoadAsync(Page-1),_=>CanBrowse && Page>1);
+        NextCommand=new(async _=>await LoadAsync(Page+1),_=>CanBrowse && Appointments.Count==ScreeningApiService.PageSize);
+        DetailCommand=new(async _=>await LoadDetailAsync(),_=>CanBrowse && Selected is not null);
+        ResetDraftCommand=new(_=>{ClearDraft();Refresh();},_=>CanEdit && IsDirty);
+        ReconcileCommand=new(async _=>await ReconcileAsync(),_=>HasAccess && !_busy && _pending is not null);
+        RetryCommand=new(async _=>await RetryAsync(),_=>HasAccess && !_busy && _pending is not null && _reconciled && !_committed);
+    }
+    public ObservableCollection<AppointmentRecord> Appointments { get; }=[];
+    public ObservableCollection<ClinicalVaccineOption> Vaccines { get; }=[];
+    public IReadOnlyList<string> ConclusionOptions { get; }=["Đủ điều kiện","Tạm hoãn","Chống chỉ định"];
+    public RelayCommand ReloadCommand { get; }
+    public RelayCommand PreviousCommand { get; }
+    public RelayCommand NextCommand { get; }
+    public RelayCommand DetailCommand { get; }
+    public RelayCommand ResetDraftCommand { get; }
+    public RelayCommand ReconcileCommand { get; }
+    public RelayCommand RetryCommand { get; }
+    private bool IsCurrent=>_identity.IsSignedIn && _identity.SessionRevision==_revision;
+    public bool HasAccess=>IsCurrent && _identity.CanUseClinical && !_denied;
+    public bool NoAccess=>!HasAccess;
+    public bool IsBusy=>_busy;
+    public bool HasPending=>HasAccess && _pending is not null;
+    public bool IsDirty=>_conclusion.Length>0 || _reason.Length>0 || Vaccines.Any(v=>v.IsSelected);
+    public bool CanBrowse=>HasAccess && !_busy && !_confirming && _pending is null && !IsDirty;
+    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is not null && Assessment is null;
+    public bool CanSelectVaccines=>CanEdit && Conclusion=="Đủ điều kiện";
+    public bool IsDraft=>HasAccess && Detail is not null && Assessment is null;
+    public bool IsRecorded=>HasAccess && Assessment is not null;
+    public bool NoDetail=>HasAccess && Detail is null;
+    public bool NoResults=>HasAccess && !_busy && !_loadError && Appointments.Count==0;
+    public bool CanSave=>CanEdit && ConclusionOptions.Contains(Conclusion) && Reason.Trim().Length<=500 &&
+        (Conclusion=="Đủ điều kiện" ? Vaccines.Any(v=>v.IsSelected) : !string.IsNullOrWhiteSpace(Reason) && !Vaccines.Any(v=>v.IsSelected));
+    public int Page=>_page;
+    public string Feedback { get=>_feedback; private set=>Set(ref _feedback,value); }
+    public string SearchText { get=>_search; set { if(CanBrowse) Set(ref _search,value); } }
+    public string? Conclusion { get=>string.IsNullOrEmpty(_conclusion)?null:_conclusion; set { if(CanEdit && Set(ref _conclusion,value??"")) { foreach(var v in Vaccines)v.Clear(); Refresh(); } } }
+    public string Reason { get=>_reason; set { if(CanEdit && Set(ref _reason,value))Refresh(); } }
+    public AppointmentRecord? Selected { get=>_selected; set { if(CanBrowse && Set(ref _selected,value)) {ClearDetail();Refresh();} } }
+    public ClinicalDetail? Detail=>_detail;
+    public ClinicalAssessment? Assessment=>_assessment;
+    private void ClearDraft()
+    {
+        _conclusion="";_reason="";foreach(var v in Vaccines)v.Clear();
+        OnPropertyChanged(nameof(Conclusion));OnPropertyChanged(nameof(Reason));
+    }
+    private void ClearDetail()
+    {
+        _detail=null;_assessment=null;ClearDraft();Vaccines.Clear();
+        OnPropertyChanged(nameof(Detail));OnPropertyChanged(nameof(Assessment));
+    }
+    private void ClearSessionData()
+    {
+        _confirmation=null;_pending=null;_confirming=false;_committed=false;_reconciled=false;
+        _search="";_selected=null;Appointments.Clear();ClearDetail();
+        OnPropertyChanged(nameof(SearchText));OnPropertyChanged(nameof(Selected));
+        Feedback="Phiên đã thay đổi. Đăng nhập và mở lại màn kết luận.";Refresh();
+    }
+    private void Error(Exception error)
+    {
+        if(!IsCurrent)return;
+        _loadError=true;
+        if(error is ClinicalApiException {Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
+        Feedback=error is ClinicalApiException ? error.Message : "Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+    }
+    private void Refresh()
+    {
+        foreach(var name in new[]{nameof(HasAccess),nameof(NoAccess),nameof(IsBusy),nameof(HasPending),nameof(IsDirty),nameof(CanBrowse),nameof(CanEdit),nameof(CanSelectVaccines),nameof(IsDraft),nameof(IsRecorded),nameof(NoDetail),nameof(NoResults),nameof(CanSave),nameof(Page)})OnPropertyChanged(name);
+        foreach(var command in new[]{ReloadCommand,PreviousCommand,NextCommand,DetailCommand,ResetDraftCommand,ReconcileCommand,RetryCommand})command?.NotifyCanExecuteChanged();
+    }
+    public async Task LoadAsync(int page=1)
+    {
+        if(!CanBrowse || page<1)return;
+        if(SearchText.Trim().Length>100){Feedback="Tìm kiếm tối đa 100 ký tự.";return;}
+        _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Appointments.Clear();
+        Feedback="Đang tải lịch hẹn từ API / SQL…";Refresh();
+        try {var rows=await _service.ListAsync(page,SearchText);if(!IsCurrent || _denied)return;
+            foreach(var row in rows)Appointments.Add(row);_page=page;Feedback=rows.Length==0?"Không có lịch hẹn phù hợp.":"Chọn lịch hẹn để xem và ghi kết luận. Chưa xác nhận người bệnh đã đến khám.";
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
+    }
+    public async Task LoadDetailAsync()
+    {
+        if(!CanBrowse || Selected is not {} selected)return;
+        _busy=true;_loadError=false;ClearDetail();Feedback="Đang đọc người tiêm, dịch vụ và kết luận…";Refresh();
+        try {
+            var detail=await _service.GetAsync(selected.Id);
+            if(!IsCurrent || _denied)return;
+            var assessment=await _service.GetAssessmentAsync(selected.Id);
+            if(!IsCurrent || _denied)return;
+            _detail=detail;_assessment=assessment;
+            foreach(var vaccine in detail.AllowedVaccines)Vaccines.Add(new(vaccine,()=>CanSelectVaccines,Refresh));
+            OnPropertyChanged(nameof(Detail));OnPropertyChanged(nameof(Assessment));
+            Feedback=assessment is null?"Bác sĩ chủ động chọn kết luận và vắc xin. Chưa có kết quả tiêm.":"Kết luận đã lưu, chỉ đọc; không sửa hoặc hủy trong chức năng này.";
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
+    }
+    public string? BeginConfirmation()
+    {
+        if(!CanSave)return null;
+        _confirmation=new(_conclusion,string.IsNullOrWhiteSpace(Reason)?null:Reason.Trim(),Vaccines.Where(v=>v.IsSelected).Select(v=>v.Id).ToArray());
+        _confirming=true;Refresh();
+        return $"{Detail!.Appointment.Label}\n{Detail.Appointment.SourceLabel}\nKết luận: {Conclusion}\nLý do: {_confirmation.Reason}\nChỉ định: {string.Join(", ",Vaccines.Where(v=>v.IsSelected).Select(v=>v.Name))}\n\nXác nhận lưu kết luận? Sau khi lưu chỉ xem, không sửa/hủy.";
+    }
+    public async Task ConfirmAsync(bool confirmed)
+    {
+        var request=_confirmation;_confirmation=null;_confirming=false;
+        if(!confirmed || request is null || !IsCurrent || _denied || Detail is null){Refresh();return;}
+        _pending=request;_pendingId=Detail.Appointment.Id;_committed=false;_reconciled=false;
+        await SendPendingAsync();
+    }
+    private void Accept(ClinicalAssessment result)
+    {
+        _assessment=result;_pending=null;_committed=false;_reconciled=false;ClearDraft();OnPropertyChanged(nameof(Assessment));
+        Feedback="Đã đọc kết luận và chỉ định từ API / SQL. Thông tin chỉ đọc; chưa phải ghi nhận mũi tiêm.";
+    }
+    private async Task SendPendingAsync()
+    {
+        _busy=true;_reconciled=false;Feedback="Đang lưu kết luận và chỉ định…";Refresh();
+        try {var result=await _service.CreateAsync(_pendingId,_pending!);if(IsCurrent && !_denied)Accept(result);}
+        catch(ClinicalApiException e) when(e.Code is "outcomeUnknown" or "recordedUnreadable" or "assessmentAlreadyRecorded") {
+            if(IsCurrent){_committed=e.Code=="recordedUnreadable";Feedback=e.Message;}
+        }
+        catch(Exception e){if(IsCurrent){if(e is ClinicalApiException)_pending=null;Error(e);}}
+        finally{_busy=false;Refresh();}
+    }
+    public async Task ReconcileAsync()
+    {
+        if(!HasAccess || _busy || _pending is null)return;
+        _busy=true;_reconciled=false;Feedback="Đang GET đối chiếu kết quả…";Refresh();
+        try {var result=await _service.GetAssessmentAsync(_pendingId);if(!IsCurrent || _denied)return;
+            if(result is not null)Accept(result);
+            else{_reconciled=true;Feedback=_committed?"API đã trả 201. Tiếp tục GET, không gửi lại.":"GET chưa thấy kết luận. Có thể thử lại đúng yêu cầu cũ; API chặn phiếu trùng.";}
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
+    }
+    public async Task RetryAsync()
+    {
+        if(HasAccess && !_busy && _pending is not null && _reconciled && !_committed)await SendPendingAsync();
+    }
 }
