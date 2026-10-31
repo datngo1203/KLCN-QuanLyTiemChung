@@ -1,151 +1,85 @@
 <UserControl x:Class="TiemChung.Desktop.ViewsV2.ScreeningView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Name="Screening" Language="vi-VN" SizeChanged="View_SizeChanged">
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolVisibility" />
-    </UserControl.Resources>
-    <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="28,24">
-        <StackPanel>
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="CHUYÊN MÔN / A02" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Primary}" />
-                <TextBlock Text="Khám sàng lọc &amp; chỉ định" Style="{StaticResource CE.Heading}" Margin="0,4" />
-                <TextBlock Text="Bàn khám theo lượt và ghi nhận chỉ định" Style="{StaticResource CE.Caption}" />
-                <Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left" Margin="0,8,0,0"><TextBlock Text="{Binding DataSourceLabel}" /></Border>
-            </StackPanel>
-            <Grid x:Name="Workspace">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="320" /><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource CE.Card}" VerticalAlignment="Top">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,12">
-                            <Button DockPanel.Dock="Right" Content="Làm mới" Style="{StaticResource CE.Button.Secondary}" Command="{Binding RefreshQueueCommand}" />
-                            <StackPanel><TextBlock Text="Hàng đợi khám" Style="{StaticResource CE.SectionHeading}" /><TextBlock Text="{Binding QueueCountLabel}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" /></StackPanel>
-                        </DockPanel>
-                        <TextBlock Text="Tìm lượt / người được tiêm" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" />
-                        <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tìm lượt hoặc người được tiêm" />
-                        <TextBlock Text="Trạng thái" Style="{StaticResource CE.Caption}" Margin="0,12,0,4" />
-                        <ComboBox Style="{StaticResource CE.ComboBox}" ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" AutomationProperties.Name="Lọc trạng thái hàng đợi" />
-                        <TextBlock Text="Hàng đợi hiện không có lượt khám." Style="{StaticResource CE.Caption}" Margin="0,16,0,0" Visibility="{Binding HasEmptyQueue, Converter={StaticResource BoolVisibility}}" />
-                        <TextBlock Text="Không có lượt phù hợp với bộ lọc." Style="{StaticResource CE.Caption}" Margin="0,16,0,0" Visibility="{Binding HasNoQueueResults, Converter={StaticResource BoolVisibility}}" />
-                        <ItemsControl ItemsSource="{Binding QueueView}" Margin="0,16,0,0">
-                            <ItemsControl.ItemTemplate><DataTemplate>
-                                <Button HorizontalContentAlignment="Stretch" Margin="0,0,0,8"
-                                        Command="{Binding DataContext.SelectEncounterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}"><Style.Triggers><DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Background" Value="{StaticResource CE.Selected}"/><Setter Property="BorderBrush" Value="{StaticResource CE.Primary}"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                    <StackPanel>
-                                        <DockPanel LastChildFill="True"><TextBlock DockPanel.Dock="Right" Text="{Binding TimeLabel}" Style="{StaticResource CE.Caption}" Margin="8,0,0,0" /><TextBlock Text="{Binding RecipientName}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /></DockPanel>
-                                        <TextBlock Text="{Binding Id}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" />
-                                        <Border Style="{StaticResource CE.Badge.Warning}" HorizontalAlignment="Left" Margin="0,4,0,0"><TextBlock Text="{Binding Status}"/></Border>
-                                    </StackPanel>
-                                </Button>
-                            </DataTemplate></ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-
-                <StackPanel x:Name="DetailPanel" Grid.Column="2">
-                    <Border Margin="0,0,0,16">
-                        <Border.Style><Style TargetType="Border" BasedOn="{StaticResource CE.Badge.Info}"><Style.Triggers>
-                            <DataTrigger Binding="{Binding HasSelection}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                        </Style.Triggers></Style></Border.Style>
-                        <TextBlock>
-                            <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource CE.Body}"><Setter Property="Text" Value="Chưa chọn lượt khám. Chọn một dòng trong hàng đợi để mở biểu mẫu."/><Style.Triggers><DataTrigger Binding="{Binding HasEmptyQueue}" Value="True"><Setter Property="Text" Value="Hàng đợi hiện không có lượt khám để mở biểu mẫu."/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                        </TextBlock>
-                    </Border>
-                    <StackPanel IsEnabled="{Binding HasSelection}" Visibility="{Binding HasSelection, Converter={StaticResource BoolVisibility}}">
-                        <Border Style="{StaticResource CE.Card}" Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="Người được tiêm &amp; đăng ký" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12" />
-                                <TextBlock Text="{Binding SelectedEncounter.RecipientName}" Style="{StaticResource CE.Heading}" />
-                                <WrapPanel Margin="0,12,0,0">
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Mã hồ sơ" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.RecipientId}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Ngày sinh" Style="{StaticResource CE.Caption}" /><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding SelectedEncounter.BirthDateLabel}" Style="{StaticResource CE.Body}"/><TextBlock Text="{Binding SelectedEncounter.RecipientAgeLabel}" Style="{StaticResource CE.Caption}" Margin="8,0,0,0"/></StackPanel></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Giới tính" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.Gender}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="CCCD" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.RecipientNationalId}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Mã đăng ký" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.RegistrationId}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Khách hàng liên hệ" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.CustomerName}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,24,8"><TextBlock Text="Số điện thoại" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.CustomerPhone}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                    <StackPanel Margin="0,0,0,8"><TextBlock Text="Dịch vụ đăng ký" Style="{StaticResource CE.Caption}" /><TextBlock Text="{Binding SelectedEncounter.RegisteredService}" Style="{StaticResource CE.Body}" /></StackPanel>
-                                </WrapPanel>
-                                <ContentControl Style="{StaticResource CE.Alert.Safety}" Margin="0,8,0,0"><StackPanel>
-                                    <TextBlock Text="{Binding AllergyAlertText}" Style="{StaticResource CE.Body}" />
-                                    <CheckBox Content="Dị ứng nguy hiểm cần xác nhận" IsChecked="{Binding IsDangerousAllergy}" Margin="0,8,0,0"/>
-                                    <Button Content="{Binding SafetyConfirmationLabel}" Command="{Binding ConfirmSafetyCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                                </StackPanel></ContentControl>
-                            </StackPanel>
-                        </Border>
-
-                        <Grid x:Name="ClinicalColumns" Margin="0,0,0,16">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                            <Border Style="{StaticResource CE.Card}" Grid.Column="0">
-                                <StackPanel>
-                                    <TextBlock Text="Khám sàng lọc" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12" />
-                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0"><TextBlock Text="Mạch (lần/phút)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" /><TextBox Style="{StaticResource CE.TextBox}" Text="{Binding PulseText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Mạch" /><TextBlock Text="{Binding PulseError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" /></StackPanel>
-                                        <StackPanel Grid.Column="2"><TextBlock Text="Nhiệt độ (°C)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" /><TextBox Style="{StaticResource CE.TextBox}" Text="{Binding TemperatureText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Nhiệt độ" /><TextBlock Text="{Binding TemperatureError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" /><TextBlock Text="{Binding TemperatureSuggestion}" Style="{StaticResource CE.Caption}" Foreground="{StaticResource CE.Warning.Foreground}" Margin="0,4,0,0" /></StackPanel>
-                                    </Grid>
-                                    <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0"><TextBlock Text="Huyết áp tâm thu (mmHg)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" /><TextBox Style="{StaticResource CE.TextBox}" Text="{Binding SystolicText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Huyết áp tâm thu" /><TextBlock Text="{Binding SystolicError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" /></StackPanel>
-                                        <StackPanel Grid.Column="2"><TextBlock Text="Huyết áp tâm trương (mmHg)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4" /><TextBox Style="{StaticResource CE.TextBox}" Text="{Binding DiastolicText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Huyết áp tâm trương" /><TextBlock Text="{Binding DiastolicError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" /></StackPanel>
-                                    </Grid>
-                                    <TextBlock Text="Tiền sử dị ứng (bắt buộc)" Style="{StaticResource CE.Caption}" Margin="0,16,0,4" />
-                                    <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding AllergyHistory, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Height="72" AutomationProperties.Name="Tiền sử dị ứng bắt buộc" />
-                                    <TextBlock Text="{Binding AllergyError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0" />
-                                    <TextBlock Text="Bệnh lý mãn tính" Style="{StaticResource CE.Caption}" Margin="0,12,0,4" />
-                                    <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding ChronicConditions, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Height="64" AutomationProperties.Name="Bệnh lý mãn tính" />
-                                    <TextBlock Text="Ghi chú bác sĩ" Style="{StaticResource CE.Caption}" Margin="0,12,0,4" />
-                                    <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding DoctorNote, UpdateSourceTrigger=PropertyChanged}" Height="64" AutomationProperties.Name="Ghi chú bác sĩ" />
-                                </StackPanel>
-                            </Border>
-                                                        <StackPanel x:Name="ClinicalPanel" Grid.Column="2">
-                                <Border Style="{StaticResource CE.Card}" Margin="0,0,0,16"><StackPanel>
-                                    <TextBlock Text="Kết luận" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
-                                    <UniformGrid Columns="3">
-                                        <RadioButton Content="Đủ điều kiện" GroupName="Conclusion" Style="{StaticResource CE.SegmentedButton}" IsChecked="{Binding IsEligible, Mode=OneWay}" Command="{Binding SetConclusionCommand}" CommandParameter="Đủ điều kiện"/>
-                                        <RadioButton Content="Tạm hoãn" GroupName="Conclusion" Style="{StaticResource CE.SegmentedButton.Warning}" IsChecked="{Binding IsDeferred, Mode=OneWay}" Command="{Binding SetConclusionCommand}" CommandParameter="Tạm hoãn"/>
-                                        <RadioButton Content="Chống chỉ định" GroupName="Conclusion" Style="{StaticResource CE.SegmentedButton.Warning}" IsChecked="{Binding IsContraindicated, Mode=OneWay}" Command="{Binding SetConclusionCommand}" CommandParameter="Chống chỉ định"/>
-                                    </UniformGrid>
-                                    <TextBlock Text="{Binding ConclusionError}" Style="{StaticResource CE.Caption}" Margin="0,8,0,0"/>
-                                    <StackPanel Visibility="{Binding NeedsDeferReason, Converter={StaticResource BoolVisibility}}" Margin="0,16,0,0">
-                                        <TextBlock Text="Lý do" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/>
-                                        <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding DeferReason, UpdateSourceTrigger=PropertyChanged}" Height="64" MaxLength="500"/>
-                                        <TextBlock Text="{Binding DeferReasonError}" Style="{StaticResource CE.Caption}" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </StackPanel></Border>
-                                <Border x:Name="IndicationCard" Style="{StaticResource CE.Card}" IsEnabled="{Binding AreIndicationsEnabled}">
-                                <StackPanel>
-                                    <TextBlock Text="Chỉ định theo vắc xin" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8" />
-                                    <TextBlock Text="Chỉ định chỉ nhập khi kết luận đủ điều kiện." Style="{StaticResource CE.Caption}" Margin="0,0,0,12" />
-                                    <Button Content="Thêm chỉ định" Style="{StaticResource CE.Button.Primary}" Command="{Binding AddIndicationCommand}" HorizontalAlignment="Left" Margin="0,0,0,12" />
-                                    <DataGrid ItemsSource="{Binding Indications}" Style="{StaticResource CE.DataGrid}" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="280" AutomationProperties.Name="Danh sách chỉ định">
-                                        <DataGrid.Columns>
-                                            <DataGridTemplateColumn Header="Vắc xin" Width="*" MinWidth="160"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                                <ComboBox Style="{StaticResource CE.ComboBox}" ItemsSource="{Binding DataContext.VaccineCatalog, RelativeSource={RelativeSource AncestorType=UserControl}}" DisplayMemberPath="Name" SelectedItem="{Binding Vaccine, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Chọn vắc xin" />
-                                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="Ghi chú từng dòng" Width="*" MinWidth="140"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                                <TextBox Style="{StaticResource CE.TextBox}" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" MaxLength="500" AutomationProperties.Name="Ghi chú chỉ định" />
-                                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                            <DataGridTemplateColumn Header="" Width="64"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                                <Button Content="Xóa" Style="{StaticResource CE.Button.Secondary}" Command="{Binding DataContext.RemoveIndicationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                    <TextBlock Text="{Binding IndicationsError}" Style="{StaticResource CE.Caption}" Margin="0,8,0,0" />
-                                    <TextBlock Text="" Style="{StaticResource CE.Caption}" Margin="0,8,0,0" />
-                                </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-            <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" Margin="0,16,0,0" AutomationProperties.LiveSetting="Polite" />
-
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Language="vi-VN" SizeChanged="View_SizeChanged">
+ <UserControl.Resources><BooleanToVisibilityConverter x:Key="Vis"/></UserControl.Resources>
+ <Grid Background="{StaticResource CE.Canvas}">
+  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24">
+   <StackPanel>
+    <TextBlock Text="CHUYÊN MÔN / A02" Style="{StaticResource CE.Caption}"/>
+    <TextBlock Text="Kết luận và chỉ định theo lịch hẹn" Style="{StaticResource CE.Heading}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+    <TextBlock Text="API / SQL · Lịch hẹn chưa phải xác nhận đã đến khám hoặc đã tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <TextBlock Text="Chỉ Bác sĩ đang hoạt động được xem và ghi kết luận." Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
+    <TextBlock Text="Đang xử lý…" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}"/>
+    <WrapPanel Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,12">
+     <Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
+     <Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
+    </WrapPanel>
+    <Grid x:Name="Workspace" Visibility="{Binding HasAccess,Converter={StaticResource Vis}}">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="310"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Border Style="{StaticResource CE.Card}" Padding="16" VerticalAlignment="Top">
+      <StackPanel>
+       <TextBlock Text="Danh sách lịch hẹn" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
+       <TextBlock Text="Tên người tiêm hoặc mã LH-0001" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+       <TextBox Text="{Binding SearchText,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm lịch hẹn" Margin="0,4,0,8"/>
+       <Button Content="Tìm / tải lại lịch" Command="{Binding ReloadCommand}" Style="{StaticResource CE.Button.Secondary}"/>
+       <TextBlock Text="Không có lịch hẹn phù hợp." Visibility="{Binding NoResults,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+       <ListView ItemsSource="{Binding Appointments}" SelectedItem="{Binding Selected}" SelectionChanged="AppointmentChanged" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.ListView}" HorizontalContentAlignment="Stretch" MaxHeight="380" Margin="0,12" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Lịch hẹn chuyên môn">
+        <ListView.ItemTemplate><DataTemplate><StackPanel Margin="4">
+         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+         <TextBlock Text="{Binding TimeLabel}" Margin="0,4,0,0"/>
+         <TextBlock Text="{Binding SourceLabel}" TextWrapping="Wrap"/>
+         <TextBlock Text="{Binding Location}" TextWrapping="Wrap" Style="{StaticResource CE.Caption}"/>
+        </StackPanel></DataTemplate></ListView.ItemTemplate>
+       </ListView>
+       <WrapPanel><Button Content="Trang trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page,StringFormat=Trang {0}}" VerticalAlignment="Center" Margin="8"/><Button Content="Trang sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></WrapPanel>
+       <TextBlock Text="Xóa bản nháp nếu muốn chọn lịch khác." Visibility="{Binding IsDirty,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+      </StackPanel>
+     </Border>
+     <Border x:Name="DetailPanel" Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18" VerticalAlignment="Top">
+      <StackPanel>
+       <TextBlock x:Name="DetailHeading" Text="Buổi hẹn và kết luận" Focusable="True" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+       <TextBlock Text="Chọn lịch hẹn để xem đúng người tiêm và dòng dịch vụ." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10"/>
+       <Button Content="Tải lại chi tiết" Command="{Binding DetailCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,10"/>
+       <TextBlock Text="{Binding Detail.Appointment.Label}" Style="{StaticResource CE.Heading}" TextWrapping="Wrap"/>
+       <TextBlock Text="{Binding Detail.Appointment.SourceLabel}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+       <TextBlock Text="{Binding Detail.Appointment.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+       <TextBlock Text="{Binding Detail.Appointment.TimeLabel,StringFormat=Giờ trên máy: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+       <TextBlock Text="{Binding Detail.Appointment.Location,StringFormat=Địa điểm: {0}}" TextWrapping="Wrap" Margin="0,8,0,12"/>
+       <StackPanel Visibility="{Binding IsDraft,Converter={StaticResource Vis}}">
+        <TextBlock Text="Sinh tồn và tiền sử: chưa thu thập trong chức năng này. Không diễn giải là bình thường." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+        <StackPanel IsEnabled="{Binding CanEdit}">
+         <TextBlock Text="Kết luận do bác sĩ lựa chọn" Style="{StaticResource CE.Caption}"/>
+         <ComboBox x:Name="ConclusionInput" ItemsSource="{Binding ConclusionOptions}" SelectedItem="{Binding Conclusion}" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Kết luận" Margin="0,4,0,12"/>
+         <TextBlock Text="Lý do (bắt buộc khi tạm hoãn hoặc chống chỉ định)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+         <TextBox Text="{Binding Reason,UpdateSourceTrigger=PropertyChanged}" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="76" VerticalScrollBarVisibility="Auto" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Lý do kết luận" Margin="0,4,0,12"/>
+         <TextBlock Text="Vắc xin chỉ định cho buổi hẹn" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+         <TextBlock Text="Đủ điều kiện: chủ động chọn ít nhất một vắc xin. Chỉ các mục được chọn có chỉ định; không tự cho phép toàn bộ gói." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,6,0,10"/>
+         <ItemsControl ItemsSource="{Binding Vaccines}" IsEnabled="{Binding CanSelectVaccines}"><ItemsControl.ItemTemplate><DataTemplate>
+          <CheckBox IsChecked="{Binding IsSelected}" Margin="0,6" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/></CheckBox>
+         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         </StackPanel>
-    </ScrollViewer>
-    <Border Grid.Row="1" Background="{StaticResource CE.Surface}" BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,1,0,0" Padding="24,12"><DockPanel LastChildFill="True"><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="Hủy thay đổi" Style="{StaticResource CE.Button.Secondary}" Command="{Binding ResetDraftCommand}" Margin="0,0,8,0"/><Button Content="Lưu" Style="{StaticResource CE.Button.Primary}" Command="{Binding LuuPhieuKhamVaChiDinhCommand}"/></StackPanel><TextBlock Text="{Binding ValidationSummary}" Style="{StaticResource CE.Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></DockPanel></Border>
+       </StackPanel>
+       <StackPanel Visibility="{Binding IsRecorded,Converter={StaticResource Vis}}" Margin="0,12,0,0">
+        <TextBlock Text="Kết luận đã lưu · Chỉ đọc" Style="{StaticResource CE.SectionHeading}"/>
+        <TextBlock Text="{Binding Assessment.Conclusion}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,6"/>
+        <TextBlock Text="{Binding Assessment.Reason}" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding Assessment.Doctor.FullName,StringFormat=Bác sĩ: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBlock Text="{Binding Assessment.RecordedLabel,StringFormat=Ghi nhận (giờ trên máy): {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBlock Text="Sinh tồn và tiền sử: chưa thu thập trong S5.3." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10"/>
+        <TextBlock Text="Chỉ định đã lưu" Style="{StaticResource CE.SectionHeading}"/>
+        <ItemsControl ItemsSource="{Binding Assessment.Indications}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,8"><TextBlock Text="{Binding VaccineName}" TextWrapping="Wrap"/><TextBlock Text="{Binding ResultLabel}" Style="{StaticResource CE.Caption}"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="Kết luận và chỉ định chưa phải ghi nhận đã tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+       </StackPanel>
+      </StackPanel>
+     </Border>
     </Grid>
+   </StackPanel>
+  </ScrollViewer>
+  <Border Grid.Row="1" Background="{StaticResource CE.Surface}" BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,1,0,0" Padding="24,12">
+   <WrapPanel HorizontalAlignment="Right"><Button Content="Xóa bản nháp" Command="{Binding ResetDraftCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,10,0"/><Button x:Name="SaveButton" Content="Xác nhận lưu kết luận" Click="ConfirmAssessment" IsEnabled="{Binding CanSave}" Style="{StaticResource CE.Button.Primary}"/></WrapPanel>
+  </Border>
+ </Grid>
 </UserControl>

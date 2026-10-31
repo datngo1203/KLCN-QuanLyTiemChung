@@ -295,6 +295,11 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var phieukham = model.Entity<PhieuKhamSangLoc>();
         phieukham.ToTable("PhieuKhamSangLoc");
         phieukham.HasKey(x => x.MaPhieuKham);
+        phieukham.HasOne<LichHenTiem>().WithMany().HasForeignKey(x => x.MaLichHen).OnDelete(DeleteBehavior.Restrict);
+        phieukham.HasIndex(x => x.MaLichHen).IsUnique().HasFilter("[MaLichHen] IS NOT NULL");
+        phieukham.Property(x => x.ThoiDiemKham).HasColumnType("datetimeoffset");
+        phieukham.ToTable(t => t.HasCheckConstraint("CK_PhieuKhamSangLoc_AppointmentTime",
+            "([MaLichHen] IS NULL AND [ThoiDiemKham] IS NULL) OR ([MaLichHen] IS NOT NULL AND [ThoiDiemKham] IS NOT NULL AND DATEPART(TZOFFSET, [ThoiDiemKham]) = 0)"));
         phieukham.Property(x => x.MaPhieuKham).HasColumnType("int");
         phieukham.Property(x => x.MaDangKy).HasColumnType("int");
         phieukham.HasOne<DangKyDichVu>().WithMany().HasForeignKey(x => x.MaDangKy).OnDelete(DeleteBehavior.Restrict);
@@ -303,9 +308,9 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         phieukham.Property(x => x.MaNhanVien).HasColumnType("int");
         phieukham.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
         phieukham.Property(x => x.ChiSoSinhTon).HasColumnType("nvarchar(500)");
-        phieukham.Property(x => x.ChiSoSinhTon).IsRequired();
+
         phieukham.Property(x => x.TienSuBenhLy).HasColumnType("nvarchar(1000)");
-        phieukham.Property(x => x.TienSuBenhLy).IsRequired();
+
         phieukham.Property(x => x.KetLuan).HasColumnType("nvarchar(500)");
         phieukham.Property(x => x.KetLuan).IsRequired();
         phieukham.Property(x => x.LyDoHoan).HasColumnType("nvarchar(500)");
@@ -313,6 +318,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var chidinhtiem = model.Entity<ChiDinhTiem>();
         chidinhtiem.ToTable("ChiDinhTiem");
         chidinhtiem.HasKey(x => x.MaChiDinh);
+        chidinhtiem.HasIndex(x => new { x.MaPhieuKham, x.MaVacXin }).IsUnique();
         chidinhtiem.Property(x => x.MaChiDinh).HasColumnType("int");
         chidinhtiem.Property(x => x.MaPhieuKham).HasColumnType("int");
         chidinhtiem.HasOne<PhieuKhamSangLoc>().WithMany().HasForeignKey(x => x.MaPhieuKham).OnDelete(DeleteBehavior.Restrict);
@@ -359,6 +365,8 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var lichhentiem = model.Entity<LichHenTiem>();
         lichhentiem.ToTable("LichHenTiem");
         lichhentiem.HasKey(x => x.MaLichHen);
+        // SQL composite FK in S5ClinicalAssessment preserves nullable legacy registration IDs.
+        lichhentiem.HasIndex(x => new { x.MaLichHen, x.MaDangKy, x.MaNguoiDuocTiem }).IsUnique().HasFilter(null);
         lichhentiem.HasOne<DangKyDichVu>().WithMany()
             .HasForeignKey(x => new { x.MaDangKy, x.MaNguoiDuocTiem })
             .HasPrincipalKey(x => new { x.MaDangKy, x.MaNguoiDuocTiem }).OnDelete(DeleteBehavior.Restrict);

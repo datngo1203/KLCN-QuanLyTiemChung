@@ -317,7 +317,7 @@ public sealed class AppointmentSqlTests
             Assert.True(json.RootElement.TryGetProperty("traceId",out _));Assert.DoesNotContain("SqlException",text);
         }
     }
-    private sealed class Fixture : IAsyncDisposable
+    internal sealed class Fixture : IAsyncDisposable
     {
         public required CatalogSqlTests.Fixture Base {get;init;}
         public TiemChungDbContext Db=>Base.Db;
