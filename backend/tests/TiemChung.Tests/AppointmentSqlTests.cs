@@ -101,9 +101,13 @@ public sealed class AppointmentSqlTests
                 await Problem(await client.PostAsJsonAsync(Route,request), status);
             }
             using var anonymous = f.Base.Factory.CreateClient(); await Denied(anonymous,401);
-            foreach (var title in new string?[] { "LeTan", "Admin", "ThuNgan", "BacSi", "DieuDuong", "ThuKho", null }) {
+            foreach (var title in new string?[] { "LeTan", "Admin", "ThuNgan", "BacSi", "DieuDuong", "ThuKho" }) {
                 using var actor = await f.Actor(title, title != "LeTan"); await Denied(actor,403);
             }
+            using var customer = await f.Actor(null, false);
+            Assert.Empty((await customer.GetFromJsonAsync<AppointmentListResponse>(Route))!.Items);
+            await Problem(await customer.GetAsync(Route + "/1"),403,"permissionDenied");
+            await Problem(await customer.PostAsJsonAsync(Route,request),403,"permissionDenied");
             await f.Db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==f.AccountId).ExecuteDeleteAsync();
             await Denied(f.Reception,403);
             await f.Db.Set<NhanVien>().Where(x=>x.MaNhanVien==f.EmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
@@ -184,6 +188,126 @@ public sealed class AppointmentSqlTests
         });
     }
 
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task CustomerOwnershipFiltersBeforePagingAndDetailWithoutWritingSql()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var own = await f.Register();
+            var appointments = new List<AppointmentDto>();
+            foreach (var line in own.Items) {
+                using var response = await f.Reception.PostAsJsonAsync(Route, f.Request(own, line));
+                Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+                appointments.Add((await response.Content.ReadFromJsonAsync<AppointmentDto>())!);
+            }
+            using var customer = await f.Actor(null, false);
+            var ownerId = f.LastAccountId;
+            f.Db.AddRange(new AccountProfileLink { AccountId=ownerId, CustomerId=f.CustomerId, State="Active" },
+                new AccountProfileLink { AccountId=ownerId, RecipientId=f.RecipientId, State="Active" });
+            var otherCustomer = new KhachHang { HoTen="[DEMO] S5.2 other customer" };
+            f.Db.Add(otherCustomer); await f.Db.SaveChangesAsync();
+            var otherRecipient = new NguoiDuocTiem { MaKhachHang=otherCustomer.MaKhachHang, HoTen="[DEMO] S5.2 other recipient" };
+            f.Db.Add(otherRecipient); await f.Db.SaveChangesAsync();
+            f.CustomerId=otherCustomer.MaKhachHang; f.RecipientId=otherRecipient.MaNguoiDuocTiem;
+            var other = await f.Register();
+            using var created = await f.Reception.PostAsJsonAsync(Route, f.Request(other, other.Items[0]));
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var hidden = (await created.Content.ReadFromJsonAsync<AppointmentDto>())!;
+            using var customerB = await f.Actor(null, false);
+            f.Db.AddRange(new AccountProfileLink { AccountId=f.LastAccountId, CustomerId=f.CustomerId, State="Active" },
+                new AccountProfileLink { AccountId=f.LastAccountId, RecipientId=f.RecipientId, State="Active" },
+                new LichHenTiem { MaNguoiDuocTiem=own.Recipient.Id, ThoiGianHen=DateTime.UtcNow, DiemTiem="[DEMO] legacy", TrangThai="Planned" });
+            await f.Db.SaveChangesAsync();
+            var legacyId = await f.Db.Set<LichHenTiem>().Where(x=>x.MaDangKy==null).Select(x=>x.MaLichHen).SingleAsync();
+            var before = await Snapshot(f.Db);
+            var all = (await customer.GetFromJsonAsync<AppointmentListResponse>(Route + "?pageSize=100"))!.Items;
+            Assert.Equal(appointments.Select(x=>x.Id).OrderDescending(), all.Select(x=>x.Id));
+            Assert.Equal(hidden.Id, Assert.Single((await customerB.GetFromJsonAsync<AppointmentListResponse>(Route))!.Items).Id);
+            await Problem(await customerB.GetAsync(Route+"/"+all[0].Id),403,"permissionDenied");
+            for (var page=1; page<=2; page++)
+                Assert.Equal(all[page-1].Id, Assert.Single((await customer.GetFromJsonAsync<AppointmentListResponse>(Route+$"?page={page}&pageSize=1"))!.Items).Id);
+            foreach (var query in new[] { "page=3&pageSize=1", $"registrationId={other.Id}", $"recipientId={other.Recipient.Id}",
+                $"registrationId={own.Id}&recipientId={other.Recipient.Id}", "accountId="+f.LastAccountId+"&ownerId="+f.LastAccountId+"&page=3&pageSize=1" })
+                Assert.Empty((await customer.GetFromJsonAsync<AppointmentListResponse>(Route+"?"+query))!.Items);
+            foreach (var row in all) {
+                Assert.Equal(JsonSerializer.Serialize(row), JsonSerializer.Serialize(await customer.GetFromJsonAsync<AppointmentDto>(Route+"/"+row.Id)));
+                var query=$"?registrationId={own.Id}&recipientId={own.Recipient.Id}&itemKind={row.ItemKind}&registrationItemId={row.RegistrationItemId}&scheduledAt={Uri.EscapeDataString(row.ScheduledAt.ToString("O"))}";
+                Assert.Equal(row.Id, Assert.Single((await customer.GetFromJsonAsync<AppointmentListResponse>(Route+query))!.Items).Id);
+            }
+            foreach (var id in new[] { hidden.Id, int.MaxValue, legacyId })
+                await Problem(await customer.GetAsync(Route+"/"+id),403,"permissionDenied");
+            await Problem(await f.Reception.GetAsync(Route+"/2147483647"),404,"resourceNotFound");
+            Assert.Equal(before, await Snapshot(f.Db));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task BothDirectActiveLinksAndCurrentRecipientCustomerPairAreRequired()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration=await f.Register();
+            using var created=await f.Reception.PostAsJsonAsync(Route,f.Request(registration,registration.Items[0]));
+            Assert.Equal(HttpStatusCode.Created,created.StatusCode);
+            var appointment=(await created.Content.ReadFromJsonAsync<AppointmentDto>())!;
+            using var customer=await f.Actor(null,false);
+            var id=f.LastAccountId;
+            async Task Check(bool allowed) {
+                var rows=(await customer.GetFromJsonAsync<AppointmentListResponse>(Route))!.Items;
+                if (allowed) { Assert.Equal(appointment.Id,Assert.Single(rows).Id); Assert.NotNull(await customer.GetFromJsonAsync<AppointmentDto>(Route+"/"+appointment.Id)); }
+                else { Assert.Empty(rows); await Problem(await customer.GetAsync(Route+"/"+appointment.Id),403,"permissionDenied"); }
+            }
+            await Check(false);
+            var c=new AccountProfileLink { AccountId=id,CustomerId=f.CustomerId,State="Active" };
+            var p=new AccountProfileLink { AccountId=id,RecipientId=f.RecipientId,State="Active" };
+            f.Db.Add(c); await f.Db.SaveChangesAsync(); await Check(false); // Customer only
+            f.Db.Remove(c); f.Db.Add(p); await f.Db.SaveChangesAsync(); await Check(false); // Recipient only
+            c=new AccountProfileLink { AccountId=id,CustomerId=f.CustomerId,State="Active" };
+            f.Db.Add(c); await f.Db.SaveChangesAsync(); await Check(true);
+            foreach (var link in new[] { c,p }) {
+                link.State="Revoked"; await f.Db.SaveChangesAsync(); await Check(false);
+                link.State="Active"; await f.Db.SaveChangesAsync(); await Check(true);
+            }
+            var other=new KhachHang { HoTen="[DEMO] Changed parent" }; f.Db.Add(other); await f.Db.SaveChangesAsync();
+            await f.Db.Recipients.Where(x=>x.MaNguoiDuocTiem==f.RecipientId).ExecuteUpdateAsync(x=>x.SetProperty(p=>p.MaKhachHang,other.MaKhachHang));
+            await Check(false);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("inactive",401,"invalidSession")]
+    [InlineData("unverified",403,"emailVerificationRequired")]
+    [InlineData("revoked",401,"invalidSession")]
+    [InlineData("expired",401,"invalidSession")]
+    [InlineData("version",401,"invalidSession")]
+    public async Task CustomerReadsRequireCurrentVerifiedActiveIdentity(string invalid,int status,string code)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            using var customer=await f.Actor(null,false); var id=f.LastAccountId;
+            if (invalid=="inactive") await f.Db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==id).ExecuteUpdateAsync(x=>x.SetProperty(a=>a.TrangThai,"Inactive"));
+            if (invalid=="unverified") await f.Db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==id).ExecuteUpdateAsync(x=>x.SetProperty(a=>a.EmailVerifiedAt,(DateTimeOffset?)null));
+            if (invalid=="version") await f.Db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==id).ExecuteUpdateAsync(x=>x.SetProperty(a=>a.SecurityVersion,a=>a.SecurityVersion+1));
+            if (invalid=="revoked") await f.Db.Set<IdentitySession>().Where(x=>x.AccountId==id).ExecuteUpdateAsync(x=>x.SetProperty(a=>a.RevokedAt,DateTimeOffset.UtcNow));
+            if (invalid=="expired") await f.Db.Set<IdentitySession>().Where(x=>x.AccountId==id).ExecuteUpdateAsync(x=>x.SetProperty(a=>a.CreatedAt,DateTimeOffset.UtcNow.AddHours(-2)).SetProperty(a=>a.ExpiresAt,DateTimeOffset.UtcNow.AddMinutes(-1)));
+            await Problem(await customer.GetAsync(Route),status,code);
+            await Problem(await customer.GetAsync(Route+"/2147483647"),status,code);
+        });
+    }
+
+    private static async Task<string> Snapshot(TiemChungDbContext db)
+    {
+        // Compare all persisted user-table data, including sessions/audit, before and after GETs.
+        var tables=await db.Database.SqlQueryRaw<string>("SELECT name AS Value FROM sys.tables WHERE is_ms_shipped=0 ORDER BY name").ToArrayAsync();
+        var rows=new List<string>();
+        foreach (var table in tables) {
+            var name=new SqlCommandBuilder().QuoteIdentifier(table);
+            await db.Database.OpenConnectionAsync();
+            await using var command=db.Database.GetDbConnection().CreateCommand();
+            command.CommandText=$"SELECT (SELECT * FROM {name} FOR JSON PATH, INCLUDE_NULL_VALUES)";
+            rows.Add(Convert.ToString(await command.ExecuteScalarAsync())!);
+            await db.Database.CloseConnectionAsync();
+        }
+        return string.Join("\n",rows);
+    }
+
     private static async Task Problem(HttpResponseMessage response,int status,string? code=null)
     {
         using(response) {
@@ -197,7 +321,7 @@ public sealed class AppointmentSqlTests
     {
         public required CatalogSqlTests.Fixture Base {get;init;}
         public TiemChungDbContext Db=>Base.Db;
-        public HttpClient Reception=null!;public int AccountId,EmployeeId,CustomerId,RecipientId;
+        public HttpClient Reception=null!;public int AccountId,EmployeeId,CustomerId,RecipientId,LastAccountId;
         private readonly List<HttpClient> _clients=[];
         public CreateAppointmentRequest Request(RegistrationDto r,RegistrationItemDto i)=>new(r.Id,i.Kind,i.Id,DateTimeOffset.UtcNow.AddDays(2).ToOffset(TimeSpan.FromHours(7)).ToString("O"),"  [DEMO] S5 room  ");
         public async Task<HttpClient> Actor(string? title,bool grant)
@@ -209,6 +333,7 @@ public sealed class AppointmentSqlTests
             account.MatKhauHash=new PasswordHasher<TaiKhoan>().HashPassword(account,Guid.NewGuid().ToString("N"));Db.Add(account);await Db.SaveChangesAsync();
             if(grant)Db.Add(new TaiKhoan_QuyenHan {MaTaiKhoan=account.MaTaiKhoan,MaQuyen=(await Db.Set<QuyenHan>().SingleAsync(x=>x.Code=="QuanLyLichHen")).MaQuyen});
             var session=new IdentitySession {Id=Guid.NewGuid(),AccountId=account.MaTaiKhoan,SecurityVersion=account.SecurityVersion,CreatedAt=DateTimeOffset.UtcNow,ExpiresAt=DateTimeOffset.UtcNow.AddHours(1)};Db.Add(session);await Db.SaveChangesAsync();
+            LastAccountId=account.MaTaiKhoan;
             var client=Base.Factory.CreateClient();_clients.Add(client);client.DefaultRequestHeaders.Authorization=new("Bearer",new IdentityTokens(Base.Config).Issue(account.MaTaiKhoan,session.Id,DateTimeOffset.UtcNow));
             if(Reception==null && title=="LeTan" && grant){AccountId=account.MaTaiKhoan;EmployeeId=employee!.MaNhanVien;}
             return client;

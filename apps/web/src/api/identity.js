@@ -75,6 +75,8 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
   }
   return {
     profiles,
+    appointments: (query = '') => profiles(`appointments${query}`),
+    getAppointment: id => profiles(`appointments/${id}`),
     registrations: (path = '', method = 'GET', body) => profiles(`registrations${path}`, method, body, true),
     getRegistrationPayment: id => profiles(`registrations/${id}/payment`, 'GET', undefined, true),
     async changePassword(currentPassword, newPassword, confirmation) {

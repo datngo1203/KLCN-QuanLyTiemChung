@@ -29,6 +29,22 @@ public static partial class AppointmentEndpoints
         return actor;
     }
 
+    private static async Task<IdentityActor> RequireReader(HttpContext context, IdentityAuthorization auth, CancellationToken ct)
+    {
+        var actor = await auth.RequireAsync(context, false, ct);
+        if (!actor.IsCustomer && (actor.Employee?.ChucDanh != "LeTan" || !actor.Permissions.Contains("QuanLyLichHen")))
+            throw new IdentityFailure(403, "permissionDenied");
+        return actor;
+    }
+
+    private static IQueryable<LichHenTiem> Scope(TiemChungDbContext db, IdentityActor actor)
+    {
+        var rows = db.Set<LichHenTiem>().AsNoTracking().Where(a => a.MaDangKy != null);
+        if (!actor.IsCustomer) return rows;
+        var registrations = RegistrationEndpoints.Scope(db, actor);
+        return rows.Where(a => registrations.Any(r => r.MaDangKy == a.MaDangKy && r.MaNguoiDuocTiem == a.MaNguoiDuocTiem));
+    }
+
     public static void MapAppointmentEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/appointments").WithTags("Appointments");
@@ -84,13 +100,13 @@ public static partial class AppointmentEndpoints
             int? registrationId, int? recipientId, string? itemKind, int? registrationItemId, string? scheduledAt,
             int? page, int? pageSize, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-            await RequireReception(context, auth, false, ct);
+            var actor = await RequireReader(context, auth, ct);
             if (registrationId is <= 0 || recipientId is <= 0 || registrationItemId is <= 0 ||
                 itemKind is not (null or "vaccine" or "package") ||
                 (registrationItemId.HasValue != (itemKind is not null)) || page is <= 0 || pageSize is <= 0 or > 100 ||
                 (long)((page ?? 1) - 1) * (pageSize ?? 25) > int.MaxValue) throw new IdentityFailure(400, "validation");
             var time = scheduledAt is null ? (DateTime?)null : Utc(scheduledAt);
-            var query = db.Set<LichHenTiem>().Where(x => x.MaDangKy != null &&
+            var query = Scope(db, actor).Where(x =>
                 (!registrationId.HasValue || x.MaDangKy == registrationId) &&
                 (!recipientId.HasValue || x.MaNguoiDuocTiem == recipientId) &&
                 (itemKind == null || (itemKind == "vaccine" ? x.MaChiTietVacXin == registrationItemId : x.MaChiTietGoi == registrationItemId)) &&
@@ -103,9 +119,10 @@ public static partial class AppointmentEndpoints
 
         group.MapGet("/{id:int}", async (int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-            await RequireReception(context, auth, false, ct);
+            var actor = await RequireReader(context, auth, ct);
             if (id <= 0) throw new IdentityFailure(400, "validation");
-            var row = await Query(db, db.Set<LichHenTiem>().Where(x => x.MaLichHen == id)).SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+            var row = await Query(db, Scope(db, actor).Where(x => x.MaLichHen == id)).SingleOrDefaultAsync(ct)
+                ?? throw new IdentityFailure(actor.IsCustomer ? 403 : 404, actor.IsCustomer ? "permissionDenied" : "resourceNotFound");
             await tx.CommitAsync(ct);
             return Results.Ok(row);
         }).WithName("GetAppointment").Produces<AppointmentDto>();

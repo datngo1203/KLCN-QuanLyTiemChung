@@ -4,7 +4,7 @@ import Profiles from './Profiles'
 import { LogOut, KeyRound } from 'lucide-react'
 import './Profiles.css'
 
-export default function Account({ account, setAccount }) {
+export default function Account({ account, setAccount, sessionBusy = false, onSessionBusyChange = () => {} }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,13 +29,13 @@ export default function Account({ account, setAccount }) {
     setPassword(''); setError(''); setMessage(''); setPasswordFormOpen(true)
   }
   async function run(action, area = 'security') {
-    if (busy) return
-    setBusy(true); setError(''); setMessage(''); setFeedbackArea(area)
+    if (busy || sessionBusy) return
+    setBusy(true); onSessionBusyChange(true); setError(''); setMessage(''); setFeedbackArea(area)
     try { await action() } catch (failure) {
       const unavailable = failure instanceof TypeError || failure instanceof SyntaxError || ['AbortError', 'TimeoutError'].includes(failure.name)
       setError(unavailable ? 'Không kết nối được dịch vụ. Vui lòng thử lại.' : failure.message || 'Không kết nối được dịch vụ.')
     }
-    finally { setBusy(false) }
+    finally { setBusy(false); onSessionBusyChange(false) }
   }
   function changePassword(event) {
     event.preventDefault()
@@ -64,18 +64,18 @@ export default function Account({ account, setAccount }) {
   const labels = { login: 'Đăng nhập', register: 'Đăng ký tài khoản', confirm: 'Xác minh email' }
   return <section className={`account-page wrap ${account ? '' : 'account-auth'}`}>
     <div className="account-page-heading"><div><span className="profile-kicker">TÀI KHOẢN VAC</span><h1>{account ? 'Tài khoản của bạn' : labels[mode]}</h1><p>{account ? 'Quản lý hồ sơ, người được tiêm và bảo mật tài khoản.' : 'Đăng nhập để quản lý thông tin tiêm chủng của bạn.'}</p></div>
-      {account && <button className="button outline" disabled={busy || profileBusy} onClick={() => run(async () => { await identity.logout(); closePasswordForm(); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') }, 'logout')}><LogOut aria-hidden="true" />Đăng xuất</button>}
+      {account && <button className="button outline" disabled={busy || sessionBusy || profileBusy} onClick={() => run(async () => { await identity.logout(); closePasswordForm(); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') }, 'logout')}><LogOut aria-hidden="true" />Đăng xuất</button>}
     </div>
     {account && feedbackArea === 'logout' && error && <p className="profile-feedback error" role="alert">{error}</p>}
     {account ? <>
-      <Profiles key={account.accountId} capabilities={account.capabilities} sessionBusy={busy} onBusyChange={setProfileBusy} />
+      <Profiles key={account.accountId} capabilities={account.capabilities} sessionBusy={busy || sessionBusy} onBusyChange={setProfileBusy} />
       <section className="profile-panel account-security" aria-labelledby="security-title">
         <div className="profile-section-heading"><div><span className="profile-kicker">ĐĂNG NHẬP AN TOÀN</span><h2 id="security-title">Bảo mật tài khoản</h2><p className="profile-help">Đổi mật khẩu để bảo vệ tài khoản của bạn.</p></div>
-        <button ref={passwordAction} className="button outline" type="button" aria-expanded={passwordFormOpen} aria-controls="change-password-form" disabled={busy || profileBusy} onClick={openPasswordForm}><KeyRound aria-hidden="true" />{passwordFormOpen ? 'Đóng biểu mẫu' : 'Đổi mật khẩu'}</button></div>
+        <button ref={passwordAction} className="button outline" type="button" aria-expanded={passwordFormOpen} aria-controls="change-password-form" disabled={busy || sessionBusy || profileBusy} onClick={openPasswordForm}><KeyRound aria-hidden="true" />{passwordFormOpen ? 'Đóng biểu mẫu' : 'Đổi mật khẩu'}</button></div>
       {passwordFormOpen && <form id="change-password-form" className="account-password-form" onSubmit={changePassword} aria-busy={busy}>
         <h2>Đổi mật khẩu</h2>
         <p id="password-requirements">Mật khẩu mới 12–128 ký tự, khác mật khẩu hiện tại. Đổi thành công sẽ yêu cầu đăng nhập lại trên mọi thiết bị.</p>
-        <fieldset disabled={busy || profileBusy} style={{ border: 0, padding: 0 }}>
+        <fieldset disabled={busy || sessionBusy || profileBusy} style={{ border: 0, padding: 0 }}>
           <label className="demo-field"><span>Mật khẩu hiện tại</span><input autoFocus type={showPasswords ? 'text' : 'password'} autoComplete="current-password" required maxLength={128} value={password} onChange={e => setPassword(e.target.value)} /></label>
           <label className="demo-field"><span>Mật khẩu mới</span><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" aria-describedby="password-requirements" required minLength={12} maxLength={128} value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>
           <label className="demo-field"><span>Xác nhận mật khẩu mới</span><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation} onChange={e => setConfirmation(e.target.value)} /></label>
@@ -90,7 +90,7 @@ export default function Account({ account, setAccount }) {
         {message && <p className="profile-feedback success" role="status">{message}</p>}
       </section>
     </> : <form className="form-card" onSubmit={submit}>
-      <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
+      <fieldset disabled={busy || sessionBusy} style={{ border: 0, padding: 0 }}>
         {mode !== 'confirm' ? <>
           <label className="demo-field"><span>Email</span><input type="email" autoComplete="username" required maxLength={254} value={email} onChange={e => setEmail(e.target.value)} /></label>
           <label className="demo-field"><span>Mật khẩu</span><input type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={mode === 'register' ? 12 : undefined} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} /></label>

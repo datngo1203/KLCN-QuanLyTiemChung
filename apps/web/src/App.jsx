@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Search, Menu, X, Info, UserRound, CalendarDays, History, Clock3, Mail, MapPin, Tag, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, Search, Menu, X, Info, Clock3, Mail, MapPin, Tag, ArrowUpRight } from 'lucide-react'
 import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
 import Payments from './Payments'
+import Schedule from './Schedule'
 import Home from './Home'
 import './theme.css'
 import './Catalog.css'
 
 const pages = [
   ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
-  ['payment', 'Thanh toán'], ['schedule', 'Lịch tiêm / Lịch sử'],
+  ['payment', 'Thanh toán'], ['schedule', 'Lịch hẹn'],
 ]
 
 const pageFromHash = () => {
@@ -20,38 +21,18 @@ const pageFromHash = () => {
   return pages.some(([id]) => id === path) || path.startsWith('catalog/vaccines/') ? path : 'home'
 }
 
-const services = [
-  { id: 'vaccine-a', name: 'Vắc xin Sởi - Quai bị - Rubella (MMR)', category: 'Vắc xin lẻ', price: '320.000 đ', description: 'Phòng 3 bệnh sởi, quai bị, rubella.', inStock: true },
-  { id: 'vaccine-b', name: 'Vắc xin Cúm mùa tứ giá (Vaxigrip Tetra)', category: 'Vắc xin lẻ', price: '380.000 đ', description: 'Phòng ngừa các chủng cúm mùa mới nhất.', inStock: false }, // Hết thuốc -> Test hàng đợi
-  { id: 'vaccine-c', name: 'Vắc xin ngừa ung thư cổ tử cung (Gardasil 9)', category: 'Vắc xin lẻ', price: '2.950.000 đ', description: 'Phòng virus HPV và các bệnh đường sinh dục.', inStock: true },
-  { id: 'pack-family', name: 'Gói tiêm chủng Trẻ em toàn diện (0-24 tháng)', category: 'Gói vắc xin', price: '12.500.000 đ', description: 'Trọn gói các mũi tiêm cơ bản trong 2 năm đầu đời.', inStock: true },
-  { id: 'pack-adult', name: 'Gói tiêm chủng Người lớn & Tiền hôn nhân', category: 'Gói vắc xin', price: '4.800.000 đ', description: 'Các mũi phòng bệnh thiết yếu cho người lớn.', inStock: false }, // Hết gói -> Test hàng đợi
-]
-
-
-
 const offers = [
   { id: 'thang10', title: 'Ưu đãi tiêm chủng tháng 10', code: 'THANG10', discount: 'Giảm 10%', period: '01/10/2026 – 31/10/2026', status: 'Đang áp dụng' },
 ]
 
-const initialDraft = {
-  customerName: 'Nguyễn An Nhiên', phone: '0900000101', email: 'annhien@example.test',
-  identity: '079098001001', address: '12 Trần Hưng Đạo, Hà Nội', samePerson: true,
-  recipientName: 'Nguyễn An Nhiên', relation: 'Bản thân', birthDate: '1998-05-12',
-  gender: 'Nữ', recipientIdentity: '079098001001', recipients: [], appointmentDate: '2026-10-25', slot: '09:00',
-}
-
 function App() {
   const [account, setAccount] = useState(null)
+  const [sessionBusy, setSessionBusy] = useState(false)
   const [page, setPage] = useState(pageFromHash)
   const mainRef = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [scheduleTab, setScheduleTab] = useState('Lịch tiêm')
   const [toast, setToast] = useState('')
-  const [selectedService] = useState(services[0])
-  const draft = initialDraft
-  const registration = null
   const [registrationBusy, setRegistrationBusy] = useState(false)
 
   const notify = (message) => {
@@ -89,15 +70,15 @@ function App() {
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
-        {['promotions', 'schedule'].includes(page) && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
-        {page === 'account' && <Account account={account} setAccount={setAccount} />}
+        {page === 'promotions' && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
+        {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
         {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} go={go} />}
-        {page === 'schedule' && <Schedule tab={scheduleTab} setTab={setScheduleTab} registration={registration} draft={draft} selectedService={selectedService} notify={notify} />}
+        {page === 'schedule' && <Schedule key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
       </main>
 
       <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">
@@ -125,8 +106,6 @@ function App() {
   )
 }
 
-function PendingBadge({ children = 'Đang xử lý' }) { if (!children || /minh họa|cần xác nhận|demo/i.test(String(children))) return null; return <span className="pending-badge"><span />{children}</span> }
-
 function PageIntro({ eyebrow, title, text }) { return <div className="page-intro"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div> }
 
 function Offers({ go, notify }) {
@@ -147,37 +126,4 @@ function Offers({ go, notify }) {
   </section>
 }
 
-function IdentityGate({ value, onChange, onSubmit, error, title, description }) {
-  return <section className="identity-gate form-card"><div className="identity-gate-icon"><UserRound aria-hidden="true" /></div><div><div className="card-kicker">TRA CỨU HỒ SƠ</div><h2>{title}</h2><p>{description}</p><form onSubmit={onSubmit}><label className="demo-field"><span>CCCD / Mã định danh của người được tiêm hoặc người giám hộ</span><input value={value} onChange={event => onChange(event.target.value)} autoComplete="off" placeholder="Nhập số CCCD hoặc mã định danh" required /></label>{error && <div className="identity-error" role="alert">{error}</div>}<button className="button primary" type="submit">Tiếp tục xem thông tin <ArrowRight aria-hidden="true" /></button></form></div></section>
-}
-
-function getRecipientNames(record) {
-  if (!record || record.samePerson) return [record?.customerName].filter(Boolean)
-  const names = (record.recipients || []).map(person => person.name).filter(Boolean)
-  return names.length ? names : [record.recipientName].filter(Boolean)
-}
-
-function matchesIdentity(input, registration, draft) {
-  const key = String(input).trim().replace(/\s+/g, '').toLocaleLowerCase('vi')
-  if (!key) return false
-  const record = registration || draft
-  const identifiers = [record?.identity, record?.recipientIdentity, ...(record?.samePerson ? [] : (record?.recipients || []).map(person => person.identity))]
-  return identifiers.filter(Boolean).some(id => String(id).trim().replace(/\s+/g, '').toLocaleLowerCase('vi') === key)
-}
-
-function getRecipientItems(record, fallbackService) {
-  if (record && !record.samePerson && record.recipients?.length) return record.recipients.map(person => ({ name: person.name, service: services.find(item => item.id === person.serviceId) || fallbackService }))
-  return [{ name: getRecipientNames(record)[0] || '', service: fallbackService }]
-}
-
-function Schedule({ tab, setTab, registration, draft, selectedService, notify }) {
-  const [identity, setIdentity] = useState('')
-  const [unlocked, setUnlocked] = useState(false)
-  const [error, setError] = useState('')
-  const verify = event => { event.preventDefault(); if (matchesIdentity(identity, registration, draft)) { setError(''); setUnlocked(true) } else setError('Không tìm thấy hồ sơ phù hợp với mã định danh này.') }
-  if (!unlocked) return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Nhập mã định danh đã dùng khi đăng ký để tiếp tục." /><IdentityGate value={identity} onChange={setIdentity} onSubmit={verify} error={error} title="Tra cứu lịch tiêm" description="Nhập mã của người được tiêm hoặc người giám hộ đã đăng ký." /></section>
-  const name = registration ? getRecipientNames(registration).join(', ') : 'Trần Gia Bảo'
-  const appointment = registration ? { id: 'LH-0004', name, service: getRecipientItems(registration, selectedService).map(item => `${item.name}: ${item.service.name}`).join(' · '), date: draft.appointmentDate, time: draft.slot, status: 'Mô phỏng · Chờ xác nhận lịch' } : { id: 'LH-0002', name, service: 'Vắc xin B', date: '2026-10-17', time: '10:30', status: 'Đã xác nhận' }
-  return <section className="schedule-page wrap"><PageIntro eyebrow="THÔNG TIN CÁ NHÂN" title="Theo dõi lịch tiêm" text="Xem lịch hẹn và lịch sử tiêm." /><div className="schedule-tabs" role="tablist"><button role="tab" aria-selected={tab === 'Lịch tiêm'} className={tab === 'Lịch tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch tiêm')}><CalendarDays aria-hidden="true" />Lịch tiêm</button><button role="tab" aria-selected={tab === 'Lịch sử tiêm'} className={tab === 'Lịch sử tiêm' ? 'schedule-tab active' : 'schedule-tab'} onClick={() => setTab('Lịch sử tiêm')}><History aria-hidden="true" />Lịch sử tiêm</button></div>{tab === 'Lịch tiêm' ? <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>{appointment.date}</b><span>{appointment.time}</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH {appointment.id}</div><h3>{appointment.name}</h3><p>{appointment.service}</p><PendingBadge>{appointment.status}</PendingBadge></div><button className="button outline" onClick={() => notify(`Chi tiết ${appointment.id}.`)}>Xem chi tiết</button></article><article className="demo-record" style={{ display: 'none' }}><div className="record-date"><b>2026-10-19</b><span>14:00</span></div><div className="record-main"><div className="card-kicker">MÃ LỊCH LH-0003</div><h3>Phạm Minh Khoa</h3><p>Vắc xin Cúm mùa (Hàng đợi số #03)</p><PendingBadge>Đang chờ hàng đợi</PendingBadge></div><button className="button outline" onClick={() => notify('Đã mở trạng thái hàng đợi.')}>Xem hàng đợi</button></article></div> : <div className="demo-record-list"><article className="demo-record"><div className="record-date"><b>2026-09-10</b><span>Hoàn tất</span></div><div className="record-main"><div className="card-kicker">LS-0001</div><h3>Nguyễn An Nhiên</h3><p>Vắc xin A · Mũi 1</p><PendingBadge>Đã ghi nhận</PendingBadge></div><button className="button outline" onClick={() => notify('Đang mở lịch sử tiêm.')}>Xem lịch sử</button></article></div>}</section>
-}
 export default App
