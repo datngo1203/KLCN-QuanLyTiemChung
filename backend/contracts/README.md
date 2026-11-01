@@ -55,8 +55,8 @@ G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `Deve
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
 | Follow-up | PUT appointments/{id}; GET recipients/{id}/history; POST reminders (tạo/xem lịch đã có trong S5.1 bên dưới) | Quý |
-| Aftercare | GET/POST vaccinations/{id}/follow-ups | Quý |
-| Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định đã có S5.3 bên dưới, ghi tiêm an toàn chưa triển khai; không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
+| Aftercare | GET/POST vaccinations/{id}/follow-ups đã có trong S5.6 bên dưới | Quý |
+| Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định đã có S5.3, ghi tiêm S5.5 bên dưới; không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
 | Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |
 | Reports | GET reports; doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái; hoãn xuất file | Đạt |
 
@@ -264,4 +264,18 @@ Chỉ Employee có phiên Identity hiện hành, account/nhân viên Active và 
 - POST không retry tự động. Mất response/503 hoặc 201 không đọc được: giữ nguyên request, khóa thao tác mới, GET theo indicationId trước retry. GET có kết quả thì chỉ đọc; GET chưa thấy mới cho retry thủ công cùng request (unique DB bảo vệ POST cũ đến muộn). Đã nhận 201 chỉ GET, không POST lại. Đổi phiên xóa dữ liệu/draft/pending và bỏ response cũ.
 - Migration mới `S5VaccinationRecord`: MuiTiem.MaChiDinh nullable/FK/unique filtered; BienDongKho.MaMuiTiem nullable/unique filtered và FK ghép (MaMuiTiem,SoLo,MaNhanVien) tới mũi. CHECK chỉ biến động gắn mũi phải XuatDoTiem/số lượng 1; legacy NULL giữ nguyên. Không backfill. Down từ chối khi còn liên kết mới, không bỏ dấu vết. Chỉ migrate DB test disposable trong gói này.
 
-A06 chỉ ghi/xem lại mũi, chọn lô từ SQL thật, xác nhận đã thực hiện trước lưu; không tự chạy timer, tạo TheoDoiSauTiem, kết luận hoàn tất theo dõi/cho về. Theo dõi/nhắc lịch, sửa/xóa mũi, kho/nhập hàng/FEFO và Customer xem lịch sử thuộc gói khác.
+Khu vực Ghi nhận mũi tiêm A06 chỉ ghi/xem lại mũi, chọn lô từ SQL thật, xác nhận đã thực hiện trước lưu; không tự chạy timer, tạo TheoDoiSauTiem hoặc kết luận cho về. Theo dõi do Điều dưỡng ghi riêng ở S5.6 bên dưới. Nhắc lịch, sửa/xóa mũi, kho/nhập hàng/FEFO và Customer xem lịch sử thuộc gói khác.
+
+## S5.6 — Điều dưỡng ghi kết quả theo dõi sau tiêm (Windows A06)
+
+Chỉ phiên Identity hiện hành của Employee, account/nhân viên Active, đúng chức danh `DieuDuong`; không thêm mã quyền trong mô hình 12 quyền hiện hữu. Customer/Admin/chức danh khác không được GET/POST. Bản ghi là nội dung thực tế nhân viên nhập, không phải xác nhận an toàn/cho về hoặc theo dõi sinh hiệu liên tục.
+
+- `GET /api/v1/vaccinations/follow-up-pending?search=&page=&pageSize=` trả `{ items: VaccinationDto[] }` (DTO mũi S5.5). Chỉ mũi DaTiem có MaChiDinh và nguồn S5.5 hợp lệ, đúng người/vắc xin/lô, chưa có TheoDoiSauTiem. Search trim tối đa 100, tìm tên người tiêm hoặc mã mũi số/MT-0001; page mặc định 1/25, pageSize tối đa 100; ID mũi giảm dần, lọc/phân trang tại SQL. Không phải danh sách người hiện ở cơ sở; chưa có check-in/out.
+- `GET /api/v1/vaccinations/{id}/follow-ups` trả `{ vaccination: VaccinationDto, followUp: FollowUpDto|null }` cho mũi hợp lệ. `FollowUpDto = { id, vaccinationId, condition, severity, treatment, recordedBy:{id,fullName}|null, recordedAt }`; recordedBy null chỉ dữ liệu legacy chưa có liên kết người ghi. Không kiểm lại thanh toán/hạn dùng/tồn lô cho theo dõi; đọc/ghi được khi lô đã hết hạn/hết tồn. Không trả tiền sử/lý do khám.
+- `POST /api/v1/vaccinations/{id}/follow-ups`: đúng ba trường `{ condition, severity, treatment }`, bắt buộc không rỗng sau trim, tối đa 100/100/500 ký tự. Từ chối JSON lạ; không nhận người tiêm/vắc xin/nhân viên/thời điểm/cờ an toàn hoặc cho về. 201 + Location trỏ GET cùng route, trả FollowUpDto. Nhân viên từ phiên, recordedAt server UTC không trước lúc tiêm; không có giá trị nội dung mặc định.
+- Transaction Serializable: khóa Identity account → session → MuiTiem (UPDLOCK,HOLDLOCK), kiểm nguồn/mũi/chưa có theo dõi, insert TheoDoiSauTiem + audit `aftercare.recorded` (ResourceType `FollowUp`, ResourceId ID bản ghi, actor/session), cùng commit. Unique MaMuiTiem chặn hai request cùng mũi; lỗi ghi hoặc audit rollback cả hai. Không sửa mũi/lô/tồn/biến động/đăng ký/thanh toán/phiếu/chỉ định, không tạo timer/tác vụ tự động.
+- Mọi response no-store và Problem Details: 400 validation, 401 invalidSession, 403 permissionDenied, 404 resourceNotFound (mũi thiếu), 409 followUpSourceConflict (legacy/trạng thái/nguồn sai/thời điểm tiêm ở tương lai), followUpAlreadyRecorded, 503 dependencyUnavailable. Không đưa nội dung theo dõi, SQL hoặc credential vào lỗi/log.
+- Không retry POST tự động. Mất phản hồi/503 giữ nguyên request và GET đối chiếu trước retry; GET có bản ghi thì chỉ đọc. GET chưa có mới retry thủ công cùng request. Nhận 201 mà không đọc được body chỉ GET, không POST lại. Đổi phiên xóa dữ liệu/bản nháp/pending và bỏ response cũ.
+- Migration mới S5PostVaccinationFollowUp chỉ bổ sung TheoDoiSauTiem.MaNhanVien nullable/FK Restrict; giữ unique MaMuiTiem và dữ liệu legacy, không backfill. Bản ghi API mới bắt buộc actor; Down từ chối nếu còn MaNhanVien không null. Chỉ áp trên DB test disposable trong gói này.
+
+Windows thêm khu vực Theo dõi sau tiêm cạnh Ghi nhận mũi tiêm, chọn mũi → đối chiếu → nhập đủ ba nội dung → xem/xác nhận → lưu → đọc lại bằng MT-id. Không sửa/xóa, tự phân loại phản ứng, chỉ định thuốc, đổi trạng thái mũi hoặc quyết định cho về. Nhắc lịch/Customer xem lịch sử/báo cáo thuộc gói khác.

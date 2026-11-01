@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../windows/Services/IAftercareService.cs;../windows/ViewModels/AftercareViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IVaccinationService.cs;../windows/ViewModels/VaccinationViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../../backend/tests/TiemChung.Tests/SqlFixtureLifecycle.cs" Link="Tests/SqlFixtureLifecycle.cs" />
     <Compile Include="../windows/Services/IScreeningService.cs;../windows/ViewModels/ScreeningViewModel.cs" Link="Windows/%(Filename)%(Extension)" />

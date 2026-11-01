@@ -358,6 +358,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var theodoisautiem = model.Entity<TheoDoiSauTiem>();
         theodoisautiem.ToTable("TheoDoiSauTiem");
         theodoisautiem.HasKey(x => x.MaTheoDoi);
+        theodoisautiem.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
         theodoisautiem.Property(x => x.MaTheoDoi).HasColumnType("int");
         theodoisautiem.Property(x => x.MaMuiTiem).HasColumnType("int");
         theodoisautiem.HasIndex(x => x.MaMuiTiem).IsUnique();

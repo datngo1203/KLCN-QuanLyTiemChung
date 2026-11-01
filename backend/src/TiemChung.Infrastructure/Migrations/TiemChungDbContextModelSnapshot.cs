@@ -1284,6 +1284,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int>("MaMuiTiem")
                         .HasColumnType("int");
 
+                    b.Property<int?>("MaNhanVien")
+                        .HasColumnType("int");
+
                     b.Property<string>("MucDoPhanUng")
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
@@ -1299,6 +1302,8 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasIndex("MaMuiTiem")
                         .IsUnique();
+
+                    b.HasIndex("MaNhanVien");
 
                     b.ToTable("TheoDoiSauTiem", (string)null);
                 });
@@ -1728,6 +1733,11 @@ namespace TiemChung.Infrastructure.Migrations
                         .HasForeignKey("MaMuiTiem")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.NhanVien", null)
+                        .WithMany()
+                        .HasForeignKey("MaNhanVien")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.VacXin", b =>

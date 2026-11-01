@@ -28,6 +28,7 @@ public sealed class ShellViewModel : ViewModelBase
         Inventory = new InventoryViewModel();
         Promotion = new PromotionViewModel();
         Vaccination = new VaccinationViewModel();
+        Aftercare = new AftercareViewModel();
         Appointments = new AppointmentViewModel();
         Reports = new ReportViewModel();
         Accounts = new AccountViewModel(userName);
@@ -66,6 +67,7 @@ public sealed class ShellViewModel : ViewModelBase
     public InventoryViewModel Inventory { get; }
     public PromotionViewModel Promotion { get; }
     public VaccinationViewModel Vaccination { get; }
+    public AftercareViewModel Aftercare { get; }
     public AppointmentViewModel Appointments { get; }
     public ReportViewModel Reports { get; }
     public AccountViewModel Accounts { get; private set; }

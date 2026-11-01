@@ -1,0 +1,89 @@
+<UserControl x:Class="TiemChung.Desktop.ViewsV2.AftercareView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Language="vi-VN" SizeChanged="View_SizeChanged">
+ <UserControl.Resources><BooleanToVisibilityConverter x:Key="Vis"/></UserControl.Resources>
+ <Grid Background="{StaticResource CE.Canvas}">
+  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24">
+   <StackPanel>
+    <TextBlock Text="CHUYÊN MÔN / A06 · THEO DÕI" Style="{StaticResource CE.Caption}"/>
+    <TextBlock Text="Ghi nhận theo dõi sau tiêm" Style="{StaticResource CE.Heading}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+    <TextBlock Text="Ghi đúng kết quả thực tế sau mũi đã lưu. Việc lưu không phải quyết định cho về hoặc xác nhận an toàn." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <TextBlock Text="Chỉ Điều dưỡng đang hoạt động được xem và ghi theo dõi." Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding Feedback}" Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+    <TextBlock x:Name="PageFeedback" Text="{Binding Feedback}" Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Focusable="True" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
+    <TextBlock Text="Đang xử lý…" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}"/>
+    <Grid x:Name="Workspace" Visibility="{Binding HasAccess,Converter={StaticResource Vis}}">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="320"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <Border Style="{StaticResource CE.Card}" Padding="16" VerticalAlignment="Top">
+      <StackPanel>
+       <TextBlock Text="Mũi chưa có bản ghi theo dõi" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+       <TextBlock Text="Tên người tiêm hoặc mã MT-0001" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+       <TextBox Text="{Binding SearchText,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm mũi theo dõi" Margin="0,4,0,8"/>
+       <Button Content="Tìm / tải lại mũi" Command="{Binding ReloadCommand}" Style="{StaticResource CE.Button.Secondary}"/>
+       <TextBlock Text="Không có mũi chưa có bản ghi theo dõi phù hợp." Visibility="{Binding NoResults,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+       <ListView ItemsSource="{Binding Queue}" SelectedItem="{Binding Selected}" SelectionChanged="ShotChanged" PreviewMouseWheel="Queue_MouseWheel" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.ListView}" HorizontalContentAlignment="Stretch" MaxHeight="300" Margin="0,12" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Mũi chưa có theo dõi">
+        <ListView.ItemTemplate><DataTemplate><StackPanel Margin="4">
+         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+         <TextBlock Text="{Binding Recipient.FullName}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+         <TextBlock Text="{Binding Vaccine.Name}" TextWrapping="Wrap"/>
+         <TextBlock Text="{Binding LotNumber,StringFormat=Lô: {0}}" TextWrapping="Wrap"/>
+         <TextBlock Text="{Binding RecordedLabel,StringFormat=Tiêm (giờ máy): {0}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+        </StackPanel></DataTemplate></ListView.ItemTemplate>
+       </ListView>
+       <WrapPanel><Button Content="Trang trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page,StringFormat=Trang {0}}" VerticalAlignment="Center" Margin="8"/><Button Content="Trang sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></WrapPanel>
+       <TextBlock Text="Xóa bản nháp nếu muốn chọn mũi khác." Visibility="{Binding IsDirty,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+       <Separator Margin="0,16"/>
+       <TextBlock Text="Mở lại theo mã mũi" Style="{StaticResource CE.SectionHeading}"/>
+       <TextBlock Text="Mã mũi (ví dụ MT-0001)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+       <TextBox Text="{Binding ResultVaccinationId,UpdateSourceTrigger=PropertyChanged}" MaxLength="13" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã mũi đọc theo dõi" Margin="0,4,0,8"/>
+       <Button Content="Đọc theo dõi bằng GET" Click="ReadResult" IsEnabled="{Binding CanReadResult}" Style="{StaticResource CE.Button.Secondary}"/>
+      </StackPanel>
+     </Border>
+     <Border x:Name="DetailPanel" Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18" VerticalAlignment="Top">
+      <StackPanel>
+       <TextBlock x:Name="DetailHeading" Text="Đối chiếu mũi và ghi theo dõi" Focusable="True" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+       <TextBlock Text="{Binding Feedback}" Visibility="{Binding HasDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,10"/>
+       <WrapPanel Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,4,0,12">
+        <Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
+        <Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
+       </WrapPanel>
+       <TextBlock Text="Chọn mũi từ danh sách hoặc nhập mã MT để mở lại kết quả." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10"/>
+       <Button Content="Tải lại chi tiết / kết quả" Command="{Binding DetailCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,10"/>
+       <StackPanel Visibility="{Binding HasDetail,Converter={StaticResource Vis}}">
+        <TextBlock Text="{Binding Detail.Vaccination.Label}" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding Detail.Vaccination.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="{Binding Detail.Vaccination.Vaccine.Name,StringFormat=Vắc xin: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBlock Text="{Binding Detail.Vaccination.LotNumber,StringFormat=Lô: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBlock Text="{Binding Detail.Vaccination.RecordedLabel,StringFormat=Thời điểm tiêm (giờ máy): {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBlock Text="{Binding Detail.Vaccination.Nurse.FullName,StringFormat=Điều dưỡng thực hiện mũi: {0}}" TextWrapping="Wrap" Margin="0,8,0,16"/>
+       </StackPanel>
+       <StackPanel Visibility="{Binding IsDraft,Converter={StaticResource Vis}}" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="Tình trạng theo dõi * (tối đa 100 ký tự)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding Condition,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" TextWrapping="Wrap" AutomationProperties.Name="Tình trạng theo dõi" Margin="0,4,0,12"/>
+        <TextBlock Text="Mức độ phản ứng ghi nhận * (tối đa 100 ký tự)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding Severity,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" TextWrapping="Wrap" AutomationProperties.Name="Mức độ phản ứng" Margin="0,4,0,12"/>
+        <TextBlock Text="Hướng xử trí / thông tin xử trí thực tế * (tối đa 500 ký tự)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+        <TextBox Text="{Binding Treatment,UpdateSourceTrigger=PropertyChanged}" MaxLength="500" Style="{StaticResource CE.TextBox}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="88" MaxHeight="180" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Xử trí thực tế" Margin="0,4,0,12"/>
+        <TextBlock Text="Nhập đúng nội dung thực tế, kể cả khi không thực hiện biện pháp xử trí. Khi cần, thực hiện quy trình xử trí và báo bác sĩ theo quy định của cơ sở." Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+       </StackPanel>
+       <StackPanel Visibility="{Binding IsRecorded,Converter={StaticResource Vis}}" Margin="0,12,0,0">
+        <TextBlock Text="Kết quả theo dõi đã ghi · Chỉ đọc" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding Result.Condition,StringFormat=Tình trạng: {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="{Binding Result.Severity,StringFormat=Mức độ: {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="{Binding Result.Treatment,StringFormat=Xử trí thực tế: {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="{Binding Result.RecorderLabel,StringFormat=Người ghi: {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="{Binding Result.TimeLabel,StringFormat=Ghi nhận (giờ máy): {0}}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock Text="Bản ghi này không tự xác nhận an toàn hoặc quyết định cho về." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,12,0,0"/>
+       </StackPanel>
+      </StackPanel>
+     </Border>
+    </Grid>
+   </StackPanel>
+  </ScrollViewer>
+  <Border Grid.Row="1" Background="{StaticResource CE.Surface}" BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,1,0,0" Padding="24,12">
+   <WrapPanel HorizontalAlignment="Right"><Button Content="Xóa bản nháp" Command="{Binding ResetDraftCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,10,0"/><Button Content="Xem lại và ghi theo dõi" Click="ConfirmFollowUp" IsEnabled="{Binding CanSave}" Style="{StaticResource CE.Button.Primary}"/></WrapPanel>
+  </Border>
+ </Grid>
+</UserControl>
