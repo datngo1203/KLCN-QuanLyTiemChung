@@ -45,7 +45,7 @@ public sealed class AppointmentApiService(IdentityApiService? identity = null) :
     private readonly IdentityApiService _identity = identity ?? IdentityApiService.Current;
     private readonly int _revision = (identity ?? IdentityApiService.Current).SessionRevision;
     private sealed record ListResponse<T>(T[] Items);
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body = null)
+    internal async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body = null)
     {
         var post = method == HttpMethod.Post;
         HttpResponseMessage response;
@@ -75,6 +75,8 @@ public sealed class AppointmentApiService(IdentityApiService? identity = null) :
                 "resourceNotFound" => "Không tìm thấy đăng ký hoặc lịch. Hãy tra cứu lại.",
                 "appointmentAlreadyExists" => "Dòng dịch vụ đã có lịch tại thời điểm này. Dùng GET đối chiếu.",
                 "appointmentSourceConflict" => "Đăng ký nguồn không hợp lệ. Hãy tra cứu lại.",
+                "reminderSourceConflict" => "Lịch không còn đủ điều kiện ghi nhắc tham dự. Hãy kiểm tra nguồn, thời gian và mũi đã ghi.",
+                "reminderAlreadyRecorded" => "Lịch đã có log mô phỏng. Hãy GET đối chiếu, không ghi thêm.",
                 _ => "Không đọc được API. Hãy thử tải lại; bản nháp được giữ lại."
             });
         }

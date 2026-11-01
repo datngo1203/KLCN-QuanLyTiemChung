@@ -23,6 +23,8 @@ public sealed class AppointmentViewModel : ViewModelBase
     {
         _identity = identity ?? IdentityApiService.Current; _revision = _identity.SessionRevision;
         _service = service ?? new AppointmentApiService(_identity);
+        Reminder = new ReminderViewModel(identity: _identity);
+        Reminder.Changed += Refresh;
         _identity.SessionCleared += (_, _) => ClearSessionData();
         ReloadCommand = new(async _ => await LoadAsync(Page), _ => CanBrowse);
         PreviousCommand = new(async _ => await LoadAsync(Page - 1), _ => CanBrowse && Page > 1);
@@ -56,7 +58,8 @@ public sealed class AppointmentViewModel : ViewModelBase
     public bool IsBusy => _busy;
     public bool IsCreating => _creating && HasAccess;
     public bool IsViewing => !_creating && HasAccess;
-    public bool CanBrowse => HasAccess && !_busy && _pending is null;
+    public bool CanBrowse => HasAccess && !_busy && _pending is null && !Reminder.BlocksNavigation;
+    public ReminderViewModel Reminder { get; }
     public bool CanEdit => HasAccess && _creating && !_busy && _pending is null;
     public bool HasPending => HasAccess && _pending is not null;
     public bool CanSave => CanEdit && _source is { Status: "DaDangKy" } && _item is not null &&
@@ -82,7 +85,7 @@ public sealed class AppointmentViewModel : ViewModelBase
         get => _selected;
         set { if (CanBrowse && Set(ref _selected, value)) { _creating = false; Detail = null; Refresh(); } }
     }
-    public AppointmentRecord? Detail { get => _detail; private set { Set(ref _detail, value); Refresh(); } }
+    public AppointmentRecord? Detail { get => _detail; private set { Set(ref _detail, value); Reminder.Select(value?.Id); Refresh(); } }
     private bool TryTime(out DateTimeOffset time)
     {
         time = default;

@@ -405,6 +405,10 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var nhaclich = model.Entity<NhacLich>();
         nhaclich.ToTable("NhacLich");
         nhaclich.HasKey(x => x.MaNhacLich);
+        nhaclich.Property(x => x.NoiDungMoPhong).HasColumnType("nvarchar(1000)");
+        nhaclich.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
+        nhaclich.HasIndex(x => x.MaLichHen).IsUnique().HasDatabaseName("IX_NhacLich_Simulation")
+            .HasFilter("[KenhGui] = N'LogMoPhong'");
         nhaclich.Property(x => x.MaNhacLich).HasColumnType("int");
         nhaclich.Property(x => x.MaLichHen).HasColumnType("int");
         nhaclich.HasOne<LichHenTiem>().WithMany().HasForeignKey(x => x.MaLichHen).OnDelete(DeleteBehavior.Restrict);
