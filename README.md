@@ -6,7 +6,7 @@ Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói ti�
 
 S5.1: Windows **Lịch hẹn & lịch sử** đã tạo/xem buổi hẹn qua API/SQL từ dòng dịch vụ lẻ hoặc gói. Tài khoản cần Lễ tân Active có quyền `QuanLyLichHen`; các lệnh seed hiện tại không tự cấp quyền này. S5.2: Website **Lịch hẹn** cho khách hàng đăng nhập xem danh sách/chi tiết thuộc hai liên kết hồ sơ Active, tải lại/phân trang qua API thật; giờ hiển thị theo thiết bị. Tải lại trang cần đăng nhập lại. Chưa có đổi/hủy lịch, lịch sử mũi tiêm, ghi tiêm hoặc nhắc lịch thật. Lịch hẹn không phải kết luận đủ điều kiện tiêm.
 
-Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. Seed lô/tồn Development/Test sẽ làm trong G5, hiện chưa có; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu, không triển khai các chức năng này. Web đổi mật khẩu tại **Tài khoản → Đổi mật khẩu**; thành công thu hồi mọi phiên và yêu cầu đăng nhập lại.
+Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. S5.4 có lệnh seed lô/tồn synthetic lưu SQL riêng cho Development/Test (hướng dẫn bên dưới); chưa có ghi tiêm/trừ tồn, không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu. Web đổi mật khẩu tại **Tài khoản → Đổi mật khẩu**; thành công thu hồi mọi phiên và yêu cầu đăng nhập lại.
 
 ## 1. Cần cài đặt
 
@@ -73,6 +73,28 @@ Tạo danh mục vắc xin/gói tiêm mẫu:
 
 ```powershell
 docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm api --seed-catalog
+```
+
+S5.4 — tạo nguồn lô/tồn synthetic để chuẩn bị kiểm thử ghi tiêm (chỉ chạy trên DB Development/Test chủ động chọn, không chạy trên Production):
+
+```powershell
+docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm api --seed-inventory
+```
+
+Lệnh yêu cầu môi trường **Development**, migration đã áp dụng và đúng một vắc xin SQL tên `[DEMO] Vắc xin A`, `[DEMO] Vắc xin B` từ catalog synthetic. Thiếu/trùng nguồn hoặc mã lô gắn sai vắc xin thì báo lỗi và rollback; không tự gọi `--seed-catalog`, migrate hoặc tạo vắc xin thay thế. Chạy từng lệnh riêng, không ghép `--seed-inventory` với lệnh seed/migrate khác. API khởi động bình thường không tự seed. Nếu image API có sẵn từ trước S5.4, cần rebuild image từ source mới trước khi chạy lệnh.
+
+| Mã lô synthetic | Vắc xin | Ngày sản xuất / hạn dùng khi tạo lần đầu | Ban đầu / tồn | Trạng thái |
+|---|---|---|---|---|
+| `[DEMO] S5-VALID-A` | `[DEMO] Vắc xin A` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 100 / 100 | Active |
+| `[DEMO] S5-EXPIRED-A` | `[DEMO] Vắc xin A` | Ngày UTC chạy lệnh − 2 năm / − 1 ngày | 20 / 20 | Active |
+| `[DEMO] S5-EMPTY-B` | `[DEMO] Vắc xin B` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 10 / 0 | Active |
+
+Mã lô cố định, không lấy từ lô thực tế. Transaction và khóa SQL `sp_getapplock` tuần tự hóa các lần seed đồng thời. Chỉ thêm mã thiếu; mã có sẵn phải đúng chính xác mã và `MaVacXin` nguồn. Chạy lại giữ nguyên mọi trường/RowVersion của lô đã có, kể cả tồn đã giảm, số lượng ban đầu, ngày sản xuất/hạn dùng và trạng thái đã đổi; không sửa lô khác. Vì ngày không được gia hạn khi chạy lại, lô hợp lệ ban đầu có thể hết hạn về sau. Lệnh không tạo biến động kho, lịch hẹn, phiếu khám/chỉ định, thanh toán hay mũi tiêm; chưa có API CRUD lô, UI kho hoặc trừ tồn.
+
+Với SQL test disposable đã được phép và biến `M1_SQL_TEST_CONNECTION` ngoài Git, chạy bộ kiểm thử S5.4 (fixture tự tạo DB GUID mới, migrate và thu hồi đúng DB thuộc sở hữu fixture):
+
+```powershell
+dotnet test backend/tests/TiemChung.Tests/TiemChung.Tests.csproj --configuration Release --filter FullyQualifiedName~DevelopmentInventorySeedSqlTests
 ```
 
 Tạo Admin để đăng nhập ứng dụng Windows; tự chọn mật khẩu có ít nhất 12 ký tự và ghi nhớ mật khẩu vừa nhập:

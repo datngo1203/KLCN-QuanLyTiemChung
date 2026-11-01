@@ -30,6 +30,15 @@ if (demo && !app.Environment.IsDevelopment())
     throw new InvalidOperationException("Dữ liệu mẫu chỉ được dùng ở Development.");
 if (!demo && string.IsNullOrWhiteSpace(app.Configuration.GetConnectionString("TiemChung")))
     throw new InvalidOperationException("Cần cấu hình ConnectionStrings:TiemChung khi tắt dữ liệu mẫu.");
+if (args.Contains("--seed-inventory"))
+{
+    if (args.Any(x => x is "--seed-admin" or "--seed-reception" or "--seed-catalog" or "--migrate"))
+        throw new InvalidOperationException("Run --seed-inventory separately from other database commands.");
+    using var scope = app.Services.CreateScope();
+    var added = await DevelopmentInventorySeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment);
+    Console.WriteLine($"Inventory seed completed: {added} synthetic [DEMO] lots added; existing lots unchanged.");
+    return;
+}
 if (args.Contains("--seed-admin"))
 {
     using var scope = app.Services.CreateScope();
