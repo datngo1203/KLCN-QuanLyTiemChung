@@ -235,6 +235,7 @@ public sealed class MuiTiem
 public sealed class TheoDoiSauTiem
 {
     public int MaTheoDoi { get; set; }
+    public int? MaNhanVien { get; set; }
     public int MaMuiTiem { get; set; }
     public string TinhTrang { get; set; } = string.Empty;
     public string MucDoPhanUng { get; set; } = string.Empty;

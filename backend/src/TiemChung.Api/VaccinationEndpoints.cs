@@ -18,7 +18,7 @@ public static class VaccinationEndpoints
         return actor;
     }
 
-    private static IQueryable<ChiDinhTiem> Sources(TiemChungDbContext db) =>
+    internal static IQueryable<ChiDinhTiem> Sources(TiemChungDbContext db) =>
         from i in db.Set<ChiDinhTiem>().AsNoTracking()
         join p in db.Set<PhieuKhamSangLoc>() on i.MaPhieuKham equals p.MaPhieuKham
         join a in ClinicalEndpoints.Sources(db) on p.MaLichHen equals a.MaLichHen
