@@ -99,7 +99,7 @@ public static class PaymentEndpoints
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private static async Task<PaymentRegistrationSummaryDto[]> Summaries(TiemChungDbContext db, DangKyDichVu[] rows, CancellationToken ct)
+    internal static async Task<PaymentRegistrationSummaryDto[]> Summaries(TiemChungDbContext db, DangKyDichVu[] rows, CancellationToken ct)
     {
         var ids = rows.Select(r => r.MaDangKy).ToArray();
         var customerIds = rows.Select(r => r.MaKhachHang).ToArray();

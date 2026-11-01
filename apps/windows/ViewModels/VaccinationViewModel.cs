@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows.Threading;
 using TiemChung.Desktop.Services;
 
 namespace TiemChung.Desktop.ViewModels;
@@ -7,150 +6,163 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed class VaccinationViewModel : ViewModelBase
 {
     private readonly IVaccinationService _service;
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private VaccinationQueueItem? _selected;
-    private VaccineLotOption? _selectedLot;
-    private string _location = "";
-    private bool _busy;
-    private string _feedback = "";
-    private string _condition = "";
-    private string _severity = "";
-    private string _treatment = "";
-    private bool _doctorNotified;
-    private bool _earlyReleaseConfirmed;
-    private bool _showEarlyReleaseWarning;
-    private DateTime? _followUpStartedAt;
-    private string _activeQueueId = "";
-
-    public VaccinationViewModel(IVaccinationService? service = null)
+    private readonly IdentityApiService _identity;
+    private readonly int _revision;
+    private bool _busy,_denied,_confirming,_committed,_reconciled,_loadError;
+    private int _page=1;
+    private string _search="",_feedback="",_site="",_lookup="";
+    private VaccinationIndication? _selected;
+    private VaccinationLot? _lot;
+    private VaccinationDetail? _detail;
+    private VaccinationRecord? _result;
+    private VaccinationRequest? _pending,_confirmation;
+    public VaccinationViewModel(IVaccinationService? service=null,IdentityApiService? identity=null)
     {
-        _service = service ?? new SampleVaccinationService();
-        foreach (var item in _service.GetEligibleQueue()) Queue.Add(item);
-        Queue.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoQueue));
-        SelectQueueCommand = new RelayCommand(p => { if (p is VaccinationQueueItem item) Selected = item; });
-        ConfirmInjectionCommand = new RelayCommand(_ => ConfirmInjection(), _ => CanConfirmInjection);
-        CompleteFollowUpCommand = new RelayCommand(_ => CompleteFollowUp(), _ => CanCompleteFollowUp);
-        _timer.Tick += (_, _) =>
-        {
-            OnPropertyChanged(nameof(RemainingDisplay));
-            OnPropertyChanged(nameof(ShowEarlyReleaseConfirmation));
-            RefreshCommands();
-        };
+        _identity=identity??IdentityApiService.Current;_revision=_identity.SessionRevision;
+        _service=service??new VaccinationApiService(_identity);
+        _identity.SessionCleared+=(_,_)=>ClearSessionData();
+        ReloadCommand=new(async _=>await LoadAsync(1),_=>CanBrowse);
+        PreviousCommand=new(async _=>await LoadAsync(Page-1),_=>CanBrowse && Page>1);
+        NextCommand=new(async _=>await LoadAsync(Page+1),_=>CanBrowse && Queue.Count==VaccinationApiService.PageSize);
+        DetailCommand=new(async _=>await LoadDetailAsync(),_=>CanBrowse && Selected is not null);
+        ResetDraftCommand=new(_=>{ClearDraft();Refresh();},_=>CanEdit && IsDirty);
+        ReconcileCommand=new(async _=>await ReconcileAsync(),_=>HasAccess && !_busy && _pending is not null);
+        RetryCommand=new(async _=>await RetryAsync(),_=>HasAccess && !_busy && _pending is not null && _reconciled && !_committed);
+        ReadResultCommand=new(async _=>await ReadResultAsync(),_=>CanReadResult);
     }
-
-    public ObservableCollection<VaccinationQueueItem> Queue { get; } = [];
-    public ObservableCollection<VaccineLotOption> Lots { get; } = [];
-    public IReadOnlyList<string> Locations { get; } = ["Bắp tay trái", "Bắp tay phải", "Đùi trái", "Đùi phải", "Vị trí khác"];
-    public IReadOnlyList<string> Conditions { get; } = ["Bình thường", "Sốt nhẹ", "Sưng đỏ tại chỗ", "Khó thở", "Khác"];
-    public IReadOnlyList<string> Severities { get; } = ["Không có", "Nhẹ", "Trung bình", "Nặng", "Cấp cứu"];
-    public RelayCommand SelectQueueCommand { get; }
-    public RelayCommand ConfirmInjectionCommand { get; }
-    public RelayCommand CompleteFollowUpCommand { get; }
-    public bool UseSampleData
+    public ObservableCollection<VaccinationIndication> Queue {get;}=[];
+    public ObservableCollection<VaccinationLot> Lots {get;}=[];
+    public RelayCommand ReloadCommand{get;}
+    public RelayCommand PreviousCommand{get;}
+    public RelayCommand NextCommand{get;}
+    public RelayCommand DetailCommand{get;}
+    public RelayCommand ResetDraftCommand{get;}
+    public RelayCommand ReconcileCommand{get;}
+    public RelayCommand RetryCommand{get;}
+    public RelayCommand ReadResultCommand{get;}
+    private bool IsCurrent=>_identity.IsSignedIn && _identity.SessionRevision==_revision;
+    public bool HasAccess=>IsCurrent && _identity.CanUseVaccinations && !_denied;
+    public bool NoAccess=>!HasAccess;
+    public bool IsBusy=>_busy;
+    public bool HasPending=>HasAccess && _pending is not null;
+    public bool IsDirty=>_lot is not null || _site.Length>0;
+    public bool CanBrowse=>HasAccess && !_busy && !_confirming && _pending is null && !IsDirty;
+    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is not null && Result is null;
+    public bool IsDraft=>HasAccess && Detail is not null && Result is null;
+    public bool IsRecorded=>HasAccess && Result is not null;
+    public bool NoDetail=>HasAccess && Detail is null && Result is null;
+    public bool HasDetail=>HasAccess && (Detail is not null || Result is not null);
+    public bool NoResults=>HasAccess && !_busy && !_loadError && Queue.Count==0;
+    public bool NoLots=>IsDraft && Lots.Count==0;
+    public bool CanSave=>CanEdit && SelectedLot is not null && Lots.Contains(SelectedLot) && !string.IsNullOrWhiteSpace(InjectionSite) && InjectionSite.Trim().Length<=100;
+    public bool CanReadResult=>CanBrowse && LookupId>0;
+    public int Page=>_page;
+    public string Feedback{get=>_feedback;private set=>Set(ref _feedback,value);}
+    public string SearchText{get=>_search;set{if(CanBrowse)Set(ref _search,value);}}
+    public string ResultIndicationId{get=>_lookup;set{if(CanBrowse && Set(ref _lookup,value))Refresh();}}
+    private int LookupId=>int.TryParse(_lookup.Trim().Replace("CD-","",StringComparison.OrdinalIgnoreCase),out var id)?id:0;
+    public VaccinationIndication? Selected{get=>_selected;set{if(CanBrowse && Set(ref _selected,value)){ClearDetail();Refresh();}}}
+    public VaccinationLot? SelectedLot{get=>_lot;set{if(CanEdit && Set(ref _lot,value))Refresh();}}
+    public string InjectionSite{get=>_site;set{if(CanEdit && Set(ref _site,value))Refresh();}}
+    public VaccinationDetail? Detail=>_detail;
+    public VaccinationRecord? Result=>_result;
+    private void ClearDraft()
     {
-        get => _service.UseSampleData;
-        set
-        {
-            if (_service.UseSampleData == value) return;
-            _service.UseSampleData = value;
-            Queue.Clear();
-            foreach (var item in _service.GetEligibleQueue()) Queue.Add(item);
-            Selected = null;
-            OnPropertyChanged(nameof(DataSourceLabel));
-            OnPropertyChanged(nameof(HasNoQueue));
+        _lot=null;_site="";OnPropertyChanged(nameof(SelectedLot));OnPropertyChanged(nameof(InjectionSite));
+    }
+    private void ClearDetail()
+    {
+        _detail=null;_result=null;ClearDraft();Lots.Clear();OnPropertyChanged(nameof(Detail));OnPropertyChanged(nameof(Result));
+    }
+    private void ClearSessionData()
+    {
+        _confirmation=null;_pending=null;_confirming=false;_committed=false;_reconciled=false;
+        _search="";_lookup="";_selected=null;Queue.Clear();ClearDetail();
+        OnPropertyChanged(nameof(SearchText));OnPropertyChanged(nameof(ResultIndicationId));OnPropertyChanged(nameof(Selected));
+        Feedback="Phiên đã thay đổi. Đăng nhập và mở lại màn ghi mũi.";Refresh();
+    }
+    private void Error(Exception error)
+    {
+        if(!IsCurrent)return;
+        _loadError=true;
+        if(error is VaccinationApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
+        Feedback=error is VaccinationApiException?error.Message:"Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+    }
+    private void Refresh()
+    {
+        foreach(var name in new[]{nameof(HasAccess),nameof(NoAccess),nameof(IsBusy),nameof(HasPending),nameof(IsDirty),nameof(CanBrowse),nameof(CanEdit),nameof(IsDraft),nameof(IsRecorded),nameof(NoDetail),nameof(HasDetail),nameof(NoResults),nameof(NoLots),nameof(CanSave),nameof(CanReadResult),nameof(Page)})OnPropertyChanged(name);
+        foreach(var command in new[]{ReloadCommand,PreviousCommand,NextCommand,DetailCommand,ResetDraftCommand,ReconcileCommand,RetryCommand,ReadResultCommand})command?.NotifyCanExecuteChanged();
+    }
+    public async Task LoadAsync(int page=1)
+    {
+        if(!CanBrowse || page<1)return;
+        if(SearchText.Trim().Length>100){Feedback="Tìm kiếm tối đa 100 ký tự.";return;}
+        _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Queue.Clear();
+        Feedback="Đang tải chỉ định từ API / SQL…";Refresh();
+        try{var rows=await _service.ListAsync(page,SearchText);if(!IsCurrent || _denied)return;
+            foreach(var row in rows)Queue.Add(row);_page=page;Feedback=rows.Length==0?"Không có chỉ định chưa ghi mũi phù hợp.":"Chọn chỉ định để đối chiếu người tiêm, thanh toán và lô. Danh sách chưa xác nhận đủ mọi điều kiện ghi.";
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
+    }
+    public async Task LoadDetailAsync()
+    {
+        if(!CanBrowse || Selected is not {} selected)return;
+        _busy=true;_loadError=false;ClearDetail();Feedback="Đang GET đối chiếu chỉ định và mũi đã ghi…";Refresh();
+        try{
+            var result=await _service.GetResultAsync(selected.Id);if(!IsCurrent || _denied)return;
+            if(result is not null){Accept(result);return;}
+            var detail=await _service.GetAsync(selected.Id);if(!IsCurrent || _denied)return;
+            _detail=detail;foreach(var lot in detail.Lots)Lots.Add(lot);OnPropertyChanged(nameof(Detail));
+            Feedback=Lots.Count==0?"Không có lô còn hạn, còn tồn và phù hợp từ SQL. Chưa thể ghi mũi.":"Chọn lô và nhập vị trí thực tế. Chỉ xác nhận sau khi đã thực hiện tiêm theo chỉ định bác sĩ.";
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
+    }
+    public string? BeginConfirmation()
+    {
+        if(!CanSave)return null;
+        _confirmation=new(Detail!.Indication.Id,SelectedLot!.Number,InjectionSite.Trim());_confirming=true;Refresh();
+        return $"{Detail.Indication.Label}\n{Detail.Indication.SourceLabel}\nVắc xin: {Detail.Indication.Vaccine.Name}\nLô: {_confirmation.LotNumber}\nVị trí: {_confirmation.InjectionSite}\n\nXác nhận đã thực hiện mũi tiêm này? Ghi nhận sẽ trừ 1 tồn SQL. Sau khi lưu chỉ xem, không sửa/xóa. Chưa phải hoàn tất theo dõi sau tiêm.";
+    }
+    public async Task ConfirmAsync(bool confirmed)
+    {
+        var request=_confirmation;_confirmation=null;_confirming=false;
+        if(!confirmed || request is null || !IsCurrent || _denied || Detail is null){Refresh();return;}
+        _pending=request;_committed=false;_reconciled=false;await SendPendingAsync();
+    }
+    private void Accept(VaccinationRecord result)
+    {
+        _result=result;_pending=null;_committed=false;_reconciled=false;ClearDraft();Lots.Clear();
+        _lookup=result.IndicationId.ToString();OnPropertyChanged(nameof(ResultIndicationId));OnPropertyChanged(nameof(Result));
+        Feedback="Đã đọc mũi ghi nhận từ API / SQL. Chỉ đọc; chưa ghi theo dõi sau tiêm hoặc xác nhận cho về.";
+    }
+    private async Task SendPendingAsync()
+    {
+        _busy=true;_reconciled=false;Feedback="Đang ghi mũi, trừ tồn và ghi biến động…";Refresh();
+        try{var result=await _service.RecordAsync(_pending!);if(IsCurrent && !_denied)Accept(result);}
+        catch(VaccinationApiException e) when(e.Code is "outcomeUnknown" or "recordedUnreadable" or "vaccinationAlreadyRecorded") {
+            if(IsCurrent){_committed=e.Code=="recordedUnreadable";Feedback=e.Message;}
         }
+        catch(Exception e){if(IsCurrent){if(e is VaccinationApiException)_pending=null;Error(e);}}
+        finally{_busy=false;Refresh();}
     }
-    public string DataSourceLabel => _service.UseSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
-    // TODO: Bind permissions from the authenticated shell session when available.
-    public bool CanPerformVaccination => true;
-    public bool CanRecordFollowUp => true;
-    public bool HasNoQueue => Queue.Count == 0;
-    public bool IsFollowingUp => _followUpStartedAt is not null;
-    public bool IsNotFollowingUp => !IsFollowingUp;
-    public VaccinationQueueItem? Selected { get => _selected; set { if (Set(ref _selected, value)) { LoadLots(); RefreshCommands(); } } }
-    public VaccineLotOption? SelectedLot { get => _selectedLot; set { if (Set(ref _selectedLot, value)) RefreshCommands(); } }
-    public string Location { get => _location; set { if (Set(ref _location, value)) RefreshCommands(); } }
-    public bool IsBusy { get => _busy; private set { if (Set(ref _busy, value)) RefreshCommands(); } }
-    public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
-    public string Condition { get => _condition; set { if (Set(ref _condition, value)) RefreshCommands(); } }
-    public string Severity { get => _severity; set { if (Set(ref _severity, value)) { OnPropertyChanged(nameof(RequiresDoctorAlert)); RefreshCommands(); } } }
-    public string Treatment { get => _treatment; set { if (Set(ref _treatment, value)) RefreshCommands(); } }
-    public bool DoctorNotified { get => _doctorNotified; set { if (Set(ref _doctorNotified, value)) RefreshCommands(); } }
-    public bool EarlyReleaseConfirmed { get => _earlyReleaseConfirmed; set { if (Set(ref _earlyReleaseConfirmed, value)) RefreshCommands(); } }
-    public bool ShowEarlyReleaseWarning { get => _showEarlyReleaseWarning; private set { if (Set(ref _showEarlyReleaseWarning, value)) OnPropertyChanged(nameof(ShowEarlyReleaseConfirmation)); } }
-    public bool ShowEarlyReleaseConfirmation => ShowEarlyReleaseWarning && Remaining > TimeSpan.Zero;
-    public bool RequiresDoctorAlert => Severity is "Nặng" or "Cấp cứu";
-    public bool CanConfirmInjection => CanPerformVaccination && !IsBusy && !IsFollowingUp && Selected is { HasIndication: true, IsScreeningEligible: true, IsPaid: true } && SelectedLot is not null && _service.GetUsableLots(Selected.Vaccine).Contains(SelectedLot) && !string.IsNullOrWhiteSpace(Location);
-    public bool CanCompleteFollowUp => CanRecordFollowUp && !IsBusy && IsFollowingUp && Condition.Length > 0 && Severity.Length > 0 && Treatment.Trim().Length > 0 && (!RequiresDoctorAlert || DoctorNotified) && (!ShowEarlyReleaseConfirmation || EarlyReleaseConfirmed);
-    public DateTime? FollowUpStartedAt { get => _followUpStartedAt; private set { if (Set(ref _followUpStartedAt, value)) { OnPropertyChanged(nameof(IsFollowingUp)); OnPropertyChanged(nameof(IsNotFollowingUp)); OnPropertyChanged(nameof(RemainingDisplay)); OnPropertyChanged(nameof(ShowEarlyReleaseConfirmation)); } } }
-    public TimeSpan Remaining
+    public async Task ReconcileAsync()
     {
-        get
-        {
-            if (FollowUpStartedAt is null) return TimeSpan.Zero;
-            var remaining = TimeSpan.FromMinutes(30) - (DateTime.Now - FollowUpStartedAt.Value);
-            return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
-        }
+        if(!HasAccess || _busy || _pending is null)return;
+        _busy=true;_reconciled=false;Feedback="Đang GET đối chiếu mũi đã ghi…";Refresh();
+        try{var result=await _service.GetResultAsync(_pending.IndicationId);if(!IsCurrent || _denied)return;
+            if(result is not null)Accept(result);
+            else{_reconciled=true;Feedback=_committed?"API đã trả 201. Tiếp tục GET, không POST lại.":"GET chưa thấy mũi. Có thể thử lại đúng yêu cầu cũ; API chặn ghi trùng và trừ tồn hai lần.";}
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
-    public string RemainingDisplay => IsFollowingUp ? $"{Remaining.Minutes:00}:{Remaining.Seconds:00}" : "30:00";
-
-    private void LoadLots()
+    public async Task RetryAsync()
     {
-        Lots.Clear();
-        if (Selected is not null)
-            foreach (var lot in _service.GetUsableLots(Selected.Vaccine)) Lots.Add(lot);
-        SelectedLot = null;
-        Location = "";
+        if(HasAccess && !_busy && _pending is not null && _reconciled && !_committed)await SendPendingAsync();
     }
-
-    private void ConfirmInjection()
+    public async Task ReadResultAsync()
     {
-        if (!CanConfirmInjection || Selected is null || SelectedLot is null) return;
-        IsBusy = true;
-        try
-        {
-            if (!_service.RecordInjection(Selected.Id, SelectedLot.Number, Location, DateTime.Now))
-            { Feedback = "Không thể xác nhận lượt tiêm từ nguồn dữ liệu hiện tại."; return; }
-            _activeQueueId = Selected.Id;
-            Queue.Remove(Selected);
-            Selected = null;
-            FollowUpStartedAt = DateTime.Now;
-            _timer.Start();
-            Feedback = "Đã ghi nhận trên dữ liệu mẫu; bắt đầu theo dõi 30 phút.";
-        }
-        finally { IsBusy = false; }
-    }
-
-    private void CompleteFollowUp()
-    {
-        if (!CanCompleteFollowUp) return;
-        if (Remaining > TimeSpan.Zero && !EarlyReleaseConfirmed)
-        {
-            ShowEarlyReleaseWarning = true;
-            OnPropertyChanged(nameof(CanCompleteFollowUp));
-            CompleteFollowUpCommand.NotifyCanExecuteChanged();
-            return;
-        }
-        IsBusy = true;
-        try
-        {
-            if (!_service.RecordFollowUp(_activeQueueId, Condition, Severity, Treatment, DateTime.Now))
-            { Feedback = "Không thể lưu theo dõi từ nguồn dữ liệu hiện tại."; return; }
-            _timer.Stop();
-            FollowUpStartedAt = null;
-            Feedback = EarlyReleaseConfirmed ? "Đã xác nhận kết thúc theo dõi sớm trên dữ liệu mẫu." : "Đã hoàn tất theo dõi trên dữ liệu mẫu.";
-            Condition = Severity = Treatment = "";
-            DoctorNotified = EarlyReleaseConfirmed = false;
-            ShowEarlyReleaseWarning = false;
-        }
-        finally { IsBusy = false; }
-    }
-
-    private void RefreshCommands()
-    {
-        OnPropertyChanged(nameof(CanConfirmInjection));
-        OnPropertyChanged(nameof(CanCompleteFollowUp));
-        ConfirmInjectionCommand?.NotifyCanExecuteChanged();
-        CompleteFollowUpCommand?.NotifyCanExecuteChanged();
+        if(!CanBrowse || LookupId<=0)return;
+        var id=LookupId;_busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();
+        Feedback="Đang đọc lại mũi theo mã chỉ định…";Refresh();
+        try{var result=await _service.GetResultAsync(id);if(!IsCurrent || _denied)return;
+            if(result is not null)Accept(result);else Feedback="Chỉ định chưa có mũi ghi nhận. Tìm trong danh sách chỉ định để tiếp tục.";
+        }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
 }

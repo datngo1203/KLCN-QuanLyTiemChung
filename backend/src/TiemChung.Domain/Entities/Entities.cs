@@ -188,6 +188,7 @@ public sealed class LoVacXin
 public sealed class BienDongKho
 {
     public int MaBienDong { get; set; }
+    public int? MaMuiTiem { get; set; }
     public string SoLo { get; set; } = string.Empty;
     public int MaNhanVien { get; set; }
     public string LoaiBienDong { get; set; } = string.Empty;
@@ -222,6 +223,7 @@ public sealed class ChiDinhTiem
 public sealed class MuiTiem
 {
     public int MaMuiTiem { get; set; }
+    public int? MaChiDinh { get; set; }
     public int MaNguoiDuocTiem { get; set; }
     public string SoLo { get; set; } = string.Empty;
     public int MaNhanVien { get; set; }
