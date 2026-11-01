@@ -38,6 +38,21 @@
       <TextBlock Text="{Binding Detail.Location,StringFormat=Địa điểm: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
       <TextBlock Text="{Binding Detail.StatusLabel}" Margin="0,8,0,0"/>
       <TextBlock Text="Lịch hẹn chưa phải kết luận đủ điều kiện tiêm." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,18,0,0"/>
+      <StackPanel DataContext="{Binding Reminder}" Margin="0,22,0,0" Visibility="{Binding HasSelection,Converter={StaticResource Vis}}">
+       <TextBlock Text="Nhắc lịch mô phỏng" Style="{StaticResource CE.SectionHeading}"/>
+       <TextBlock Text="Chức năng mô phỏng: không gửi email hoặc SMS đến khách hàng." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8,0,8"/>
+       <Button Content="Xem nhắc lịch / GET đối chiếu" Command="{Binding LoadCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left"/>
+       <TextBlock Text="{Binding Feedback}" TextWrapping="Wrap" Margin="0,8,0,8" AutomationProperties.LiveSetting="Polite"/>
+       <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Style="{StaticResource CE.Body}"/>
+       <TextBlock Text="{Binding Result.RecorderLabel,StringFormat=Người ghi: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+       <TextBlock Text="{Binding Result.TimeLabel,StringFormat=Thời điểm ghi log mô phỏng: {0}}" TextWrapping="Wrap" Margin="0,8,0,8"/>
+       <Button Content="Ghi log nhắc lịch mô phỏng" Command="{Binding ConfirmCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+       <StackPanel Visibility="{Binding IsConfirming,Converter={StaticResource Vis}}" Margin="0,10,0,0">
+        <TextBlock Text="Xác nhận ghi nội dung mô phỏng cho lịch đang chọn? Chỉ được ghi một log cho mỗi lịch." TextWrapping="Wrap"/>
+        <WrapPanel Margin="0,8,0,0"><Button Content="Hủy xác nhận" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/><Button Content="Xác nhận ghi log" Command="{Binding RecordCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,0,8"/></WrapPanel>
+       </StackPanel>
+       <Button Content="Thử lại log trên cùng lịch" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,0"/>
+      </StackPanel>
      </StackPanel>
      <StackPanel Visibility="{Binding IsCreating,Converter={StaticResource Vis}}">
       <TextBlock Text="Tạo lịch từ đăng ký" Style="{StaticResource CE.SectionHeading}"/>

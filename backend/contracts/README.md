@@ -1,5 +1,17 @@
 # API dùng chung · v1
 
+## S5.7B — Log nhắc lịch mô phỏng (Windows A09)
+
+Chỉ Employee/Account/NhanVien Active, LeTan + QuanLyLichHen; dùng Identity hiện hành, không thêm quyền. Không gửi email/SMS, không scheduler. Một lịch tối đa một log LogMoPhong; các kênh legacy giữ nguyên.
+
+- GET `/api/v1/appointments/{id}/reminders`: `{ appointment: AppointmentDto, preview: string|null, canRecord: boolean, reminder: ReminderDto|null }`. Preview từ SQL khi lịch đủ điều kiện; đã ghi thì trả snapshot cũ, không tạo lại nội dung. GET không ghi dữ liệu.
+- POST cùng route, body đúng `{}` (từ chối trường lạ), 201 + Location GET tương ứng, trả ReminderDto `{id,appointmentId,channel,status,content,recordedAt,recordedBy:{id,fullName}|null}`. Server đặt LogMoPhong/DaGhiLogMoPhong, thời điểm UTC và người ghi từ phiên; không nhận nội dung/actor/time từ client.
+- Nguồn S5: đăng ký DaDangKy, lịch DaXepLich ở tương lai, dòng lẻ/gói đúng đăng ký, Recipient thuộc Customer. Đã có MuiTiem DaTiem qua chỉ định/phiếu thuộc buổi hẹn thì không ghi lời nhắc tham dự. Nội dung chứa mã lịch/người/dịch vụ/giờ UTC+07:00/địa điểm và nhãn chưa gửi; tối đa1000 ký tự, quá dài trả400 validation, không cắt.
+- Transaction Serializable và khóa Identity → lịch UPDLOCK/HOLDLOCK; kiểm nguồn/chưa có log → insert NhacLich + audit reminders.simulated/Reminder/ID/actor/session → commit. Unique filtered index chặn trùng; lỗi insert/audit rollback. Không sửa lịch/đăng ký/tiền/mũi/tồn/theo dõi.
+- No-store và Problem Details:400 validation,401 invalidSession,403 permissionDenied,404 resourceNotFound,409 reminderSourceConflict/reminderAlreadyRecorded,503 dependencyUnavailable. Không trả nội dung hồ sơ/SQL trong lỗi.
+- Migration S5ReminderSimulation thêm MaNhanVien nullable FK Restrict, NoiDungMoPhong nullable nvarchar(1000), unique MaLichHen filter KenhGui=LogMoPhong; Up dừng nếu xung đột, Down dừng khi còn snapshot/link mới. Không backfill hoặc xóa legacy; chỉ migrate DB disposable trong kiểm thử.
+- Windows xem preview → xác nhận → ghi/đọc lại snapshot. Mất response/503 giữ pending, GET trước retry thủ công cùng lịch;201 lỗi body chỉ GET. Đổi phiên xóa dữ liệu/pending và bỏ response trễ. Log chỉ chứng minh thao tác nội bộ, không chứng minh khách nhận thông báo.
+
 Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal đơn vị VND, ngày `YYYY-MM-DD`, thời điểm ISO 8601 UTC. ID số nguyên; lỗi dùng Problem Details. OpenAPI thực thi: `GET /openapi/v1.json` ở Development.
 
 ## Đã có

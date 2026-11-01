@@ -257,6 +257,8 @@ public sealed class LichHenTiem
 
 public sealed class NhacLich
 {
+    public int? MaNhanVien { get; set; }
+    public string? NoiDungMoPhong { get; set; }
     public int MaNhacLich { get; set; }
     public int MaLichHen { get; set; }
     public string KenhGui { get; set; } = string.Empty;

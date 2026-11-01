@@ -17,6 +17,8 @@ S5.7A: Website **Lịch sử tiêm** (cạnh Lịch hẹn) cho Customer Active �
 
 ## 1. Cần cài đặt
 
+S5.7B: Windows **A09 Lịch hẹn & lịch sử → Nhắc lịch mô phỏng** dành cho Lễ tân Active có quyền `QuanLyLichHen`. Chọn lịch → Xem nhắc lịch → xem preview → xác nhận ghi log. API kiểm nguồn/lịch tương lai/chưa có mũi thuộc buổi hẹn, tạo snapshot giờ Việt Nam UTC+07:00 và audit cùng transaction. Mỗi lịch tối đa một log; đây là thao tác nội bộ, **không gửi email/SMS và không chứng minh khách hàng nhận thông báo**. Sau lưu chỉ đọc nội dung/người ghi/thời điểm; mất response phải GET đối chiếu trước retry thủ công, nhận201 lỗi body chỉ GET. Migration mới giữ legacy, có kiểm xung đột và Down guard; kiểm thử chỉ trên DB disposable. Không scheduler, sửa/hủy lịch hoặc suy phác đồ. Contract ở [S5.7B](backend/contracts/README.md#s57b--log-nhắc-lịch-mô-phỏng-windows-a09); gói đang bàn giao, chưa tự đánh dấu toàn bộ S5 hoàn tất.
+
 Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để tải thư viện lần đầu:
 
 - .NET SDK 10.
