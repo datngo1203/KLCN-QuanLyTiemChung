@@ -54,7 +54,7 @@ G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `Deve
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
-| Follow-up | PUT appointments/{id}; GET recipients/{id}/history; POST reminders (tạo/xem lịch đã có trong S5.1 bên dưới) | Quý |
+| Follow-up | PUT appointments/{id}; POST reminders (tạo/xem lịch đã có trong S5.1; lịch sử Customer dùng GET vaccinations/history S5.7A bên dưới) | Quý |
 | Aftercare | GET/POST vaccinations/{id}/follow-ups đã có trong S5.6 bên dưới | Quý |
 | Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định đã có S5.3, ghi tiêm S5.5 bên dưới; không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
 | Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |
@@ -279,3 +279,14 @@ Chỉ phiên Identity hiện hành của Employee, account/nhân viên Active, �
 - Migration mới S5PostVaccinationFollowUp chỉ bổ sung TheoDoiSauTiem.MaNhanVien nullable/FK Restrict; giữ unique MaMuiTiem và dữ liệu legacy, không backfill. Bản ghi API mới bắt buộc actor; Down từ chối nếu còn MaNhanVien không null. Chỉ áp trên DB test disposable trong gói này.
 
 Windows thêm khu vực Theo dõi sau tiêm cạnh Ghi nhận mũi tiêm, chọn mũi → đối chiếu → nhập đủ ba nội dung → xem/xác nhận → lưu → đọc lại bằng MT-id. Không sửa/xóa, tự phân loại phản ứng, chỉ định thuốc, đổi trạng thái mũi hoặc quyết định cho về. Nhắc lịch/Customer xem lịch sử/báo cáo thuộc gói khác.
+
+## S5.7A — Customer đọc lịch sử tiêm trên Website
+
+`GET /api/v1/vaccinations/history?recipientId=&page=&pageSize=`: chỉ Customer với Identity session/account Active và email đã xác minh. Mọi chức danh nhân viên kể cả Admin bị từ chối. Dùng route tổng hợp thay cho dự kiến `recipients/{id}/history` để đọc nhiều người được tiêm trong một lần gọi; recipientId tùy chọn chỉ thu hẹp phạm vi.
+
+- Ownership dùng nguyên `RegistrationEndpoints.Scope` trong IQueryable SQL: cả link Customer và Recipient Active thuộc account từ Bearer, Recipient thực sự thuộc Customer của đăng ký. Không nhận accountId/ownerId/CCCD để xác lập quyền. Bộ lọc ngoài quyền và không có dữ liệu cùng trả `{ items: [] }`.
+- Chỉ MuiTiem `DaTiem`, có MaChiDinh → phiếu có ThoiDiemKham/lịch nguồn → đăng ký cùng người tiêm; đối chiếu dòng lẻ hoặc thành phần gói với vaccine chỉ định và vaccine của lô. Legacy thiếu nguồn và chỉ định chưa ghi mũi không xuất hiện. Mỗi mũi một dòng, không suy phác đồ/thứ tự/liều tiếp theo. Không kiểm lại kết luận, trạng thái đăng ký, thanh toán, hạn dùng/tồn/trạng thái lô hiện tại; không cần TheoDoiSauTiem để sự kiện đã ghi tiếp tục đọc được.
+- page mặc định 1, pageSize 25, tối đa 100; ID/query nguyên dương, từ chối offset vượt Int32. SQL lọc trước phân trang và projection, sắp ThoiDiemTiem giảm dần rồi MaMuiTiem giảm dần.
+- `{ items: [{ id, appointmentId, registrationId, recipient:{id,fullName}, vaccine:{id,name}, lotNumber, injectionSite, administeredAt, status }] }`; administeredAt ISO UTC, status `DaTiem`. Không trả bác sĩ/điều dưỡng, khám/tiền sử, theo dõi, liên hệ, tiền, audit hoặc Identity. Danh sách chứa đủ chi tiết cho Web, không thêm endpoint chi tiết.
+- GET chỉ đọc, không audit/ghi dữ liệu. Mọi response `Cache-Control: no-store`; Problem Details 400 `validation`, 401 `invalidSession`, 403 `permissionDenied` (gồm email chưa xác minh), 503 `dependencyUnavailable`. Dùng IdentityAuthorization hiện hành, không thêm quyền/schema/migration.
+- Web chỉ giữ dữ liệu/token/lựa chọn trong bộ nhớ, credentials omit/cache no-store, dùng refresh/sessionVersion hiện hữu. Đổi phiên/sessionBusy tháo workspace và bỏ response trễ; 401/403/refresh thất bại xóa kết quả. Tải lại trang cần đăng nhập lại. Thời gian hiển thị theo thiết bị, không sửa timestamp API. Đây là lịch sử mũi đã ghi trong VAC; không xác nhận hoàn thành theo dõi/phác đồ hoặc cấp giấy chứng nhận. Nhắc lịch thuộc S5.7B.

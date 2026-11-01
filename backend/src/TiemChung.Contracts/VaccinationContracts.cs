@@ -14,3 +14,7 @@ public sealed record VaccinationDto(int Id, int IndicationId, int AppointmentId,
     RegistrationProfileDto Recipient, ClinicalVaccineDto Vaccine, string LotNumber, string InjectionSite,
     RegistrationProfileDto Nurse, DateTimeOffset AdministeredAt, string Status);
 public sealed record VaccinationResultResponse(VaccinationDto? Vaccination);
+public sealed record VaccinationHistoryDto(int Id, int AppointmentId, int RegistrationId,
+    RegistrationProfileDto Recipient, ClinicalVaccineDto Vaccine, string LotNumber, string InjectionSite,
+    DateTimeOffset AdministeredAt, string Status);
+public sealed record VaccinationHistoryResponse(VaccinationHistoryDto[] Items);

@@ -117,6 +117,7 @@ app.MapPaymentEndpoints();
 app.MapAppointmentEndpoints();
 app.MapClinicalEndpoints();
 app.MapVaccinationEndpoints();
+app.MapVaccinationHistoryEndpoints();
 app.MapAftercareEndpoints();
 
 app.Run();
