@@ -17,7 +17,7 @@ public static class ClinicalEndpoints
         return actor;
     }
 
-    private static IQueryable<LichHenTiem> Sources(TiemChungDbContext db) =>
+    internal static IQueryable<LichHenTiem> Sources(TiemChungDbContext db) =>
         from a in db.Set<LichHenTiem>().AsNoTracking()
         join r in db.Registrations on a.MaDangKy equals r.MaDangKy
         where r.TrangThai == "DaDangKy" && a.MaNguoiDuocTiem == r.MaNguoiDuocTiem &&

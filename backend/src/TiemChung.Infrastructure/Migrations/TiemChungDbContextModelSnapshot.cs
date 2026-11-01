@@ -115,6 +115,9 @@ namespace TiemChung.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int?>("MaMuiTiem")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaNhanVien")
                         .HasColumnType("int");
 
@@ -130,13 +133,21 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasKey("MaBienDong");
 
+                    b.HasIndex("MaMuiTiem")
+                        .IsUnique()
+                        .HasFilter("[MaMuiTiem] IS NOT NULL");
+
                     b.HasIndex("MaNhanVien");
 
                     b.HasIndex("SoLo");
 
+                    b.HasIndex("MaMuiTiem", "SoLo", "MaNhanVien");
+
                     b.ToTable("BienDongKho", null, t =>
                         {
                             t.HasCheckConstraint("CK_BienDongKho_SoLuong", "[SoLuong] > 0");
+
+                            t.HasCheckConstraint("CK_BienDongKho_Vaccination", "[MaMuiTiem] IS NULL OR ([LoaiBienDong] = N'XuatDoTiem' AND [SoLuong] = 1)");
                         });
                 });
 
@@ -774,6 +785,9 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMuiTiem"));
 
+                    b.Property<int?>("MaChiDinh")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaNguoiDuocTiem")
                         .HasColumnType("int");
 
@@ -796,6 +810,10 @@ namespace TiemChung.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("MaMuiTiem");
+
+                    b.HasIndex("MaChiDinh")
+                        .IsUnique()
+                        .HasFilter("[MaChiDinh] IS NOT NULL");
 
                     b.HasIndex("MaNguoiDuocTiem");
 
@@ -1388,6 +1406,12 @@ namespace TiemChung.Infrastructure.Migrations
                         .HasForeignKey("SoLo")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.MuiTiem", null)
+                        .WithMany()
+                        .HasForeignKey("MaMuiTiem", "SoLo", "MaNhanVien")
+                        .HasPrincipalKey("MaMuiTiem", "SoLo", "MaNhanVien")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.ChiDinhTiem", b =>
@@ -1564,6 +1588,11 @@ namespace TiemChung.Infrastructure.Migrations
 
             modelBuilder.Entity("TiemChung.Domain.Entities.MuiTiem", b =>
                 {
+                    b.HasOne("TiemChung.Domain.Entities.ChiDinhTiem", null)
+                        .WithMany()
+                        .HasForeignKey("MaChiDinh")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TiemChung.Domain.Entities.NguoiDuocTiem", null)
                         .WithMany()
                         .HasForeignKey("MaNguoiDuocTiem")

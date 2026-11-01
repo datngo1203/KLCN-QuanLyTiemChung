@@ -280,6 +280,12 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var biendongkho = model.Entity<BienDongKho>();
         biendongkho.ToTable("BienDongKho");
         biendongkho.HasKey(x => x.MaBienDong);
+        biendongkho.HasIndex(x => x.MaMuiTiem).IsUnique().HasFilter("[MaMuiTiem] IS NOT NULL");
+        biendongkho.HasOne<MuiTiem>().WithMany()
+            .HasForeignKey(x => new { x.MaMuiTiem, x.SoLo, x.MaNhanVien })
+            .HasPrincipalKey(x => new { x.MaMuiTiem, x.SoLo, x.MaNhanVien }).OnDelete(DeleteBehavior.Restrict);
+        biendongkho.ToTable(t => t.HasCheckConstraint("CK_BienDongKho_Vaccination",
+            "[MaMuiTiem] IS NULL OR ([LoaiBienDong] = N'XuatDoTiem' AND [SoLuong] = 1)"));
         biendongkho.Property(x => x.MaBienDong).HasColumnType("int");
         biendongkho.Property(x => x.SoLo).HasColumnType("nvarchar(80)");
         biendongkho.Property(x => x.SoLo).IsRequired();
@@ -333,6 +339,8 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var muitiem = model.Entity<MuiTiem>();
         muitiem.ToTable("MuiTiem");
         muitiem.HasKey(x => x.MaMuiTiem);
+        muitiem.HasOne<ChiDinhTiem>().WithMany().HasForeignKey(x => x.MaChiDinh).OnDelete(DeleteBehavior.Restrict);
+        muitiem.HasIndex(x => x.MaChiDinh).IsUnique().HasFilter("[MaChiDinh] IS NOT NULL");
         muitiem.Property(x => x.MaMuiTiem).HasColumnType("int");
         muitiem.Property(x => x.MaNguoiDuocTiem).HasColumnType("int");
         muitiem.HasOne<NguoiDuocTiem>().WithMany().HasForeignKey(x => x.MaNguoiDuocTiem).OnDelete(DeleteBehavior.Restrict);
