@@ -4,7 +4,7 @@ Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho
 
 Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
 
-S5.1: Windows **Lịch hẹn & lịch sử** đã tạo/xem buổi hẹn qua API/SQL từ dòng dịch vụ lẻ hoặc gói. Tài khoản cần Lễ tân Active có quyền `QuanLyLichHen`; các lệnh seed hiện tại không tự cấp quyền này. S5.2: Website **Lịch hẹn** cho khách hàng đăng nhập xem danh sách/chi tiết thuộc hai liên kết hồ sơ Active, tải lại/phân trang qua API thật; giờ hiển thị theo thiết bị. Tải lại trang cần đăng nhập lại. Chưa có đổi/hủy lịch, lịch sử mũi tiêm cho khách hàng hoặc nhắc lịch thật. Lịch hẹn không phải kết luận đủ điều kiện tiêm.
+S5.1: Windows **Lịch hẹn & lịch sử** đã tạo/xem buổi hẹn qua API/SQL từ dòng dịch vụ lẻ hoặc gói. Tài khoản cần Lễ tân Active có quyền `QuanLyLichHen`; các lệnh seed hiện tại không tự cấp quyền này. S5.2: Website **Lịch hẹn** cho khách hàng đăng nhập xem danh sách/chi tiết thuộc hai liên kết hồ sơ Active, tải lại/phân trang qua API thật; giờ hiển thị theo thiết bị. Tải lại trang cần đăng nhập lại. Chưa có đổi/hủy lịch hoặc nhắc lịch thật. Lịch hẹn không phải kết luận đủ điều kiện tiêm.
 
 Phạm vi dự kiến theo [SCOPE.md](SCOPE.md): thanh toán toàn bộ một lần có nhãn mô phỏng, ưu đãi giảm tiền VND không cộng dồn, ghi tiêm có kết luận/chỉ định và kiểm lô/hạn dùng/tồn kho/quyền tại API. S5.4 có lệnh seed lô/tồn synthetic lưu SQL riêng cho Development/Test (hướng dẫn bên dưới); S5.5 ghi nhận mũi/trừ tồn qua API thật tại A06; không làm nhập kho/khám chi tiết hoặc đặt cọc/trả góp. R00 chỉ đồng bộ tài liệu. Web đổi mật khẩu tại **Tài khoản → Đổi mật khẩu**; thành công thu hồi mọi phiên và yêu cầu đăng nhập lại.
 
@@ -12,6 +12,8 @@ S5.5: Windows **Chuyên môn → Ghi nhận mũi tiêm (A06)** chỉ dành cho `
 
 
 S5.6: Windows **Chuyên môn → Theo dõi sau tiêm** (cạnh Ghi nhận mũi tiêm) dành cho `DieuDuong` Active. Chọn mũi SQL chưa có theo dõi, đối chiếu người/vắc xin/lô/thời điểm, chủ động nhập tình trạng (100 ký tự), mức độ (100) và xử trí thực tế (500), xem lại rồi xác nhận lưu. Không có nội dung mặc định. API chỉ ghi theo dõi và audit cùng transaction; không đổi mũi/tồn/thanh toán, không kiểm lại thanh toán hoặc đòi lô còn tồn/còn hạn. Mỗi mũi tối đa một bản ghi, sau lưu chỉ đọc; mở lại bằng mã `MT-...`. Mất phản hồi GET đối chiếu trước retry, nhận 201 chỉ GET. Đây không phải danh sách người còn ở cơ sở, quyết định an toàn/cho về, nhật ký sinh hiệu hoặc timer 30 phút. Chi tiết contract ở [backend/contracts/README.md](backend/contracts/README.md#s56--điều-dưỡng-ghi-kết-quả-theo-dõi-sau-tiêm-windows-a06).
+
+S5.7A: Website **Lịch sử tiêm** (cạnh Lịch hẹn) cho Customer Active đã xác minh email đọc các mũi `DaTiem` có nguồn S5 và đủ hai liên kết hồ sơ Active. Danh sách tổng hợp nhiều người được tiêm, phân trang 25 mũi; chọn mũi để xem người/vắc xin/thời gian địa phương/mã lịch/số lô/vị trí. Tải lại đọc SQL, logout/đổi phiên xóa dữ liệu trong bộ nhớ; tải lại cả trang cần đăng nhập lại. Mũi vẫn đọc được khi lô đã hết tồn/hết hạn hoặc thanh toán thay đổi, không cần bản theo dõi. Không hiển thị tiền sử/khám/nội dung theo dõi, không suy phác đồ hoặc chứng nhận hoàn thành. API chỉ đọc, không migration; contract ở [S5.7A](backend/contracts/README.md#s57a--customer-đọc-lịch-sử-tiêm-trên-website). Nhắc lịch thuộc S5.7B, S5 chưa hoàn tất.
 
 ## 1. Cần cài đặt
 

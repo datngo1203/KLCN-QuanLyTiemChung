@@ -7,13 +7,14 @@ import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
 import Payments from './Payments'
 import Schedule from './Schedule'
+import VaccinationHistory from './VaccinationHistory'
 import Home from './Home'
 import './theme.css'
 import './Catalog.css'
 
 const pages = [
   ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
-  ['payment', 'Thanh toán'], ['schedule', 'Lịch hẹn'],
+  ['payment', 'Thanh toán'], ['schedule', 'Lịch hẹn'], ['history', 'Lịch sử tiêm'],
 ]
 
 const pageFromHash = () => {
@@ -79,6 +80,7 @@ function App() {
         {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
         {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} go={go} />}
         {page === 'schedule' && <Schedule key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
+        {page === 'history' && <VaccinationHistory key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
       </main>
 
       <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">
