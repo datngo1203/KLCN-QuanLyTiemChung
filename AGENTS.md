@@ -21,7 +21,7 @@ Không tự suy diễn dữ liệu hoặc quy trình nội bộ VNVC. Dữ liệ
 Mật khẩu phải hash tại backend. Web/Windows đã dùng Identity API; không dùng đăng nhập mẫu để thay xác thực thật. Ghi hồ sơ bằng tài khoản nhân viên yêu cầu chức danh LeTan theo API hiện tại; không nới quyền Admin để demo chạy.
 Client không truy cập SQL trực tiếp. Mọi kiểm tra quyền, tiền, tồn kho và ghi dữ liệu phải nằm ở API.
 Ghi tiêm phải kiểm chứng chỉ định chuyên môn, đúng lịch/người/vắc xin, quyền nhân viên, lô được phép sử dụng, hạn dùng, tồn dương và điều kiện thanh toán. Ghi mũi, trừ tồn, biến động và audit cùng transaction; chống ghi trùng/tranh liều cuối. Thiếu bằng chứng thì từ chối, không fallback Sample hoặc tự tạo chỉ định/lô.
-Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Ngoại lệ theo quyết định người dùng 31/10/2026: trong giai đoạn phát triển một người bằng Codex, Đạt được triển khai các module đã giao cho Bảo/Quý; giữ nguyên phân công học thuật và lịch sử đóng góp. Có thể self-review độc lập bằng Codex và phải ghi đúng bản chất, không giả nhận review thành viên khác. Không tự thêm GitHub username hoặc quyền cộng tác khi chưa có thông tin.
+Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Quyết định phân công ngày 02/11/2026: Đạt tiếp tục S5, Bảo triển khai S6, Quý triển khai S7; cả nhóm nghiệm thu S8. Ngoại lệ ngày 31/10/2026 cho phép Đạt dùng Codex làm thay chỉ giải thích giai đoạn trước, không áp dụng mặc định cho công việc giao mới. Giữ nguyên lịch sử đóng góp, không ghi nhận review thay người khác. Không tự cấp hoặc đổi quyền cộng tác GitHub.
 Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; báo đúng kết quả và các phần chưa kiểm tra. Tiến độ chỉ cập nhật cột Trạng thái trong SCOPE.md; không tạo file tiến độ khác.
 
 ## Giới hạn triển khai ở mức khóa luận tốt nghiệp
@@ -74,18 +74,24 @@ Người dùng cho phép các chat tạo, sử dụng và lưu rõ username/pass
 
 Được ghi plaintext credential synthetic vào sổ local này và hiển thị mật khẩu test cho người dùng khi cần. Không coi quy định không tiết lộ secret thật là lý do chặn việc lưu/sử dụng credential test đã được cho phép. Không đưa sổ local hoặc mật khẩu môi trường test này vào Git/PR/log công khai. Quyết định này không tắt hash mật khẩu tại backend, validation, phân quyền, audit hoặc kiểm thử bảo mật của sản phẩm; không tự mở rộng quyền SQL/OS hay áp dụng cho credential thật/production. Không gửi tin sang chat khác nếu chưa có yêu cầu trực tiếp.
 
-## Phân công và Git
+## Phân công và Git — quyết định bàn giao 02/11/2026
 
-| Thành viên | GitHub | Phụ trách |
+| Thành viên | GitHub | Phụ trách từ 02/11/2026 |
 |---|---|---|
-| Bảo | `giabao9373` | Web; API và Windows cho hồ sơ, đăng ký, thanh toán, ưu đãi. |
-| Quý | `ngocquydev` | API và Windows cho lịch, nhắc lịch, lịch sử, theo dõi sau tiêm. |
-| Đạt | `datngo1203` | Nền Windows/API/DB/CI; danh mục, kho, khám, Identity, báo cáo theo SCOPE. |
+| Đạt | `datngo1203` | S5 (lịch, bác sĩ chỉ định, lô/tồn tối thiểu, ghi mũi, theo dõi sau tiêm, nhắc lịch), điều phối tích hợp và nền tảng dùng chung. |
+| Bảo | `giabao9373` | S6 (ưu đãi, snapshot khi đăng ký, tương thích thanh toán); tiếp quản lỗi liên quan S3/S4 khi được giao riêng. |
+| Quý | `ngocquydev` | S7 (thống kê, báo cáo bằng API/SQL chỉ đọc và Windows); không tự sửa nghiệp vụ S5/S6. |
+| Cả nhóm | — | S8: kiểm thử tích hợp trên hai client Web/Windows, dùng chung ASP.NET Core API/SQL Server. |
 
-Đạt điều phối migration; chỉ một người sửa schema/migration tại một thời điểm. Contract/schema cần người khác review; Bảo/Quý review chéo client, Đạt review dữ liệu/quyền. Không tự cấp quyền GitHub hoặc gán username. GitHub Issues là nguồn việc.
-G1 (phiên/quyền client) và G2 (đăng ký) có thể phát triển song song khi contract, quyền, actor và schema liên quan đã thống nhất và được review chéo. Không yêu cầu toàn bộ G1 xong mới bắt đầu G2; vẫn tách nhánh/PR và vùng sửa, không tự quyết contract/schema mâu thuẫn hoặc sửa migration đồng thời.
-Mỗi lát dùng nhánh `feat/sN-ten-lat` từ `main`, PR nhỏ vào `main`, squash merge sau review. Không commit thẳng/force-push nhánh chung hoặc tự merge. CI xanh phải có bằng chứng từ lần chạy thật. Chưa xác minh branch protection; không khẳng định đã bật. Chưa có giấy phép nguồn mở; không mặc định cho phép tái phân phối.
-R00 là gói thuần tài liệu trên nhánh `feat/r00-scope-alignment` từ `main` sạch; chỉ sửa AGENTS.md, SCOPE.md, README.md và backend/contracts/README.md. Không tự commit, push, merge hoặc triển khai gói tiếp theo.
+- Ba module S5, S6, S7 **không phụ thuộc tiến độ lẫn nhau** để bắt đầu: S5 dùng contract thanh toán S4 đã có; S6 dùng Registration/Payment S4; S7 đọc dữ liệu SQL hiện hành, không chờ S6. Không bắt thành viên khác hoàn thành nửa chức năng trước khi mình làm tiếp.
+- Mỗi người tự làm một lát dọc trong module của mình (DB nếu cần → API → Windows/Web theo phạm vi → test). Không giao tách backend/frontend của một lát cho hai người. S6.1 quản lý ưu đãi riêng; S6.2/6.3 chốt snapshot và thanh toán qua các PR tương thích, không tạo trạng thái giữa chừng trên main khiến đăng ký có ưu đãi nhưng Payment vẫn tính giá cũ.
+- S7 chỉ truy vấn các bảng đã có: doanh thu từ tiền giao dịch mô phỏng thành công (không SUM sau JOIN sang nhiều dòng dịch vụ), số mũi từ mũi đã ghi, số đăng ký theo trạng thái có thật; lọc thời gian nhất quán, không tạo bảng/migration hoặc trạng thái mới để làm báo cáo. Nếu cần schema ngoài SCOPE, dừng xin chốt.
+- Điểm giao S6 → S5 về số tiền sau giảm là **gói tương thích tích hợp riêng**, do Đạt điều phối sau khi Bảo chốt contract và kiểm thử S6. Không bắt S5 đợi S6; khi S6 chưa merge, S5 kiểm theo contract S4. Không cho phép tự nới điều kiện ghi tiêm; tổng 0 vẫn fail-closed cho đến khi được quyết định riêng.
+- Chủ sở hữu module được sửa file riêng của module. File dùng chung (`Program.cs`, `Entities.cs`, `TiemChungDbContext.cs`, `TiemChungDbContextModelSnapshot.cs`, `ShellViewModel.cs`, `NavigationRegistry.cs`, `apps/web/src/App.jsx`, `backend/contracts/README.md`) phải giới hạn diff nhỏ nhất và review chéo; không sửa file của người khác để 'làm cho chạy' ngoài gói.
+- Đạt điều phối migration: chỉ **một người** thay schema/migration tại một thời điểm, không sửa migration đã áp dụng, không tự migrate/reset/reseed DB demo hoặc dùng chung DB test đang có người khác kiểm. Quý làm S7 trên truy vấn chỉ đọc, không cần migration theo phạm vi đã chốt.
+- Đạt duy trì `AGENTS.md`, `SCOPE.md`, `README.md` chung khi cần đồng bộ. Tiến độ chỉ cập nhật cột Trạng thái trong `SCOPE.md`; không mở thêm sổ tiến độ. GitHub Issues là nguồn giao việc, nội dung issue cũ xung đột `SCOPE.md` phải được cập nhật trước khi triển khai.
+- Mỗi lát dùng branch riêng từ `main` sạch, PR nhỏ vào `main`, kiểm test đúng phần ảnh hưởng và review độc lập trước squash merge. Không commit thẳng/force-push vào main, không tự merge. CI xanh cần dẫn chứng từ lượt chạy thật; review chéo phải đúng người đã thực hiện. Đã được người dùng cho biết Bảo và Quý đã được thêm vào GitHub, nhưng mỗi người cần tự xác nhận clone/push và môi trường riêng.
+- Phân công 02/11 thay phần giao module trước đây nhưng **không viết lại lịch sử tác giả của commit/PR**. Đề cương và SCOPE chốt nghiệp vụ; không xem tính năng cũ trong GitHub Issues (đặt cọc/trả góp, mobile, đổi/hủy lịch, nhập kho đầy đủ) là yêu cầu hiện hành.
 
 ## Giao diện Windows
 
