@@ -15,10 +15,11 @@ public partial class App : Application
         base.OnStartup(e);
         File.AppendAllText("app_startup.log", $"Args: [{string.Join(", ", e.Args)}]\n");
 
-        if (e.Args.Length > 0 && (e.Args[0] == "--capture-report" || e.Args[0] == "--capture-report-doses"))
+        if (e.Args.Length > 0 && (e.Args[0] == "--capture-report" || e.Args[0] == "--capture-report-doses" || e.Args[0] == "--capture-report-status"))
         {
             var isDoses = e.Args[0] == "--capture-report-doses";
-            var outputPath = e.Args.Length > 1 ? e.Args[1] : (isDoses ? "report_a11_doses_screenshot.png" : "report_a11_revenue_screenshot.png");
+            var isStatus = e.Args[0] == "--capture-report-status";
+            var outputPath = e.Args.Length > 1 ? e.Args[1] : (isStatus ? "report_a11_s7_3_screenshot.png" : (isDoses ? "report_a11_doses_screenshot.png" : "report_a11_revenue_screenshot.png"));
             var auth = await IdentityApiService.Current.LoginAsync("demo.admin", "TiemChung@2026");
             if (!auth.Succeeded)
             {
@@ -33,7 +34,11 @@ public partial class App : Application
             var item = group.Screens.First(s => s.Id == "A11");
             vm.NavigateCommand.Execute(item);
 
-            if (isDoses)
+            if (isStatus)
+            {
+                vm.Reports.SelectedTab = "RegistrationStatus";
+            }
+            else if (isDoses)
             {
                 vm.Reports.SelectedTab = "VaccineDoses";
             }

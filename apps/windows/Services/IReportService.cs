@@ -45,9 +45,39 @@ public sealed record VaccineDosesReport(
     public static VaccineDosesReport Empty { get; } = new(DateOnly.MinValue, DateOnly.MinValue, 0, []);
 }
 
+public sealed record RegistrationStatusItem(
+    string Status,
+    int RegistrationCount,
+    double Percentage = 0,
+    double BarHeight = 0
+)
+{
+    public string StatusDisplayName => Status switch
+    {
+        "DaDangKy" => "Đã đăng ký",
+        "DaThanhToan" => "Đã thanh toán",
+        "DaHuy" => "Đã hủy",
+        "HoanTat" => "Hoàn tất",
+        _ => Status
+    };
+    public string PercentageLabel => $"{Percentage:0.0}%";
+}
+
+public sealed record RegistrationStatusReport(
+    DateOnly From,
+    DateOnly To,
+    int TotalRegistrations,
+    IReadOnlyList<RegistrationStatusItem> Items
+)
+{
+    public bool HasData => TotalRegistrations > 0 || Items.Count > 0;
+    public static RegistrationStatusReport Empty { get; } = new(DateOnly.MinValue, DateOnly.MinValue, 0, []);
+}
+
 public interface IReportService
 {
     bool UseSampleData { get; set; }
     Task<MonthlyRevenueReport> GetMonthlyRevenueAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
     Task<VaccineDosesReport> GetVaccineDosesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
+    Task<RegistrationStatusReport> GetRegistrationStatusesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
 }

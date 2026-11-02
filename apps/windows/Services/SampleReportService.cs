@@ -60,4 +60,30 @@ public sealed class SampleReportService : IReportService
 
         return Task.FromResult(result);
     }
+
+    public Task<RegistrationStatusReport> GetRegistrationStatusesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        if (!UseSampleData)
+        {
+            return Task.FromResult(RegistrationStatusReport.Empty);
+        }
+
+        var items = new List<RegistrationStatusItem>
+        {
+            new("DaDangKy", 25, 45.5),
+            new("DaThanhToan", 18, 32.7),
+            new("DaHuy", 8, 14.5),
+            new("HoanTat", 4, 7.3)
+        };
+
+        var total = items.Sum(x => x.RegistrationCount);
+        var result = new RegistrationStatusReport(
+            from ?? new DateOnly(2026, 6, 1),
+            to ?? new DateOnly(2026, 11, 2),
+            total,
+            items
+        );
+
+        return Task.FromResult(result);
+    }
 }

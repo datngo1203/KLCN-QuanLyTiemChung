@@ -20,6 +20,11 @@ public sealed class ReportViewModel : ViewModelBase
     private int _vaccineCount;
     private string _topVaccineName = "—";
 
+    // S7.3 Registration Status state
+    private int _totalRegistrations;
+    private int _statusTypeCount;
+    private string _topStatusName = "—";
+
     // Common state
     private bool _hasData;
     private bool _isLoading;
@@ -32,16 +37,19 @@ public sealed class ReportViewModel : ViewModelBase
         GenerateReportCommand = new(_ => _ = GenerateAsync(), _ => CanGenerate);
         SelectRevenueTabCommand = new(_ => { SelectedTab = "Revenue"; });
         SelectVaccineDosesTabCommand = new(_ => { SelectedTab = "VaccineDoses"; });
+        SelectRegistrationStatusTabCommand = new(_ => { SelectedTab = "RegistrationStatus"; });
         Refresh();
         _ = GenerateAsync();
     }
 
     public ObservableCollection<MonthlyRevenueItem> MonthlyItems { get; } = [];
     public ObservableCollection<VaccineDoseItem> VaccineItems { get; } = [];
+    public ObservableCollection<RegistrationStatusItem> RegistrationStatusItems { get; } = [];
 
     public RelayCommand GenerateReportCommand { get; }
     public RelayCommand SelectRevenueTabCommand { get; }
     public RelayCommand SelectVaccineDosesTabCommand { get; }
+    public RelayCommand SelectRegistrationStatusTabCommand { get; }
 
     public string SelectedTab
     {
@@ -52,7 +60,9 @@ public sealed class ReportViewModel : ViewModelBase
             {
                 OnPropertyChanged(nameof(IsRevenueTab));
                 OnPropertyChanged(nameof(IsVaccineDosesTab));
+                OnPropertyChanged(nameof(IsRegistrationStatusTab));
                 OnPropertyChanged(nameof(ReportSubtitle));
+                OnPropertyChanged(nameof(DataSourceLabel));
                 ClearSnapshot();
                 _ = GenerateAsync();
             }
@@ -61,9 +71,15 @@ public sealed class ReportViewModel : ViewModelBase
 
     public bool IsRevenueTab => SelectedTab == "Revenue";
     public bool IsVaccineDosesTab => SelectedTab == "VaccineDoses";
-    public string ReportSubtitle => IsRevenueTab
-        ? "Thống kê doanh thu theo tháng"
-        : "Thống kê số mũi tiêm theo vắc xin";
+    public bool IsRegistrationStatusTab => SelectedTab == "RegistrationStatus";
+
+    public string ReportSubtitle => SelectedTab switch
+    {
+        "Revenue" => "Thống kê doanh thu theo tháng",
+        "VaccineDoses" => "Thống kê số mũi tiêm theo vắc xin",
+        "RegistrationStatus" => "Thống kê số lượt đăng ký theo trạng thái",
+        _ => "Báo cáo thống kê"
+    };
 
     public DateTime FromDate
     {
@@ -127,6 +143,25 @@ public sealed class ReportViewModel : ViewModelBase
         private set => Set(ref _topVaccineName, value);
     }
 
+    // Registration Status properties
+    public int TotalRegistrations
+    {
+        get => _totalRegistrations;
+        private set => Set(ref _totalRegistrations, value);
+    }
+
+    public int StatusTypeCount
+    {
+        get => _statusTypeCount;
+        private set => Set(ref _statusTypeCount, value);
+    }
+
+    public string TopStatusName
+    {
+        get => _topStatusName;
+        private set => Set(ref _topStatusName, value);
+    }
+
     public bool HasData
     {
         get => _hasData && !HasInvalidRange;
@@ -179,7 +214,9 @@ public sealed class ReportViewModel : ViewModelBase
     public bool CanViewReports => IdentityApiService.Current.CanViewReports || _service.UseSampleData;
     public bool CanGenerate => !IsLoading && !HasInvalidRange && CanViewReports;
 
-    public string DataSourceLabel => _service.UseSampleData ? "Dữ liệu mẫu" : (IsRevenueTab ? "Doanh thu mô phỏng (G3)" : "Dữ liệu tiêm thực tế");
+    public string DataSourceLabel => _service.UseSampleData
+        ? "Dữ liệu mẫu"
+        : (IsRevenueTab ? "Doanh thu mô phỏng (G3)" : (IsVaccineDosesTab ? "Dữ liệu tiêm thực tế" : "Dữ liệu đăng ký thực tế"));
 
     public bool UseSampleData
     {
@@ -239,7 +276,7 @@ public sealed class ReportViewModel : ViewModelBase
                     MonthlyItems.Add(item with { BarHeight = barHeight });
                 }
             }
-            else
+            else if (IsVaccineDosesTab)
             {
                 var report = await _service.GetVaccineDosesAsync(from, to);
 
@@ -254,6 +291,23 @@ public sealed class ReportViewModel : ViewModelBase
                 {
                     var barHeight = maxDoses == 0 ? 0 : Math.Max(16, (double)(item.DoseCount * 80.0 / maxDoses));
                     VaccineItems.Add(item with { BarWidth = barHeight });
+                }
+            }
+            else
+            {
+                var report = await _service.GetRegistrationStatusesAsync(from, to);
+
+                TotalRegistrations = report.TotalRegistrations;
+                StatusTypeCount = report.Items.Count;
+                TopStatusName = report.Items.Count > 0 ? report.Items[0].StatusDisplayName : "—";
+                HasData = report.HasData;
+
+                RegistrationStatusItems.Clear();
+                var maxCount = report.Items.Count == 0 ? 0 : report.Items.Max(x => x.RegistrationCount);
+                foreach (var item in report.Items)
+                {
+                    var barHeight = maxCount == 0 ? 0 : Math.Max(16, (double)(item.RegistrationCount * 80.0 / maxCount));
+                    RegistrationStatusItems.Add(item with { BarHeight = barHeight });
                 }
             }
         }
@@ -282,8 +336,12 @@ public sealed class ReportViewModel : ViewModelBase
         TotalDoses = 0;
         VaccineCount = 0;
         TopVaccineName = "—";
+        TotalRegistrations = 0;
+        StatusTypeCount = 0;
+        TopStatusName = "—";
         MonthlyItems.Clear();
         VaccineItems.Clear();
+        RegistrationStatusItems.Clear();
     }
 
     public void Refresh()

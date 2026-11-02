@@ -14,6 +14,7 @@ public sealed class ReportSqlTests
 {
     private const string MonthlyRevenueRoute = "/api/v1/reports/monthly-revenue";
     private const string VaccineDosesRoute = "/api/v1/reports/vaccine-doses";
+    private const string RegistrationStatusRoute = "/api/v1/reports/registration-statuses";
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task MonthlyRevenue_CalculatesCorrectSumAndGroupingByMonthUtc7()
@@ -550,6 +551,228 @@ public sealed class ReportSqlTests
         {
             await f.Login();
             using var response = await f.Client.GetAsync(VaccineDosesRoute + query);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var text = await response.Content.ReadAsStringAsync();
+            using var json = JsonDocument.Parse(text);
+            Assert.Equal("validation", json.RootElement.GetProperty("code").GetString());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task RegistrationStatus_CalculatesCorrectCountsAndPercentages()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var customer = new KhachHang { HoTen = "Customer Status Test", CCCD = "123456789099", SoDienThoai = "0901234599", Email = "status@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Status Test", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            // Seed 5 DaDangKy, 3 DaThanhToan, 2 DaHuy on 2026-10-15 (03:00 UTC = 10:00 VN)
+            var testTimeUtc = new DateTime(2026, 10, 15, 3, 0, 0, DateTimeKind.Utc);
+            for (var i = 0; i < 5; i++)
+            {
+                f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = testTimeUtc, TrangThai = "DaDangKy" });
+            }
+            for (var i = 0; i < 3; i++)
+            {
+                f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = testTimeUtc, TrangThai = "DaThanhToan" });
+            }
+            for (var i = 0; i < 2; i++)
+            {
+                f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = testTimeUtc, TrangThai = "DaHuy" });
+            }
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{RegistrationStatusRoute}?from=2026-10-01&to=2026-10-31");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+
+            var report = await response.Content.ReadFromJsonAsync<RegistrationStatusReportDto>();
+            Assert.NotNull(report);
+            Assert.Equal(new DateOnly(2026, 10, 1), report.From);
+            Assert.Equal(new DateOnly(2026, 10, 31), report.To);
+            Assert.Equal(10, report.TotalRegistrations);
+            Assert.Equal(3, report.Items.Count);
+
+            // Ordered descending: DaDangKy (5, 50.0%), DaThanhToan (3, 30.0%), DaHuy (2, 20.0%)
+            Assert.Equal("DaDangKy", report.Items[0].Status);
+            Assert.Equal(5, report.Items[0].RegistrationCount);
+            Assert.Equal(50.0, report.Items[0].Percentage);
+
+            Assert.Equal("DaThanhToan", report.Items[1].Status);
+            Assert.Equal(3, report.Items[1].RegistrationCount);
+            Assert.Equal(30.0, report.Items[1].Percentage);
+
+            Assert.Equal("DaHuy", report.Items[2].Status);
+            Assert.Equal(2, report.Items[2].RegistrationCount);
+            Assert.Equal(20.0, report.Items[2].Percentage);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task RegistrationStatus_DoesNotCreateArtificialStatuses()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var customer = new KhachHang { HoTen = "Customer Scope Guard", CCCD = "123456789098", SoDienThoai = "0901234598", Email = "scopeguard@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Scope Guard", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            // Insert ONLY 4 DaDangKy in this date range
+            var testTimeUtc = new DateTime(2026, 9, 20, 4, 0, 0, DateTimeKind.Utc);
+            for (var i = 0; i < 4; i++)
+            {
+                f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = testTimeUtc, TrangThai = "DaDangKy" });
+            }
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{RegistrationStatusRoute}?from=2026-09-01&to=2026-09-30");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var report = await response.Content.ReadFromJsonAsync<RegistrationStatusReportDto>();
+            Assert.NotNull(report);
+            Assert.Equal(4, report.TotalRegistrations);
+            // Must ONLY contain the statuses actually present in DB, strictly 1 item
+            Assert.Single(report.Items);
+            Assert.Equal("DaDangKy", report.Items[0].Status);
+            Assert.Equal(4, report.Items[0].RegistrationCount);
+            Assert.Equal(100.0, report.Items[0].Percentage);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task RegistrationStatus_RespectsUtc7Boundary()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var customer = new KhachHang { HoTen = "Customer Utc7", CCCD = "123456789097", SoDienThoai = "0901234597", Email = "utc7@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Utc7", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            // Registered at 2026-10-31 23:30 UTC -> 2026-11-01 06:30 VN
+            var boundaryUtc = new DateTime(2026, 10, 31, 23, 30, 0, DateTimeKind.Utc);
+            f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = boundaryUtc, TrangThai = "DaDangKy" });
+            await f.Db.SaveChangesAsync();
+
+            // Querying October 2026 should NOT include this registration
+            using var respOct = await f.Client.GetAsync($"{RegistrationStatusRoute}?from=2026-10-01&to=2026-10-31");
+            var reportOct = await respOct.Content.ReadFromJsonAsync<RegistrationStatusReportDto>();
+            Assert.NotNull(reportOct);
+            Assert.Equal(0, reportOct.TotalRegistrations);
+
+            // Querying November 2026 MUST include this registration
+            using var respNov = await f.Client.GetAsync($"{RegistrationStatusRoute}?from=2026-11-01&to=2026-11-01");
+            var reportNov = await respNov.Content.ReadFromJsonAsync<RegistrationStatusReportDto>();
+            Assert.NotNull(reportNov);
+            Assert.Equal(1, reportNov.TotalRegistrations);
+            Assert.Equal("DaDangKy", reportNov.Items[0].Status);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task RegistrationStatus_FiltersByDateRange()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var customer = new KhachHang { HoTen = "Customer Range", CCCD = "123456789096", SoDienThoai = "0901234596", Email = "range@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Range", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            // In range: 2026-08-15
+            f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = new DateTime(2026, 8, 15, 3, 0, 0, DateTimeKind.Utc), TrangThai = "DaDangKy" });
+            // Out of range: 2026-07-10 (before), 2026-09-05 (after)
+            f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = new DateTime(2026, 7, 10, 3, 0, 0, DateTimeKind.Utc), TrangThai = "DaDangKy" });
+            f.Db.Add(new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = new DateTime(2026, 9, 5, 3, 0, 0, DateTimeKind.Utc), TrangThai = "DaDangKy" });
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{RegistrationStatusRoute}?from=2026-08-01&to=2026-08-31");
+            var report = await response.Content.ReadFromJsonAsync<RegistrationStatusReportDto>();
+            Assert.NotNull(report);
+            Assert.Equal(1, report.TotalRegistrations);
+            Assert.Equal(1, report.Items[0].RegistrationCount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task RegistrationStatus_EnforcesAuthorization()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            // Anonymous -> 401
+            using var respAnon = await f.Factory.CreateClient().GetAsync(RegistrationStatusRoute);
+            Assert.Equal(HttpStatusCode.Unauthorized, respAnon.StatusCode);
+
+            // Staff without XemBaoCao -> 403
+            var nurse = new NhanVien { HoTen = "[DEMO] Dieu Duong Status", ChucDanh = "DieuDuong", TrangThai = "Active" };
+            f.Db.Add(nurse);
+            await f.Db.SaveChangesAsync();
+            var nurseAccount = new TaiKhoan
+            {
+                AccountType = "Employee",
+                MaNhanVien = nurse.MaNhanVien,
+                TenDangNhap = "nurse.status",
+                NormalizedUsername = "NURSE.STATUS",
+                EmailVerifiedAt = DateTimeOffset.UtcNow,
+                TrangThai = "Active",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            nurseAccount.MatKhauHash = new PasswordHasher<TaiKhoan>().HashPassword(nurseAccount, "Password@123456");
+            f.Db.Add(nurseAccount);
+            await f.Db.SaveChangesAsync();
+
+            var session = new IdentitySession
+            {
+                Id = Guid.NewGuid(),
+                AccountId = nurseAccount.MaTaiKhoan,
+                SecurityVersion = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                ExpiresAt = DateTimeOffset.UtcNow.AddHours(1)
+            };
+            f.Db.Add(session);
+            await f.Db.SaveChangesAsync();
+
+            var nurseClient = f.Factory.CreateClient();
+            nurseClient.DefaultRequestHeaders.Authorization = new("Bearer", new IdentityTokens(f.Config).Issue(nurseAccount.MaTaiKhoan, session.Id, DateTimeOffset.UtcNow));
+            using var respNurse = await nurseClient.GetAsync(RegistrationStatusRoute);
+            Assert.Equal(HttpStatusCode.Forbidden, respNurse.StatusCode);
+
+            // Admin with XemBaoCao -> 200
+            await f.Login();
+            using var respAdmin = await f.Client.GetAsync(RegistrationStatusRoute);
+            Assert.Equal(HttpStatusCode.OK, respAdmin.StatusCode);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("?from=invalid")]
+    [InlineData("?to=2099-01-01")]
+    [InlineData("?from=2026-11&to=2026-10")]
+    public async Task RegistrationStatus_ValidatesParameters(string query)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            using var response = await f.Client.GetAsync(RegistrationStatusRoute + query);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var text = await response.Content.ReadAsStringAsync();
             using var json = JsonDocument.Parse(text);

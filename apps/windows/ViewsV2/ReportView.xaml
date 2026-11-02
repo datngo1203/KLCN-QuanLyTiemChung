@@ -43,7 +43,7 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Button Content="Số mũi theo vắc xin (S7.2)" Command="{Binding SelectVaccineDosesTabCommand}">
+                        <Button Content="Số mũi theo vắc xin (S7.2)" Command="{Binding SelectVaccineDosesTabCommand}" Margin="0,0,8,0">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
                                     <Setter Property="Height" Value="28"/>
@@ -51,6 +51,21 @@
                                     <Setter Property="Padding" Value="12,0"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsVaccineDosesTab}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource CE.Primary}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource CE.OnPrimary}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="Đăng ký theo trạng thái (S7.3)" Command="{Binding SelectRegistrationStatusTabCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
+                                    <Setter Property="Height" Value="28"/>
+                                    <Setter Property="MinHeight" Value="28"/>
+                                    <Setter Property="Padding" Value="12,0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRegistrationStatusTab}" Value="True">
                                             <Setter Property="Background" Value="{StaticResource CE.Primary}"/>
                                             <Setter Property="Foreground" Value="{StaticResource CE.OnPrimary}"/>
                                         </DataTrigger>
@@ -94,6 +109,8 @@
                                        FontWeight="SemiBold" FontSize="11.5" Visibility="{Binding IsRevenueTab, Converter={StaticResource Vis}}"/>
                             <TextBlock Text="Ghi chú: Thống kê dựa trên các mũi tiêm thực tế đã thực hiện thành công (MuiTiem: DaTiem), không tính lịch hẹn hoặc chỉ định chưa tiêm."
                                        FontWeight="SemiBold" FontSize="11.5" Visibility="{Binding IsVaccineDosesTab, Converter={StaticResource Vis}}"/>
+                            <TextBlock Text="Ghi chú: Thống kê dựa trên các trạng thái thực tế của bản ghi đăng ký dịch vụ (DangKyDichVu: TrangThai), không tự tạo thêm trạng thái mới."
+                                       FontWeight="SemiBold" FontSize="11.5" Visibility="{Binding IsRegistrationStatusTab, Converter={StaticResource Vis}}"/>
                         </StackPanel>
                     </ContentControl>
 
@@ -276,6 +293,99 @@
                                                 <DataGridTextColumn Header="Mã VX" Binding="{Binding Code}" Width="75"/>
                                                 <DataGridTextColumn Header="Tên vắc xin" Binding="{Binding VaccineName}" Width="*"/>
                                                 <DataGridTextColumn Header="Số mũi" Binding="{Binding DoseCount}" Width="60"/>
+                                                <DataGridTextColumn Header="Tỷ lệ" Binding="{Binding PercentageLabel}" Width="55"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- S7.3 Registration Status Layout -->
+                        <Grid Visibility="{Binding IsRegistrationStatusTab, Converter={StaticResource Vis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Summary Cards -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1.5*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="TỔNG SỐ ĐĂNG KÝ" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TotalRegistrations, StringFormat={}{0} lượt}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Primary}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="SỐ LOẠI TRẠNG THÁI" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding StatusTypeCount, StringFormat={}{0} loại}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="10,6">
+                                    <StackPanel>
+                                        <TextBlock Text="CHIẾM NHIỀU NHẤT" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TopStatusName}" Style="{StaticResource CE.SectionHeading}" FontSize="14" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource CE.Success.Foreground}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Chart & Table Details -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.15*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Chart Column -->
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10" Margin="0,0,6,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Biểu đồ phân bố đăng ký theo trạng thái" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                                            <ItemsControl ItemsSource="{Binding RegistrationStatusItems}" VerticalAlignment="Bottom">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Width="105" VerticalAlignment="Bottom" Margin="5,0">
+                                                            <TextBlock Text="{Binding RegistrationCount, StringFormat={}{0} lượt}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10.5" Margin="0,0,0,2"/>
+                                                            <Border Height="{Binding BarHeight}" Background="{StaticResource CE.Primary}" CornerRadius="4,4,0,0" HorizontalAlignment="Stretch" Margin="14,0"/>
+                                                            <TextBlock Text="{Binding StatusDisplayName}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontWeight="SemiBold" FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                                                            <TextBlock Text="{Binding PercentageLabel}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10" Foreground="{StaticResource CE.Neutral.Foreground}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DataGrid Column -->
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Chi tiết số lượt theo trạng thái" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <DataGrid Grid.Row="1" Style="{StaticResource CE.DataGrid}" ItemsSource="{Binding RegistrationStatusItems}"
+                                                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,6,0,0" MaxHeight="160">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Mã trạng thái" Binding="{Binding Status}" Width="100"/>
+                                                <DataGridTextColumn Header="Tên hiển thị" Binding="{Binding StatusDisplayName}" Width="*"/>
+                                                <DataGridTextColumn Header="Số lượt" Binding="{Binding RegistrationCount}" Width="65"/>
                                                 <DataGridTextColumn Header="Tỷ lệ" Binding="{Binding PercentageLabel}" Width="55"/>
                                             </DataGrid.Columns>
                                         </DataGrid>

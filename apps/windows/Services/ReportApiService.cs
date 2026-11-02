@@ -46,6 +46,19 @@ public sealed class ReportApiService(IdentityApiService? identity = null) : IRep
         List<VaccineDosesItemResponse>? Items
     );
 
+    private sealed record RegistrationStatusItemResponse(
+        string Status,
+        int RegistrationCount,
+        double Percentage
+    );
+
+    private sealed record RegistrationStatusReportResponse(
+        DateOnly From,
+        DateOnly To,
+        int TotalRegistrations,
+        List<RegistrationStatusItemResponse>? Items
+    );
+
     public async Task<MonthlyRevenueReport> GetMonthlyRevenueAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         if (UseSampleData)
@@ -124,6 +137,41 @@ public sealed class ReportApiService(IdentityApiService? identity = null) : IRep
             dto.From,
             dto.To,
             totalDoses,
+            items
+        );
+    }
+
+    public async Task<RegistrationStatusReport> GetRegistrationStatusesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        if (UseSampleData)
+        {
+            return await new SampleReportService { UseSampleData = true }.GetRegistrationStatusesAsync(from, to, ct);
+        }
+
+        var query = new List<string>();
+        if (from is not null) query.Add($"from={from.Value:yyyy-MM-dd}");
+        if (to is not null) query.Add($"to={to.Value:yyyy-MM-dd}");
+        var path = "api/v1/reports/registration-statuses" + (query.Count > 0 ? "?" + string.Join("&", query) : "");
+
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, path);
+        if (!response.IsSuccessStatusCode)
+        {
+            HandleError(response, ct);
+        }
+
+        var dto = await response.Content.ReadFromJsonAsync<RegistrationStatusReportResponse>(cancellationToken: ct)
+            ?? throw new JsonException("Invalid response payload from registration status report API.");
+
+        var items = (dto.Items ?? []).Select(x => new RegistrationStatusItem(
+            x.Status,
+            x.RegistrationCount,
+            x.Percentage
+        )).ToList();
+
+        return new RegistrationStatusReport(
+            dto.From,
+            dto.To,
+            dto.TotalRegistrations,
             items
         );
     }

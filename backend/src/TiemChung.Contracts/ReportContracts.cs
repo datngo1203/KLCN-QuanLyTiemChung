@@ -29,3 +29,17 @@ public sealed record VaccineDosesReportDto(
     IReadOnlyList<VaccineDosesItemDto> Items
 );
 
+public sealed record RegistrationStatusItemDto(
+    string Status,
+    int RegistrationCount,
+    double Percentage
+);
+
+public sealed record RegistrationStatusReportDto(
+    DateOnly From,
+    DateOnly To,
+    int TotalRegistrations,
+    IReadOnlyList<RegistrationStatusItemDto> Items
+);
+
+

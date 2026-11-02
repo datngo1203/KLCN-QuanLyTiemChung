@@ -153,6 +153,83 @@ public static class ReportEndpoints
                 ordered
             ));
         }).WithTags("Reports");
+
+        group.MapGet("/registration-statuses", async (
+            HttpContext context,
+            IdentityAuthorization auth,
+            TiemChungDbContext db,
+            string? from,
+            string? to,
+            CancellationToken ct
+        ) =>
+        {
+            var actor = await auth.RequireAsync(context, false, ct);
+            if (!actor.Permissions.Contains("XemBaoCao"))
+                throw new IdentityFailure(403, "permissionDenied");
+
+            context.Response.Headers.CacheControl = "no-store";
+
+            var nowUtc = DateTime.UtcNow;
+            var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+
+            DateOnly fromDate;
+            if (from is not null)
+            {
+                if (!TryParseDate(from, false, out fromDate))
+                    throw new IdentityFailure(400, "validation");
+            }
+            else
+            {
+                var sixMonthsAgo = todayVn.AddMonths(-5);
+                fromDate = new DateOnly(sixMonthsAgo.Year, sixMonthsAgo.Month, 1);
+            }
+
+            DateOnly toDate;
+            if (to is not null)
+            {
+                if (!TryParseDate(to, true, out toDate))
+                    throw new IdentityFailure(400, "validation");
+            }
+            else
+            {
+                toDate = todayVn;
+            }
+
+            if (fromDate > toDate || toDate > todayVn)
+                throw new IdentityFailure(400, "validation");
+
+            var startUtc = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7);
+            var endExclusiveUtc = new DateTime(toDate.Year, toDate.Month, toDate.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1).AddHours(-7);
+
+            var query = await (
+                from r in db.Registrations.AsNoTracking()
+                where r.NgayDangKy >= startUtc && r.NgayDangKy < endExclusiveUtc
+                group r by r.TrangThai into g
+                select new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                }
+            ).ToListAsync(ct);
+
+            var totalRegistrations = query.Sum(x => x.Count);
+            var ordered = query
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Status)
+                .Select(x => new RegistrationStatusItemDto(
+                    x.Status,
+                    x.Count,
+                    totalRegistrations > 0 ? Math.Round((double)x.Count * 100.0 / totalRegistrations, 1) : 0
+                ))
+                .ToList();
+
+            return Results.Ok(new RegistrationStatusReportDto(
+                fromDate,
+                toDate,
+                totalRegistrations,
+                ordered
+            ));
+        }).WithTags("Reports");
     }
 
     private static bool TryParseDate(string input, bool isEnd, out DateOnly date)
