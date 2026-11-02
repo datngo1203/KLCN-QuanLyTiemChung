@@ -2,7 +2,7 @@
 
 Dự án gồm Website dành cho khách hàng và ứng dụng Windows dành cho nhân viên. Hai ứng dụng dùng chung ASP.NET Core API; API xử lý nghiệp vụ và lưu dữ liệu trong SQL Server.
 
-Bản hiện tại đã kết nối đăng nhập, danh mục vắc xin/gói tiêm và hồ sơ trên Web, Windows. Đăng ký dịch vụ, thanh toán, lịch tiêm và báo cáo chưa hoàn thiện; các màn mẫu chưa thể dùng để kiểm chứng nghiệp vụ thật.
+Bản hiện tại đã có đăng nhập, danh mục, hồ sơ, đăng ký dịch vụ và thanh toán mô phỏng qua API/SQL trên Web/Windows (S0–S4). Các lát S5.1–S5.7B đã merge, nhưng S5 còn chờ nghiệm thu toàn module. S6 ưu đãi và S7 báo cáo chưa triển khai nghiệp vụ thật; các màn Sample tương ứng không được dùng để chứng minh dữ liệu SQL. Phân công hiện hành: Đạt S5, Bảo S6, Quý S7; xem SCOPE.md và AGENTS.md.
 
 S5.1: Windows **Lịch hẹn & lịch sử** đã tạo/xem buổi hẹn qua API/SQL từ dòng dịch vụ lẻ hoặc gói. Tài khoản cần Lễ tân Active có quyền `QuanLyLichHen`; các lệnh seed hiện tại không tự cấp quyền này. S5.2: Website **Lịch hẹn** cho khách hàng đăng nhập xem danh sách/chi tiết thuộc hai liên kết hồ sơ Active, tải lại/phân trang qua API thật; giờ hiển thị theo thiết bị. Tải lại trang cần đăng nhập lại. Chưa có đổi/hủy lịch hoặc nhắc lịch thật. Lịch hẹn không phải kết luận đủ điều kiện tiêm.
 
@@ -17,7 +17,7 @@ S5.7A: Website **Lịch sử tiêm** (cạnh Lịch hẹn) cho Customer Active �
 
 ## 1. Cần cài đặt
 
-S5.7B: Windows **A09 Lịch hẹn & lịch sử → Nhắc lịch mô phỏng** dành cho Lễ tân Active có quyền `QuanLyLichHen`. Chọn lịch → Xem nhắc lịch → xem preview → xác nhận ghi log. API kiểm nguồn/lịch tương lai/chưa có mũi thuộc buổi hẹn, tạo snapshot giờ Việt Nam UTC+07:00 và audit cùng transaction. Mỗi lịch tối đa một log; đây là thao tác nội bộ, **không gửi email/SMS và không chứng minh khách hàng nhận thông báo**. Sau lưu chỉ đọc nội dung/người ghi/thời điểm; mất response phải GET đối chiếu trước retry thủ công, nhận201 lỗi body chỉ GET. Migration mới giữ legacy, có kiểm xung đột và Down guard; kiểm thử chỉ trên DB disposable. Không scheduler, sửa/hủy lịch hoặc suy phác đồ. Contract ở [S5.7B](backend/contracts/README.md#s57b--log-nhắc-lịch-mô-phỏng-windows-a09); gói đang bàn giao, chưa tự đánh dấu toàn bộ S5 hoàn tất.
+S5.7B: Windows **A09 Lịch hẹn & lịch sử → Nhắc lịch mô phỏng** dành cho Lễ tân Active có quyền `QuanLyLichHen`. Chọn lịch → Xem nhắc lịch → xem preview → xác nhận ghi log. API kiểm nguồn/lịch tương lai/chưa có mũi thuộc buổi hẹn, tạo snapshot giờ Việt Nam UTC+07:00 và audit cùng transaction. Mỗi lịch tối đa một log; đây là thao tác nội bộ, **không gửi email/SMS và không chứng minh khách hàng nhận thông báo**. Sau lưu chỉ đọc nội dung/người ghi/thời điểm; mất response phải GET đối chiếu trước retry thủ công, nhận201 lỗi body chỉ GET. Migration mới giữ legacy, có kiểm xung đột và Down guard; kiểm thử chỉ trên DB disposable. Không scheduler, sửa/hủy lịch hoặc suy phác đồ. Contract ở [S5.7B](backend/contracts/README.md#s57b--log-nhắc-lịch-mô-phỏng-windows-a09); PR #59 đã merge; S5 vẫn chưa được nghiệm thu toàn module.
 
 Chạy theo hướng dẫn trên máy Windows, có kết nối Internet để tải thư viện lần đầu:
 
