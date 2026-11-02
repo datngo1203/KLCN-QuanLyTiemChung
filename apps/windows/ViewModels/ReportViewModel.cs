@@ -6,11 +6,21 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed class ReportViewModel : ViewModelBase
 {
     private readonly IReportService _service;
+    private string _selectedTab = "Revenue";
     private DateTime _fromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-5);
     private DateTime _toDate = DateTime.Today;
+
+    // S7.1 Revenue state
     private decimal _totalRevenue;
     private int _totalTransactions;
     private bool _isSimulated = true;
+
+    // S7.2 Vaccine Doses state
+    private int _totalDoses;
+    private int _vaccineCount;
+    private string _topVaccineName = "—";
+
+    // Common state
     private bool _hasData;
     private bool _isLoading;
     private string _validation = "";
@@ -20,12 +30,40 @@ public sealed class ReportViewModel : ViewModelBase
     {
         _service = service ?? new ReportApiService();
         GenerateReportCommand = new(_ => _ = GenerateAsync(), _ => CanGenerate);
+        SelectRevenueTabCommand = new(_ => { SelectedTab = "Revenue"; });
+        SelectVaccineDosesTabCommand = new(_ => { SelectedTab = "VaccineDoses"; });
         Refresh();
         _ = GenerateAsync();
     }
 
     public ObservableCollection<MonthlyRevenueItem> MonthlyItems { get; } = [];
+    public ObservableCollection<VaccineDoseItem> VaccineItems { get; } = [];
+
     public RelayCommand GenerateReportCommand { get; }
+    public RelayCommand SelectRevenueTabCommand { get; }
+    public RelayCommand SelectVaccineDosesTabCommand { get; }
+
+    public string SelectedTab
+    {
+        get => _selectedTab;
+        set
+        {
+            if (Set(ref _selectedTab, value))
+            {
+                OnPropertyChanged(nameof(IsRevenueTab));
+                OnPropertyChanged(nameof(IsVaccineDosesTab));
+                OnPropertyChanged(nameof(ReportSubtitle));
+                ClearSnapshot();
+                _ = GenerateAsync();
+            }
+        }
+    }
+
+    public bool IsRevenueTab => SelectedTab == "Revenue";
+    public bool IsVaccineDosesTab => SelectedTab == "VaccineDoses";
+    public string ReportSubtitle => IsRevenueTab
+        ? "Thống kê doanh thu theo tháng"
+        : "Thống kê số mũi tiêm theo vắc xin";
 
     public DateTime FromDate
     {
@@ -51,6 +89,7 @@ public sealed class ReportViewModel : ViewModelBase
         }
     }
 
+    // Revenue properties
     public decimal TotalRevenue
     {
         get => _totalRevenue;
@@ -67,6 +106,25 @@ public sealed class ReportViewModel : ViewModelBase
     {
         get => _isSimulated;
         private set => Set(ref _isSimulated, value);
+    }
+
+    // Vaccine Doses properties
+    public int TotalDoses
+    {
+        get => _totalDoses;
+        private set => Set(ref _totalDoses, value);
+    }
+
+    public int VaccineCount
+    {
+        get => _vaccineCount;
+        private set => Set(ref _vaccineCount, value);
+    }
+
+    public string TopVaccineName
+    {
+        get => _topVaccineName;
+        private set => Set(ref _topVaccineName, value);
     }
 
     public bool HasData
@@ -121,7 +179,7 @@ public sealed class ReportViewModel : ViewModelBase
     public bool CanViewReports => IdentityApiService.Current.CanViewReports || _service.UseSampleData;
     public bool CanGenerate => !IsLoading && !HasInvalidRange && CanViewReports;
 
-    public string DataSourceLabel => _service.UseSampleData ? "Dữ liệu mẫu" : "Doanh thu mô phỏng (G3)";
+    public string DataSourceLabel => _service.UseSampleData ? "Dữ liệu mẫu" : (IsRevenueTab ? "Doanh thu mô phỏng (G3)" : "Dữ liệu tiêm thực tế");
 
     public bool UseSampleData
     {
@@ -163,19 +221,40 @@ public sealed class ReportViewModel : ViewModelBase
         {
             var from = DateOnly.FromDateTime(FromDate);
             var to = DateOnly.FromDateTime(ToDate);
-            var report = await _service.GetMonthlyRevenueAsync(from, to);
 
-            TotalRevenue = report.TotalRevenue;
-            TotalTransactions = report.TotalTransactions;
-            IsSimulated = report.IsSimulated;
-            HasData = report.HasData;
-
-            MonthlyItems.Clear();
-            var max = report.Items.Count == 0 ? 0 : report.Items.Max(x => x.Revenue);
-            foreach (var item in report.Items)
+            if (IsRevenueTab)
             {
-                var barHeight = max == 0 ? 0 : Math.Max(16, (double)(item.Revenue * 80m / max));
-                MonthlyItems.Add(item with { BarHeight = barHeight });
+                var report = await _service.GetMonthlyRevenueAsync(from, to);
+
+                TotalRevenue = report.TotalRevenue;
+                TotalTransactions = report.TotalTransactions;
+                IsSimulated = report.IsSimulated;
+                HasData = report.HasData;
+
+                MonthlyItems.Clear();
+                var max = report.Items.Count == 0 ? 0 : report.Items.Max(x => x.Revenue);
+                foreach (var item in report.Items)
+                {
+                    var barHeight = max == 0 ? 0 : Math.Max(16, (double)(item.Revenue * 80m / max));
+                    MonthlyItems.Add(item with { BarHeight = barHeight });
+                }
+            }
+            else
+            {
+                var report = await _service.GetVaccineDosesAsync(from, to);
+
+                TotalDoses = report.TotalDoses;
+                VaccineCount = report.Items.Count;
+                TopVaccineName = report.Items.Count > 0 ? report.Items[0].VaccineName : "—";
+                HasData = report.HasData;
+
+                VaccineItems.Clear();
+                var maxDoses = report.Items.Count == 0 ? 0 : report.Items.Max(x => x.DoseCount);
+                foreach (var item in report.Items)
+                {
+                    var barHeight = maxDoses == 0 ? 0 : Math.Max(16, (double)(item.DoseCount * 80.0 / maxDoses));
+                    VaccineItems.Add(item with { BarWidth = barHeight });
+                }
             }
         }
         catch (ReportApiException ex)
@@ -200,7 +279,11 @@ public sealed class ReportViewModel : ViewModelBase
         HasData = false;
         TotalRevenue = 0;
         TotalTransactions = 0;
+        TotalDoses = 0;
+        VaccineCount = 0;
+        TopVaccineName = "—";
         MonthlyItems.Clear();
+        VaccineItems.Clear();
     }
 
     public void Refresh()

@@ -16,3 +16,16 @@ public sealed record MonthlyRevenueReportDto(
     IReadOnlyList<MonthlyRevenueItemDto> Items
 );
 
+public sealed record VaccineDosesItemDto(
+    int VaccineId,
+    string VaccineName,
+    int DoseCount
+);
+
+public sealed record VaccineDosesReportDto(
+    DateOnly From,
+    DateOnly To,
+    int TotalDoses,
+    IReadOnlyList<VaccineDosesItemDto> Items
+);
+

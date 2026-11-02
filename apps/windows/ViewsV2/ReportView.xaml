@@ -11,6 +11,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -18,15 +19,49 @@
                     <DockPanel Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="Báo cáo" Style="{StaticResource CE.Heading}" FontSize="20"/>
-                            <TextBlock Text="Thống kê doanh thu theo tháng" Style="{StaticResource CE.Caption}" Margin="0,2,0,0"/>
+                            <TextBlock Text="{Binding ReportSubtitle}" Style="{StaticResource CE.Caption}" Margin="0,2,0,0"/>
                         </StackPanel>
                         <Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Info}" VerticalAlignment="Center">
                             <TextBlock Text="{Binding DataSourceLabel}"/>
                         </Border>
                     </DockPanel>
 
+                    <!-- Tab Switcher -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Doanh thu theo tháng (S7.1)" Command="{Binding SelectRevenueTabCommand}" Margin="0,0,8,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
+                                    <Setter Property="Height" Value="28"/>
+                                    <Setter Property="MinHeight" Value="28"/>
+                                    <Setter Property="Padding" Value="12,0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRevenueTab}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource CE.Primary}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource CE.OnPrimary}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="Số mũi theo vắc xin (S7.2)" Command="{Binding SelectVaccineDosesTabCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource CE.Button.Secondary}">
+                                    <Setter Property="Height" Value="28"/>
+                                    <Setter Property="MinHeight" Value="28"/>
+                                    <Setter Property="Padding" Value="12,0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsVaccineDosesTab}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource CE.Primary}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource CE.OnPrimary}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+
                     <!-- Filter Card -->
-                    <Border Grid.Row="1" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,0,8">
+                    <Border Grid.Row="2" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,0,8">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -53,112 +88,213 @@
                     </Border>
 
                     <!-- Disclaimer Notice -->
-                    <ContentControl Grid.Row="2" Style="{StaticResource CE.Alert.Info}" Margin="0,0,0,8" Padding="10,6">
-                        <TextBlock Text="Ghi chú: Toàn bộ số liệu trên màn hình là Doanh thu mô phỏng (G3) từ các giao dịch thanh toán thành công trong hệ thống, không phải tiền gửi ngân hàng." FontWeight="SemiBold" FontSize="11.5"/>
+                    <ContentControl Grid.Row="3" Style="{StaticResource CE.Alert.Info}" Margin="0,0,0,8" Padding="10,6">
+                        <StackPanel>
+                            <TextBlock Text="Ghi chú: Toàn bộ số liệu trên màn hình là Doanh thu mô phỏng (G3) từ các giao dịch thanh toán thành công trong hệ thống, không phải tiền gửi ngân hàng."
+                                       FontWeight="SemiBold" FontSize="11.5" Visibility="{Binding IsRevenueTab, Converter={StaticResource Vis}}"/>
+                            <TextBlock Text="Ghi chú: Thống kê dựa trên các mũi tiêm thực tế đã thực hiện thành công (MuiTiem: DaTiem), không tính lịch hẹn hoặc chỉ định chưa tiêm."
+                                       FontWeight="SemiBold" FontSize="11.5" Visibility="{Binding IsVaccineDosesTab, Converter={StaticResource Vis}}"/>
+                        </StackPanel>
                     </ContentControl>
 
                     <!-- Data Presentation -->
-                    <Grid Grid.Row="3" Visibility="{Binding HasData, Converter={StaticResource Vis}}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
+                    <Grid Grid.Row="4" Visibility="{Binding HasData, Converter={StaticResource Vis}}">
+                        <!-- Revenue Layout -->
+                        <Grid Visibility="{Binding IsRevenueTab, Converter={StaticResource Vis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                        <!-- Summary Cards -->
-                        <Grid Grid.Row="0" Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="1*"/>
-                                <ColumnDefinition Width="1.5*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
-                                <StackPanel>
-                                    <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
-                                    <TextBlock Text="{Binding TotalRevenue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Primary}"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
-                                <StackPanel>
-                                    <TextBlock Text="TỔNG SỐ GIAO DỊCH" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
-                                    <TextBlock Text="{Binding TotalTransactions}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="10,6">
-                                <StackPanel>
-                                    <TextBlock Text="LOẠI DỮ LIỆU" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
-                                    <TextBlock Text="Doanh thu mô phỏng (G3)" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Info.Foreground}"/>
-                                </StackPanel>
-                            </Border>
+                            <!-- Summary Cards -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1.5*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TotalRevenue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Primary}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="TỔNG SỐ GIAO DỊCH" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TotalTransactions}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="10,6">
+                                    <StackPanel>
+                                        <TextBlock Text="LOẠI DỮ LIỆU" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="Doanh thu mô phỏng (G3)" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Info.Foreground}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Chart & Table Details -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.15*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Chart Column -->
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10" Margin="0,0,6,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Biểu đồ doanh thu theo tháng (VNĐ)" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                                            <ItemsControl ItemsSource="{Binding MonthlyItems}" VerticalAlignment="Bottom">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Width="95" VerticalAlignment="Bottom" Margin="5,0">
+                                                            <TextBlock Text="{Binding Revenue, StringFormat={}{0:N0} đ}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10.5" Margin="0,0,0,2"/>
+                                                            <Border Height="{Binding BarHeight}" Background="{StaticResource CE.Primary}" CornerRadius="4,4,0,0" HorizontalAlignment="Stretch" Margin="14,0"/>
+                                                            <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontWeight="SemiBold" FontSize="11" Margin="0,3,0,0"/>
+                                                            <TextBlock Text="{Binding TransactionCount, StringFormat={}{0} GD}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10" Foreground="{StaticResource CE.Neutral.Foreground}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DataGrid Column -->
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Chi tiết giao dịch theo tháng" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <DataGrid Grid.Row="1" Style="{StaticResource CE.DataGrid}" ItemsSource="{Binding MonthlyItems}"
+                                                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,6,0,0" MaxHeight="160">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Tháng" Binding="{Binding Label}" Width="85"/>
+                                                <DataGridTextColumn Header="Doanh thu" Binding="{Binding Revenue, StringFormat={}{0:N0} đ}" Width="*"/>
+                                                <DataGridTextColumn Header="Số GD" Binding="{Binding TransactionCount}" Width="65"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </Grid>
 
-                        <!-- Chart & Table Details -->
-                        <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.15*"/>
-                                <ColumnDefinition Width="1*"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- S7.2 Vaccine Doses Layout -->
+                        <Grid Visibility="{Binding IsVaccineDosesTab, Converter={StaticResource Vis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                            <!-- Chart Column -->
-                            <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10" Margin="0,0,6,0">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="Biểu đồ doanh thu theo tháng (VNĐ)" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
-                                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
-                                        <ItemsControl ItemsSource="{Binding MonthlyItems}" VerticalAlignment="Bottom">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Width="95" VerticalAlignment="Bottom" Margin="5,0">
-                                                        <TextBlock Text="{Binding Revenue, StringFormat={}{0:N0} đ}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10.5" Margin="0,0,0,2"/>
-                                                        <Border Height="{Binding BarHeight}" Background="{StaticResource CE.Primary}" CornerRadius="4,4,0,0" HorizontalAlignment="Stretch" Margin="14,0"/>
-                                                        <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontWeight="SemiBold" FontSize="11" Margin="0,3,0,0"/>
-                                                        <TextBlock Text="{Binding TransactionCount, StringFormat={}{0} GD}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10" Foreground="{StaticResource CE.Neutral.Foreground}"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
-                                </Grid>
-                            </Border>
+                            <!-- Summary Cards -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1.5*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="TỔNG SỐ MŨI TIÊM" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TotalDoses, StringFormat={}{0} mũi}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0" Foreground="{StaticResource CE.Primary}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10,6" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="SỐ LOẠI VẮC XIN" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding VaccineCount, StringFormat={}{0} loại}" Style="{StaticResource CE.SectionHeading}" FontSize="16" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="10,6">
+                                    <StackPanel>
+                                        <TextBlock Text="TIÊM NHIỀU NHẤT" Style="{StaticResource CE.Caption}" FontSize="10.5"/>
+                                        <TextBlock Text="{Binding TopVaccineName}" Style="{StaticResource CE.SectionHeading}" FontSize="14" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" Foreground="{StaticResource CE.Success.Foreground}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
 
-                            <!-- DataGrid Column -->
-                            <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="Chi tiết giao dịch theo tháng" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
-                                    <DataGrid Grid.Row="1" Style="{StaticResource CE.DataGrid}" ItemsSource="{Binding MonthlyItems}"
-                                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,6,0,0" MaxHeight="160">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Tháng" Binding="{Binding Label}" Width="85"/>
-                                            <DataGridTextColumn Header="Doanh thu" Binding="{Binding Revenue, StringFormat={}{0:N0} đ}" Width="*"/>
-                                            <DataGridTextColumn Header="Số GD" Binding="{Binding TransactionCount}" Width="65"/>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </Grid>
-                            </Border>
+                            <!-- Chart & Table Details -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.15*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Chart Column -->
+                                <Border Grid.Column="0" Style="{StaticResource CE.Card}" Padding="10" Margin="0,0,6,0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Biểu đồ số mũi tiêm theo loại vắc xin" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                                            <ItemsControl ItemsSource="{Binding VaccineItems}" VerticalAlignment="Bottom">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Width="105" VerticalAlignment="Bottom" Margin="5,0">
+                                                            <TextBlock Text="{Binding DoseCount, StringFormat={}{0} mũi}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10.5" Margin="0,0,0,2"/>
+                                                            <Border Height="{Binding BarWidth}" Background="{StaticResource CE.Primary}" CornerRadius="4,4,0,0" HorizontalAlignment="Stretch" Margin="14,0"/>
+                                                            <TextBlock Text="{Binding VaccineName}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontWeight="SemiBold" FontSize="10" Margin="0,3,0,0" TextWrapping="Wrap" TextAlignment="Center" MaxHeight="30"/>
+                                                            <TextBlock Text="{Binding PercentageLabel}" HorizontalAlignment="Center" Style="{StaticResource CE.Caption}" FontSize="10" Foreground="{StaticResource CE.Neutral.Foreground}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DataGrid Column -->
+                                <Border Grid.Column="1" Style="{StaticResource CE.Card}" Padding="10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="Chi tiết số mũi theo vắc xin" Style="{StaticResource CE.SectionHeading}" FontSize="13"/>
+                                        <DataGrid Grid.Row="1" Style="{StaticResource CE.DataGrid}" ItemsSource="{Binding VaccineItems}"
+                                                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,6,0,0" MaxHeight="160">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Mã VX" Binding="{Binding Code}" Width="75"/>
+                                                <DataGridTextColumn Header="Tên vắc xin" Binding="{Binding VaccineName}" Width="*"/>
+                                                <DataGridTextColumn Header="Số mũi" Binding="{Binding DoseCount}" Width="60"/>
+                                                <DataGridTextColumn Header="Tỷ lệ" Binding="{Binding PercentageLabel}" Width="55"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </Grid>
                     </Grid>
 
                     <!-- No Data State -->
-                    <ContentControl Grid.Row="3" Style="{StaticResource CE.Alert.Info}" Visibility="{Binding HasNoData, Converter={StaticResource Vis}}">
+                    <ContentControl Grid.Row="4" Style="{StaticResource CE.Alert.Info}" Visibility="{Binding HasNoData, Converter={StaticResource Vis}}">
                         <StackPanel>
-                            <TextBlock Text="Chưa có dữ liệu thanh toán thành công trong khoảng thời gian đã chọn." FontWeight="SemiBold"/>
-                            <TextBlock Text="Hãy chọn khoảng thời gian khác hoặc kiểm tra các giao dịch thanh toán trong hệ thống." Margin="0,5,0,0"/>
+                            <TextBlock Text="Chưa có dữ liệu trong khoảng thời gian đã chọn." FontWeight="SemiBold"/>
+                            <TextBlock Text="Hãy chọn khoảng thời gian khác hoặc kiểm tra lại các bản ghi trong hệ thống." Margin="0,5,0,0"/>
                         </StackPanel>
                     </ContentControl>
 
                     <!-- Invalid Range State -->
-                    <ContentControl Grid.Row="3" Style="{StaticResource CE.Alert.Warning}" Visibility="{Binding HasInvalidRange, Converter={StaticResource Vis}}">
+                    <ContentControl Grid.Row="4" Style="{StaticResource CE.Alert.Warning}" Visibility="{Binding HasInvalidRange, Converter={StaticResource Vis}}">
                         <TextBlock Text="Khoảng ngày chưa hợp lệ. Vui lòng kiểm tra lại Từ ngày và Đến ngày." FontWeight="SemiBold"/>
                     </ContentControl>
                 </Grid>

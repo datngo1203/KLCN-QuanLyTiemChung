@@ -34,4 +34,30 @@ public sealed class SampleReportService : IReportService
 
         return Task.FromResult(result);
     }
+
+    public Task<VaccineDosesReport> GetVaccineDosesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        if (!UseSampleData)
+        {
+            return Task.FromResult(VaccineDosesReport.Empty);
+        }
+
+        var items = new List<VaccineDoseItem>
+        {
+            new(1, "Vắc xin Cúm mùa (Influvac Tetra)", 18, 37.5),
+            new(3, "Vắc xin Phế cầu (Prevenar 13)", 14, 29.2),
+            new(2, "Vắc xin Viêm gan B (Engerix-B)", 10, 20.8),
+            new(4, "Vắc xin Sởi - Quai bị - Rubella (MMR II)", 6, 12.5)
+        };
+
+        var total = items.Sum(x => x.DoseCount);
+        var result = new VaccineDosesReport(
+            from ?? new DateOnly(2026, 6, 1),
+            to ?? new DateOnly(2026, 11, 2),
+            total,
+            items
+        );
+
+        return Task.FromResult(result);
+    }
 }

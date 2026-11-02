@@ -86,6 +86,73 @@ public static class ReportEndpoints
                 grouped
             ));
         }).WithTags("Reports");
+
+        group.MapGet("/vaccine-doses", async (
+            HttpContext context,
+            IdentityAuthorization auth,
+            TiemChungDbContext db,
+            string? from,
+            string? to,
+            CancellationToken ct) =>
+        {
+            var actor = await auth.RequireAsync(context, false, ct);
+            if (!actor.Permissions.Contains("XemBaoCao"))
+                throw new IdentityFailure(403, "permissionDenied");
+
+            var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+
+            DateOnly fromDate;
+            if (from is not null)
+            {
+                if (!TryParseDate(from, false, out fromDate))
+                    throw new IdentityFailure(400, "validation");
+            }
+            else
+            {
+                var startSixMonthsAgo = new DateOnly(todayVn.Year, todayVn.Month, 1).AddMonths(-5);
+                fromDate = startSixMonthsAgo;
+            }
+
+            DateOnly toDate;
+            if (to is not null)
+            {
+                if (!TryParseDate(to, true, out toDate))
+                    throw new IdentityFailure(400, "validation");
+            }
+            else
+            {
+                toDate = todayVn;
+            }
+
+            if (fromDate > toDate || toDate > todayVn)
+                throw new IdentityFailure(400, "validation");
+
+            var startUtc = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc).AddHours(-7);
+            var endExclusiveUtc = new DateTime(toDate.Year, toDate.Month, toDate.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1).AddHours(-7);
+
+            var query = await (
+                from m in db.Set<MuiTiem>().AsNoTracking()
+                where m.TrangThai == "DaTiem" && m.ThoiDiemTiem >= startUtc && m.ThoiDiemTiem < endExclusiveUtc
+                join l in db.Set<LoVacXin>().AsNoTracking() on m.SoLo equals l.SoLo
+                join v in db.Vaccines.AsNoTracking() on l.MaVacXin equals v.MaVacXin
+                group m by new { v.MaVacXin, v.TenVacXin } into g
+                select new VaccineDosesItemDto(
+                    g.Key.MaVacXin,
+                    g.Key.TenVacXin,
+                    g.Count()
+                )
+            ).ToListAsync(ct);
+
+            var ordered = query.OrderByDescending(x => x.DoseCount).ThenBy(x => x.VaccineName).ToList();
+            var totalDoses = ordered.Sum(x => x.DoseCount);
+
+            return Results.Ok(new VaccineDosesReportDto(
+                fromDate,
+                toDate,
+                totalDoses,
+                ordered
+            ));
+        }).WithTags("Reports");
     }
 
     private static bool TryParseDate(string input, bool isEnd, out DateOnly date)

@@ -15,9 +15,10 @@ public partial class App : Application
         base.OnStartup(e);
         File.AppendAllText("app_startup.log", $"Args: [{string.Join(", ", e.Args)}]\n");
 
-        if (e.Args.Length > 0 && e.Args[0] == "--capture-report")
+        if (e.Args.Length > 0 && (e.Args[0] == "--capture-report" || e.Args[0] == "--capture-report-doses"))
         {
-            var outputPath = e.Args.Length > 1 ? e.Args[1] : "report_screenshot.png";
+            var isDoses = e.Args[0] == "--capture-report-doses";
+            var outputPath = e.Args.Length > 1 ? e.Args[1] : (isDoses ? "report_a11_doses_screenshot.png" : "report_a11_revenue_screenshot.png");
             var auth = await IdentityApiService.Current.LoginAsync("demo.admin", "TiemChung@2026");
             if (!auth.Succeeded)
             {
@@ -32,6 +33,10 @@ public partial class App : Application
             var item = group.Screens.First(s => s.Id == "A11");
             vm.NavigateCommand.Execute(item);
 
+            if (isDoses)
+            {
+                vm.Reports.SelectedTab = "VaccineDoses";
+            }
             await vm.Reports.GenerateAsync();
 
             var window = new ViewsV2.MainWindow(vm);
