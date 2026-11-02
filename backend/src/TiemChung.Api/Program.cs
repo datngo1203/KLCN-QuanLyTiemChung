@@ -67,6 +67,7 @@ if (args.Contains("--seed-catalog"))
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) context.Response.Headers.CacheControl = "no-store";
+    if (context.Request.Path.StartsWithSegments("/api/v1/reports")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/clinical")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";
@@ -86,7 +87,8 @@ app.Use(async (context, next) => {
         context.Request.Path.StartsWithSegments("/api/v1/payment-registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/appointments") ||
         context.Request.Path.StartsWithSegments("/api/v1/clinical") ||
-        context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) {
+        context.Request.Path.StartsWithSegments("/api/v1/vaccinations") ||
+        context.Request.Path.StartsWithSegments("/api/v1/reports")) {
         context.Response.StatusCode = failure.StatusCode;
         var code = failure.StatusCode == 400 ? "validation" : "invalidRequest";
         await context.Response.WriteAsJsonAsync(new { type="about:blank", title=code, status=failure.StatusCode,
@@ -120,6 +122,7 @@ app.MapClinicalEndpoints();
 app.MapVaccinationEndpoints();
 app.MapVaccinationHistoryEndpoints();
 app.MapAftercareEndpoints();
+app.MapReportEndpoints();
 
 app.Run();
 

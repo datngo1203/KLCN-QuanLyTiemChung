@@ -1,0 +1,277 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using TiemChung.Api;
+using TiemChung.Contracts;
+using TiemChung.Domain.Entities;
+using Xunit;
+
+namespace TiemChung.Tests;
+
+public sealed class ReportSqlTests
+{
+    private const string MonthlyRevenueRoute = "/api/v1/reports/monthly-revenue";
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MonthlyRevenue_CalculatesCorrectSumAndGroupingByMonthUtc7()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var employee = await f.Db.Set<NhanVien>().FirstAsync();
+            var customer = new KhachHang { HoTen = "Customer Test", CCCD = "123456789012", SoDienThoai = "0901234567", Email = "test@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Test", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            var reg1 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            var reg2 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            var reg3 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            f.Db.AddRange(reg1, reg2, reg3);
+            await f.Db.SaveChangesAsync();
+
+            // Oct VN: 2026-10-15 10:00 VN = 2026-10-15 03:00 UTC
+            f.Db.Add(new ThanhToan { MaDangKy = reg1.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 150_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = new DateTime(2026, 10, 15, 3, 0, 0, DateTimeKind.Utc) });
+            f.Db.Add(new ThanhToan { MaDangKy = reg2.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 250_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = new DateTime(2026, 10, 20, 5, 0, 0, DateTimeKind.Utc) });
+            // Sep VN: 2026-09-10 10:00 VN = 2026-09-10 03:00 UTC
+            f.Db.Add(new ThanhToan { MaDangKy = reg3.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 100_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = new DateTime(2026, 9, 10, 3, 0, 0, DateTimeKind.Utc) });
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{MonthlyRevenueRoute}?from=2026-09&to=2026-10");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+
+            var report = await response.Content.ReadFromJsonAsync<MonthlyRevenueReportDto>();
+            Assert.NotNull(report);
+            Assert.True(report.IsSimulated);
+            Assert.Equal(500_000m, report.TotalRevenue);
+            Assert.Equal(2, report.Items.Count);
+
+            var sep = report.Items.Single(x => x.Month == 9);
+            Assert.Equal(2026, sep.Year);
+            Assert.Equal("09/2026", sep.Label);
+            Assert.Equal(100_000m, sep.Revenue);
+            Assert.Equal(1, sep.TransactionCount);
+
+            var oct = report.Items.Single(x => x.Month == 10);
+            Assert.Equal(2026, oct.Year);
+            Assert.Equal("10/2026", oct.Label);
+            Assert.Equal(400_000m, oct.Revenue);
+            Assert.Equal(2, oct.TransactionCount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MonthlyRevenue_GuardsAgainstDoubleCountingWithMultipleItems()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var employee = await f.Db.Set<NhanVien>().FirstAsync();
+            var customer = new KhachHang { HoTen = "Customer Test", CCCD = "123456789012", SoDienThoai = "0901234567", Email = "test@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Test", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            var reg = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            f.Db.Add(reg);
+            await f.Db.SaveChangesAsync();
+
+            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            f.Db.AddRange(loaiVacXin, loaiTiem);
+            await f.Db.SaveChangesAsync();
+
+            var vaccine = new VacXin
+            {
+                TenVacXin = "Vaccine Test",
+                NhaSanXuat = "Demo",
+                XuatXu = "VN",
+                LieuLuong = "0.5ml",
+                PhanUngSauTiem = "None",
+                Gia = 100_000m,
+                MaLoaiVacXin = loaiVacXin.MaLoaiVacXin,
+                MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung,
+                TrangThai = "DangSuDung"
+            };
+            f.Db.Add(vaccine);
+            await f.Db.SaveChangesAsync();
+
+            // Add 3 separate item details to the registration
+            f.Db.Add(new ChiTietVacXinLe { MaDangKy = reg.MaDangKy, MaVacXin = vaccine.MaVacXin, SoLuong = 1, GiaTaiThoiDiemDangKy = 200_000m });
+            f.Db.Add(new ChiTietVacXinLe { MaDangKy = reg.MaDangKy, MaVacXin = vaccine.MaVacXin, SoLuong = 1, GiaTaiThoiDiemDangKy = 300_000m });
+            f.Db.Add(new ChiTietVacXinLe { MaDangKy = reg.MaDangKy, MaVacXin = vaccine.MaVacXin, SoLuong = 1, GiaTaiThoiDiemDangKy = 150_000m });
+
+            // Exactly 1 payment of 650,000 VND
+            f.Db.Add(new ThanhToan { MaDangKy = reg.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 650_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = new DateTime(2026, 10, 10, 5, 0, 0, DateTimeKind.Utc) });
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{MonthlyRevenueRoute}?from=2026-10-01&to=2026-10-31");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var report = await response.Content.ReadFromJsonAsync<MonthlyRevenueReportDto>();
+            Assert.NotNull(report);
+            // Must equal exactly 650,000 VND, NOT multiplied by detailsCount!
+            Assert.Equal(650_000m, report.TotalRevenue);
+            Assert.Single(report.Items);
+            Assert.Equal(650_000m, report.Items[0].Revenue);
+            Assert.Equal(1, report.Items[0].TransactionCount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MonthlyRevenue_RespectsUtc7Boundary()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var employee = await f.Db.Set<NhanVien>().FirstAsync();
+            var customer = new KhachHang { HoTen = "Customer Test", CCCD = "123456789012", SoDienThoai = "0901234567", Email = "test@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Test", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            var reg = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            f.Db.Add(reg);
+            await f.Db.SaveChangesAsync();
+
+            // 2026-10-31 23:30:00 UTC corresponds to 2026-11-01 06:30:00 in UTC+07:00
+            var boundaryUtcTime = new DateTime(2026, 10, 31, 23, 30, 0, DateTimeKind.Utc);
+            f.Db.Add(new ThanhToan { MaDangKy = reg.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 300_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = boundaryUtcTime });
+            await f.Db.SaveChangesAsync();
+
+            // Query only October 2026 (VN time: 2026-10-01 to 2026-10-31)
+            using var responseOct = await f.Client.GetAsync($"{MonthlyRevenueRoute}?from=2026-10-01&to=2026-10-31");
+            Assert.Equal(HttpStatusCode.OK, responseOct.StatusCode);
+            var reportOct = await responseOct.Content.ReadFromJsonAsync<MonthlyRevenueReportDto>();
+            Assert.NotNull(reportOct);
+            Assert.Equal(0m, reportOct.TotalRevenue);
+            Assert.Empty(reportOct.Items);
+
+            // Query November 2026 up to today (VN time: 2026-11-01 to 2026-11-02)
+            using var responseNov = await f.Client.GetAsync($"{MonthlyRevenueRoute}?from=2026-11-01&to=2026-11-02");
+            Assert.Equal(HttpStatusCode.OK, responseNov.StatusCode);
+            var reportNov = await responseNov.Content.ReadFromJsonAsync<MonthlyRevenueReportDto>();
+            Assert.NotNull(reportNov);
+            Assert.Equal(300_000m, reportNov.TotalRevenue);
+            Assert.Single(reportNov.Items);
+            Assert.Equal(11, reportNov.Items[0].Month);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MonthlyRevenue_ExcludesNonSuccessPayments()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            var employee = await f.Db.Set<NhanVien>().FirstAsync();
+            var customer = new KhachHang { HoTen = "Customer Test", CCCD = "123456789012", SoDienThoai = "0901234567", Email = "test@example.invalid" };
+            f.Db.Add(customer);
+            await f.Db.SaveChangesAsync();
+
+            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "Recipient Test", NgaySinh = new DateOnly(2020, 1, 1), GioiTinh = "Nam", QuanHeVoiKhachHang = "Con" };
+            f.Db.Add(recipient);
+            await f.Db.SaveChangesAsync();
+
+            var reg1 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            var reg2 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            var reg3 = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" };
+            f.Db.AddRange(reg1, reg2, reg3);
+            await f.Db.SaveChangesAsync();
+
+            var date = new DateTime(2026, 10, 15, 3, 0, 0, DateTimeKind.Utc);
+            f.Db.Add(new ThanhToan { MaDangKy = reg1.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 500_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = date });
+            f.Db.Add(new ThanhToan { MaDangKy = reg2.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 999_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "DangXuLy", ThoiDiem = date });
+            f.Db.Add(new ThanhToan { MaDangKy = reg3.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 888_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "DaHuy", ThoiDiem = date });
+            await f.Db.SaveChangesAsync();
+
+            using var response = await f.Client.GetAsync($"{MonthlyRevenueRoute}?from=2026-10&to=2026-10");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var report = await response.Content.ReadFromJsonAsync<MonthlyRevenueReportDto>();
+            Assert.NotNull(report);
+            Assert.Equal(500_000m, report.TotalRevenue);
+            Assert.Single(report.Items);
+            Assert.Equal(1, report.Items[0].TransactionCount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MonthlyRevenue_EnforcesAuthorization()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            // Anonymous -> 401
+            using var unauthClient = f.Factory.CreateClient();
+            using var respAnon = await unauthClient.GetAsync(MonthlyRevenueRoute);
+            Assert.Equal(HttpStatusCode.Unauthorized, respAnon.StatusCode);
+
+            // Staff without XemBaoCao -> 403
+            var nurse = new NhanVien { HoTen = "[DEMO] Dieu Duong", ChucDanh = "DieuDuong", TrangThai = "Active" };
+            f.Db.Add(nurse);
+            await f.Db.SaveChangesAsync();
+            var nurseAccount = new TaiKhoan
+            {
+                AccountType = "Employee",
+                MaNhanVien = nurse.MaNhanVien,
+                TenDangNhap = "nurse.test",
+                NormalizedUsername = "NURSE.TEST",
+                EmailVerifiedAt = DateTimeOffset.UtcNow,
+                TrangThai = "Active",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            nurseAccount.MatKhauHash = new PasswordHasher<TaiKhoan>().HashPassword(nurseAccount, "Password@123456");
+            f.Db.Add(nurseAccount);
+            await f.Db.SaveChangesAsync();
+
+            var session = new IdentitySession
+            {
+                Id = Guid.NewGuid(),
+                AccountId = nurseAccount.MaTaiKhoan,
+                SecurityVersion = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                ExpiresAt = DateTimeOffset.UtcNow.AddHours(1)
+            };
+            f.Db.Add(session);
+            await f.Db.SaveChangesAsync();
+
+            var nurseClient = f.Factory.CreateClient();
+            nurseClient.DefaultRequestHeaders.Authorization = new("Bearer", new IdentityTokens(f.Config).Issue(nurseAccount.MaTaiKhoan, session.Id, DateTimeOffset.UtcNow));
+            using var respNurse = await nurseClient.GetAsync(MonthlyRevenueRoute);
+            Assert.Equal(HttpStatusCode.Forbidden, respNurse.StatusCode);
+
+            // Admin with XemBaoCao -> 200
+            await f.Login();
+            using var respAdmin = await f.Client.GetAsync(MonthlyRevenueRoute);
+            Assert.Equal(HttpStatusCode.OK, respAdmin.StatusCode);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("?from=invalid")]
+    [InlineData("?to=2099-01-01")]
+    [InlineData("?from=2026-11&to=2026-10")]
+    public async Task MonthlyRevenue_ValidatesParameters(string query)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            await f.Login();
+            using var response = await f.Client.GetAsync(MonthlyRevenueRoute + query);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var text = await response.Content.ReadAsStringAsync();
+            using var json = JsonDocument.Parse(text);
+            Assert.Equal("validation", json.RootElement.GetProperty("code").GetString());
+        });
+    }
+}

@@ -103,6 +103,7 @@ public sealed class ShellViewModel : ViewModelBase
         SelectedGroup = group;
         var item = group.Screens.First(s => s.Id == id);
         SelectedScreen = item;
+        if (id == "A11") _ = Reports.GenerateAsync();
         CurrentView = NavigationRegistry.CreatePage(id, this);
         FeedbackMessage = "";
     }
