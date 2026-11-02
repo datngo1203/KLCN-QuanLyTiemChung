@@ -60,17 +60,19 @@ Admin đầu tiên: lệnh `--seed-admin` chỉ ở Development, nhận `Develop
 
 G1 thêm `--seed-reception` chỉ ở Development, cùng cấu hình local `DevelopmentSeed:Username`/`Password`: tạo nhân viên `[DEMO]` `LeTan`/Active và tài khoản Employee/None/Active, không có quyền mở rộng, hash/transaction/audit tại backend. Lặp lại theo username chuẩn hóa không đổi hash/trạng thái/dữ liệu; username thuộc chức danh khác bị từ chối. Production/Test không chạy lệnh này; test SQL có fixture riêng. Không đổi schema/migration hoặc quyền endpoint. Lệnh `provision-employee` trong IdentityOperator vẫn yêu cầu bản ghi nhân viên có sẵn và kiểm tra operator/Admin; không thêm HTTP quản trị.
 
-## Dự kiến — chưa có endpoint thực thi
+## Tổng quan module và phần còn lại
+
+Các mục đã triển khai được mô tả chi tiết ở phần bên dưới. Các mục chưa thực hiện phải đối chiếu SCOPE.md; bảng này không cấp phép tự mở rộng nghiệp vụ.
 
 | Module | Endpoint dự kiến | Người làm |
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
-| Follow-up | PUT appointments/{id}; POST reminders (tạo/xem lịch đã có trong S5.1; lịch sử Customer dùng GET vaccinations/history S5.7A bên dưới) | Quý |
-| Aftercare | GET/POST vaccinations/{id}/follow-ups đã có trong S5.6 bên dưới | Quý |
-| Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định đã có S5.3, ghi tiêm S5.5 bên dưới; không khám chi tiết | Đạt: kết luận/chỉ định; Quý: ghi tiêm |
+| Appointments/Reminders | S5.1/S5.2 lịch hẹn, S5.7A lịch sử Customer, S5.7B log nhắc lịch mô phỏng đã có; không bổ sung đổi/hủy lịch hoặc kênh gửi thật | Đạt |
+| Aftercare | GET/POST vaccinations/{id}/follow-ups đã có trong S5.6 bên dưới | Đạt |
+| Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định S5.3, ghi tiêm S5.5; không khám chi tiết | Đạt |
 | Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |
-| Reports | GET reports; doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái; hoãn xuất file | Đạt |
+| Reports | GET reports; doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái; API chỉ đọc SQL và Windows, hoãn xuất file | Quý |
 
 Endpoint nghiệp vụ chỉ được mở sau khi có xác thực và kiểm tra quyền tại API. Khách hàng chỉ đọc hồ sơ mình/người được tiêm được ủy quyền; vai trò nhân viên tách theo chức danh. Không lấy quyền từ trường do client gửi lên.
 
