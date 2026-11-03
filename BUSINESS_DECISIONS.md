@@ -271,7 +271,7 @@
 
 > **Đây là checklist cho công việc RÀ SOÁT, không thay cho cột `Trạng thái` của `SCOPE.md` và KHÔNG xác nhận module đã nghiệm thu.** Mọi dấu [x] bên dưới chỉ nghĩa là **đã đọc/đối chiếu tĩnh** và ghi phát hiện ở E5–E7. Test thực chưa chạy phải để [ ]. Trước mỗi phiên, đọc `AGENTS.md`/`SCOPE.md` ở `main`, `BUSINESS_DECISIONS.md` tại nhánh PR #63; sau đó kiểm lại nhánh và PR mới.
 
-**Mục tiêu điều phối được điều chỉnh ngày 03/11/2026:** **DỪNG rà soát tĩnh diện rộng** vì E5–E7 đã đủ để khởi động S8; ưu tiên chứng cứ **S8.1 luồng liên thông thực tế trên `main`** (hồ sơ → đăng ký → thanh toán → lịch → chỉ định → ghi tiêm → theo dõi → lịch sử/SQL). Đây là smoke test tích hợp khác với kiểm thử từng module S4/S5. S6/S7 làm song song và sẽ kiểm lại khi merge. Không thêm BA/UX mới trong lúc chưa có blocker thực tế.
+**Mục tiêu điều phối sửa ngày 03/11/2026 (sau phản hồi người dùng):** **ƯU TIÊN HOÀN THIỆN NGHIỆP VỤ**, KHÔNG ép chạy S8 toàn hệ thống trước khi sửa các lát còn thiếu/được duyệt. Các lát phải đi theo phụ thuộc dữ liệu/nghiệp vụ và mỗi lát phải có kiểm thử đúng phạm vi (DB/API/client/test) rồi mới đóng. S8 tổng thể chạy sau khi các thay đổi nghiệp vụ dự định đưa vào bản nộp đã tích hợp; S6 của Bảo và S7 của Quý tiếp tục song song. Không bỏ test giữa chừng, không refactor hoặc mở rộng vô hạn.
 
 #### Checkpoint khảo sát đọc code — không phải PASS/FAIL runtime
 - [x] **R1. Danh mục/vắc xin/gói**: đã đọc Catalog/Contracts/EF và xác minh CRUD, giá, giới hạn đổi cấu phần gói; **chưa** kiểm DB thực hoặc dữ liệu y khoa nguồn (E5).
@@ -284,12 +284,22 @@
 - [x] **R8. Windows mức ViewModel/role sơ bộ**: đã đọc ShellViewModel, Screening/Catalog/Payment/Vaccination/Report; main Report vẫn dùng `SampleReportService`; phần khác có API/gating. **Chưa xem toàn bộ ViewsV2, route/UX và chạy app**; chưa xác nhận toàn bộ 6 vai trò thao tác thành công.
 
 #### Việc còn mở — mỗi lần tiếp tục CHỈ CHỌN MỘT mục có giới hạn
-- [ ] **N1 (TẠM HOÃN — không phải blocker của S8.1):** chỉ trở lại rà chi tiết Windows sáu vai trò nếu S8.1 hoặc yêu cầu nghiệm thu cụ thể phát hiện lỗ hổng; không đọc tiếp ViewModels/ViewsV2 chỉ để tăng độ phủ phân tích.
-- [ ] **N2:** xác minh **trạng thái PR/CI/S6 của Bảo và S7 của Quý** bằng thông tin PR mới nhất hoặc phản hồi owner, không suy từ nhánh đơn lẻ. Kiểm contract ưu đãi/số tiền chỉ khi thực sự có code/PR; phân loại điểm giao Registration→Payment→S5.
-- [ ] **N3:** đối chiếu **7 nghiệp vụ khảo sát ↔ UML/báo cáo ↔ phạm vi/demo S0–S8**; không ép quy trình nhập kho đầy đủ vào code khi `SCOPE.md` không có.
-- [ ] **N4 — BẮT ĐẦU NGAY S8.1:** dùng DB SQL Server **disposable/test độc lập** và code `main` thực sự, chạy một kịch bản Web/Windows → API → SQL: tạo hồ sơ/người được tiêm → đăng ký **một vắc xin lẻ** → thanh toán mô phỏng một lần → Lễ tân tạo lịch → Bác sĩ kết luận Đủ điều kiện/chỉ định → Điều dưỡng ghi mũi từ lô `[DEMO]` hợp lệ → theo dõi → khách đọc lịch sử. Chụp/log các ID và xác minh SQL/audit/tồn, không sửa code, không viết migration, không đụng DB khác. Nếu thiếu môi trường/UI thật, ghi **BLOCKED + bước mở khóa**, không tự coi là PASS. **Dừng khi có 1 bộ bằng chứng PASS hoặc một blocker tái hiện được**; không phát sinh feature/UX mới. Sau đó kiểm bản tích hợp S6/S7 riêng ở S8.2 với khuyến mãi/báo cáo và các ca hồi quy tiền/tồn.
-- [ ] **N5:** khi N1–N4 đủ căn cứ, **tổng hợp danh sách lỗi/thiếu sót theo A/B/C/D**, ưu tiên P0/P1 và một PR nhỏ đúng owner cho từng lỗi, không làm một cục. Nếu không có lỗi thật, ghi **“chưa chứng minh lỗi”**, không tự tạo việc.
+- [ ] **N1 (HOÃN audit diện rộng):** chỉ rà Windows sáu vai trò khi cần xác định lỗi thực tế hoặc kiểm tra một lát nghiệp vụ đang sửa; không tự audit hết UI làm thay tiến độ triển khai.
+- [ ] **N2 (song song, không cản triển khai):** kiểm trạng thái PR S6 của Bảo và S7 của Quý để nhận diện file/contract giao thoa; mỗi nhóm hoàn thành lát riêng, không đợi nhau. Khi S6 có giá giảm, test hồi quy Registration→Payment→S5; khi S7 tích hợp, test báo cáo thật.
+- [ ] **N3 (chỉ khi có khoảng cách cần sửa):** đối chiếu đúng luồng nghiệp vụ đang làm với đề cương/UML, nhưng phân biệt khảo sát bảy quy trình và phần mềm trong `SCOPE.md`. Không tự triển khai nhập hàng/nhà cung cấp, SMS thật, thuật toán y khoa... khi ngoài phạm vi.
+- [ ] **N4 (DỜI SANG SAU TÍCH HỢP):** chạy S8 end-to-end Web→API→SQL→Windows sau khi các lát nghiệp vụ chọn đưa vào bản nộp đã merge. **Không bắt chạy S8 đầy đủ trước khi bắt đầu sửa nghiệp vụ**; phải test từng lát và hồi quy liên quan. S8 cuối gồm hồ sơ→đăng ký→ưu đãi→thanh toán→lịch→chỉ định→tiêm→theo dõi→báo cáo, quyền, tiền/tồn, giao dịch đồng thời. Chỉ đánh dấu PASS có bằng chứng.
+- [ ] **N5 (chốt gói sửa, không lại mở audit diện rộng):** lấy bằng chứng E5–E7 và `SCOPE.md` để chọn **một lát nghiệp vụ cụ thể có đầu ra code/test**. Ghi A (lỗi), B (thiếu theo scope), C (mở rộng cần duyệt), D (chỉ khảo sát/báo cáo), file/owner/acceptance test; không tự giao lỗi chưa tái hiện hoặc nâng cấp C/D.
 
+
+
+#### Backlog nghiệp vụ cần quyết định trước khi giao Codex (không phải danh sách mặc định phải code hết)
+- **Vòng đầu — dữ liệu gốc và đăng ký:** S2/danh mục-vắc xin-gói → S3/hồ sơ → S4/đăng ký-thanh toán. Các module đã nghiệm thu **không viết lại**; dùng E5 xác định lỗi thật hoặc khác biệt cần chứng minh. A04 chuyên môn là đề xuất **C** (mở rộng), cần duyệt phạm vi trước khi triển khai.
+- **Vòng kế — khám, tiêm và lịch:** S5 đang đóng băng theo contract cũ; kiểm ảnh hưởng khi thay chỉ định/phác đồ/lịch. A02 bản nháp/đính chính/tạm giữ theo QD-009–017 là đề xuất **C** có rủi ro; không nhập thẳng vào S5. Nghiệp vụ nhập vắc xin từ nhà cung cấp là quy trình khảo sát nhưng bị loại khỏi `SCOPE.md` hiện tại (**D/C**), không mặc định code.
+- **Song song của thành viên:** S6 ưu đãi do Bảo và S7 báo cáo do Quý; chưa nhập nhánh riêng hay sửa file của họ. Sau khi merge phải kiểm giao thoa tiền và báo cáo theo test.
+- **Lát kế tiếp để hoàn thiện (chưa cho phép code):** xem lại **S2/A04 và dữ liệu gói** để chọn **một thiếu sót cụ thể có giá trị**; trước tiên kiểm nó thuộc A/B hay C/D. Đầu ra bắt buộc là *một* gói sửa có: nghiệp vụ, file, owner, mô tả trước/sau, test, ảnh hưởng, điều kiện phê duyệt. Nếu S2 không có lỗi A/B, chuyển ngay sang các phần chưa hoàn tất trong phạm vi (S1, S6/S7, S8) thay vì mở rộng cho đủ việc. Không lặp lại vòng phân tích A02.
+- **Chính sách kiểm thử:** test nhỏ khi sửa; test hồi quy khi merge; S8 đầy đủ cuối. Không gọi các test S4/S5 đã PASS là PASS cho bản đã thay đổi.
+
+**Điểm dừng mới:** đến khi có một gói sửa nghiệp vụ đã được duyệt và có kết quả DB/API/client/test, không thêm nhiều bảng BA hoặc kéo dài phân tích; mỗi thay đổi kỹ thuật phải tạo được tác động nhìn thấy/đo được.
 **Điểm dừng để chống sa đà:**
 1. Mỗi lượt **một nhóm rà soát**, nêu tối đa **3–5 phát hiện quan trọng** và test đề xuất; nếu không có lỗi có bằng chứng, **chuyển nhóm**, không đào tiếp vô hạn.
 2. Chỉ tạo QD mới khi người dùng chốt **quyết định nghiệp vụ mới**; các checkpoint R/N và ghi nhận code chỉ cập nhật E8/E9... Không chỉnh `SCOPE.md` chỉ để đánh dấu các bước đọc code.
@@ -297,5 +307,5 @@
 4. Không tự sửa code/SQL/migration, AGENTS/SCOPE, không merge PR; Bảo sở hữu S6, Quý sở hữu S7; S5 đóng băng, bất kỳ tương thích phải có owner/review/test hồi quy.
 5. Cuối mỗi lượt: **cập nhật đúng checkbox rà soát và điểm tiếp tục trong file này**; ghi commit/PR; trước lượt mới đối chiếu `main` và `SCOPE.md` thật. Nếu phần chưa thể kiểm vì cần chạy môi trường, để [ ] và không tự tuyên bố PASS.
 
-**Câu resume ngắn (ưu tiên hiện tại):** `Đọc AGENTS.md, SCOPE.md trên main và BUSINESS_DECISIONS.md nhánh docs/business-decisions-20261103, mục E8. DỪNG audit thêm. Thực hiện S8.1 một luồng tích hợp thực tế trên DB test riêng, báo PASS/FAIL/BLOCKED + evidence, không sửa code/SQL/migration/S5/S6/S7. Cập nhật checklist sau khi có kết quả; S6/S7 song song, S8.2 sau khi tích hợp. Chỉ xử lý blocker có bằng chứng.`
+**Câu resume ngắn (ưu tiên hiện tại):** `Đọc AGENTS.md, SCOPE.md trên main và BUSINESS_DECISIONS.md nhánh docs/business-decisions-20261103, mục E8. KHÔNG bắt đầu S8 tổng thể; hoàn thiện nghiệp vụ theo lát có phạm vi và owner rõ ràng, kiểm thử từng lát và hồi quy; S6/S7 song song. Chọn một lát triển khai có căn cứ từ E5–E7, nêu file/điều kiện hoàn thành/ảnh hưởng và xin duyệt scope nếu là mở rộng C. Cập nhật checkpoint sau từng lát. S8 tổng thể sau tích hợp.`
 
