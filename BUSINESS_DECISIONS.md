@@ -242,3 +242,28 @@
 
 **Hướng rà soát kế tiếp, vẫn theo E4 và không đợi S6/S7 hoàn tất:** (1) S7/Reports theo code nhánh có thể truy cập và contract của Quý — không sửa code người khác; (2) S1 phân quyền/vùng truy cập, API/Windows/Web xuyên chuỗi; (3) đối chiếu đề cương + bảy Activity/UC/Sequence với thực tế; (4) lập test matrix S8 cuối. Khi phát hiện giao thoa API/contract/schema, chỉ đề xuất thay đổi riêng kèm owner, kiểm thử hồi quy và yêu cầu phê duyệt phạm vi.
 
+
+### E7. Đối chiếu đợt 3 — S7, quyền và hai client; kiểm chứng tích hợp còn phải làm (03/11/2026)
+
+> **Chỉ đọc mã nguồn** `main` và các **nhánh S7 của Quý** để nắm tiến độ phụ thuộc. Nhánh có code **không đồng nghĩa đã merge, chạy test hoặc nghiệm thu**. Không sửa nhánh, tác giả, file hoặc PR của Quý; không tự cập nhật trạng thái S7 trong `SCOPE.md`.
+
+| Nhóm | Căn cứ được kiểm | Kết luận và các phép thử còn cần |
+|---|---|---|
+| S7 báo cáo — không bị bỏ quên | Trên `main` chưa có `MapReportEndpoints()`. Đã đọc `ReportEndpoints.cs` và `Program.cs` ở các nhánh `feat/s7-1-monthly-revenue`, `feat/s7-2-vaccine-doses`, `feat/s7-3-registration-status`. Nhánh cuối có ba GET `/monthly-revenue`, `/vaccine-doses`, `/registration-statuses` và quyền `XemBaoCao` | **Có triển khai trên nhánh**, chưa chứng minh merge/CI/Windows UI/SQL test; không gọi là “chưa làm”. Doanh thu lấy các `ThanhToan.TrangThai=ThanhCong` và cộng `SoTien`, không JOIN qua các dòng dịch vụ; liều đếm `MuiTiem.TrangThai=DaTiem`; trạng thái đăng ký nhóm theo giá trị đang có; khoảng ngày quy về UTC+7. Kiểm tiếp **owner Quý**: lọc ngày, quyền, dữ liệu 0, tổng chính xác, trùng JOIN, UI Windows, PR và test |
+| S1 + bảo mật | `IdentityEndpoints.cs` trên `main`: đăng ký, xác minh email, đăng nhập, refresh, logout, đổi mật khẩu, `/me`; các endpoint nghiệp vụ tự kiểm chức danh/quyền/ownership | S1 vẫn có phần nghiệm thu chưa đóng theo `SCOPE.md`. **Chưa audit sâu** hash/session/refresh/CSRF và WPF login; không tự kết luận PASS. Kiểm quyền trên API thực và dữ liệu hồ sơ ngoài phạm vi tài khoản trước khi tuyên bố toàn hệ thống an toàn |
+| Website | `apps/web/src/App.jsx`, `Catalog.jsx`, `Registrations.jsx`, `Payments.jsx`, `VaccinationHistory.jsx` (đều có trên `main`) | Có các màn giới thiệu/tìm kiếm danh mục, đăng ký, xem thanh toán mô phỏng và lịch sử tiêm; không tự nhận UI đầy đủ ở mọi kích thước hoặc mọi lỗi mạng. Test Web→API→SQL có đăng nhập, phân quyền, lỗi mạng, giá/tiền, đối chiếu Windows |
+| Windows / vai trò nhân viên | Giao diện A02 `ScreeningViewModel.cs` đã đọc; S5/S2/S3/S4 được ghi trong `SCOPE.md` với một số giới hạn kiểm thử UI thực | **Chưa đọc hết toàn bộ ViewModels/ViewsV2 trong đợt này**; cần rà từng actor và thao tác thực từ WPF, không chỉ dựa trên nút hoặc trạng thái mô phỏng. Giữ nguyên thành quả đã nghiệm thu, không dùng audit này làm lý do refactor UI diện rộng |
+| Đề cương/UML/S8 | Đề cương CNTT-KLCN090 yêu cầu Windows + Website + API + kiểm thử và bộ UML/thiết kế dữ liệu. `SCOPE.md` xác định 7 quy trình BA trong nội dung khảo sát và S8 kiểm tích hợp | **CẦN ĐỐI CHIẾU** tài liệu chương 1, Use Case, Activity, Sequence, ERD và demo: phân biệt khảo sát (7 quy trình) với phần code thực hiện (S0–S8). Luồng khảo sát có nhập kho đầy đủ không được báo như chức năng runtime nếu chỉ có seed lô |
+
+**S8 — checklist xuyên module nên lập/chạy trên bản tích hợp, chưa có kết quả mới:**
+- `I01` khách hàng đăng nhập → tạo hồ sơ và người được tiêm → chọn vắc xin/gói → đăng ký → đọc lại SQL và Web/Windows thấy cùng dữ liệu.
+- `I02` giá danh mục thay đổi sau khi có đăng ký → đơn giá snapshot không bị thay; S6 nếu đã merge chốt số tiền sau giảm, payment ghi đúng một lần, S5 kiểm đúng tổng.
+- `I03` Lễ tân tạo lịch từ đăng ký → Bác sĩ chỉ định đúng sản phẩm → Điều dưỡng ghi mũi bằng lô hợp lệ → tồn và `BienDongKho` nhất quán → theo dõi → lịch sử khách thấy mũi đã tiêm.
+- `I04` nhắc lịch log mô phỏng trên lịch tương lai chưa tiêm, không suy diễn đã gửi SMS/Email.
+- `I05` S7 (khi được review và tích hợp) thống kê đúng thanh toán thành công, mũi đã ghi, đăng ký theo trạng thái; quyền `XemBaoCao` và bộ lọc khoảng ngày Việt Nam.
+- `I06` kiểm chéo quyền Khách hàng / Lễ tân / Bác sĩ / Điều dưỡng / Thu ngân / nhân viên kho, kể cả ID đoán được và quyền trên API, không chỉ trên client.
+- `I07` lỗi mạng/timeout sau commit: GET đối chiếu, không tạo đăng ký, thanh toán, mũi tiêm hoặc ghi theo dõi trùng; kiểm rollback/tranh tồn cuối.
+- `I08` đối chiếu màn demo và sơ đồ UML với từng phần **đã triển khai / chỉ khảo sát / hướng phát triển**; tránh khẳng định quá mức.
+
+**Cách nối bước tiếp theo (không cần xin lại lựa chọn thứ tự):** rà chi tiết S7 khi Quý có PR/CI và đối chiếu Windows role views, sau đó lấy **kết quả test S8 thực** để xác định lỗi thuộc phạm vi (A/B), giao owner và mở PR nhỏ. Các ý tưởng A04/A02 mở rộng loại (C) vẫn nằm trong quyết định BA, không tự động triển khai. Mọi lần tiếp tục phải kiểm `main`, nhánh/PR và trạng thái `SCOPE.md` mới nhất; không suy rằng các phát hiện đọc tĩnh là kết quả QA runtime.
+
