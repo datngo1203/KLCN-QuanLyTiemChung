@@ -199,4 +199,25 @@ public sealed class InventoryReceivingSqlTests
         });
     }
 
+    [Fact,Trait("Category","SqlIntegration")]
+    public async Task ReceiptHistoryUsesStablePagesAndCorrectHasMoreAcrossTwentySixReceipts()
+    {
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+            var template=await Request(f);
+            using var client=await Actor(f);
+            for(var i=0;i<26;i++) {
+                var request=template with { LotNumber=$"[DEMO] HISTORY PAGE {i:00}", DocumentNumber=$"[DEMO] DOC {i:00}" };
+                await Status(await client.PostAsJsonAsync(Root,request),HttpStatusCode.Created);
+            }
+            var first=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?page=1"))!;
+            var second=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?page=2"))!;
+            Assert.Equal(25,first.Items.Length);Assert.True(first.HasMore);
+            Assert.Single(second.Items);Assert.False(second.HasMore);
+            Assert.Equal(26,first.Items.Concat(second.Items).Select(x=>x.LotNumber).Distinct().Count());
+            Assert.Equal(26,await f.Db.Set<InventoryReceipt>().CountAsync());
+            Assert.Equal(26,await f.Db.Set<BienDongKho>().CountAsync(m=>m.LoaiBienDong=="NhapKho"));
+            Assert.Empty(await f.Db.Set<MuiTiem>().ToArrayAsync());
+        });
+    }
+
 }
