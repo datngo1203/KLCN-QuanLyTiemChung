@@ -63,10 +63,17 @@
 ### QD-011 — A02: tiếp quản bản nháp khi Bác sĩ phụ trách vắng mặt, có người phê duyệt (03/11/2026)
 - Người dùng **chốt phương án B**: khi Bác sĩ đang phụ trách bản nháp **vắng mặt, không thể tự bàn giao**, chỉ cho **tiếp quản có kiểm soát thông qua người quản lý được chỉ định có thẩm quyền phê duyệt**, với lý do và audit. Không cho Bác sĩ khác tự chiếm quyền hay sửa trực tiếp bản nháp.
 - Phê duyệt **chuyển quyền phụ trách hồ sơ**, không phải phê duyệt chuyên môn/chỉ định tiêm; người tiếp nhận vẫn là Bác sĩ có quyền, chịu trách nhiệm tự xem xét dữ liệu và xác nhận kết luận theo QD-009/QD-010.
-- Không mặc định tài khoản **Admin kỹ thuật** có quyền phê duyệt tiếp quản; không tự bổ sung actor/chức danh `Quản lý` vào đề cương. **CẦN CHỐT** ai là người quản lý có thẩm quyền trong mô hình sáu actor đã có và quyền backend nào được cấp để phê duyệt.
+- Không mặc định tài khoản **Admin kỹ thuật** có quyền phê duyệt tiếp quản; không tự bổ sung actor/chức danh `Quản lý` vào đề cương. Người có thẩm quyền đã chốt tại **QD-012** là Bác sĩ phụ trách chuyên môn được ủy quyền; **CẦN BỔ SUNG** cơ chế ủy quyền và quyền backend tương ứng.
 - Dù có phê duyệt, bản nháp vẫn **không phải chỉ định hợp lệ**, không tạo `ChiDinhTiem`, không được qua cổng ghi tiêm S5. Kiểm quyền, danh tính, trạng thái và kiểm soát đồng thời phải ở API; lịch sử cũ bất biến, không xóa/ghi đè.
 - **Chưa chốt**: ai khởi tạo yêu cầu khi người phụ trách vắng mặt; chứng cứ vắng mặt; lý do bắt buộc và độ dài; yêu cầu người tiếp nhận chấp nhận hay không; chính sách ngăn tự duyệt; xử lý người quản lý/nhân sự không sẵn sàng; cơ chế timeout, khóa, từ chối/hủy, mức độ hiển thị dữ liệu sức khỏe và thông báo. Các mục này là **đang đặc tả**.
 - Chỉ ghi quyết định BA trên PR tài liệu; chưa cho phép thay đổi code/SQL/schema/role/`SCOPE.md`. Giữ ranh giới S6 của Bảo, S7 của Quý và đóng băng phần S5 đã nghiệm thu.
+
+### QD-012 — A02: Bác sĩ phụ trách chuyên môn được ủy quyền duyệt tiếp quản (03/11/2026)
+- Người dùng **chốt**: người có thẩm quyền phê duyệt tiếp quản bản nháp khi Bác sĩ phụ trách vắng mặt là **Bác sĩ phụ trách chuyên môn được ủy quyền**. Đây là một người dùng thuộc actor **Bác sĩ hiện có**, **không bổ sung actor/chức danh thứ bảy** và không mặc định Admin kỹ thuật hoặc nhân sự quản lý hành chính có thẩm quyền này.
+- Quyền **duyệt chuyển người phụ trách bản nháp** phải tách biệt với quyền thông thường **khám/kết luận/chỉ định**; chỉ người được ủy quyền hợp lệ mới phê duyệt tại API. Không tự cấp quyền mới trong quá trình ghi sổ BA; cơ chế cấp/thu hồi và biểu diễn quyền backend còn phải thiết kế, kiểm duyệt phạm vi.
+- Phê duyệt chỉ hợp thức hóa **việc chuyển quyền phụ trách** theo QD-011; không đồng nghĩa phê duyệt y khoa, không đánh giá bệnh nhân đủ điều kiện, không tự tạo `ChiDinhTiem`, không thay thế thao tác xác nhận kết luận của Bác sĩ tiếp nhận.
+- Ghi audit người yêu cầu, người duyệt, người tiếp nhận, lý do, thời điểm và kết quả; giới hạn đọc dữ liệu sức khỏe theo nhiệm vụ. **Chống tự duyệt**, xử lý đồng thời, yêu cầu chứng cứ vắng mặt và chi tiết cấp quyền là đề xuất cần chốt riêng, chưa tự động coi là quyết định triển khai.
+- Quyết định này chỉ cập nhật tài liệu phân tích trên PR #63; không thay đổi `SCOPE.md`, code, SQL, quyền người dùng thực tế hoặc phạm vi đã nghiệm thu S5; không ảnh hưởng công việc S6/S7.
 
 ## B. Hiện trạng có căn cứ (không phải tính năng mới đã làm)
 
@@ -77,7 +84,7 @@
 
 ## C. ĐANG ĐẶC TẢ / CẦN BỔ SUNG (chưa chốt, không được tự code)
 
-1. **A02:** ĐÃ CHỐT lưu bản nháp SQL (QD-009), chuyển giao có audit giữa Bác sĩ (QD-010), và tiếp quản khi người phụ trách vắng mặt chỉ qua người quản lý có thẩm quyền phê duyệt (QD-011). **CHƯA CHỐT**: người/actor/quyền phê duyệt thực tế, ai gửi yêu cầu, chấp nhận của người tiếp nhận, chống tự duyệt, các bước và lý do/chứng cứ, phân quyền chi tiết, concurrency/lock, trạng thái phụ, timeout, đính chính phiếu đã xác nhận; danh sách trường/validation chính xác cho sơ sinh, trẻ em, người lớn, thai phụ; cách biểu diễn Chưa hỏi/Không rõ/Không áp dụng; nguồn dữ liệu; bằng chứng lịch sử và thao tác xác nhận cảnh báo.
+1. **A02:** ĐÃ CHỐT lưu bản nháp SQL (QD-009), chuyển giao có audit giữa Bác sĩ (QD-010), và tiếp quản khi người phụ trách vắng mặt chỉ qua người quản lý có thẩm quyền phê duyệt (QD-011). ĐÃ CHỐT người phê duyệt là Bác sĩ phụ trách chuyên môn được ủy quyền thuộc actor Bác sĩ (QD-012). **CHƯA CHỐT**: cơ chế cấp/thu hồi quyền phê duyệt tại backend, ai gửi yêu cầu, chấp nhận của người tiếp nhận, chống tự duyệt, các bước và lý do/chứng cứ, phân quyền chi tiết, concurrency/lock, trạng thái phụ, timeout, đính chính phiếu đã xác nhận; danh sách trường/validation chính xác cho sơ sinh, trẻ em, người lớn, thai phụ; cách biểu diễn Chưa hỏi/Không rõ/Không áp dụng; nguồn dữ liệu; bằng chứng lịch sử và thao tác xác nhận cảnh báo.
 2. **A04:** định nghĩa phân loại, bệnh phòng ngừa, thông tin chuyên môn, phiên bản, phác đồ cấu trúc, phê duyệt/công bố và ảnh hưởng tới đăng ký đã có.
 3. **Y khoa:** cần đối chiếu **Quyết định 1575/QĐ-BYT (2023)** cho trẻ em; **Quyết định 3160/QĐ-BYT (10/10/2026)** cho người lớn và phụ nữ có thai; phải đọc phụ lục và biểu mẫu gốc **trước khi chốt từng câu hỏi/logic**. Không coi phần mô tả BA này là checklist y tế chính thức.
 4. **SQL/kiến trúc:** Web/WPF → API ASP.NET Core → EF Core/SQL Server. Mọi migration, DTO hay repository mới là đề xuất, chưa chốt refactor hoặc cho phép làm khi S6/S7 đang hoạt động.
