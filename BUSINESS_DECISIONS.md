@@ -216,3 +216,29 @@
 - **Đợt 3:** thống kê/báo cáo S7 (phối hợp owner Quý, chỉ đọc chưa sửa) → phân quyền S1, Web/Windows → rà UML/báo cáo ↔ code ↔ SCOPE → ma trận kiểm thử S8.
 - Khi phát hiện lỗi thực tế, tách **lỗi đã có chứng cứ** khỏi **rủi ro cần kiểm** và **tính năng mới ngoài phạm vi**; chỉ đề xuất **một lát sửa có owner, file, test, tác động** sau khi có căn cứ. Không thêm QD-018 nếu người dùng chưa chốt quyết định nghiệp vụ mới.
 
+
+### E6. Đối chiếu tĩnh đợt 2 — lịch hẹn/nhắc lịch → khám/chỉ định → ghi tiêm/kho/theo dõi (03/11/2026)
+
+> Tiếp tục **rà soát tĩnh trên `main`**, không sửa các module S5 đã nghiệm thu và không tự coi đã chạy kiểm thử mới. Báo cáo **rủi ro khi tích hợp thay đổi tương lai** khác với kết luận phát hiện lỗi đang chạy. Dùng các mã ca thử chỉ để chuẩn bị đối chiếu với test có sẵn sau này.
+
+| Nhóm nghiệp vụ | Căn cứ code | Kết luận và các điểm phải giữ |
+|---|---|---|
+| Lịch hẹn | `AppointmentEndpoints.cs` POST `/api/v1/appointments`: quyền `LeTan` + `QuanLyLichHen`, thời gian tương lai, liên kết đúng dòng đăng ký/đúng người, ngăn trùng cùng nguồn và thời điểm, lock đăng ký + transaction/audit | **Đã có S5**, không làm lại. Chưa có bằng chứng thiếu phạm vi. Test tương lai: lịch gắn vắc xin lẻ hoặc gói; thời gian UTC ↔ UTC+7; hai request trùng; quyền khách và liên kết khác chủ. Không tự suy ra lịch phác đồ từ danh mục |
+| Nhắc lịch | `ReminderEndpoints.cs`: `Channel=LogMoPhong`, chỉ một log cho một lịch, có nội dung ghi rõ **chưa gửi khách**, chỉ ghi cho lịch tương lai chưa có mũi; khóa lịch và audit | **Đúng phạm vi mô phỏng S5.** Không tuyên bố đã gửi Email/SMS; những kênh ngoài SCOPE thuộc (C). CẦN RÀ: lịch có nhiều vắc xin nhưng mới tiêm một phần, cách hiểu “đã tiêm” cho nhắc lịch là cấp lịch hay cấp mũi? Chưa xác nhận là bug, cần đối chiếu yêu cầu đã giao |
+| Khám/chỉ định tối thiểu | `ClinicalEndpoints.cs`, `ClinicalContracts.cs`: actor `BacSi`, một phiếu `PhieuKhamSangLoc` theo lịch, chỉ định `ChiDinhTiem` cho các `VaccineIds` được duyệt, không tạo chỉ định khi kết luận Tạm hoãn/Chống chỉ định | **Đã có S5**; QD-009–017 là (C) mở rộng BA, không được tự sửa schema/UI. Phải giữ hành vi “không có chỉ định khi Tạm hoãn/Chống chỉ định” và không tự động kết luận |
+| Ghi tiêm và tồn | `VaccinationEndpoints.cs`: actor `DieuDuong`, kiểm nguồn chỉ định/lịch/đăng ký, payment, lô usable, khóa chỉ định/đăng ký/lịch, trừ tồn điều kiện, ghi `MuiTiem` + `BienDongKho` + audit cùng transaction | **S5 đã nghiệm thu theo S4**; không tự mở lại. P1 **điểm giao S6**: tổng sau giảm phải tương thích Payment và không nới điều kiện an toàn. P1 **điểm giao A02 tương lai**: chỉ định bị tạm giữ hoặc vô hiệu hóa phải chặn ghi tiêm tại server cùng kiểm soát tranh chấp |
+| Theo dõi sau tiêm | `AftercareEndpoints.cs`: actor `DieuDuong`, một bản `TheoDoiSauTiem` liên kết `MuiTiem`, chống trùng, audit. Nguồn danh sách đang dùng `VaccinationEndpoints.Sources(db)` | **RỦI RO TÍCH HỢP TƯƠNG LAI**, không phải lỗi S5 đã chứng minh: nếu A02 bổ sung lọc chỉ định mất hiệu lực vào `VaccinationEndpoints.Sources` rồi `AftercareEndpoints.Sources` tái sử dụng cùng bộ lọc, **mũi đã tiêm trước đính chính có thể bị ẩn khỏi theo dõi**. Phải tách kiểm tra “được phép GHI TIÊM MỚI” khỏi “đã tiêm và CẦN THEO DÕI” |
+| Lịch sử khách hàng | `VaccinationHistoryEndpoints.cs` có chú thích rõ truy vấn lịch sử không áp lại điều kiện chỉ định/thanh toán/lô **ở thời điểm hiện tại** | **Thiết kế đã tránh đúng rủi ro hồi tố**; giữ nguyên nguyên tắc khi A02 thay đổi và kiểm thử lại với chỉ định bị vô hiệu hóa |
+| Nguồn lô/tồn | `DevelopmentInventorySeed.cs`: lô synthetic `[DEMO]` chỉ dùng Development, được tạo bằng luồng seed riêng, không phải phiếu nhập thực tế | **(D) quy trình nhập kho đầy đủ trong báo cáo** chưa nằm trong phạm vi hiện thực S5; không đánh đồng seed với nhập hàng nhà cung cấp, không tự tạo module nhập kho khi thiếu phê duyệt |
+
+**Ca thử tích hợp cần đối chiếu với suite S5 trước khi tuyên bố PASS:**
+1. `L01` tạo lịch đúng dòng đăng ký, cả vắc xin lẻ/gói; thời gian theo múi giờ; không tạo hai lịch trùng nguồn/thời điểm khi concurrent.
+2. `L02` log nhắc lịch chỉ tạo một lần, không ghi khi đã quá giờ hoặc đã có mũi; hiển thị rõ “mô phỏng, chưa gửi khách”.
+3. `C01` không tạo `ChiDinhTiem` khi Tạm hoãn/Chống chỉ định; `Đủ điều kiện` chỉ tạo ID được Bác sĩ chọn.
+4. `V01` thiếu thanh toán/nhầm người/nhầm vaccine/lô hết hạn hoặc hết tồn/khác role đều bị từ chối; ghi thành công thì đúng một mũi, một xuất tồn, một audit.
+5. `V02` đồng thời tranh lô cuối và hai request cùng chỉ định không ghi vượt tồn/ghi trùng.
+6. `F01` mũi đã ghi luôn còn trên lịch sử và màn theo dõi dù **về sau** kết luận/chỉ định bị đính chính/vô hiệu hóa (là **test thiết kế cho A02 tương lai**, chưa được chạy với S5 hiện hành).
+7. `F02` không xóa hoặc ghi đè mũi đã tiêm trong bất kỳ thao tác đính chính A02 nào; audit và số lô giữ nguyên.
+
+**Hướng rà soát kế tiếp, vẫn theo E4 và không đợi S6/S7 hoàn tất:** (1) S7/Reports theo code nhánh có thể truy cập và contract của Quý — không sửa code người khác; (2) S1 phân quyền/vùng truy cập, API/Windows/Web xuyên chuỗi; (3) đối chiếu đề cương + bảy Activity/UC/Sequence với thực tế; (4) lập test matrix S8 cuối. Khi phát hiện giao thoa API/contract/schema, chỉ đề xuất thay đổi riêng kèm owner, kiểm thử hồi quy và yêu cầu phê duyệt phạm vi.
+
