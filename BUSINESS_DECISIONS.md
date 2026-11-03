@@ -163,3 +163,30 @@
 
 **Câu mở đầu dùng lại khi chuyển chat/Codex:** `Đọc README.md, AGENTS.md, SCOPE.md ở main và BUSINESS_DECISIONS.md tại docs/business-decisions-20261103 (PR #63). Tuân thủ mục E: nâng cấp theo phụ thuộc nghiệp vụ, A04 trước A02; S6/S7/S8 được chạy song song với ranh giới owner; chưa sửa code hoặc mở rộng SCOPE khi chưa có gói được duyệt. Trước khi làm, báo trạng thái và đề xuất đúng một lát tiếp theo.`
 
+
+### E4. Rà soát toàn bộ chuỗi nghiệp vụ và các chức năng liên quan (03/11/2026) — NHẬN XÉT, CHƯA CHỐT THAY ĐỔI
+> **Tránh thiên lệch A04/A02:** mọi lần rà soát hệ thống phải đi qua **đủ 7 quy trình BA** đã chốt và các chức năng đề cương (danh mục, gói, khuyến mãi, báo cáo, Web/Windows, quyền, kiểm thử); không mặc định làm thêm tính năng cho mọi chỗ trống. Nội dung này ghi **hiện trạng quan sát được trên main/SCOPE tại thời điểm rà**, không phải bảng tiến độ, không thay cột Trạng thái trong `SCOPE.md`. Trước khi thực hiện phải kiểm tra trạng thái nhánh/PR mới nhất.
+
+| Quy trình BA trong Chương 1 | Nghiệp vụ cần rà | Liên hệ hiện trạng/main | Vấn đề cần đối chiếu (không tự thêm phạm vi) |
+|---|---|---|---|
+| (1) Nhập vắc xin từ nhà cung cấp | Nhà cung cấp → nhận/lô/hạn/tồn → sử dụng | S5 chỉ có lô/tồn synthetic, xuất theo ghi mũi; **không có module nhập kho đầy đủ trong SCOPE** | Phải phân biệt quy trình khảo sát/UML với chức năng demo; không gọi seed là nhập kho thật. Xem nguồn lô, số lô/hạn dùng/biến động, xử lý trường hợp vắc xin có sẵn tại khu vực tiêm; nếu cần nhập kho đầy đủ phải xin mở phạm vi |
+| (2) Đăng ký thông tin khách hàng/người được tiêm | Định danh, nhiều người được tiêm, chủ hồ sơ, cập nhật, phân quyền riêng tư | S3 hồ sơ qua API/SQL Web/Windows đã nghiệm thu theo SCOPE | Rà liên kết khách hàng/người được tiêm và tác động sửa hồ sơ lên lịch/tiêm đã ghi; không làm lại toàn bộ S3 |
+| (3) Đăng ký dịch vụ tiêm chủng | Tra cứu danh mục/vắc xin/gói, chọn số lượng, snapshot giá, đăng ký | S2 danh mục/gói và S4 đăng ký đã có; Web cho khách, Windows cho nhân viên | Rà ý nghĩa danh mục/loại vắc xin/gói; thành phần và số lượng gói, snapshot giá, việc thay đổi danh mục sau đăng ký; **A04 là một mắt xích, không phải toàn bộ nghiệp vụ** |
+| (4) Khám sàng lọc và chỉ định | Lịch/đối tượng, phiếu khám, căn cứ, kết luận, chỉ định theo vắc xin | S5 A02 tối thiểu đã có; QD-009–017 là BA mở rộng chưa code | Rà đúng điều kiện của từng đối tượng, phân quyền Bác sĩ, chỉ định gắn đúng người/lịch/vắc xin và cổng ghi tiêm. Không tạo quyết định y khoa tự động |
+| (5) Thanh toán dịch vụ | Tổng phải thu, ưu đãi, người ghi nhận, thanh toán, trạng thái | S4 thanh toán **mô phỏng toàn bộ một lần** đã có; S6 ưu đãi do Bảo phụ trách | Rà nhất quán snapshot số tiền từ đăng ký qua S6→Payment→S5; không tự sửa payment/đổi tổng 0/áp giá mới lên đăng ký cũ |
+| (6) Thực hiện tiêm và theo dõi sau tiêm | Chỉ định → kiểm lô/tồn/quyền/thanh toán → ghi mũi → theo dõi | S5 đã nghiệm thu, với transaction mũi+trừ tồn+biến động+audit; theo dõi một lần mỗi mũi | Rà điều kiện trước khi ghi và dữ liệu sau tiêm; không sửa lịch sử mũi đã tiêm; xem trường hợp có vắc xin ngay khu vực tiêm trong đặc tả nghiệp vụ, không ép nhân viên kho cho mọi ca |
+| (7) Quản lý lịch tiêm và nhắc lịch | Tạo lịch từ đăng ký, xem lịch và lịch sử, gửi/ghi nhận nhắc lịch | S5 lập lịch, Web xem lịch, nhắc qua **log mô phỏng**; không có scheduler hay SMS/email thật | Rà quan hệ lịch với dòng đăng ký/gói, thời điểm/giờ địa phương, nhắc trước lịch chưa tiêm; phân biệt log nội bộ với thông báo thật |
+
+**Chức năng nằm ngoài bảy quy trình mô tả nhưng vẫn phải rà theo đề cương:** 
+- **Nền/quyền S0–S1**: đăng nhập, đổi mật khẩu, phân quyền và giới hạn truy cập trên hai client/API.
+- **Danh mục, gói A04/S2**: dữ liệu nền, cấu phần gói, nội dung Web, không tự coi dữ liệu demo là nguồn y khoa.
+- **Khuyến mãi S6 (Bảo)**: giảm VND hợp lệ, một ưu đãi, snapshot khi đăng ký, tác động thanh toán — chưa được tự động sửa module chủ sở hữu.
+- **Thống kê/báo cáo S7 (Quý)**: doanh thu từ thanh toán thành công, mũi từ `MuiTiem` thật, đăng ký theo trạng thái, không nhân đôi do JOIN.
+- **S8 + tài liệu**: đối chiếu Use Case/Activity/Sequence/class/database với luồng chạy thực tế; Web↔API↔SQL↔Windows; kiểm quyền, lỗi mạng, lưu/đọc lại, rollback/đồng thời tại điểm tiền/tồn. S8 có thể kiểm dần theo module; **nghiệm thu tích hợp cuối phải kiểm lại sau các PR tương thích**.
+
+**Sửa cách hiểu thứ tự:** bảy mục BA là các **đầu mục khảo sát/đặc tả**, không có nghĩa các API chạy tuyến tính 1→2→3→4→5→6→7. Trên main, từ đăng ký S4 có thể tạo lịch S5 và ghi kết luận A02; thanh toán S4 cũng từ đăng ký, còn **ghi tiêm** mới yêu cầu thanh toán đạt điều kiện, chỉ định hợp lệ và lô hợp lệ. Nhắc lịch là nhánh xuất phát từ lịch **trước khi tiêm**; báo cáo đọc xuyên suốt. Đề cương khảo sát mô tả khám trước thanh toán cần đối chiếu với **luồng hệ thống hiện chạy**, không tự đổi code để khớp thứ tự liệt kê hay khẳng định đây là quy trình nội bộ chính thức VNVC.
+
+**Thứ tự rà soát toàn diện gợi ý (không phải lệnh triển khai tuần tự):** (i) nguồn dữ liệu và danh mục/gói; (ii) hồ sơ; (iii) đăng ký & snapshot giá; (iv) ưu đãi & thanh toán; (v) lịch & nhắc lịch; (vi) khám/chỉ định; (vii) nguồn lô/tồn và ghi tiêm/theo dõi; (viii) báo cáo; (ix) phân quyền, Web/Windows, UML, kiểm thử tích hợp. **Không bỏ sót nhóm chỉ vì chat đi sâu A02.**
+
+**Quy tắc đánh giá không chiều theo mọi ý tưởng:** mỗi đề xuất đánh dấu `(A) lỗi/tồn tại trong phạm vi`, `(B) thiếu chức năng thuộc đề cương/SCOPE`, `(C) tính năng mở rộng vượt SCOPE`, hoặc `(D) chỉ có trong khảo sát/UML`. Loại C/D không mặc định giao Codex code. Trước khi đề xuất PR phải nêu căn cứ, tác động, người sở hữu, mức ưu tiên, rủi ro và phép thử.
+
