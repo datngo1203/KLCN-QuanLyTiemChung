@@ -21,6 +21,7 @@
   </StackPanel>
   <WrapPanel Grid.Row="2" IsEnabled="{Binding CanBrowse}" Margin="0,0,0,8">
    <Button Content="Nhập lô vắc xin" Click="OpenReceiving" IsEnabled="{Binding Receiving.HasAccess}" ToolTip="Cần Thủ kho Active có cả quyền XemKho và NhapKho." ToolTipService.ShowOnDisabled="True" Style="{StaticResource CE.Button.Primary}" Margin="0,0,12,0"/>
+   <Button Content="Lịch sử tiếp nhận" Click="OpenReceiptHistory" IsEnabled="{Binding ReceivingHistory.HasAccess}" ToolTip="Cần Thủ kho Active có XemKho và NhapKho để xem chứng từ các lô X2.1." ToolTipService.ShowOnDisabled="True" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,12,0"/>
    <Label Content="Tìm số lô / vắc xin" Target="{Binding ElementName=SearchBox}" VerticalAlignment="Center"/>
    <TextBox x:Name="SearchBox" Width="220" MaxLength="100" Text="{Binding SearchText,UpdateSourceTrigger=PropertyChanged}"
     Style="{StaticResource CE.TextBox}" Margin="0,0,8,0">

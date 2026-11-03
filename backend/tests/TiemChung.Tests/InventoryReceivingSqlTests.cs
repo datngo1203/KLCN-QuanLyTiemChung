@@ -78,7 +78,7 @@ public sealed class InventoryReceivingSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
             var req=await Request(f);
-            async Task Denied(HttpClient client,HttpStatusCode status){await Status(await client.PostAsJsonAsync(Root,req),status);await Status(await client.GetAsync(Get(req.LotNumber)),status);await Status(await client.GetAsync("/api/v1/inventory/receiving-vaccines"),status);}
+            async Task Denied(HttpClient client,HttpStatusCode status){await Status(await client.PostAsJsonAsync(Root,req),status);await Status(await client.GetAsync(Get(req.LotNumber)),status);await Status(await client.GetAsync("/api/v1/inventory/receiving-vaccines"),status);await Status(await client.GetAsync(Root+"/history"),status);}
             using var anonymous=f.Base.Factory.CreateClient();await Denied(anonymous,HttpStatusCode.Unauthorized);
             foreach(var title in new string?[]{null,"Admin","BacSi","LeTan","DieuDuong","ThuNgan"}){using var client=await Actor(f,title);await Denied(client,HttpStatusCode.Forbidden);}
             using var readOnly=await Actor(f,write:false);await Denied(readOnly,HttpStatusCode.Forbidden);
@@ -147,4 +147,77 @@ public sealed class InventoryReceivingSqlTests
             Assert.Single(await f.Db.Set<InventoryReceipt>().ToArrayAsync());
         });
     }
+
+    [Fact,Trait("Category","SqlIntegration")]
+    public async Task ReceiptHistorySearchesSnapshotsWithoutChangingInventoryOrShowingLegacyLots()
+    {
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+            var first=await Request(f,"[DEMO] HIST 01");
+            using var client=await Actor(f);
+            using(var response=await client.GetAsync(Root+"/history")) {
+                Assert.Equal(HttpStatusCode.OK,response.StatusCode);
+                Assert.Equal("no-store",response.Headers.CacheControl!.ToString());
+                var empty=(await response.Content.ReadFromJsonAsync<InventoryReceiptHistoryListResponse>())!;
+                Assert.Empty(empty.Items);Assert.False(empty.HasMore);
+            }
+            await Status(await client.PostAsJsonAsync(Root,first),HttpStatusCode.Created);
+            var second=first with{LotNumber="[DEMO] HIST 02 / +%?#",Quantity=23,
+                SupplierName="[DEMO] Special Supplier",DocumentNumber="[DEMO] DOC Z2"};
+            await Status(await client.PostAsJsonAsync(Root,second),HttpStatusCode.Created);
+            // Legacy lots do not have InventoryReceipt and must not be shown as X2.1 receipts.
+            f.Db.Add(new LoVacXin{SoLo="[DEMO] LEGACY",MaVacXin=first.VaccineId,NgaySanXuat=first.ManufacturedOn,
+                HanSuDung=first.ExpiresOn,SoLuongBanDau=70,SoLuongTon=70,TrangThai="Active"});
+            await f.Db.SaveChangesAsync();
+            var all=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history"))!;
+            Assert.Equal(2,all.Items.Length);Assert.False(all.HasMore);
+            Assert.DoesNotContain(all.Items,x=>x.LotNumber.Contains("LEGACY"));
+            var row=Assert.Single(all.Items,x=>x.LotNumber==second.LotNumber);
+            Assert.Equal(23,row.Quantity);Assert.Equal(second.DocumentNumber,row.DocumentNumber);
+            Assert.Equal(second.SupplierName,row.SupplierName);Assert.Equal(second.StorageLocation,row.StorageLocation);
+            Assert.True(row.MovementId>0);Assert.True(row.EmployeeId>0);
+            Assert.Equal(TimeSpan.Zero,row.RecordedAt.Offset);
+            foreach(var term in new[]{second.LotNumber,second.SupplierName,second.DocumentNumber,row.VaccineName}) {
+                var list=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(
+                    Root+"/history?search="+Uri.EscapeDataString(term)))!;
+                Assert.Contains(list.Items,x=>x.LotNumber==second.LotNumber);
+            }
+            var none=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?search=does-not-exist"))!;
+            Assert.Empty(none.Items);Assert.False(none.HasMore);
+            var page2=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?page=2"))!;
+            Assert.Empty(page2.Items);Assert.False(page2.HasMore);
+            foreach(var bad in new[]{Root+"/history?page=0",Root+"/history?page=-1",Root+"/history?page=2147483647",
+                Root+"/history?search="+new string('Q',101)}) await Status(await client.GetAsync(bad),HttpStatusCode.BadRequest);
+            await f.Db.Set<LoVacXin>().Where(x=>x.SoLo==second.LotNumber).ExecuteUpdateAsync(
+                x=>x.SetProperty(l=>l.SoLuongTon,1));
+            var again=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?search=HIST%2002"))!;
+            Assert.Equal(23,Assert.Single(again.Items).Quantity); // source is immutable receipt movement
+            Assert.Equal(2,await f.Db.Set<InventoryReceipt>().CountAsync());
+            Assert.Equal(2,await f.Db.Set<BienDongKho>().CountAsync());
+            Assert.Equal(2,await f.Db.Set<SecurityAudit>().CountAsync(x=>x.Action=="inventory.received"));
+            Assert.Empty(await f.Db.Set<MuiTiem>().ToArrayAsync());
+            Assert.Empty(await f.Db.Payments.ToArrayAsync());
+        });
+    }
+
+    [Fact,Trait("Category","SqlIntegration")]
+    public async Task ReceiptHistoryUsesStablePagesAndCorrectHasMoreAcrossTwentySixReceipts()
+    {
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+            var template=await Request(f);
+            using var client=await Actor(f);
+            for(var i=0;i<26;i++) {
+                var request=template with { LotNumber=$"[DEMO] HISTORY PAGE {i:00}", DocumentNumber=$"[DEMO] DOC {i:00}" };
+                await Status(await client.PostAsJsonAsync(Root,request),HttpStatusCode.Created);
+            }
+            var first=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?page=1"))!;
+            var second=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history?page=2"))!;
+            Assert.Equal(25,first.Items.Length);Assert.True(first.HasMore);
+            Assert.Single(second.Items);Assert.False(second.HasMore);
+            Assert.Equal(26,first.Items.Concat(second.Items).Select(x=>x.LotNumber).Distinct().Count());
+            Assert.Equal(26,await f.Db.Set<InventoryReceipt>().CountAsync());
+            Assert.Equal(26,await f.Db.Set<BienDongKho>().CountAsync(m=>m.LoaiBienDong=="NhapKho"));
+            Assert.Empty(await f.Db.Set<MuiTiem>().ToArrayAsync());
+        });
+    }
+
 }
