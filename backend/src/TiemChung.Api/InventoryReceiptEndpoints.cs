@@ -40,6 +40,30 @@ public static class InventoryReceiptEndpoints
                 .Skip(((page ?? 1)-1)*25).Take(26).Select(v => new InventoryVaccineDto(v.MaVacXin,v.TenVacXin)).ToArrayAsync(ct);
             return Results.Ok(new InventoryVaccineListResponse(rows.Take(25).ToArray(),rows.Length>25));
         });
+        // Read-only history uses only X2.1 receipts; legacy/demo lots are deliberately excluded.
+        group.MapGet("/receipts/history", async (HttpContext context, IdentityAuthorization auth, TiemChungDbContext db,
+            string? search, int? page, CancellationToken ct) => {
+            await RequireReceiver(context, auth, false, ct);
+            search = search?.Trim();
+            var skip = ((long)(page ?? 1) - 1) * 25;
+            if (search?.Length > 100 || page is <= 0 || skip > int.MaxValue)
+                throw new IdentityFailure(400, "validation");
+            var rows = from r in db.Set<InventoryReceipt>().AsNoTracking()
+                       join l in db.Set<LoVacXin>().AsNoTracking() on r.SoLo equals l.SoLo
+                       join v in db.Vaccines.AsNoTracking() on l.MaVacXin equals v.MaVacXin
+                       join m in db.Set<BienDongKho>().AsNoTracking() on r.MovementId equals m.MaBienDong
+                       join n in db.Set<NhanVien>().AsNoTracking() on m.MaNhanVien equals n.MaNhanVien
+                       where string.IsNullOrEmpty(search) || r.SoLo.Contains(search) ||
+                             r.SupplierName.Contains(search) || r.DocumentNumber.Contains(search) ||
+                             v.TenVacXin.Contains(search)
+                       orderby m.ThoiDiem descending, m.MaBienDong descending
+                       select new InventoryReceiptHistoryItemDto(r.SoLo, v.TenVacXin, m.SoLuong,
+                           r.SupplierName, r.DocumentNumber, r.StorageLocation, m.MaBienDong,
+                           n.MaNhanVien, n.HoTen,
+                           new DateTimeOffset(DateTime.SpecifyKind(m.ThoiDiem, DateTimeKind.Utc)));
+            var items = await rows.Skip((int)skip).Take(26).ToArrayAsync(ct);
+            return Results.Ok(new InventoryReceiptHistoryListResponse(items.Take(25).ToArray(), items.Length > 25));
+        });
         group.MapGet("/receipts", async (string lotNumber, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await RequireReceiver(context, auth, false, ct);
             if (!Text(lotNumber,80)) throw new IdentityFailure(400,"validation");
