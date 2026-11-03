@@ -172,21 +172,21 @@ public sealed class CatalogSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task WindowsCommandsManageAllFourCatalogsWithRF02ACompatibilityFields()
+    public async Task WindowsCommandsManageAllFiveCatalogsWithRF02ACompatibilityFields()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
         using var http=f.Factory.CreateClient();
         var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-        var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity), identity.Permissions);
+        var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity), identity.Permissions) { Confirm = _ => true };
         await vm.InitializeAsync(); Assert.Equal(2,vm.Rows.Count);
         async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command, object? parameter=null) {
             Assert.True(command.CanExecute(parameter)); command.Execute(parameter);
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
             while (!vm.CanInteract) await Task.Delay(10,timeout.Token);
         }
-        foreach (var tab in new[] { "Loại tiêm chủng", "Loại vắc xin", "Vắc xin", "Gói vắc xin" }) {
+        foreach (var tab in new[] { "Loại tiêm chủng", "Loại vắc xin", "Bệnh / phòng bệnh", "Vắc xin", "Gói vắc xin" }) {
             await Command(vm.SelectTabCommand,tab);
             await Command(vm.NewCommand);
             vm.Name="Windows command "+tab; vm.Description="SQL";
@@ -201,15 +201,15 @@ public sealed class CatalogSqlTests
             if (vm.ShowPrice) vm.TargetAudience="Synthetic audience";
             if (vm.ShowVaccine) { vm.Diseases[0].Included=true; vm.AdministrationRoute=vm.AdministrationRoutes.First(); }
             var code=vm.Code; Assert.False(vm.CodeReadOnly); Assert.NotEmpty(code);
-            await Command(vm.SaveCommand); Assert.Contains("Đã tải/lưu",vm.Feedback);
+            await Command(vm.SaveCommand); Assert.StartsWith("Đã ",vm.Feedback);
             vm.Search="Windows command "+tab; await Command(vm.LoadCommand); Assert.Single(vm.Rows);
             vm.Selected=vm.Rows.Single(); var id=vm.Selected.Id;
             Assert.True(vm.CodeReadOnly); Assert.Equal(code,vm.Code);
             vm.Code="VX-ILLEGAL-EDIT"; Assert.Equal(code,vm.Code);
-            vm.Name="Windows updated "+tab; Assert.Equal(code,vm.Code); await Command(vm.SaveCommand); Assert.Contains("Đã tải/lưu",vm.Feedback);
+            vm.Name="Windows updated "+tab; Assert.Equal(code,vm.Code); await Command(vm.SaveCommand); Assert.StartsWith("Đã ",vm.Feedback);
             vm.Search="Windows updated "+tab; await Command(vm.LoadCommand); vm.Selected=Assert.Single(vm.Rows); Assert.Equal(id,vm.Selected.Id);
             if (vm.ShowPackage) Assert.Equal("2",vm.PackageChoices[1].Quantity);
-            await Command(vm.DeleteCommand); Assert.Contains("Đã tải/lưu",vm.Feedback); Assert.Empty(vm.Rows);
+            await Command(vm.DeleteCommand); Assert.StartsWith("Đã ",vm.Feedback); Assert.Empty(vm.Rows);
             vm.Search="";
         }
         await Command(vm.SelectTabCommand,"Vắc xin"); vm.Selected=vm.Rows.First();
@@ -225,7 +225,7 @@ public sealed class CatalogSqlTests
             await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
             using var http=f.Factory.CreateClient(); var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions);
+            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };
             await vm.InitializeAsync();Assert.Equal(vm.VaccineTypes[0].Name,vm.VaccineTypes[0].ToString());
             async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command,object? parameter=null) {
                 Assert.True(command.CanExecute(parameter));command.Execute(parameter);
@@ -248,20 +248,20 @@ public sealed class CatalogSqlTests
             vm.TargetAudience="Synthetic audience";vm.AdministrationRoute="Other";vm.Diseases[0].Included=true;
             await Command(vm.SaveCommand);Assert.Contains("Kiểm tra",vm.Feedback);
             vm.AdministrationRouteNote="Synthetic route";
-            await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var saved=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.Code=="VX-WINDOWS-CUSTOM");Assert.Equal("Active",saved.TrangThai);
             Assert.Equal("Synthetic audience",saved.DoiTuongSuDung);Assert.Equal("Other",saved.DuongDung);
             Assert.Single(await f.Db.Set<VacXin_Benh>().Where(x=>x.MaVacXin==saved.MaVacXin).ToArrayAsync());
             await f.Db.Vaccines.Where(x=>x.MaVacXin==saved.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
             await Command(vm.LoadCommand);vm.Selected=vm.Rows.Single(x=>x.Id==saved.MaVacXin);
-            Assert.Equal("Inactive — Không đang sử dụng",vm.StatusLabel);Assert.True(vm.CodeReadOnly);
+            Assert.Equal("Inactive — Ngừng sử dụng",vm.StatusLabel);Assert.True(vm.CodeReadOnly);
             vm.Code="VX-REJECTED";vm.Name="Synthetic inactive rename";Assert.Equal(saved.Code,vm.Code);
-            await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var inactive=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==saved.MaVacXin);
             Assert.Equal("Inactive",inactive.TrangThai);Assert.Equal(saved.Code,inactive.Code);Assert.Equal("Synthetic audience",inactive.DoiTuongSuDung);
             await Command(vm.SelectTabCommand,"Gói vắc xin");vm.Name="[DEMO] Windows package";vm.Price="100000";vm.PackageChoices[0].Included=true;
             var packageCode=vm.Code;await Command(vm.SaveCommand);Assert.Contains("Kiểm tra",vm.Feedback);Assert.Equal(packageCode,vm.Code);
-            vm.TargetAudience="Synthetic package audience";await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            vm.TargetAudience="Synthetic package audience";await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var package=await f.Db.Set<GoiVacXin>().SingleAsync(x=>x.Code==packageCode);Assert.Equal("Active",package.TrangThai);Assert.Equal(vm.Rows.Single(x=>x.Id==package.MaGoi).Code,packageCode);
             await identity.LogoutAsync();
         });
@@ -280,26 +280,26 @@ public sealed class CatalogSqlTests
             await f.Db.Set<GoiVacXin>().Where(x=>x.MaGoi==package.MaGoi).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.DoiTuongSuDung,(string?)null));
             using var http=f.Factory.CreateClient();var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions);await vm.InitializeAsync();
+            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };await vm.InitializeAsync();
             async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command,object? parameter=null) {
                 Assert.True(command.CanExecute(parameter));command.Execute(parameter);
                 using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
             }
             vm.Selected=vm.Rows.Single(x=>x.Id==vaccine.MaVacXin);vm.Name="[DEMO] Legacy renamed";vm.Price="234000";
-            await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var saved=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin);
             Assert.Equal("[DEMO] Legacy renamed",saved.TenVacXin);Assert.Equal(234000,saved.Gia);Assert.Equal(vaccine.Code,saved.Code);
             Assert.Null(saved.DoiTuongSuDung);Assert.Null(saved.DuongDung);Assert.Null(saved.DuongDungKhac);
             Assert.Empty(await f.Db.Set<VacXin_Benh>().Where(x=>x.MaVacXin==saved.MaVacXin).ToArrayAsync());
             await Command(vm.SelectTabCommand,"Gói vắc xin");vm.Selected=vm.Rows.Single(x=>x.Id==package.MaGoi);
-            vm.Name="[DEMO] Legacy package renamed";vm.Price="345000";await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            vm.Name="[DEMO] Legacy package renamed";vm.Price="345000";await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var savedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.MaGoi);
             Assert.Equal("[DEMO] Legacy package renamed",savedPackage.TenGoi);Assert.Equal(345000,savedPackage.GiaGoi);Assert.Equal(package.Code,savedPackage.Code);Assert.Null(savedPackage.DoiTuongSuDung);
             // Supplying new metadata on a legacy record still writes and validates the actual values.
             await Command(vm.SelectTabCommand,"Vắc xin");vm.Selected=vm.Rows.Single(x=>x.Id==vaccine.MaVacXin);
             vm.TargetAudience="[DEMO] Newly supplied";vm.Diseases[0].Included=true;vm.AdministrationRoute=vm.AdministrationRoutes.First();
-            await Command(vm.SaveCommand);Assert.Contains("Đã tải/lưu",vm.Feedback);
+            await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var enriched=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin);
             Assert.Equal("[DEMO] Newly supplied",enriched.DoiTuongSuDung);Assert.Equal(vm.AdministrationRoutes.First(),enriched.DuongDung);
             Assert.Single(await f.Db.Set<VacXin_Benh>().Where(x=>x.MaVacXin==vaccine.MaVacXin).ToArrayAsync());
@@ -314,7 +314,7 @@ public sealed class CatalogSqlTests
             await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
             using var http=f.Factory.CreateClient();var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions);await vm.InitializeAsync();
+            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };await vm.InitializeAsync();
             async Task Save() {
                 vm.SaveCommand.Execute(null);using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
@@ -338,6 +338,49 @@ public sealed class CatalogSqlTests
             await Save();var unchangedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.Id);
             Assert.Equal(package.Name,unchangedPackage.TenGoi);Assert.Equal(package.Package!.TargetAudience,unchangedPackage.DoiTuongSuDung);
             await identity.LogoutAsync();
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task WindowsB1LookupStatusSearchDuplicatesReferencesAndRevokedPermissionPersistInSql()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+            using var http=f.Factory.CreateClient();
+            var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
+            Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
+            var service=new TiemChung.Desktop.Services.CatalogApiService(identity);
+            var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(service,identity.Permissions) { Confirm = _ => true };
+            async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command,object? parameter=null) {
+                Assert.True(command.CanExecute(parameter));command.Execute(parameter);
+                using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                while(vm.IsBusy)await Task.Delay(10,timeout.Token);
+            }
+            foreach(var (tab,resource,prefix) in new[] { ("Loại tiêm chủng","injection-types","LTC"),("Loại vắc xin","vaccine-types","LVX"),("Bệnh / phòng bệnh","diseases","BENH") }) {
+                await Command(vm.SelectTabCommand,tab);var referenced=vm.Rows.First();
+                await Command(vm.NewCommand);vm.Name="[DEMO] B1 "+resource;vm.Description="Synthetic B1";
+                var code=vm.Code;Assert.StartsWith(prefix+"-",code);
+                await Command(vm.SaveCommand);Assert.StartsWith("Đã tạo",vm.Feedback);var id=vm.Selected!.Id;
+                Assert.Equal(code,vm.Selected.Code);Assert.False(vm.IsDirty);
+                vm.Name+=" renamed";vm.Status="Inactive";await Command(vm.SaveCommand);
+                Assert.StartsWith("Đã cập nhật",vm.Feedback);Assert.Equal(id,vm.Selected!.Id);Assert.Equal(code,vm.Code);
+                var persisted=Assert.Single(await service.ListAsync<TiemChung.Desktop.Services.CatalogType>(resource,code,"Inactive"));
+                Assert.Equal("Synthetic B1",persisted.Description);Assert.EndsWith("renamed",persisted.Name);
+                vm.Search=code;vm.StatusFilter=vm.StatusFilters[1];await Command(vm.LoadCommand);Assert.Empty(vm.Rows);Assert.True(vm.ShowEmpty);
+                vm.StatusFilter=vm.StatusFilters[2];await Command(vm.LoadCommand);vm.Selected=Assert.Single(vm.Rows);
+                vm.Status="Active";await Command(vm.SaveCommand);Assert.Equal("Active",Assert.Single(await service.ListAsync<TiemChung.Desktop.Services.CatalogType>(resource,code,"Active")).Status);
+                await Command(vm.NewCommand);vm.Name="[DEMO] Duplicate";vm.Code=code;await Command(vm.SaveCommand);
+                Assert.Contains("đã tồn tại",vm.Feedback);Assert.Equal(code,vm.Code);Assert.Equal("[DEMO] Duplicate",vm.Name);
+                await Command(vm.LoadCommand);vm.Selected=vm.Rows.Single(x=>x.Id==id);await Command(vm.DeleteCommand);
+                Assert.StartsWith("Đã xóa",vm.Feedback);Assert.Empty(await service.ListAsync<TiemChung.Desktop.Services.CatalogType>(resource,code));
+                vm.Selected=vm.Rows.Single(x=>x.Id==referenced.Id);vm.Description="Keep unsaved input";
+                await Command(vm.DeleteCommand);Assert.Contains("tham chiếu",vm.Feedback);Assert.Equal(referenced.Id,vm.Selected!.Id);Assert.Equal("Keep unsaved input",vm.Description);
+            }
+            await Command(vm.RevertCommand);
+            var grants=await f.Db.Set<TaiKhoan_QuyenHan>().ToArrayAsync();f.Db.RemoveRange(grants);await f.Db.SaveChangesAsync();
+            vm.Name="[DEMO] Denied change";await Command(vm.SaveCommand);
+            Assert.Contains("quyền",vm.Feedback);Assert.Equal("[DEMO] Denied change",vm.Name);
+            Assert.DoesNotContain(await service.ListAsync<TiemChung.Desktop.Services.CatalogType>("diseases"),x=>x.Name==vm.Name);
         });
     }
 
