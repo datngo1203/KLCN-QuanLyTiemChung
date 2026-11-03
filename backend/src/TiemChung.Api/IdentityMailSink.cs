@@ -14,6 +14,21 @@ public interface IVerificationMailSink
 
 public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config,IHostEnvironment environment)
 {
+    internal static IdentityMailOutbox CreateMail(IConfiguration config, string email, string token, DateTimeOffset now, DateTimeOffset expiresAt)
+    {
+        var key = Convert.FromBase64String(config["Identity:MailEncryptionKey"] ?? throw new InvalidOperationException("Mail key required."));
+        if (key.Length != 32) throw new InvalidOperationException("Mail encryption key must be 256 bits.");
+        var plaintext = JsonSerializer.SerializeToUtf8Bytes(new { email, token });
+        var nonce = RandomNumberGenerator.GetBytes(12);
+        var ciphertext = new byte[plaintext.Length];
+        var tag = new byte[16];
+        try {
+            using var aes = new AesGcm(key, 16);
+            aes.Encrypt(nonce, plaintext, ciphertext, tag);
+        } finally { CryptographicOperations.ZeroMemory(plaintext); }
+        return new IdentityMailOutbox { Id = Guid.NewGuid(), EncryptedPayload = [..nonce, ..tag, ..ciphertext], CreatedAt = now, ExpiresAt = expiresAt };
+    }
+
     public async Task DrainAsync(IVerificationMailSink sink,CancellationToken ct)
     {
         if(!environment.IsDevelopment() && !environment.IsEnvironment("Test"))
@@ -25,11 +40,13 @@ public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config
             .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.EncryptedPayload,(byte[]?)null),ct);
         var rows=await db.Set<IdentityMailOutbox>().Where(x=>x.SentAt==null && x.ExpiresAt>now && x.EncryptedPayload!=null &&
             (x.NextAttemptAt==null || x.NextAttemptAt<=now) &&
-            db.Set<EmailVerification>().Any(v=>v.Id==x.VerificationId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>now)).OrderBy(x=>x.CreatedAt).Take(25).ToListAsync(ct);
+            (db.Set<EmailVerification>().Any(v=>v.Id==x.VerificationId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>now) ||
+             db.Set<CustomerPasswordReset>().Any(v=>v.Id==x.PasswordResetId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>now))).OrderBy(x=>x.CreatedAt).Take(25).ToListAsync(ct);
         var key=Convert.FromBase64String(config["Identity:MailEncryptionKey"]??throw new InvalidOperationException("Mail key required."));
         foreach(var row in rows) {
             var processingNow=DateTimeOffset.UtcNow;
-            if(!await db.Set<EmailVerification>().AnyAsync(v=>v.Id==row.VerificationId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>processingNow,ct)) continue;
+            if(!await db.Set<EmailVerification>().AnyAsync(v=>v.Id==row.VerificationId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>processingNow,ct) &&
+               !await db.Set<CustomerPasswordReset>().AnyAsync(v=>v.Id==row.PasswordResetId && v.UsedAt==null && v.InvalidatedAt==null && v.ExpiresAt>processingNow,ct)) continue;
             var bytes=row.EncryptedPayload!; var plaintext=new byte[bytes.Length-28];
             try {
                 using(var aes=new AesGcm(key,16)) aes.Decrypt(bytes.AsSpan(0,12),bytes.AsSpan(28),bytes.AsSpan(12,16),plaintext);

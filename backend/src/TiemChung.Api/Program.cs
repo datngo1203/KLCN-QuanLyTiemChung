@@ -9,6 +9,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IdentityTokens>();
 builder.Services.AddScoped<IdentityAuthorization>();
 builder.Services.AddScoped<IdentityRegistration>();
+builder.Services.AddScoped<CustomerPasswordResets>();
 builder.Services.AddScoped<IdentitySessions>();
 builder.Services.AddSingleton<IdentityRateLimits>();
 builder.Services.AddSingleton<IdentityMailReadiness>();

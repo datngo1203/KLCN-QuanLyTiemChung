@@ -35,7 +35,7 @@ public sealed class MailLifecycleSqlTests
         await db.SaveChangesAsync();
         var valid=await db.Set<EmailVerification>().SingleAsync(v=>v.InvalidatedAt==null && v.UsedAt==null && v.ExpiresAt>DateTimeOffset.UtcNow);
         var validMessage=await db.Set<IdentityMailOutbox>().SingleAsync(x=>x.VerificationId==valid.Id);
-        var oldIds=old.Select(v=>v.Id).ToArray();
+        var oldIds=old.Select(v=>(Guid?)v.Id).ToArray();
         await db.Set<IdentityMailOutbox>().Where(x=>oldIds.Contains(x.VerificationId)).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.CreatedAt,DateTimeOffset.UtcNow.AddMinutes(-5)));
         // Start real lifecycle only after the backlog is committed; no manual DrainAsync.
         await using var host=Host(cs,"Test").WithWebHostBuilder(b=>b.ConfigureAppConfiguration((_,c)=>c.AddInMemoryCollection(new Dictionary<string,string?> { ["Identity:MailEncryptionKey"]=key })));
@@ -58,7 +58,7 @@ public sealed class MailLifecycleSqlTests
         var cs=Connection();
         await using var db=Db(cs); await db.Database.MigrateAsync();
         await using var host=Host(cs,"Production"); using var client=host.CreateClient();
-        foreach(var path in new[]{"register","email-verifications/resend"}) {
+        foreach(var path in new[]{"register","email-verifications/resend","password-resets/request"}) {
             var response=await client.PostAsJsonAsync("/api/v1/auth/"+path,path=="register"?(object)new {email="p@example.invalid",password="synthetic-password"}:new {email="p@example.invalid"});
             Assert.Equal(HttpStatusCode.ServiceUnavailable,response.StatusCode);
             Assert.Contains("dependencyUnavailable",await response.Content.ReadAsStringAsync());

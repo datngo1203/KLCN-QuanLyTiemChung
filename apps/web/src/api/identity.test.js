@@ -2,6 +2,43 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIdentityClient } from './identity.js'
 
+test('registration confirmation and reset validation block requests and preserve the wire contracts', async () => {
+  const calls = []
+  const client = createIdentityClient('http://localhost', async (url, options) => {
+    calls.push({ path: url.split('/auth/')[1], body: JSON.parse(options.body) })
+    return url.endsWith('/confirm') ? new Response(null, { status: 204 }) : Response.json({ status: 'pending' }, { status: 202 })
+  })
+  await assert.rejects(client.register('a@example.invalid', 'valid-password', 'mismatch'), /không khớp/)
+  await assert.rejects(client.register('a@example.invalid', 'short', 'short'), /12–128/)
+  await assert.rejects(client.confirmPasswordReset('token', 'valid-password', 'mismatch'), /không khớp/)
+  await assert.rejects(client.confirmPasswordReset('token', 'short', 'short'), /12–128/)
+  assert.equal(calls.length, 0)
+  await client.register('a@example.invalid', 'valid-password', 'valid-password')
+  await client.requestPasswordReset('a@example.invalid')
+  await client.confirmPasswordReset('token', 'valid-password', 'valid-password')
+  assert.deepEqual(calls, [
+    { path: 'register', body: { email: 'a@example.invalid', password: 'valid-password' } },
+    { path: 'password-resets/request', body: { email: 'a@example.invalid' } },
+    { path: 'password-resets/confirm', body: { token: 'token', newPassword: 'valid-password' } },
+  ])
+})
+
+test('reset errors do not expose server details and a successful reset clears any client session', async () => {
+  let reject = true
+  const client = createIdentityClient('http://localhost', async url => {
+    if (url.endsWith('/me')) return Response.json({ accountType: 'customer', accountId: 1 })
+    if (url.endsWith('/password-resets/confirm')) return reject
+      ? Response.json({ code: 'invalidPasswordResetToken', detail: 'PRIVATE SQL' }, { status: 400 })
+      : new Response(null, { status: 204 })
+    return Response.json({ accessToken: 'a', refreshToken: 'r' })
+  })
+  await client.login('a@example.invalid', 'valid-password')
+  await assert.rejects(client.confirmPasswordReset('bad', 'valid-password', 'valid-password'), /không hợp lệ.*hết hạn/)
+  reject = false
+  await client.confirmPasswordReset('good', 'valid-password', 'valid-password')
+  await assert.rejects(client.profiles('customers'), /hết hạn/)
+})
+
 test('password validation, safe errors and successful change clear the client session', async () => {
   const calls = []
   let code = 'invalidCredentials'
@@ -86,7 +123,7 @@ test('register/confirm/login/logout call Identity with tokens only in memory', a
       : path === 'me' ? { accountType: 'customer', accountId: 1 } : { status: 'verificationPending' })
   }
   const client = createIdentityClient('http://localhost', request)
-  await client.register('synthetic@example.invalid', 'input')
+  await client.register('synthetic@example.invalid', 'valid-password-123', 'valid-password-123')
   await client.confirm('verification')
   assert.equal((await client.login('synthetic@example.invalid', 'input')).accountId, 1)
   await client.logout()

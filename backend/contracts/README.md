@@ -1,5 +1,15 @@
 # API dùng chung · v1
 
+## RF-01 — Khách hàng quên mật khẩu (Issue #77)
+
+- POST `/api/v1/auth/password-resets/request`, đúng JSON `{ "email": "customer@example.invalid" }`: `202 { "status": "passwordResetPending" }` cho email Customer Active, không tồn tại, Employee hoặc tài khoản không Active. Không tạo account hoặc tiết lộ tài khoản có tồn tại. Username không phải email trả `400 validation`.
+- POST `/api/v1/auth/password-resets/confirm`, đúng JSON `{ "token": "…", "newPassword": "…" }`: mật khẩu 12–128 ký tự; `204` khi thành công. Token sai/hết hạn/đã dùng/bị thay thế hoặc tài khoản không còn Customer Active đều trả `400 invalidPasswordResetToken`. Sai mật khẩu mới trả `400 validation`. Trường lạ bị từ chối.
+- Hai endpoint public, `Cache-Control: no-store`; dùng rate-limit hiện có: request dùng mail IP/email (5/giờ/IP, 3/giờ/email, dùng chung ngân sách register/resend), confirm dùng 10/15 phút/IP chung xác minh email; quá giới hạn `429 rateLimited`. Request giữ mail readiness Development/Synthetic hiện hành: chỉ `@example.invalid`, không gửi thư thật; chưa sẵn sàng `503 dependencyUnavailable` áp dụng chung cho mọi email.
+- `CustomerPasswordReset`: token random 256 bit, SQL chỉ lưu SHA-256, TTL cố định 30 phút, một token chưa dùng/chưa vô hiệu cho mỗi account. Request tiếp theo vô hiệu token trước; không ảnh hưởng token xác minh email. Cùng khóa account hiện có để tuần tự hóa request/confirm, không cho hai confirm cùng thành công.
+- Confirm transaction Serializable: đánh dấu token dùng → hash mật khẩu bằng backend → tăng SecurityVersion/thu hồi tất cả session và refresh credential → audit `passwordResetConfirmed` → commit. Request + outbox mã hóa + audit `passwordResetRequested` cũng một transaction. Lỗi DB/audit rollback toàn bộ, không log token/mật khẩu/email.
+- Migration `20261103115754_RF01CustomerPasswordReset`: thêm bảng reset, FK/index/expiry constraint; bổ sung `IdentityMailOutbox.PasswordResetId`, cho `VerificationId` nullable và constraint đúng một loại thư. Thư xác minh cũ được giữ nguyên; outbox reset tái dùng mã hóa AES-GCM, retry/TTL và pickup JSON `{email,token}` hiện có. Down từ chối khi đã có lịch sử reset, không xóa để downgrade.
+- Web: Đăng nhập → Quên mật khẩu → yêu cầu email → nhập token + mật khẩu mới + xác nhận → quay lại đăng nhập. Đăng ký thêm xác nhận mật khẩu chỉ ở client, body register vẫn `{email,password}`. Hiện/ẩn không mất giá trị; lỗi giữ bản nháp; các token/session chỉ ở bộ nhớ. Windows không thêm reset tự phục vụ; login/refresh/logout/change-password hiện hành giữ nguyên.
+
 ## S5.7B — Log nhắc lịch mô phỏng (Windows A09)
 
 Chỉ Employee/Account/NhanVien Active, LeTan + QuanLyLichHen; dùng Identity hiện hành, không thêm quyền. Không gửi email/SMS, không scheduler. Một lịch tối đa một log LogMoPhong; các kênh legacy giữ nguyên.

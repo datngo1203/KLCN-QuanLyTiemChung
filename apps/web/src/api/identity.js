@@ -5,6 +5,7 @@ const messages = {
   emailVerificationRequired: 'Cần xác minh email trước khi đăng nhập.',
   invalidSession: 'Phiên đã hết hạn. Vui lòng đăng nhập lại.',
   invalidVerificationToken: 'Mã xác minh không hợp lệ hoặc đã hết hạn.',
+  invalidPasswordResetToken: 'Token đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu token mới.',
   validation: 'Kiểm tra email và mật khẩu (12–128 ký tự). Demo dùng email @example.invalid.',
   rateLimited: 'Thao tác quá nhiều lần. Vui lòng thử lại sau.',
   dependencyUnavailable: 'Dịch vụ chưa sẵn sàng. Vui lòng thử lại sau.',
@@ -97,7 +98,19 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       tokens = null
       sessionVersion++
     },
-    register: (email, password) => call('register', { email, password }),
+    async register(email, password, confirmation) {
+      if (password !== confirmation) throw new Error('Xác nhận mật khẩu không khớp.')
+      if (password.length < 12 || password.length > 128) throw new Error('Mật khẩu cần 12–128 ký tự.')
+      return call('register', { email, password })
+    },
+    requestPasswordReset: email => call('password-resets/request', { email }),
+    async confirmPasswordReset(token, newPassword, confirmation) {
+      if (newPassword !== confirmation) throw new Error('Xác nhận mật khẩu không khớp.')
+      if (newPassword.length < 12 || newPassword.length > 128) throw new Error('Mật khẩu mới cần 12–128 ký tự.')
+      await call('password-resets/confirm', { token, newPassword })
+      tokens = null
+      sessionVersion++
+    },
     confirm: token => call('email-verifications/confirm', { token }),
     resend: email => call('email-verifications/resend', { email }),
     async login(identifier, password) {

@@ -57,9 +57,18 @@ internal static class IdentityModel
         e.Property(x => x.TokenHash).HasColumnType("binary(32)");
         e.HasIndex(x => x.TokenHash).IsUnique();
         e.HasIndex(x => x.AccountId).IsUnique().HasFilter("[UsedAt] IS NULL AND [InvalidatedAt] IS NULL");
+        var reset = m.Entity<CustomerPasswordReset>();
+        reset.ToTable("CustomerPasswordReset", t => t.HasCheckConstraint("CK_CustomerPasswordReset_Expiry", "[ExpiresAt]>[CreatedAt]"));
+        reset.HasKey(x => x.Id);
+        reset.HasOne<TaiKhoan>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
+        reset.Property(x => x.TokenHash).HasColumnType("binary(32)");
+        reset.HasIndex(x => x.TokenHash).IsUnique();
+        reset.HasIndex(x => x.AccountId).IsUnique().HasFilter("[UsedAt] IS NULL AND [InvalidatedAt] IS NULL");
         var o = m.Entity<IdentityMailOutbox>();
-        o.ToTable("IdentityMailOutbox"); o.HasKey(x => x.Id);
+        o.ToTable("IdentityMailOutbox", t => t.HasCheckConstraint("CK_IdentityMailOutbox_Purpose",
+            "([VerificationId] IS NOT NULL AND [PasswordResetId] IS NULL) OR ([VerificationId] IS NULL AND [PasswordResetId] IS NOT NULL)")); o.HasKey(x => x.Id);
         o.HasOne<EmailVerification>().WithMany().HasForeignKey(x => x.VerificationId).OnDelete(DeleteBehavior.Restrict);
+        o.HasOne<CustomerPasswordReset>().WithMany().HasForeignKey(x => x.PasswordResetId).OnDelete(DeleteBehavior.Restrict);
         o.Property(x => x.LastErrorCode).HasColumnType("varchar(40)");
 
         var l = m.Entity<AccountProfileLink>();
