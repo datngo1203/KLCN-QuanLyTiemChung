@@ -1,15 +1,83 @@
 namespace TiemChung.Desktop.Services;
 
-public sealed record ReportDoseSummary(string Vaccine, int Doses);
-public sealed record ReportExpiringLot(string LotNumber, string Vaccine, DateOnly ExpiresOn, int Stock);
-public sealed record ReportSnapshot(decimal Revenue, decimal ReactionRate, IReadOnlyList<ReportDoseSummary> Doses, IReadOnlyList<ReportExpiringLot> ExpiringLots)
+public sealed record MonthlyRevenueItem(
+    int Year,
+    int Month,
+    string Label,
+    decimal Revenue,
+    int TransactionCount,
+    double BarHeight = 0
+);
+
+public sealed record MonthlyRevenueReport(
+    DateOnly From,
+    DateOnly To,
+    decimal TotalRevenue,
+    int TotalTransactions,
+    bool IsSimulated,
+    IReadOnlyList<MonthlyRevenueItem> Items
+)
 {
-    public bool HasData => Revenue > 0 || ReactionRate > 0 || Doses.Count > 0 || ExpiringLots.Count > 0;
-    public static ReportSnapshot Empty { get; } = new(0, 0, [], []);
+    public bool HasData => TotalTransactions > 0 || Items.Count > 0;
+    public static MonthlyRevenueReport Empty { get; } = new(DateOnly.MinValue, DateOnly.MinValue, 0, 0, true, []);
+}
+
+public sealed record VaccineDoseItem(
+    int VaccineId,
+    string VaccineName,
+    int DoseCount,
+    double Percentage = 0,
+    double BarWidth = 0
+)
+{
+    public string Code => $"VX-{VaccineId:0000}";
+    public string PercentageLabel => $"{Percentage:0.0}%";
+}
+
+public sealed record VaccineDosesReport(
+    DateOnly From,
+    DateOnly To,
+    int TotalDoses,
+    IReadOnlyList<VaccineDoseItem> Items
+)
+{
+    public bool HasData => TotalDoses > 0 || Items.Count > 0;
+    public static VaccineDosesReport Empty { get; } = new(DateOnly.MinValue, DateOnly.MinValue, 0, []);
+}
+
+public sealed record RegistrationStatusItem(
+    string Status,
+    int RegistrationCount,
+    double Percentage = 0,
+    double BarHeight = 0
+)
+{
+    public string StatusDisplayName => Status switch
+    {
+        "DaDangKy" => "Đã đăng ký",
+        "DaThanhToan" => "Đã thanh toán",
+        "DaHuy" => "Đã hủy",
+        "HoanTat" => "Hoàn tất",
+        _ => Status
+    };
+    public string PercentageLabel => $"{Percentage:0.0}%";
+}
+
+public sealed record RegistrationStatusReport(
+    DateOnly From,
+    DateOnly To,
+    int TotalRegistrations,
+    IReadOnlyList<RegistrationStatusItem> Items
+)
+{
+    public bool HasData => TotalRegistrations > 0 || Items.Count > 0;
+    public static RegistrationStatusReport Empty { get; } = new(DateOnly.MinValue, DateOnly.MinValue, 0, []);
 }
 
 public interface IReportService
 {
     bool UseSampleData { get; set; }
-    ReportSnapshot GetReport(DateOnly from, DateOnly to);
+    Task<MonthlyRevenueReport> GetMonthlyRevenueAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
+    Task<VaccineDosesReport> GetVaccineDosesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
+    Task<RegistrationStatusReport> GetRegistrationStatusesAsync(DateOnly? from, DateOnly? to, CancellationToken ct = default);
 }
