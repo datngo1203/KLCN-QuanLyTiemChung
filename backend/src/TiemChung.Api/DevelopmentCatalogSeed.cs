@@ -47,6 +47,8 @@ public static class DevelopmentCatalogSeed
         }
         if (!await db.Set<GoiVacXin>().AnyAsync(x => x.TenGoi == "[DEMO] Gói A + B")) {
             var vaccines = await db.Vaccines.Where(x => x.TenVacXin == "[DEMO] Vắc xin A" || x.TenVacXin == "[DEMO] Vắc xin B").ToArrayAsync();
+            if (vaccines.Any(v => v.TrangThai != "Active"))
+                throw new InvalidOperationException("Cannot create an Active demo package with a non-Active vaccine; no existing status was changed.");
             var package = new GoiVacXin { Code = "GOI-DEMO-GOI-A-B", TenGoi = "[DEMO] Gói A + B", GiaGoi = 350000, TrangThai = "Active",
                 MoTa = "[DEMO] Gói mô phỏng", DoiTuongSuDung = "[DEMO] Nhóm sử dụng mô phỏng" };
             db.Add(package); await db.SaveChangesAsync();

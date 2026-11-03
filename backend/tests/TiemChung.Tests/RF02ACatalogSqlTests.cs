@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -73,7 +74,7 @@ public sealed class RF02ACatalogSqlTests
             var renamed = await Success<VaccineDto>(f.Client.PutAsJsonAsync(Root + "vaccines/" + vaccine.Id, request with { Name = "Renamed vaccine", Code = null, Status = "Inactive" }));
             Assert.Equal(vaccine.Code, renamed.Code); Assert.Equal("Inactive", renamed.Status);
             await Error(f.Client.PutAsJsonAsync(Root + "vaccines/" + vaccine.Id, request with { Code = "VX-CHANGED" }), HttpStatusCode.BadRequest);
-            var packageReq = new PackageRequest("Synthetic package", 10, [new(vaccine.Id,2)], "GOI-SYNTHETIC", TargetAudience:"Synthetic group");
+            var packageReq = new PackageRequest("Synthetic package", 10, [new(vaccine.Id,2)], "GOI-SYNTHETIC", Status:"Inactive", TargetAudience:"Synthetic group");
             var package = await Success<PackageDto>(f.Client.PostAsJsonAsync(Root + "packages", packageReq), HttpStatusCode.Created);
             var packageRenamed = await Success<PackageDto>(f.Client.PutAsJsonAsync(Root + "packages/" + package.Id, packageReq with { Name = "Renamed package", Code = null, Status="Inactive" }));
             Assert.Equal(package.Code, packageRenamed.Code); Assert.Equal("Inactive", packageRenamed.Status);
@@ -277,6 +278,122 @@ public sealed class RF02ACatalogSqlTests
             await db.Database.ExecuteSqlRawAsync(insertSql);
         }));
         Assert.Equal(51000,error.Number);Assert.Contains("duplicate legacy",error.Message);
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task ActivePackageRequiresActiveComponentsAndPreventsTheirDeactivation()
+    {
+        await WithCatalog(async f => {
+            var req=await Request(f);
+            var active=await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root+"vaccines",req),HttpStatusCode.Created);
+            var inactive=await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root+"vaccines",req with {Code="VX-INACTIVE-COMPONENT",Status="Inactive"}),HttpStatusCode.Created);
+            var packageReq=new PackageRequest("[DEMO] Invariant package",321000,[new(inactive.Id,2)],"GOI-INVARIANT",TargetAudience:"[DEMO] Synthetic");
+            var audits=await f.Db.Set<SecurityAudit>().CountAsync();
+            await Error(f.Client.PostAsJsonAsync(Root+"packages",packageReq),HttpStatusCode.BadRequest);
+            Assert.Equal(audits,await f.Db.Set<SecurityAudit>().CountAsync());
+            Assert.False(await f.Db.Set<GoiVacXin>().AnyAsync(x=>x.Code==packageReq.Code));
+            var dormant=await Success<PackageDto>(f.Client.PostAsJsonAsync(Root+"packages",packageReq with {Status="Inactive"}),HttpStatusCode.Created);
+            var dormantSnapshot=JsonSerializer.Serialize(dormant);
+            await Error(f.Client.PutAsJsonAsync(Root+"packages/"+dormant.Id,packageReq with {Status="Active",Name="Must not persist",Price=999}),HttpStatusCode.BadRequest);
+            Assert.Equal(dormantSnapshot,JsonSerializer.Serialize(await Success<PackageDto>(f.Client.GetAsync(Root+"packages/"+dormant.Id))));
+            var liveReq=packageReq with {Code="GOI-ACTIVE-INVARIANT",Items=[new(active.Id,1)]};
+            var live=await Success<PackageDto>(f.Client.PostAsJsonAsync(Root+"packages",liveReq),HttpStatusCode.Created);
+            var liveSnapshot=JsonSerializer.Serialize(live);
+            await Error(f.Client.PutAsJsonAsync(Root+"packages/"+live.Id,liveReq with {Status=null,Name="Must not persist",Items=[new(inactive.Id,1)]}),HttpStatusCode.BadRequest);
+            Assert.Equal(liveSnapshot,JsonSerializer.Serialize(await Success<PackageDto>(f.Client.GetAsync(Root+"packages/"+live.Id))));
+            audits=await f.Db.Set<SecurityAudit>().CountAsync();
+            await Error(f.Client.PutAsJsonAsync(Root+"vaccines/"+active.Id,req with {Status="Inactive",Name="Must not persist"}),HttpStatusCode.Conflict,"catalogReferenced");
+            Assert.Equal(audits,await f.Db.Set<SecurityAudit>().CountAsync());
+            Assert.Equal("Active",(await Success<VaccineDto>(f.Client.GetAsync(Root+"vaccines/"+active.Id))).Status);
+            Assert.Equal(active.Name,(await Success<VaccineDto>(f.Client.GetAsync(Root+"vaccines/"+active.Id))).Name);
+            Assert.Equal("Active",(await Success<PackageDto>(f.Client.GetAsync(Root+"packages/"+live.Id))).Status);
+            // Staff explicitly stop using the package before stopping its component vaccine.
+            var stopped=await Success<PackageDto>(f.Client.PutAsJsonAsync(Root+"packages/"+live.Id,liveReq with {Status="Inactive"}));Assert.Equal("Inactive",stopped.Status);
+            var stoppedVaccine=await Success<VaccineDto>(f.Client.PutAsJsonAsync(Root+"vaccines/"+active.Id,req with {Status="Inactive"}));Assert.Equal("Inactive",stoppedVaccine.Status);
+            var changedInactive=await Success<PackageDto>(f.Client.PutAsJsonAsync(Root+"packages/"+live.Id,liveReq with {Items=[new(inactive.Id,3)]}));
+            Assert.Equal("Inactive",changedInactive.Status);Assert.Equal(inactive.Id,Assert.Single(changedInactive.Items).VaccineId);
+            await Error(f.Client.PutAsJsonAsync(Root+"packages/"+live.Id,liveReq with {Status="Active"}),HttpStatusCode.BadRequest);
+            await Success<VaccineDto>(f.Client.PutAsJsonAsync(Root+"vaccines/"+active.Id,req with {Status="Active"}));
+            var reactivated=await Success<PackageDto>(f.Client.PutAsJsonAsync(Root+"packages/"+live.Id,liveReq with {Status="Active"}));Assert.Equal("Active",reactivated.Status);
+            Assert.False(await (from p in f.Db.Set<GoiVacXin>() join item in f.Db.Set<GoiVacXin_VacXin>() on p.MaGoi equals item.MaGoi
+                join v in f.Db.Vaccines on item.MaVacXin equals v.MaVacXin where p.TrangThai=="Active" && v.TrangThai!="Active" select p.MaGoi).AnyAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task SeedCannotCreateAnActivePackageFromAnInactiveExistingDemoVaccine()
+    {
+        await WithCatalog(async f => {
+            await f.Db.Set<GoiVacXin_VacXin>().ExecuteDeleteAsync();await f.Db.Set<GoiVacXin>().ExecuteDeleteAsync();
+            var vaccine=await f.Db.Vaccines.AsNoTracking().OrderBy(x=>x.MaVacXin).FirstAsync();
+            await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));f.Db.ChangeTracker.Clear();
+            var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>DevelopmentCatalogSeed.RunAsync(f.Db,Development));
+            Assert.Contains("non-Active vaccine",error.Message);Assert.Empty(await f.Db.Set<GoiVacXin>().ToArrayAsync());Assert.Empty(await f.Db.Set<GoiVacXin_VacXin>().ToArrayAsync());
+            Assert.Equal("Inactive",await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.TrangThai).SingleAsync());
+            Assert.Equal(vaccine.Code,await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.Code).SingleAsync());
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ConcurrentPackageActivationAndVaccineDeactivationCannotCommitAnInvalidPair(bool packageFirst)
+    {
+        await WithCatalog(async f => {
+            var req=await Request(f);var vaccine=await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root+"vaccines",req),HttpStatusCode.Created);
+            var packageReq=new PackageRequest("[DEMO] Race package",123,[new(vaccine.Id,1)],"GOI-RACE",Status:"Inactive",TargetAudience:"[DEMO] Synthetic");
+            var package=await Success<PackageDto>(f.Client.PostAsJsonAsync(Root+"packages",packageReq),HttpStatusCode.Created);
+            // A distinct employee/session avoids serializing the race solely on Identity account locks.
+            var employee=new NhanVien {HoTen="[DEMO] Catalog race",ChucDanh="BacSi",TrangThai="Active"};f.Db.Add(employee);await f.Db.SaveChangesAsync();
+            var account=new TaiKhoan {MaNhanVien=employee.MaNhanVien,AccountType="Employee",TenDangNhap="rf02a.race",NormalizedUsername="RF02A.RACE",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow};
+            account.MatKhauHash=new PasswordHasher<TaiKhoan>().HashPassword(account,f.Password);f.Db.Add(account);await f.Db.SaveChangesAsync();
+            var permissions=await f.Db.Set<QuyenHan>().Where(p=>p.Code=="QuanLyDanhMucChuyenMon"||p.Code=="QuanLyDanhMucGia").ToArrayAsync();
+            f.Db.AddRange(permissions.Select(p=>new TaiKhoan_QuyenHan {MaTaiKhoan=account.MaTaiKhoan,MaQuyen=p.MaQuyen}));
+            var session=new IdentitySession {Id=Guid.NewGuid(),AccountId=account.MaTaiKhoan,SecurityVersion=account.SecurityVersion,CreatedAt=DateTimeOffset.UtcNow,ExpiresAt=DateTimeOffset.UtcNow.AddHours(1)};
+            f.Db.Add(session);await f.Db.SaveChangesAsync();
+            using var other=f.Factory.CreateClient();other.DefaultRequestHeaders.Authorization=new("Bearer",new IdentityTokens(f.Config).Issue(account.MaTaiKhoan,session.Id,DateTimeOffset.UtcNow));
+            var audits=await f.Db.Set<SecurityAudit>().CountAsync(x=>x.Action.StartsWith("catalog."));
+            Task<HttpResponseMessage> Activate()=>f.Client.PutAsJsonAsync(Root+"packages/"+package.Id,packageReq with {Status="Active"});
+            Task<HttpResponseMessage> Deactivate()=>other.PutAsJsonAsync(Root+"vaccines/"+vaccine.Id,req with {Status="Inactive"});
+            var first=packageFirst ? Activate() : Deactivate();var second=packageFirst ? Deactivate() : Activate();
+            var responses=await Task.WhenAll(first,second).WaitAsync(TimeSpan.FromSeconds(60));
+            try {
+                Assert.Single(responses,r=>r.IsSuccessStatusCode);
+                Assert.All(responses.Where(r=>!r.IsSuccessStatusCode),r=>Assert.Contains(r.StatusCode,new[]{HttpStatusCode.BadRequest,HttpStatusCode.Conflict}));
+                var vaccineStatus=await f.Db.Vaccines.AsNoTracking().Where(x=>x.MaVacXin==vaccine.Id).Select(x=>x.TrangThai).SingleAsync();
+                var packageStatus=await f.Db.Set<GoiVacXin>().AsNoTracking().Where(x=>x.MaGoi==package.Id).Select(x=>x.TrangThai).SingleAsync();
+                Assert.False(packageStatus=="Active" && vaccineStatus!="Active");
+                Assert.Equal(audits+1,await f.Db.Set<SecurityAudit>().CountAsync(x=>x.Action.StartsWith("catalog.")));
+                // The losing operation still receives the domain rejection after the winner commits.
+                if(packageStatus=="Active") await Error(Deactivate(),HttpStatusCode.Conflict,"catalogReferenced");
+                else await Error(Activate(),HttpStatusCode.BadRequest);
+            } finally {foreach(var response in responses) response.Dispose();}
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task MigrationPreflightRefusesInvalidLegacyPackageWithoutRewritingBusinessState()
+    {
+        await WithCatalog(async f => {
+            var migrator=f.Db.GetService<IMigrator>();await migrator.MigrateAsync("20261103183142_RF02ACatalogSchemaContract");
+            var vaccine=await f.Db.Vaccines.AsNoTracking().OrderBy(x=>x.MaVacXin).FirstAsync();
+            var package=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync();
+            await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
+            var beforeVaccine=JsonSerializer.Serialize(await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin));
+            var beforePackage=JsonSerializer.Serialize(await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync());
+            var beforeLinks=JsonSerializer.Serialize(await f.Db.Set<GoiVacXin_VacXin>().AsNoTracking().OrderBy(x=>x.MaVacXin).ToArrayAsync());
+            var error=await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync());
+            Assert.Equal(51000,error.Number);Assert.Contains("Active package "+package.MaGoi,error.Message);Assert.Contains("non-Active vaccine "+vaccine.MaVacXin,error.Message);
+            Assert.Equal(beforeVaccine,JsonSerializer.Serialize(await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin)));
+            Assert.Equal(beforePackage,JsonSerializer.Serialize(await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync()));
+            Assert.Equal(beforeLinks,JsonSerializer.Serialize(await f.Db.Set<GoiVacXin_VacXin>().AsNoTracking().OrderBy(x=>x.MaVacXin).ToArrayAsync()));
+            Assert.DoesNotContain("20261103192651_RF02AActivePackagePreflight",await f.Db.Database.GetAppliedMigrationsAsync());
+            // Only the fixture owner explicitly deactivates its own synthetic package, then retries preflight.
+            await f.Db.Set<GoiVacXin>().Where(x=>x.MaGoi==package.MaGoi).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
+            await migrator.MigrateAsync();await migrator.MigrateAsync();
+            Assert.Equal("Inactive",await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.TrangThai).SingleAsync());
+            Assert.Equal("Inactive",await f.Db.Set<GoiVacXin>().Select(x=>x.TrangThai).SingleAsync());Assert.False(f.Db.Database.HasPendingModelChanges());
+        });
     }
 
     private sealed class SeedEnvironment : IHostEnvironment

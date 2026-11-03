@@ -60,6 +60,7 @@ public static class CatalogEndpoints
         group.MapPut("/vaccines/{id:int}", async (int id, VaccineRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
             var actor = await RequireWrite(context, auth, true, ct);
+            await LockPackageStatus(db, ct);
             var row = await db.Vaccines.FindAsync([id], ct) ?? throw new IdentityFailure(404, "resourceNotFound");
             await ValidateVaccine(req, row, db, ct); SetVaccine(row, req);
             await SetVaccineChildren(db, id, req, ct);
@@ -93,7 +94,8 @@ public static class CatalogEndpoints
         group.MapGet("/packages/{id:int}", async (int id, TiemChungDbContext db, CancellationToken ct) => Results.Ok(await PackageDetail(db, id, ct)));
         group.MapPost("/packages", async (PackageRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-            var actor = await RequireWrite(context, auth, true, ct); await ValidatePackage(req, null, db, ct);
+            var actor = await RequireWrite(context, auth, true, ct);
+            await LockPackageStatus(db, ct); await ValidatePackage(req, null, db, ct);
             var row = new GoiVacXin { Code = req.Code!, TenGoi = req.Name.Trim(), GiaGoi = req.Price, TrangThai = req.Status ?? "Active",
                 MoTa = req.Description?.Trim(), DoiTuongSuDung = req.TargetAudience?.Trim() };
             db.Add(row); await db.SaveChangesAsync(ct); SetItems(db, row.MaGoi, req.Items);
@@ -104,6 +106,7 @@ public static class CatalogEndpoints
         group.MapPut("/packages/{id:int}", async (int id, PackageRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
             var actor = await RequireWrite(context, auth, true, ct);
+            await LockPackageStatus(db, ct);
             // Registration takes the same package lock before reading components/prices.
             var row = await db.Set<GoiVacXin>().FromSqlInterpolated($"SELECT * FROM GoiVacXin WITH (UPDLOCK,HOLDLOCK) WHERE MaGoi={id}")
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
@@ -207,6 +210,14 @@ public static class CatalogEndpoints
         }).ToArray();
     }
 
+    // Lock before reading either side: opposite package/vaccine lock orders can deadlock during status changes.
+    private static Task LockPackageStatus(TiemChungDbContext db, CancellationToken ct) => db.Database.ExecuteSqlRawAsync("""
+        DECLARE @result int;
+        EXEC @result=sys.sp_getapplock @Resource=N'KLCN.Catalog.PackageStatus',
+            @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+        IF @result<0 THROW 51001, 'Catalog status lock unavailable.', 1;
+        """, ct);
+
     private static async Task<IdentityActor> RequireWrite(HttpContext context, IdentityAuthorization auth, bool price, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, true, ct);
@@ -240,6 +251,9 @@ public static class CatalogEndpoints
     {
         ValidateCode(req.Code, "VX", row?.Code); ValidateStatus(req.Status);
         ValidateText(req.Name, 150); ValidateText(req.Manufacturer, 150); ValidateText(req.Origin, 100); ValidatePrice(req.Price);
+        if (row != null && req.Status == "Inactive" && await db.Set<GoiVacXin_VacXin>().AnyAsync(
+            link => link.MaVacXin == row.MaVacXin && db.Set<GoiVacXin>().Any(p => p.MaGoi == link.MaGoi && p.TrangThai == "Active"), ct))
+            throw new IdentityFailure(409, "catalogReferenced");
         var activating = row != null && row.TrangThai != "Active" && req.Status == "Active";
         ValidateText(req.Description, 2000, false); ValidateText(req.TargetAudience, 1000, row == null || req.TargetAudience != null);
         if (activating) ValidateText(req.TargetAudience ?? row!.DoiTuongSuDung, 1000);
@@ -308,7 +322,9 @@ public static class CatalogEndpoints
         if (req.Items == null || req.Items.Length is < 1 or > 100 || req.Items.Any(x => x == null || x.VaccineId <= 0 || x.Quantity is < 1 or > 100) ||
             req.Items.Select(x => x.VaccineId).Distinct().Count() != req.Items.Length) throw new IdentityFailure(400, "validation");
         var ids = req.Items.Select(x => x.VaccineId).ToArray();
-        if (await db.Vaccines.CountAsync(x => ids.Contains(x.MaVacXin), ct) != ids.Length) throw new IdentityFailure(400, "validation");
+        var active = (req.Status ?? row?.TrangThai ?? "Active") == "Active";
+        if (await db.Vaccines.CountAsync(x => ids.Contains(x.MaVacXin) && (!active || x.TrangThai == "Active"), ct) != ids.Length)
+            throw new IdentityFailure(400, "validation");
     }
     private static void SetItems(TiemChungDbContext db, int id, PackageItemDto[] items) => db.AddRange(items.Select(x => new GoiVacXin_VacXin { MaGoi = id, MaVacXin = x.VaccineId, SoLuong = x.Quantity }));
     private static async Task Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, string action, string type, int id, CancellationToken ct)

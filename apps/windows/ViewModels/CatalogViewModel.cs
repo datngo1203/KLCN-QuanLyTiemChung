@@ -138,16 +138,21 @@ public sealed class CatalogViewModel : ViewModelBase
         if (ShowLookup) body=new { Name, Description, Code };
         else {
             if (!decimal.TryParse(Price,NumberStyles.None,CultureInfo.InvariantCulture,out var price) || price < 0) throw new InvalidOperationException("Giá phải là số nguyên VND không âm, không dấu phân cách.");
+            var originalAudience=Selected?.Vaccine?.TargetAudience ?? Selected?.Package?.TargetAudience;
+            var targetAudience=Selected is not null && originalAudience is null && TargetAudience.Length == 0 ? null : TargetAudience;
             if (ShowVaccine) {
-                var diseaseIds=Selected?.Vaccine?.Diseases?.Select(x=>x.Id).Except(Diseases.Select(x=>x.Id)).Concat(Diseases.Where(x=>x.Included).Select(x=>x.Id)).ToArray()
+                int[]? diseaseIds=Selected?.Vaccine?.Diseases?.Select(x=>x.Id).Except(Diseases.Select(x=>x.Id)).Concat(Diseases.Where(x=>x.Included).Select(x=>x.Id)).ToArray()
                     ?? Diseases.Where(x=>x.Included).Select(x=>x.Id).ToArray();
-                body=new { Name, Manufacturer, Origin, Price=price, Code, TargetAudience,
-                    AdministrationRoute, AdministrationRouteNote=ShowRouteNote ? AdministrationRouteNote : null,
+                // Preserve missing legacy fields; clearing previously populated metadata remains explicit invalid input.
+                if (Selected?.Vaccine is { } original && (original.Diseases?.Length ?? 0) == 0 && diseaseIds.Length == 0) diseaseIds=null;
+                var route=AdministrationRoute ?? (Selected?.Vaccine?.AdministrationRoute is not null ? "" : null);
+                body=new { Name, Manufacturer, Origin, Price=price, Code, TargetAudience=targetAudience,
+                    AdministrationRoute=route, AdministrationRouteNote=ShowRouteNote ? AdministrationRouteNote : null,
                     DiseaseIds=diseaseIds, VaccineTypeId=VaccineType?.Id ?? 0, InjectionTypeId=InjectionType?.Id ?? 0 };
             }
             else {
                 var items=PackageChoices.Where(x => x.Included).Select(x => new CatalogPackageItem(x.Id,int.Parse(x.Quantity,CultureInfo.InvariantCulture))).ToArray();
-                body=new { Name, Price=price, Items=items, Code, TargetAudience };
+                body=new { Name, Price=price, Items=items, Code, TargetAudience=targetAudience };
             }
         }
         await _service.SaveAsync(Resource,Selected?.Id,body); await Load();
