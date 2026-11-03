@@ -138,3 +138,28 @@
 - **SCOPE.md** vẫn là nguồn sự thật về phạm vi triển khai và cột trạng thái; **không dùng tài liệu này làm sổ tiến độ**.
 - Codex chỉ đọc quyết định BA để chuẩn bị kế hoạch; muốn sửa code phải có gói công việc được giao riêng, kiểm tra tác động contract, schema và owner, tạo nhánh/PR đúng quy tắc.
 - Cập nhật file này qua PR tài liệu riêng, không tự merge hoặc sửa main khi chưa review.
+
+## E. Thứ tự nghiệp vụ và phối hợp song song — quy tắc tiếp tục qua các phiên (03/11/2026)
+
+> Mục này **nhắc lại và làm rõ QD-001, QD-008** cùng quy tắc bàn giao trong `AGENTS.md`/`SCOPE.md`; không phải quyết định QD mới, **không phải sổ tiến độ**, không cấp quyền sửa code hay mở rộng phạm vi. Khi có xung đột, `SCOPE.md` quyết định tính năng được triển khai, `AGENTS.md` quyết định cách phối hợp.
+
+### E1. Phân biệt thứ tự quy trình khảo sát và thứ tự sửa hệ thống
+- **Bảy quy trình nghiệp vụ đã chốt trong báo cáo** (không tự tách/gộp/đổi thứ tự): (1) nhập vắc xin từ nhà cung cấp; (2) đăng ký thông tin khách hàng/người được tiêm; (3) đăng ký dịch vụ tiêm chủng; (4) khám sàng lọc và chỉ định; (5) thanh toán; (6) thực hiện tiêm và theo dõi sau tiêm; (7) quản lý lịch tiêm và nhắc lịch. Đây là trình tự **mô tả nghiệp vụ**, không có nghĩa phải xây thêm module nhập kho đầy đủ hoặc buộc code/PR theo thứ tự 1–7.
+- **Thứ tự rà soát và nâng cấp theo phụ thuộc dữ liệu đã chốt ở QD-001**: **A04 / danh mục loại vắc xin, vắc xin trước → cấu thành gói và thông tin công bố → kiểm tra ảnh hưởng tới hồ sơ/đăng ký dịch vụ/thanh toán hiện có → A02 khám sàng lọc/chỉ định (tiêu thụ dữ liệu A04) → phần tương thích ghi tiêm S5 khi cần → hồi quy/tích hợp**. Chỉ chỉnh những lát có vấn đề hoặc có phạm vi được giao; S3/S4/S5 đã đạt tiêu chí thì không viết lại vì xuất hiện trong sơ đồ.
+- Với A04: trước tiên rà soát các class/bảng/API/Windows/Web hiện có, loại trùng, dữ liệu thiếu và hợp đồng A04→A02 theo QD-002–005; sau đó mới chốt lát nhỏ để phát triển. Không nhảy sang sửa A02 trước khi thống nhất dữ liệu và hợp đồng A04 cung cấp. Những rule y khoa chưa có chứng cứ/kiểm duyệt chỉ là DEMO, không có quyền tự quyết định chuyên môn.
+
+### E2. Không phải đợi S6/S7/S8 mới được tiếp tục A04
+- **Được làm song song**: Đạt/phiên Codex riêng có thể **rà soát, đặc tả, kiểm thử đọc-only A04 ngay** trong lúc Bảo làm S6, Quý làm S7 và nhóm chuẩn bị S8. Các sửa lỗi **đã nằm trong lát được giao/phạm vi hiện hành** có thể xử lý bằng PR riêng, không cần chờ S6/S7/S8; nếu là tính năng **mở rộng ngoài SCOPE** thì phải có phê duyệt phạm vi và gói triển khai riêng trước khi sửa code/SQL.
+- Đừng hiểu **ưu tiên hoàn tất S6/S7/S8 trước hạn nộp** là phụ thuộc bắt buộc để *bắt đầu* phân tích A04. S8 có thể kiểm tra từng phần đã tích hợp; **nghiệm thu S8 cuối cùng cần chạy lại trên phiên bản tích hợp thực tế** sau các PR liên quan.
+- **Ranh giới song song**: Bảo sở hữu S6/Registration/Payment liên quan, Quý sở hữu S7/Reports; không sửa file/nhánh/PR của họ. Các file dùng chung, API contract, migration và tích hợp S5 phải có điều phối/review chéo; **một migration tại một thời điểm**, không dùng chung DB test đang có người kiểm. S5 đã nghiệm thu bị đóng băng, chỉ mở qua gói sửa lỗi/tương thích được giao rõ và kiểm thử hồi quy.
+- Đối với phần A04/A02 còn ở trạng thái thiết kế theo QD-008, ghi kết luận/đề xuất trong chat hoặc sổ BA; **không phát lệnh Codex viết code** cho tới khi có gói triển khai được phê duyệt.
+
+### E3. Điểm vào bắt buộc của phiên ChatGPT/Codex mới
+1. Đọc `README.md`, `AGENTS.md`, `SCOPE.md` ở `main`; đọc `BUSINESS_DECISIONS.md` trên **nhánh `docs/business-decisions-20261103` (Draft PR #63)** cho đến khi PR được merge. Không được ngầm cho rằng file trên Draft PR đã nằm trong `main`.
+2. Kiểm tra trạng thái mới nhất của module/PR và owner trước khi giao việc. Nếu có thay đổi trong nguồn sau lần ghi sổ, **đối chiếu lại**, không dùng trạng thái cũ làm chứng cứ.
+3. Tóm tắt cho người dùng **module đang làm, module đã đóng băng, phần còn chờ, phạm vi file, điểm giao và test**. **Không tự tạo QD-018 hoặc đổi thứ tự** vì một đoạn chat vừa phân tích sâu A02.
+4. Tiếp tục **A04 trước A02** đối với kế hoạch nâng cấp. Các quyết định QD-009–017 về A02 đã được bảo lưu, **không phải chỉ thị chuyển sang thực hiện A02 trước**.
+5. Cập nhật **tiến độ chỉ ở cột Trạng thái trong `SCOPE.md` khi được phép**, không mở thêm sổ tiến độ hay file thiết kế riêng. Tài liệu này chỉ ghi quyết định BA và quy tắc điều phối; giữ Draft PR cho tới khi người dùng duyệt.
+
+**Câu mở đầu dùng lại khi chuyển chat/Codex:** `Đọc README.md, AGENTS.md, SCOPE.md ở main và BUSINESS_DECISIONS.md tại docs/business-decisions-20261103 (PR #63). Tuân thủ mục E: nâng cấp theo phụ thuộc nghiệp vụ, A04 trước A02; S6/S7/S8 được chạy song song với ranh giới owner; chưa sửa code hoặc mở rộng SCOPE khi chưa có gói được duyệt. Trước khi làm, báo trạng thái và đề xuất đúng một lát tiếp theo.`
+
