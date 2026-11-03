@@ -1,12 +1,56 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using TiemChung.Contracts;
+
 namespace TiemChung.Desktop.Services;
 
-// TODO: Replace after inventory read/write contracts and concurrency behavior are reviewed.
-public interface IInventoryService { bool UseSampleData { get; set; } IReadOnlyList<InventoryBatch> GetBatches(); IReadOnlyList<InventoryMovement> GetMovements(); }
-public sealed record InventoryBatch(string Lot, string Vaccine, DateOnly Manufactured, DateOnly Expires, int Initial, int Stock) { public string Status { get { var today=DateOnly.FromDateTime(DateTime.Today); return Expires<today ? "Hết hạn" : Stock==0 ? "Hết hàng" : Expires<=today.AddDays(30) ? "Cận hạn · FEFO" : "Còn hàng"; } } }
-public sealed record InventoryMovement(string Type, string Lot, int Quantity, DateTime At);
-public sealed class SampleInventoryService : IInventoryService
+public interface IInventoryService
 {
- public bool UseSampleData { get; set; } = true;
- public IReadOnlyList<InventoryBatch> GetBatches() => UseSampleData ? [new("LO-MAU-01","Vắc xin mẫu A",DateOnly.FromDateTime(DateTime.Today.AddMonths(-6)),DateOnly.FromDateTime(DateTime.Today.AddDays(18)),120,32),new("LO-MAU-02","Vắc xin mẫu B",DateOnly.FromDateTime(DateTime.Today.AddMonths(-18)),DateOnly.FromDateTime(DateTime.Today.AddDays(-2)),80,0)] : [];
- public IReadOnlyList<InventoryMovement> GetMovements() => UseSampleData ? [new("Nhập kho","LO-MAU-01",120,DateTime.Today.AddDays(-2)),new("Hủy / hao hụt","LO-MAU-01",2,DateTime.Today.AddDays(-1))] : [];
+    Task<InventoryBatchListResponse> ListAsync(int page, string search);
+    Task<InventoryMovementListResponse> MovementsAsync(string lotNumber, int page);
+}
+
+public sealed class InventoryApiException(string code, string message) : Exception(message)
+{
+    public string Code { get; } = code;
+}
+
+public sealed class InventoryApiService(IdentityApiService? identity = null) : IInventoryService
+{
+    public const int PageSize = 25;
+    private readonly IdentityApiService _identity = identity ?? IdentityApiService.Current;
+    private readonly int _revision = (identity ?? IdentityApiService.Current).SessionRevision;
+    private async Task<T> Get<T>(string path)
+    {
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, "api/v1/inventory/" + path,
+            expectedSessionRevision: _revision);
+        if (!response.IsSuccessStatusCode) {
+            var code = response.StatusCode switch {
+                HttpStatusCode.Unauthorized => "invalidSession", HttpStatusCode.Forbidden => "permissionDenied",
+                HttpStatusCode.NotFound => "resourceNotFound", HttpStatusCode.BadRequest => "validation", _ => "requestFailed"
+            };
+            throw new InventoryApiException(code, code switch {
+                "invalidSession" => "Phiên hết hạn. Đăng nhập và mở lại Kho vắc xin.",
+                "permissionDenied" => "Cần nhân viên Thủ kho đang hoạt động có quyền XemKho. Đăng nhập và mở lại sau khi được cấp quyền.",
+                "resourceNotFound" => "Lô không còn tồn tại. Tải lại danh sách lô.",
+                "validation" => "Bộ lọc không hợp lệ. Tìm kiếm tối đa 100 ký tự.",
+                _ => "Không đọc được API. Hãy thử lại."
+            });
+        }
+        return await response.Content.ReadFromJsonAsync<T>() ?? throw new JsonException();
+    }
+    public async Task<InventoryBatchListResponse> ListAsync(int page, string search)
+    {
+        var result = await Get<InventoryBatchListResponse>($"lots?page={page}&pageSize={PageSize}&search={Uri.EscapeDataString(search.Trim())}");
+        if (result.Items is null || result.FacilityDate == default || result.Items.Any(x => x is null || string.IsNullOrWhiteSpace(x.LotNumber))) throw new JsonException();
+        return result;
+    }
+    public async Task<InventoryMovementListResponse> MovementsAsync(string lotNumber, int page)
+    {
+        var result = await Get<InventoryMovementListResponse>($"movements?lotNumber={Uri.EscapeDataString(lotNumber)}&page={page}&pageSize={PageSize}");
+        if (result.Items is null || result.Items.Any(x => x is null || x.LotNumber != lotNumber || x.RecordedAt.Offset != TimeSpan.Zero)) throw new JsonException();
+        return result;
+    }
 }

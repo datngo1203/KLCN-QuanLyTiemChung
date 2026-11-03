@@ -1,1 +1,75 @@
-<UserControl x:Class="TiemChung.Desktop.ViewsV2.InventoryView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels"><UserControl.Resources><BooleanToVisibilityConverter x:Key="Vis"/><DataTemplate DataType="{x:Type vm:InventoryViewModel}"><Grid Margin="28" Background="{StaticResource CE.Canvas}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="220"/></Grid.RowDefinitions><DockPanel LastChildFill="False" Margin="0,0,0,18"><StackPanel><TextBlock Text="Kho &amp; lô vắc xin" Style="{StaticResource CE.Heading}"/><TextBlock Text="Theo dõi hạn dùng, tồn và biến động kho" Style="{StaticResource CE.Caption}" Margin="0,5,0,0"/></StackPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Border Style="{StaticResource CE.Badge.Sample}" Margin="0,0,12,0"><TextBlock Text="{Binding DataSourceLabel}"/></Border><Button Content="Nhập lô" Command="{Binding AddCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel></DockPanel><Border Grid.Row="1" Style="{StaticResource CE.Card}" Padding="18"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="Lô vắc xin" Style="{StaticResource CE.SectionHeading}"/><DataGrid Grid.Row="1" ItemsSource="{Binding Batches}" SelectedItem="{Binding Selected}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,10"><DataGrid.Columns><DataGridTextColumn Header="Số lô" Binding="{Binding Lot}" Width="130"/><DataGridTextColumn Header="Vắc xin" Binding="{Binding Vaccine}" Width="*"/><DataGridTextColumn Header="NSX" Binding="{Binding Manufactured,StringFormat={}{0:dd/MM/yyyy}}" Width="100"/><DataGridTextColumn Header="Hạn dùng" Binding="{Binding Expires,StringFormat={}{0:dd/MM/yyyy}}" Width="100"/><DataGridTextColumn Header="Ban đầu" Binding="{Binding Initial}" Width="80"/><DataGridTextColumn Header="Tồn" Binding="{Binding Stock}" Width="70"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="140"/></DataGrid.Columns></DataGrid><StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="Chưa có lô trong nguồn dữ liệu." Visibility="{Binding HasNoBatches,Converter={StaticResource Vis}}" Margin="0,0,14,0"/><TextBlock Text="SL xuất hủy/hao hụt" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBox Width="90" Text="{Binding Quantity,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" Margin="0,0,8,0"/><Button Content="Điều chỉnh tồn" Command="{Binding AdjustCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Feedback}" VerticalAlignment="Center" Margin="12,0,0,0"/></StackPanel></Grid></Border><Border Grid.Row="2" Style="{StaticResource CE.Card}" Padding="18" Margin="0,14,0,0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="Biến động kho" Style="{StaticResource CE.SectionHeading}"/><DataGrid Grid.Row="1" ItemsSource="{Binding Movements}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="0,8"><DataGrid.Columns><DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="*"/><DataGridTextColumn Header="Số lô" Binding="{Binding Lot}" Width="140"/><DataGridTextColumn Header="Số lượng" Binding="{Binding Quantity}" Width="100"/><DataGridTextColumn Header="Thời điểm" Binding="{Binding At,StringFormat={}{0:dd/MM HH:mm}}" Width="140"/></DataGrid.Columns></DataGrid></Grid></Border><Border Grid.RowSpan="3" Background="#66000000" Visibility="{Binding IsDialogOpen,Converter={StaticResource Vis}}"><Border Style="{StaticResource CE.Card}" Width="430" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center"><StackPanel><TextBlock Text="Nhập lô mới" Style="{StaticResource CE.SectionHeading}"/><TextBlock Text="Số lô" Margin="0,14,0,4"/><TextBox Text="{Binding Lot,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}"/><TextBlock Text="Ngày sản xuất" Margin="0,10,0,4"/><DatePicker SelectedDate="{Binding Manufactured}" Style="{StaticResource CE.DatePicker}"/><TextBlock Text="Hạn dùng" Margin="0,10,0,4"/><DatePicker SelectedDate="{Binding Expires}" Style="{StaticResource CE.DatePicker}"/><TextBlock Text="Số lượng" Margin="0,10,0,4"/><TextBox Text="{Binding Quantity,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}"/><TextBlock Text="{Binding LotError}" Style="{StaticResource CE.Caption}" Margin="0,8,0,0"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"><Button Content="Hủy" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Nhập" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel></StackPanel></Border></Border></Grid></DataTemplate></UserControl.Resources><ContentControl Content="{Binding}"/></UserControl>
+<UserControl x:Class="TiemChung.Desktop.ViewsV2.InventoryView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <UserControl.Resources><BooleanToVisibilityConverter x:Key="Vis"/></UserControl.Resources>
+ <Grid Margin="24" Background="{StaticResource CE.Canvas}">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+   <RowDefinition Height="*" MinHeight="110"/><RowDefinition Height="Auto"/>
+   <RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="90"/>
+  </Grid.RowDefinitions>
+  <StackPanel>
+   <TextBlock Text="Kho &amp; lô vắc xin" Style="{StaticResource CE.Heading}"/>
+   <TextBlock Text="Chỉ đọc qua API / SQL · Nhập lô và điều chỉnh tồn chưa triển khai trong X1."
+    TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,5,0,8"/>
+  </StackPanel>
+  <StackPanel Grid.Row="1">
+   <TextBlock Text="Cần nhân viên Thủ kho đang hoạt động có quyền XemKho. Đăng nhập và mở lại sau khi được cấp quyền."
+    TextWrapping="Wrap" Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Margin="0,0,0,8"/>
+   <TextBlock Text="{Binding Feedback}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
+   <ProgressBar Height="4" IsIndeterminate="True" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Margin="0,0,0,8"/>
+  </StackPanel>
+  <WrapPanel Grid.Row="2" IsEnabled="{Binding CanBrowse}" Margin="0,0,0,8">
+   <Label Content="Tìm số lô / vắc xin" Target="{Binding ElementName=SearchBox}" VerticalAlignment="Center"/>
+   <TextBox x:Name="SearchBox" Width="220" MaxLength="100" Text="{Binding SearchText,UpdateSourceTrigger=PropertyChanged}"
+    Style="{StaticResource CE.TextBox}" Margin="0,0,8,0">
+    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding ReloadCommand}"/></TextBox.InputBindings>
+   </TextBox>
+   <Button Content="Tìm / Tải lại" Command="{Binding ReloadCommand}" Style="{StaticResource CE.Button.Primary}"/>
+   <Button Content="Trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0"/>
+   <TextBlock Text="{Binding Page,StringFormat=Trang {0}}" VerticalAlignment="Center"/>
+   <Button Content="Sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0"/>
+  </WrapPanel>
+  <Grid Grid.Row="3">
+   <DataGrid ItemsSource="{Binding Batches}" SelectedItem="{Binding Selected}" IsEnabled="{Binding CanBrowse}"
+    AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+    AutomationProperties.Name="Lô vắc xin SQL" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+    <DataGrid.Columns>
+     <DataGridTextColumn Header="Số lô" Binding="{Binding Data.LotNumber}" Width="160"/>
+     <DataGridTextColumn Header="Vắc xin" Binding="{Binding Data.VaccineName}" Width="*" MinWidth="150"/>
+     <DataGridTextColumn Header="NSX" Binding="{Binding Data.ManufacturedOn,StringFormat={}{0:dd/MM/yyyy}}" Width="100"/>
+     <DataGridTextColumn Header="Hạn dùng" Binding="{Binding Data.ExpiresOn,StringFormat={}{0:dd/MM/yyyy}}" Width="100"/>
+     <DataGridTextColumn Header="Ban đầu" Binding="{Binding Data.InitialQuantity}" Width="75"/>
+     <DataGridTextColumn Header="Tồn" Binding="{Binding Data.Stock}" Width="60"/>
+     <DataGridTextColumn Header="Trạng thái SQL" Binding="{Binding Data.Status}" Width="110"/>
+     <DataGridTextColumn Header="Hạn / tồn (UTC+7)" Binding="{Binding Availability}" Width="130"/>
+    </DataGrid.Columns>
+   </DataGrid>
+   <TextBlock Text="Không có lô phù hợp trong SQL." HorizontalAlignment="Center" VerticalAlignment="Center"
+    IsHitTestVisible="False" Visibility="{Binding NoBatches,Converter={StaticResource Vis}}"/>
+  </Grid>
+  <WrapPanel Grid.Row="4" Margin="0,12,0,6">
+   <TextBlock Text="Biến động kho" Style="{StaticResource CE.SectionHeading}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+   <Button Content="Xem / Thử lại biến động" Command="{Binding MovementsCommand}" Style="{StaticResource CE.Button.Secondary}"/>
+   <Button Content="Trước" Command="{Binding PreviousMovementsCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0"/>
+   <TextBlock Text="{Binding MovementPage,StringFormat=Trang {0}}" VerticalAlignment="Center"/>
+   <Button Content="Sau" Command="{Binding NextMovementsCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0"/>
+  </WrapPanel>
+  <TextBlock Grid.Row="5" Text="{Binding MovementFeedback}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
+  <Grid Grid.Row="6">
+   <DataGrid ItemsSource="{Binding Movements}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+    AutomationProperties.Name="Biến động kho SQL" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+    <DataGrid.Columns>
+     <DataGridTextColumn Header="Mã" Binding="{Binding Data.Id}" Width="60"/>
+     <DataGridTextColumn Header="Loại (SQL)" Binding="{Binding Data.Type}" Width="150"/>
+     <DataGridTextColumn Header="Số lô" Binding="{Binding Data.LotNumber}" Width="160"/>
+     <DataGridTextColumn Header="Số lượng" Binding="{Binding Data.Quantity}" Width="90"/>
+     <DataGridTextColumn Header="Thời điểm" Binding="{Binding TimeLabel}" Width="160"/>
+     <DataGridTextColumn Header="Nhân viên" Binding="{Binding Data.EmployeeName}" Width="*" MinWidth="140"/>
+    </DataGrid.Columns>
+   </DataGrid>
+   <TextBlock Text="Lô chưa có biến động trong SQL." HorizontalAlignment="Center" VerticalAlignment="Center"
+    IsHitTestVisible="False" Visibility="{Binding NoMovements,Converter={StaticResource Vis}}"/>
+  </Grid>
+ </Grid>
+</UserControl>

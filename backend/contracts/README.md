@@ -294,6 +294,15 @@ Chỉ phiên Identity hiện hành của Employee, account/nhân viên Active, �
 
 Windows thêm khu vực Theo dõi sau tiêm cạnh Ghi nhận mũi tiêm, chọn mũi → đối chiếu → nhập đủ ba nội dung → xem/xác nhận → lưu → đọc lại bằng MT-id. Không sửa/xóa, tự phân loại phản ứng, chỉ định thuốc, đổi trạng thái mũi hoặc quyết định cho về. Nhắc lịch/Customer xem lịch sử/báo cáo thuộc gói khác.
 
+## X1 — Kho vắc xin chỉ đọc (Windows A05)
+
+Chỉ nhân viên `ThuKho` Active có grant `XemKho`, account/session Active theo IdentityAuthorization hiện hành. Admin, các chức danh khác và Customer không được đọc, kể cả khi có grant XemKho. Không tự cấp grant hoặc thêm quyền mới. Contract mới cần review chéo trước merge.
+
+- `GET /api/v1/inventory/lots?search=&page=&pageSize=`: tìm số lô/tên vắc xin, trim search tối đa 100 ký tự; page mặc định 1, pageSize mặc định 25/tối đa 100, từ chối page không dương/offset vượt Int32. Sắp hạn dùng rồi số lô tăng dần; bao gồm lô hết hạn/hết tồn/không Active và vắc xin không Active để tra cứu kho. `{items:[{lotNumber,vaccineId,vaccineName,manufacturedOn,expiresOn,initialQuantity,stock,status}],hasMore,facilityDate}`; ngày ISO, facilityDate theo UTC+7. Không suy lô được phép tiêm từ trạng thái hiển thị.
+- `GET /api/v1/inventory/movements?lotNumber=...&page=&pageSize=`: số lô bắt buộc, truyền query URL-encoded để bảo toàn ký tự đặc biệt; phân trang như trên. Lô không tồn tại trả 404, lô không có biến động trả danh sách rỗng. Sắp thời điểm rồi mã biến động giảm dần. `{items:[{id,lotNumber,type,quantity,recordedAt,employeeId,employeeName}],hasMore}`; giữ nguyên loại/số lượng SQL, recordedAt ISO UTC, Windows hiển thị giờ thiết bị. Không trả hồ sơ người tiêm hoặc mã mũi. Seed lô không tạo biến động nên không tự dựng dòng nhập kho cho seed.
+- GET chỉ đọc `LoVacXin`/`BienDongKho` và liên kết tên; không ghi/audit/seed, không migration. Không có POST/PUT/DELETE; A05 bỏ nút nhập/điều chỉnh Sample. Tồn hiển thị tại lúc tải; dùng Tải lại để đọc lại SQL. S5 vẫn tự kiểm lô và điều kiện ghi tiêm bằng endpoint hiện hữu.
+- Mọi phản hồi `Cache-Control: no-store`; 400 `validation`, 401 `invalidSession`, 403 `permissionDenied`, 404 `resourceNotFound`, 503 `dependencyUnavailable`. Windows không fallback Sample; loading/rỗng/lỗi tách biệt, thử lại GET sau lỗi mạng; 401/403 hoặc đổi phiên xóa dữ liệu/lựa chọn, bỏ phản hồi trễ và yêu cầu đăng nhập/mở lại. Không tạo chức năng ghi kho X2.
+
 ## S5.7A — Customer đọc lịch sử tiêm trên Website
 
 `GET /api/v1/vaccinations/history?recipientId=&page=&pageSize=`: chỉ Customer với Identity session/account Active và email đã xác minh. Mọi chức danh nhân viên kể cả Admin bị từ chối. Dùng route tổng hợp thay cho dự kiến `recipients/{id}/history` để đọc nhiều người được tiêm trong một lần gọi; recipientId tùy chọn chỉ thu hẹp phạm vi.
