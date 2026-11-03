@@ -23,6 +23,20 @@ Nguồn sự thật duy nhất về phạm vi. Cập nhật phân công: 02/11/2
 | S7 | Thống kê, báo cáo (D04) | Quý | 2–3 báo cáo: doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái | ☐ |
 | S8 | Tích hợp và kiểm thử (T01) | Cả nhóm | Chạy trọn luồng hồ sơ → đăng ký → ưu đãi → thanh toán → lịch → chỉ định → ghi tiêm → theo dõi → báo cáo trên máy sạch; kiểm quyền, lưu/đọc lại SQL, rollback và cạnh tranh tiền/tồn; test case/kết quả trong test source và PR, không tạo tài liệu mới | ☐ |
 
+## Mở rộng nghiệp vụ theo lát — 03/11/2026 (X1 đã tích hợp; các lát còn lại chờ chốt)
+
+Theo quyết định người dùng 03/11, **được mở rộng phạm vi từng lát nghiệp vụ có đầu ra chạy thật**. Người dùng đã **ủy quyền cho Đạt/ChatGPT tự review kỹ thuật và merge X1**; đây là ngoại lệ cho yêu cầu review độc lập **của riêng X1**, không được ghi thành đã có review của Bảo/Quý. Không hiểu là lệnh triển khai tất cả 7 quy trình một lượt. **Giữ nguyên kết quả S0–S5**, S6 của Bảo, S7 của Quý và S8 của cả nhóm; việc sửa file/contract của S6/S7 sau này vẫn cần phối hợp và kiểm thử chéo. Nghiệm thu thay đổi nghiệp vụ theo lát; S8 đầy đủ chạy trên bản đã tích hợp.
+
+| Mã | Lát được đề xuất | Chủ sở hữu | Hoàn thành khi | Trạng thái |
+|---|---|---|---|---|
+| X1 | **Kho vắc xin: thay màn Windows A05 dùng Sample bằng đọc lô/tồn và biến động qua API/SQL thật** | Đạt | Nhân viên có quyền xem đúng lô/tồn/biến động từ SQL, xử lý rỗng/lỗi/quyền, test backend + WPF, **không thay luồng S5 ghi tiêm/trừ tồn** | ☑ 03/11: **Đã merge [PR #66](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/66) vào main, squash `9ff1101`**. CI #171 backend/Windows/Web success trên head `831a721`; test local backend X1 + S5 57/57, Windows 228/228, WPF build 0 warning/error, full-shell/API/SQL kiểm được dữ liệu đọc. Technical self-review được ghi trên PR theo quyền người dùng, **không phải review độc lập của Bảo/Quý**. Non-blockers: chưa kiểm screen reader, dialog đăng nhập và mọi lỗi mạng qua full shell. Đã đóng phạm vi X1; X2 chưa bắt đầu |
+| X2 | Tiếp nhận lô/nhập vắc xin từ nhà cung cấp phục vụ quy trình (1) | Đạt, cần rà phạm vi lại | Chốt biểu mẫu, nguồn/căn cứ, nhà cung cấp, đối chiếu lô/hạn dùng/số lượng, quyền Kho, transaction + audit trước khi code | ☐ Chưa phê duyệt chi tiết; không nhập chung X1 |
+| XA04 / XA02 | Danh mục chuyên môn và khám sàng lọc nâng cao theo sổ QD-001–017 | Đạt điều phối, phần dùng chung phải review | Chốt lần lượt lát nhỏ, dữ liệu có nguồn và cổng kiểm tra an toàn, không thay đổi mũi đã tiêm | ☐ Backlog, **không** là chỉ thị tự triển khai ngay |
+
+**Điều phối và chống xung đột:** theo [issue #64](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/64). S6 (Bảo) giữ Promotion và Registration/Payment trong phạm vi S6; S7 (Quý) giữ Reports/Windows; Đạt sở hữu X1 và cổng tương thích S5. Mọi thay đổi cùng API/DTO/schema/UI shell hoặc tác động số tiền/lô tồn phải có PR riêng trên main mới, thông báo tác động và review chéo; chỉ một migration đang sửa; không sửa trực tiếp branch người khác. Nếu cần sửa code của Bảo/Quý, điều phối công khai trong issue, ưu tiên owner tự chỉnh; chỉ Đạt thực hiện thay trong PR riêng khi được giao rõ và có người review.
+
+**Thứ tự test:** test X1 độc lập + hồi quy đọc lô S5 có liên quan; test từng PR S6/S7; một PR tương thích S6→S5 sau chốt contract ưu đãi; cuối cùng mới S8 end-to-end. Không ghi PASS khi mới đọc code hoặc khi chỉ có branch.
+
 ## An toàn tối thiểu của S5 / G5 — đã nghiệm thu theo contract S4 (03/11/2026)
 
 - Bác sĩ ghi kết luận/chỉ định chuyên môn cho đúng buổi tiêm; điều dưỡng ghi tiêm/theo dõi theo quyền. API không tự quyết định y khoa hoặc tin điều kiện đủ tiêm do client gửi.
