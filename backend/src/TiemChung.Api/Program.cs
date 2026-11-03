@@ -67,6 +67,7 @@ if (args.Contains("--seed-catalog"))
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/inventory")) context.Response.Headers.CacheControl = "no-store";
+    if (context.Request.Path.StartsWithSegments("/api/v1/reports")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/clinical")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
@@ -123,6 +124,7 @@ app.MapVaccinationEndpoints();
 app.MapVaccinationHistoryEndpoints();
 app.MapAftercareEndpoints();
 app.MapInventoryEndpoints();
+app.MapReportEndpoints();
 
 app.Run();
 
