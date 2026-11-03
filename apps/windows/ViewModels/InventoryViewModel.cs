@@ -28,6 +28,7 @@ public sealed class InventoryViewModel : ViewModelBase
         _identity = identity ?? IdentityApiService.Current;
         _revision = _identity.SessionRevision;
         _service = service ?? new InventoryApiService(_identity);
+        Receiving = new InventoryReceivingViewModel(_identity);
         _identity.SessionCleared += (_, _) => ClearSession();
         ReloadCommand = new(async _ => await LoadAsync(), _ => CanBrowse);
         PreviousCommand = new(async _ => await LoadAsync(Page - 1), _ => CanBrowse && Page > 1);
@@ -37,6 +38,7 @@ public sealed class InventoryViewModel : ViewModelBase
         NextMovementsCommand = new(async _ => await LoadMovementsAsync(MovementPage + 1), _ => CanBrowse && Selected is not null && _moreMovements);
     }
     public ObservableCollection<InventoryBatchRow> Batches { get; } = [];
+    public InventoryReceivingViewModel Receiving { get; }
     public ObservableCollection<InventoryMovementRow> Movements { get; } = [];
     public RelayCommand ReloadCommand { get; }
     public RelayCommand PreviousCommand { get; }

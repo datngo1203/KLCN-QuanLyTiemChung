@@ -124,6 +124,7 @@ app.MapVaccinationEndpoints();
 app.MapVaccinationHistoryEndpoints();
 app.MapAftercareEndpoints();
 app.MapInventoryEndpoints();
+app.MapInventoryReceiptEndpoints();
 app.MapReportEndpoints();
 
 app.Run();

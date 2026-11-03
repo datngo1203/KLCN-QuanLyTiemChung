@@ -52,7 +52,8 @@ public sealed class ApiTests
             .UseSqlServer("Server=localhost;Database=ModelCheck;Integrated Security=True").Options);
         var script = context.Database.GenerateCreateScript();
         Assert.Contains("CREATE TABLE [DangKyDichVu]", script);
+        Assert.Contains("CREATE TABLE [InventoryReceipt]", script);
         Assert.Contains("MatKhauHash", script);
-        Assert.Equal(35, context.Model.GetEntityTypes().Count());
+        Assert.Equal(36, context.Model.GetEntityTypes().Count());
     }
 }

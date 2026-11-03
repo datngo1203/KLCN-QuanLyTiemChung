@@ -567,6 +567,34 @@ namespace TiemChung.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TiemChung.Domain.Entities.InventoryReceipt", b =>
+                {
+                    b.Property<string>("SoLo")
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("MovementId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageLocation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("SoLo");
+
+                    b.HasIndex("MovementId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryReceipt", (string)null);
+                });
+
             modelBuilder.Entity("TiemChung.Domain.Entities.KhachHang", b =>
                 {
                     b.Property<int>("MaKhachHang")
@@ -1562,6 +1590,21 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
                         .WithMany()
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TiemChung.Domain.Entities.InventoryReceipt", b =>
+                {
+                    b.HasOne("TiemChung.Domain.Entities.BienDongKho", null)
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.LoVacXin", null)
+                        .WithMany()
+                        .HasForeignKey("SoLo")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
