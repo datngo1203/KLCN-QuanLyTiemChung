@@ -139,7 +139,7 @@ npm --prefix apps/web ci
 npm --prefix apps/web run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Mở `http://localhost:5173`. Trang chủ và Danh mục có thể xem ngay. Để thử hồ sơ, chọn **Đăng nhập → Tạo tài khoản khách hàng**, dùng email dạng `ten@example.invalid` và mật khẩu 12–128 ký tự. Mở file JSON mới nhất trong `%LOCALAPPDATA%\VAC-Demo\Mail`, lấy trường `token` nhập vào bước xác minh email, rồi đăng nhập. Thư xác minh được lưu local, không gửi email ra ngoài.
+Mở `http://localhost:5173`. Trang chủ và Danh mục có thể xem ngay. Để thử hồ sơ, chọn **Đăng nhập → Tạo tài khoản khách hàng**, dùng email dạng `ten@example.invalid` và mật khẩu 12–128 ký tự. Mở file JSON mới nhất trong `%LOCALAPPDATA%\VAC-Demo\Mail`, lấy trường `token` nhập vào bước xác minh email, rồi đăng nhập. Thư xác minh được lưu local, không gửi email ra ngoài. RF-01: từ màn đăng nhập chọn **Quên mật khẩu**, nhập email synthetic rồi dùng `token` trong file JSON thư mô phỏng mới nhất tại cùng thư mục để đặt lại mật khẩu (30 phút, một lần; yêu cầu mới vô hiệu token cũ). Nhập mật khẩu mới 12–128 ký tự và xác nhận; thành công thu hồi mọi phiên, quay lại đăng nhập. Windows không có reset tự phục vụ.
 
 ### Ứng dụng Windows
 

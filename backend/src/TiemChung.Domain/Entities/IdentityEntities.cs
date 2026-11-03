@@ -41,7 +41,8 @@ public sealed class EmailVerification
 public sealed class IdentityMailOutbox
 {
     public Guid Id { get; set; }
-    public Guid VerificationId { get; set; }
+    public Guid? VerificationId { get; set; }
+    public Guid? PasswordResetId { get; set; }
     public byte[]? EncryptedPayload { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
@@ -49,6 +50,17 @@ public sealed class IdentityMailOutbox
     public int Attempts { get; set; }
     public DateTimeOffset? NextAttemptAt { get; set; }
     public string? LastErrorCode { get; set; }
+}
+
+public sealed class CustomerPasswordReset
+{
+    public Guid Id { get; set; }
+    public int AccountId { get; set; }
+    public byte[] TokenHash { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? UsedAt { get; set; }
+    public DateTimeOffset? InvalidatedAt { get; set; }
 }
 
 public sealed class AccountProfileLink

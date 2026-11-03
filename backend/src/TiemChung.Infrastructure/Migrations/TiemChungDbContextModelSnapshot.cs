@@ -250,6 +250,46 @@ namespace TiemChung.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TiemChung.Domain.Entities.CustomerPasswordReset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("InvalidatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("binary(32)");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId")
+                        .IsUnique()
+                        .HasFilter("[UsedAt] IS NULL AND [InvalidatedAt] IS NULL");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("CustomerPasswordReset", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustomerPasswordReset_Expiry", "[ExpiresAt]>[CreatedAt]");
+                        });
+                });
+
             modelBuilder.Entity("TiemChung.Domain.Entities.DangKyDichVu", b =>
                 {
                     b.Property<int>("MaDangKy")
@@ -443,17 +483,25 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("NextAttemptAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<Guid?>("PasswordResetId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTimeOffset?>("SentAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("VerificationId")
+                    b.Property<Guid?>("VerificationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PasswordResetId");
+
                     b.HasIndex("VerificationId");
 
-                    b.ToTable("IdentityMailOutbox", (string)null);
+                    b.ToTable("IdentityMailOutbox", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IdentityMailOutbox_Purpose", "([VerificationId] IS NOT NULL AND [PasswordResetId] IS NULL) OR ([VerificationId] IS NULL AND [PasswordResetId] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.IdentityRecoveryDatabase", b =>
@@ -1503,6 +1551,15 @@ namespace TiemChung.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TiemChung.Domain.Entities.CustomerPasswordReset", b =>
+                {
+                    b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TiemChung.Domain.Entities.DangKyDichVu", b =>
                 {
                     b.HasOne("TiemChung.Domain.Entities.KhachHang", null)
@@ -1569,11 +1626,15 @@ namespace TiemChung.Infrastructure.Migrations
 
             modelBuilder.Entity("TiemChung.Domain.Entities.IdentityMailOutbox", b =>
                 {
+                    b.HasOne("TiemChung.Domain.Entities.CustomerPasswordReset", null)
+                        .WithMany()
+                        .HasForeignKey("PasswordResetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TiemChung.Domain.Entities.EmailVerification", null)
                         .WithMany()
                         .HasForeignKey("VerificationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.IdentityRecoveryOperation", b =>

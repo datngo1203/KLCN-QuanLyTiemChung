@@ -1,7 +1,4 @@
 using System.Net.Mail;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TiemChung.Domain.Entities;
@@ -65,22 +62,14 @@ public sealed class IdentityRegistration(TiemChungDbContext db, IConfiguration c
 
     private async Task AddVerificationAsync(TaiKhoan account, CancellationToken ct)
     {
-        var secret = configuration["Identity:MailEncryptionKey"] ?? throw new InvalidOperationException("Mail encryption key required.");
-        var key = Convert.FromBase64String(secret);
-        if (key.Length != 32) throw new InvalidOperationException("Mail encryption key must be 256 bits.");
         var token = IdentityTokens.RandomToken();
         var now = DateTimeOffset.UtcNow;
         var verification = new EmailVerification { Id = Guid.NewGuid(), AccountId = account.MaTaiKhoan,
             TokenHash = IdentityTokens.Hash(token), CreatedAt = now, ExpiresAt = now.AddMinutes(30) };
-        var plaintext = JsonSerializer.SerializeToUtf8Bytes(new { email = account.LoginEmail, token });
-        var nonce = RandomNumberGenerator.GetBytes(12);
-        var ciphertext = new byte[plaintext.Length];
-        var tag = new byte[16];
-        using (var aes = new AesGcm(key, 16)) aes.Encrypt(nonce, plaintext, ciphertext, tag);
-        CryptographicOperations.ZeroMemory(plaintext);
         db.Add(verification);
-        db.Add(new IdentityMailOutbox { Id = Guid.NewGuid(), VerificationId = verification.Id,
-            EncryptedPayload = [..nonce, ..tag, ..ciphertext], CreatedAt = now, ExpiresAt = verification.ExpiresAt });
+        var mail = IdentityMailSink.CreateMail(configuration, account.LoginEmail!, token, now, verification.ExpiresAt);
+        mail.VerificationId = verification.Id;
+        db.Add(mail);
         await Task.CompletedTask;
     }
 

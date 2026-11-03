@@ -41,7 +41,13 @@
 .account-page .profile-feedback, .profile-dialog .profile-feedback { padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.7; margin: 16px 0 0; overflow-wrap: anywhere; }
 .profile-feedback.error { color: #9b241c; background: #fff1ef; border: 1px solid #f6d2cc; }
 .profile-feedback.success { color: #166534; background: #edf8f0; border: 1px solid #c9e6d1; }
-.account-auth { max-width: 540px; }
+.account-auth { max-width: 540px; --primary: #2a388f; }
+.account-auth h1, .account-auth .text-button { color: var(--primary); }
+.account-auth .button { border-radius: 10px; font-size: 14px; }
+.account-auth .button.primary { background: var(--primary); }
+.account-auth .button.primary:hover { background: var(--primary); filter: brightness(.9); }
+.account-auth .button.outline { color: var(--primary); }
+.account-auth input:focus-visible, .account-auth button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
 .account-auth .form-card fieldset { display: grid; }
 .profile-dialog { width: min(640px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 40px); margin: auto; padding: 30px; border: 1px solid var(--line); border-radius: 20px; color: var(--ink); box-shadow: 0 24px 80px #1b273333; overscroll-behavior: contain; }
 .profile-dialog::backdrop { background: #122b27a3; }

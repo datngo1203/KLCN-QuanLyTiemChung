@@ -7,6 +7,20 @@ public static class IdentityEndpoints
     public static void MapIdentityEndpoints(this WebApplication app)
     {
         var g = app.MapGroup("/api/v1/auth");
+        g.MapPost("/password-resets/request", async (HttpContext c, CustomerPasswordResets s, CancellationToken ct) => {
+            var p = await Payload(c, ["email"], ct);
+            var email = Value(p, "email").Trim();
+            Limit(c, "passwordResetRequest", email);
+            await c.RequestServices.GetRequiredService<IdentityMailReadiness>().RequireAsync(c.RequestServices.GetRequiredService<TiemChung.Infrastructure.Data.TiemChungDbContext>(), email, ct);
+            await s.RequestAsync(email, c.TraceIdentifier, ct);
+            return Results.Json(new { status = "passwordResetPending" }, statusCode: 202);
+        });
+        g.MapPost("/password-resets/confirm", async (HttpContext c, CustomerPasswordResets s, CancellationToken ct) => {
+            var p = await Payload(c, ["token", "newPassword"], ct);
+            Limit(c, "confirm", "");
+            await s.ConfirmAsync(Value(p, "token"), Value(p, "newPassword"), c.TraceIdentifier, ct);
+            return Results.NoContent();
+        });
         g.MapPost("/change-password", async (HttpContext c, IdentitySessions s, IdentityAuthorization auth, CancellationToken ct) => {
             var p = await Payload(c, ["currentPassword", "newPassword"], ct);
             Limit(c, "changePassword", "");
