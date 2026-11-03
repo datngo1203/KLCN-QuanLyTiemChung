@@ -116,8 +116,80 @@ public sealed class InventoryReceiptHistoryClientTests
         Assert.DoesNotContain("PRIVATE",error.Message);
     }
 
+    [Fact]
+    public async Task DifferentDocumentCannotBeDisplayedAsTheSelectedReceipt()
+    {
+        var fake=new Fake { Detail=Saved with { Received=Request with { DocumentNumber="WRONG DOCUMENT" } } };
+        var vm=new InventoryReceiptHistoryViewModel(await Login(new()),fake);
+        await vm.LoadAsync();vm.Selected=Assert.Single(vm.Rows);await vm.ReadDetailAsync();
+        Assert.DoesNotContain("WRONG DOCUMENT",vm.DetailLabel);
+        Assert.Contains("thử lại",vm.Feedback);
+    }
+
+    [Fact]
+    public async Task EditingFilterDisablesPagingUntilSearchIsApplied()
+    {
+        var vm=new InventoryReceiptHistoryViewModel(await Login(new()),new Fake());
+        await vm.LoadAsync(2);Assert.True(vm.PreviousCommand.CanExecute(null));
+        vm.SearchText="new filter";
+        Assert.False(vm.PreviousCommand.CanExecute(null));Assert.False(vm.NextCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task LoadingPreventsDuplicateRequestAndHasMoreControlsNextExactly()
+    {
+        var fake=new Fake { ListGate=new() };var vm=new InventoryReceiptHistoryViewModel(await Login(new()),fake);
+        var load=vm.LoadAsync();Assert.True(vm.IsBusy);Assert.False(vm.NoRows);Assert.False(vm.FindCommand.CanExecute(null));
+        await vm.LoadAsync();Assert.Equal(1,fake.ListCount);fake.ListGate.SetResult(new([Row],true));await load;
+        Assert.True(vm.NextCommand.CanExecute(null));Assert.False(vm.PreviousCommand.CanExecute(null));
+        fake.ListGate=null;fake.Next=new([Row],false);await vm.LoadAsync(2);
+        Assert.False(vm.NextCommand.CanExecute(null));Assert.True(vm.PreviousCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task LateDetailCannotReturnIntoAnotherWarehouseSession()
+    {
+        var handler=new Handler();var identity=await Login(handler);var fake=new Fake();var vm=new InventoryReceiptHistoryViewModel(identity,fake);
+        await vm.LoadAsync();vm.Selected=Assert.Single(vm.Rows);fake.GetGate=new();var detail=vm.ReadDetailAsync();
+        Assert.False(vm.DetailCommand.CanExecute(null));await identity.LogoutAsync();await identity.LoginAsync("next-warehouse","synthetic-password");
+        fake.GetGate.SetResult(Saved);await detail;Assert.Empty(vm.Rows);Assert.Null(vm.Selected);Assert.False(vm.HasAccess);Assert.DoesNotContain(Request.DocumentNumber,vm.DetailLabel);
+    }
+
+    [Theory]
+    [InlineData("invalidSession")][InlineData("permissionDenied")]
+    public async Task DeniedDetailClearsPreviouslyLoadedListSelectionAndDocument(string code)
+    {
+        var fake=new Fake();var vm=new InventoryReceiptHistoryViewModel(await Login(new()),fake);
+        await vm.LoadAsync();vm.Selected=Assert.Single(vm.Rows);await vm.ReadDetailAsync();fake.GetError=new InventoryApiException(code,"Denied");await vm.ReadDetailAsync();
+        Assert.Empty(vm.Rows);Assert.Null(vm.Selected);Assert.True(vm.NoAccess);Assert.False(vm.NoRows);Assert.DoesNotContain(Request.DocumentNumber,vm.DetailLabel);
+    }
+
+    [Fact]
+    public async Task NetworkErrorsAreNotEmptySuccessAndRetryKeepsFilterWithoutStaleDocument()
+    {
+        var fake=new Fake();var vm=new InventoryReceiptHistoryViewModel(await Login(new()),fake){SearchText="Supplier"};
+        await vm.LoadAsync();vm.Selected=Assert.Single(vm.Rows);await vm.ReadDetailAsync();fake.ListError=new HttpRequestException();await vm.LoadAsync();
+        Assert.Empty(vm.Rows);Assert.False(vm.NoRows);Assert.Contains("thử lại",vm.Feedback);Assert.Equal("Supplier",vm.SearchText);Assert.DoesNotContain(Request.DocumentNumber,vm.DetailLabel);
+        fake.ListError=null;await vm.LoadAsync();vm.Selected=Assert.Single(vm.Rows);fake.GetError=new TaskCanceledException();await vm.ReadDetailAsync();
+        Assert.NotNull(vm.Selected);Assert.DoesNotContain(Request.DocumentNumber,vm.DetailLabel);fake.GetError=null;await vm.ReadDetailAsync();Assert.Contains(Request.DocumentNumber,vm.DetailLabel);
+    }
+
+    [Theory]
+    [InlineData("listNull")][InlineData("listMissingSource")][InlineData("listNonUtc")]
+    [InlineData("detailWrongLot")][InlineData("detailBadSource")]
+    public async Task MissingOrMismatchedApiDataIsAnErrorRatherThanAReceipt(string failure)
+    {
+        var service=new InventoryReceiptHistoryApiService(await Login(new Handler{Failure=failure}));
+        if(failure.StartsWith("list"))await Assert.ThrowsAsync<System.Text.Json.JsonException>(()=>service.HistoryAsync("",1));
+        else await Assert.ThrowsAsync<System.Text.Json.JsonException>(()=>service.DetailAsync(Request.LotNumber));
+    }
+
     private sealed class Fake : IInventoryReceiptHistoryService
     {
+        public InventoryReceiptDto Detail=Saved;
+        public Exception? ListError,GetError;
+        public TaskCompletionSource<InventoryReceiptDto>? GetGate;
+        public int ListCount;
         public TaskCompletionSource<InventoryReceiptHistoryListResponse>? ListGate;
         public InventoryReceiptHistoryListResponse? Next;
         public int GetCount;
@@ -125,18 +197,19 @@ public sealed class InventoryReceiptHistoryClientTests
         public Task<InventoryReceiptHistoryListResponse> HistoryAsync(string search,int page)
         {
             LastSearch=search.Trim();
-            return ListGate?.Task??Task.FromResult(Next??new InventoryReceiptHistoryListResponse([Row],false));
+            ListCount++;
+            return ListError is {} e?Task.FromException<InventoryReceiptHistoryListResponse>(e):ListGate?.Task??Task.FromResult(Next??new InventoryReceiptHistoryListResponse([Row],false));
         }
         public Task<InventoryReceiptDto> DetailAsync(string lot)
         {
             GetCount++;
-            return Task.FromResult(Saved);
+            return GetError is {} e?Task.FromException<InventoryReceiptDto>(e):GetGate?.Task??Task.FromResult(Detail);
         }
     }
 
     private sealed class Handler : HttpMessageHandler
     {
-        public string Title="ThuKho";
+        public string Title="ThuKho",Failure="";
         public bool Receive=true;
         public HttpStatusCode Status=HttpStatusCode.OK;
         public List<string> Paths=[];
@@ -151,6 +224,11 @@ public sealed class InventoryReceiptHistoryClientTests
                 permissions=Receive?new[]{"XemKho","NhapKho"}:new[]{"XemKho"}}));
             Paths.Add(path);
             if(Status!=HttpStatusCode.OK)return Task.FromResult(Json(new{detail="PRIVATE SQL"},Status));
+            if(Failure=="listNull")return Task.FromResult(Json(new{items=(object?)null,hasMore=false}));
+            if(Failure=="listMissingSource")return Task.FromResult(Json(new InventoryReceiptHistoryListResponse([Row with{DocumentNumber=""}],false)));
+            if(Failure=="listNonUtc")return Task.FromResult(Json(new InventoryReceiptHistoryListResponse([Row with{RecordedAt=Row.RecordedAt.ToOffset(TimeSpan.FromHours(7))}],false)));
+            if(Failure=="detailWrongLot")return Task.FromResult(Json(Saved with{Received=Request with{LotNumber="Other"}}));
+            if(Failure=="detailBadSource")return Task.FromResult(Json(Saved with{Received=Request with{Quantity=0}}));
             return Task.FromResult(path.Contains("/history") ?
                 Json(new InventoryReceiptHistoryListResponse([Row],false)):Json(Saved));
         }

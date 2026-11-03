@@ -10,7 +10,7 @@ public partial class InventoryReceiptHistoryWindow : Window
         InitializeComponent();
         DataContext = model;
         Loaded += async (_, _) => {
-            if (model.CanBrowse && model.Rows.Count == 0) await model.LoadAsync();
+            if (model.CanBrowse) await model.LoadAsync();
         };
     }
 }

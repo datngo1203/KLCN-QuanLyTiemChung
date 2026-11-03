@@ -44,8 +44,8 @@ jobs:
           done
           exit 1
       - run: dotnet test backend/TiemChung.slnx --configuration Release
-      - name: X2.2.1 receipt history client tests (cross-platform ViewModels)
-        run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --filter "FullyQualifiedName~InventoryReceiptHistoryClientTests"
+      - name: X2.2.1 receipt history client and SQL tests (cross-platform ViewModels)
+        run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --filter "FullyQualifiedName~InventoryReceiptHistory"
       - name: Repeat migration without resetting data
         run: docker compose -p klcn-s0 -f infra/compose.yaml run --rm migrate
       - name: Build SQL-principal acceptance (not executed without approved provisioning)

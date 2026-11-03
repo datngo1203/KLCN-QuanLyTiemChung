@@ -17,7 +17,7 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
     private readonly int _revision;
     private bool _busy, _denied, _loaded, _more;
     private int _page = 1;
-    private string _search = "", _feedback = "Tìm trong các phiếu nhập X2.1 đã lưu SQL.";
+    private string _search = "", _loadedSearch = "", _feedback = "Tìm trong các phiếu nhập X2.1 đã lưu SQL.";
     private InventoryReceiptHistoryRow? _selected;
     private InventoryReceiptDto? _detail;
 
@@ -28,8 +28,8 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
         _service = service ?? new InventoryReceiptHistoryApiService(identity);
         _identity.SessionCleared += (_, _) => ClearOnSessionChange();
         FindCommand = new(async _ => await LoadAsync(), _ => CanBrowse);
-        PreviousCommand = new(async _ => await LoadAsync(Page - 1), _ => CanBrowse && Page > 1);
-        NextCommand = new(async _ => await LoadAsync(Page + 1), _ => CanBrowse && _more);
+        PreviousCommand = new(async _ => await LoadAsync(Page - 1), _ => CanPage && Page > 1);
+        NextCommand = new(async _ => await LoadAsync(Page + 1), _ => CanPage && _more);
         DetailCommand = new(async _ => await ReadDetailAsync(), _ => CanBrowse && Selected is not null);
     }
     public ObservableCollection<InventoryReceiptHistoryRow> Rows { get; } = [];
@@ -42,9 +42,10 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
     public bool NoAccess => !HasAccess;
     public bool IsBusy => _busy;
     public bool CanBrowse => HasAccess && !_busy;
+    private bool CanPage => CanBrowse && _search.Trim() == _loadedSearch;
     public bool NoRows => HasAccess && !_busy && _loaded && Rows.Count == 0;
     public int Page => _page;
-    public string SearchText { get => _search; set { if (CanBrowse) Set(ref _search,value); } }
+    public string SearchText { get => _search; set { if (CanBrowse && Set(ref _search,value)) Refresh(); } }
     public string Feedback { get => _feedback; private set => Set(ref _feedback,value); }
     public InventoryReceiptHistoryRow? Selected
     {
@@ -58,7 +59,7 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
     public string DetailLabel => _detail is { } x
         ? $"PHIẾU TIẾP NHẬN X2.1 (chỉ đọc)\nSố lô: {x.Received.LotNumber}  |  Vắc xin: {x.VaccineName}\n" +
           $"NSX: {x.Received.ManufacturedOn:dd/MM/yyyy}  |  HSD: {x.Received.ExpiresOn:dd/MM/yyyy}\n" +
-          $"Số lượng nhập: {x.Received.Quantity}  |  Mã biến động: {x.MovementId}\n" +
+          $"Số lượng nhập ban đầu: {x.Received.Quantity}  |  Mã biến động: {x.MovementId}\n" +
           $"Nhà cung cấp: {x.Received.SupplierName}  |  Chứng từ: {x.Received.DocumentNumber}\n" +
           $"Vị trí bảo quản lúc nhập: {x.Received.StorageLocation}\n" +
           $"Người nhập: {x.EmployeeName} (#{x.EmployeeId})  |  Thời điểm: {x.RecordedAt.ToLocalTime():dd/MM/yyyy HH:mm:ss}\n" +
@@ -73,7 +74,7 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
     }
     private void ClearOnSessionChange()
     {
-        _search = ""; _selected = null; _detail = null; _page = 1; _more = _loaded = false;
+        _search = _loadedSearch = ""; _selected = null; _detail = null; _page = 1; _more = _loaded = false;
         Rows.Clear(); OnPropertyChanged(nameof(SearchText));
         Feedback = "Phiên đã đổi. Đăng nhập và mở lại lịch sử tiếp nhận."; Refresh();
     }
@@ -96,7 +97,7 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
             var response = await _service.HistoryAsync(_search,page);
             if (!Current || _denied) return;
             foreach (var item in response.Items) Rows.Add(new(item));
-            _page = page; _more = response.HasMore; _loaded = true;
+            _page = page; _loadedSearch = _search.Trim(); _more = response.HasMore; _loaded = true;
             Feedback = Rows.Count == 0 ? "Không có phiếu nhập X2.1 phù hợp." :
                 "Đã đọc SQL. Số lượng là số thực nhận lúc nhập; xem tồn hiện tại ở danh sách lô A05.";
         } catch (Exception e) { ShowError(e); }
@@ -109,7 +110,10 @@ public sealed class InventoryReceiptHistoryViewModel : ViewModelBase
         try {
             var detail = await _service.DetailAsync(row.Data.LotNumber);
             if (!Current || _denied || Selected != row) return;
-            if (detail.MovementId != row.Data.MovementId || detail.Received.Quantity != row.Data.Quantity)
+            var actual = new InventoryReceiptHistoryItemDto(detail.Received.LotNumber,detail.VaccineName,
+                detail.Received.Quantity,detail.Received.SupplierName,detail.Received.DocumentNumber,detail.Received.StorageLocation,
+                detail.MovementId,detail.EmployeeId,detail.EmployeeName,detail.RecordedAt);
+            if (actual != row.Data)
                 throw new InvalidDataException("Receipt mismatch");
             _detail = detail; Feedback = "Chi tiết đã đối chiếu theo số lô từ SQL; không có thao tác chỉnh sửa.";
         } catch (Exception e) { ShowError(e); }

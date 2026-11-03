@@ -43,6 +43,8 @@ public sealed class InventoryReceiptHistoryApiService(IdentityApiService identit
         var data = await GetAsync<InventoryReceiptHistoryListResponse>(
             "receipts/history?search=" + Uri.EscapeDataString(search.Trim()) + "&page=" + page);
         if (data.Items is null || data.Items.Any(r => r is null || string.IsNullOrWhiteSpace(r.LotNumber) ||
+            string.IsNullOrWhiteSpace(r.VaccineName) || string.IsNullOrWhiteSpace(r.SupplierName) ||
+            string.IsNullOrWhiteSpace(r.DocumentNumber) || string.IsNullOrWhiteSpace(r.StorageLocation) || string.IsNullOrWhiteSpace(r.EmployeeName) ||
             r.Quantity <= 0 || r.MovementId <= 0 || r.EmployeeId <= 0 ||
             r.RecordedAt == default || r.RecordedAt.Offset != TimeSpan.Zero))
             throw new JsonException("Invalid receipt history response");
@@ -55,7 +57,11 @@ public sealed class InventoryReceiptHistoryApiService(IdentityApiService identit
             throw new InventoryApiException("validation","Số lô không hợp lệ.");
         var data = await GetAsync<InventoryReceiptDto>(
             "receipts?lotNumber=" + Uri.EscapeDataString(lotNumber.Trim()));
-        if (data.Received is null || !string.Equals(data.Received.LotNumber,lotNumber.Trim(),StringComparison.OrdinalIgnoreCase) ||
+        if (data.Received is null || !string.Equals(data.Received.LotNumber,lotNumber.Trim(),StringComparison.Ordinal) ||
+            data.Received.VaccineId <= 0 || data.Received.Quantity <= 0 || !data.Received.InspectionConfirmed ||
+            data.Received.ManufacturedOn == default || data.Received.ExpiresOn < data.Received.ManufacturedOn ||
+            string.IsNullOrWhiteSpace(data.VaccineName) || string.IsNullOrWhiteSpace(data.Received.SupplierName) ||
+            string.IsNullOrWhiteSpace(data.Received.DocumentNumber) || string.IsNullOrWhiteSpace(data.Received.StorageLocation) || string.IsNullOrWhiteSpace(data.EmployeeName) ||
             data.MovementId <= 0 || data.EmployeeId <= 0 ||
             data.RecordedAt == default || data.RecordedAt.Offset != TimeSpan.Zero)
             throw new JsonException("Invalid receipt detail response");

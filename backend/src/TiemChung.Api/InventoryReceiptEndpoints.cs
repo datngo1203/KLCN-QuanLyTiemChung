@@ -53,9 +53,11 @@ public static class InventoryReceiptEndpoints
                        join v in db.Vaccines.AsNoTracking() on l.MaVacXin equals v.MaVacXin
                        join m in db.Set<BienDongKho>().AsNoTracking() on r.MovementId equals m.MaBienDong
                        join n in db.Set<NhanVien>().AsNoTracking() on m.MaNhanVien equals n.MaNhanVien
-                       where string.IsNullOrEmpty(search) || r.SoLo.Contains(search) ||
+                       where m.SoLo == r.SoLo && m.LoaiBienDong == "NhapKho" && m.MaMuiTiem == null &&
+                             m.SoLuong > 0 && m.SoLuong == l.SoLuongBanDau &&
+                             (string.IsNullOrEmpty(search) || r.SoLo.Contains(search) ||
                              r.SupplierName.Contains(search) || r.DocumentNumber.Contains(search) ||
-                             v.TenVacXin.Contains(search)
+                             v.TenVacXin.Contains(search))
                        orderby m.ThoiDiem descending, m.MaBienDong descending
                        select new InventoryReceiptHistoryItemDto(r.SoLo, v.TenVacXin, m.SoLuong,
                            r.SupplierName, r.DocumentNumber, r.StorageLocation, m.MaBienDong,

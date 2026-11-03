@@ -3,17 +3,24 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  Title="Lịch sử tiếp nhận vắc xin — VAC" Width="1100" Height="700" MinWidth="760" MinHeight="510"
  WindowStartupLocation="CenterOwner" Background="{StaticResource CE.Canvas}">
- <Window.Resources><BooleanToVisibilityConverter x:Key="Vis"/></Window.Resources>
+ <Window.Resources>
+  <BooleanToVisibilityConverter x:Key="Vis"/>
+  <Style x:Key="HistoryCell" TargetType="TextBlock">
+   <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+   <Setter Property="ToolTip" Value="{Binding Text,RelativeSource={RelativeSource Self}}"/>
+  </Style>
+ </Window.Resources>
  <Grid Margin="24">
   <Grid.RowDefinitions>
    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-   <RowDefinition Height="*" MinHeight="160"/><RowDefinition Height="Auto"/>
-   <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+   <RowDefinition Height="3*" MinHeight="80"/><RowDefinition Height="Auto"/>
+   <RowDefinition Height="Auto"/><RowDefinition Height="2*" MinHeight="85"/>
   </Grid.RowDefinitions>
   <StackPanel>
    <TextBlock Text="Lịch sử tiếp nhận lô vắc xin" Style="{StaticResource CE.Heading}"/>
    <TextBlock Text="Chỉ đọc dữ liệu X2.1 từ SQL · Không sửa phiếu, không nhập bổ sung lô cũ hoặc thay đổi tồn kho."
     TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,4,0,12"/>
+   <TextBlock Text="Số lượng là số nhập ban đầu; tồn kho hiện tại xem ở danh sách lô A05." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,0,0,8"/>
   </StackPanel>
   <StackPanel Grid.Row="1">
    <TextBlock Text="Cần Thủ kho Active có XemKho và NhapKho. Không tự cấp quyền."
@@ -34,13 +41,14 @@
    <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" IsEnabled="{Binding CanBrowse}"
     AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
     AutomationProperties.Name="Lịch sử tiếp nhận SQL" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+    <DataGrid.InputBindings><KeyBinding Key="Enter" Command="{Binding DetailCommand}"/></DataGrid.InputBindings>
     <DataGrid.Columns>
-     <DataGridTextColumn Header="Số lô" Binding="{Binding Data.LotNumber}" Width="165"/>
-     <DataGridTextColumn Header="Vắc xin" Binding="{Binding Data.VaccineName}" Width="*" MinWidth="145"/>
-     <DataGridTextColumn Header="SL nhập" Binding="{Binding Data.Quantity}" Width="75"/>
-     <DataGridTextColumn Header="Nhà cung cấp" Binding="{Binding Data.SupplierName}" Width="170"/>
-     <DataGridTextColumn Header="Chứng từ" Binding="{Binding Data.DocumentNumber}" Width="130"/>
-     <DataGridTextColumn Header="Người nhập" Binding="{Binding Data.EmployeeName}" Width="125"/>
+     <DataGridTextColumn Header="Số lô" Binding="{Binding Data.LotNumber}" Width="165" ElementStyle="{StaticResource HistoryCell}"/>
+     <DataGridTextColumn Header="Vắc xin" Binding="{Binding Data.VaccineName}" Width="*" MinWidth="145" ElementStyle="{StaticResource HistoryCell}"/>
+     <DataGridTextColumn Header="Nhập ban đầu" Binding="{Binding Data.Quantity}" Width="100"/>
+     <DataGridTextColumn Header="Nhà cung cấp" Binding="{Binding Data.SupplierName}" Width="170" ElementStyle="{StaticResource HistoryCell}"/>
+     <DataGridTextColumn Header="Chứng từ" Binding="{Binding Data.DocumentNumber}" Width="130" ElementStyle="{StaticResource HistoryCell}"/>
+     <DataGridTextColumn Header="Người nhập" Binding="{Binding Data.EmployeeName}" Width="125" ElementStyle="{StaticResource HistoryCell}"/>
      <DataGridTextColumn Header="Thời điểm" Binding="{Binding TimeLabel}" Width="155"/>
     </DataGrid.Columns>
    </DataGrid>
@@ -54,8 +62,8 @@
    <Button Content="Xem chi tiết SQL" Command="{Binding DetailCommand}" Style="{StaticResource CE.Button.Primary}" Margin="18,0,0,0"/>
   </WrapPanel>
   <TextBlock Grid.Row="5" Text="Thông tin tiếp nhận (chỉ đọc)" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,6"/>
-  <Border Grid.Row="6" Style="{StaticResource CE.Card}" Padding="12" MinHeight="120">
-   <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <Border Grid.Row="6" Style="{StaticResource CE.Card}" Padding="12">
+   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" AutomationProperties.Name="Chi tiết tiếp nhận chỉ đọc">
     <TextBlock Text="{Binding DetailLabel}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
    </ScrollViewer>
   </Border>

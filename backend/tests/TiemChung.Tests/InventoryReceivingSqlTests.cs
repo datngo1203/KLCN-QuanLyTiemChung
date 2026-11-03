@@ -171,7 +171,7 @@ public sealed class InventoryReceivingSqlTests
             var all=(await client.GetFromJsonAsync<InventoryReceiptHistoryListResponse>(Root+"/history"))!;
             Assert.Equal(2,all.Items.Length);Assert.False(all.HasMore);
             Assert.DoesNotContain(all.Items,x=>x.LotNumber.Contains("LEGACY"));
-            var row=Assert.Single(all.Items.Where(x=>x.LotNumber==second.LotNumber));
+            var row=Assert.Single(all.Items,x=>x.LotNumber==second.LotNumber);
             Assert.Equal(23,row.Quantity);Assert.Equal(second.DocumentNumber,row.DocumentNumber);
             Assert.Equal(second.SupplierName,row.SupplierName);Assert.Equal(second.StorageLocation,row.StorageLocation);
             Assert.True(row.MovementId>0);Assert.True(row.EmployeeId>0);
