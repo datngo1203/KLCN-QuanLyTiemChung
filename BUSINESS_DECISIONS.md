@@ -267,6 +267,8 @@
 
 **Cách nối bước tiếp theo (không cần xin lại lựa chọn thứ tự):** rà chi tiết S7 khi Quý có PR/CI và đối chiếu Windows role views, sau đó lấy **kết quả test S8 thực** để xác định lỗi thuộc phạm vi (A/B), giao owner và mở PR nhỏ. Các ý tưởng A04/A02 mở rộng loại (C) vẫn nằm trong quyết định BA, không tự động triển khai. Mọi lần tiếp tục phải kiểm `main`, nhánh/PR và trạng thái `SCOPE.md` mới nhất; không suy rằng các phát hiện đọc tĩnh là kết quả QA runtime.
 
+**Điểm điều phối mới 03/11/2026 (ưu tiên sau khi người dùng cho phép mở rộng):** Chi tiết owner, điểm giao, checklist giao việc và nhánh S6/S7 ở **[Issue INT-01 #64](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/64)**. Đề xuất cập nhật quy tắc phối hợp và lát X1 nằm trong **[Draft PR #65](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/65)** (`AGENTS.md`, `SCOPE.md`), **chưa merge/chưa có phê duyệt nhóm**. **Lát độc lập tiếp theo: X1 kho Windows A05 đọc lô/tồn/biến động từ SQL qua API thật**, không sửa S6 của Bảo, S7 của Quý hay luồng ghi tiêm S5. X2 nhập lô/nhà cung cấp, XA04/XA02 là backlog chưa giao. Test từng lát, S8 tổng thể cuối. **Khi mâu thuẫn với checklist cũ, dùng issue #64 và Draft PR #65 làm điểm điều phối mới; không mở thêm vòng audit chung.**
+
 ### E8. Checklist điều phối ngắn và điểm dừng bắt buộc (03/11/2026) — DÙNG KHI TIẾP TỤC CHAT/CODEX
 
 > **Đây là checklist cho công việc RÀ SOÁT, không thay cho cột `Trạng thái` của `SCOPE.md` và KHÔNG xác nhận module đã nghiệm thu.** Mọi dấu [x] bên dưới chỉ nghĩa là **đã đọc/đối chiếu tĩnh** và ghi phát hiện ở E5–E7. Test thực chưa chạy phải để [ ]. Trước mỗi phiên, đọc `AGENTS.md`/`SCOPE.md` ở `main`, `BUSINESS_DECISIONS.md` tại nhánh PR #63; sau đó kiểm lại nhánh và PR mới.
