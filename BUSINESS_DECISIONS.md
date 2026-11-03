@@ -190,3 +190,29 @@
 
 **Quy tắc đánh giá không chiều theo mọi ý tưởng:** mỗi đề xuất đánh dấu `(A) lỗi/tồn tại trong phạm vi`, `(B) thiếu chức năng thuộc đề cương/SCOPE`, `(C) tính năng mở rộng vượt SCOPE`, hoặc `(D) chỉ có trong khảo sát/UML`. Loại C/D không mặc định giao Codex code. Trước khi đề xuất PR phải nêu căn cứ, tác động, người sở hữu, mức ưu tiên, rủi ro và phép thử.
 
+### E5. Kết quả đối chiếu tĩnh đợt 1 và các phép thử cần kiểm — danh mục/gói → hồ sơ → đăng ký → thanh toán (03/11/2026)
+
+> **Bản ghi phân tích nghiệp vụ, KHÔNG phải sổ tiến độ hoặc nghiệm thu mới.** Đối chiếu code trên `main` với `SCOPE.md`; **chưa chạy API/SQL/UI test mới**, chưa đọc/đối chiếu hết nhánh riêng của Bảo/Quý. Không tự cập nhật cột Trạng thái `SCOPE.md` hoặc mở thêm tính năng.
+
+| Điểm rà | Bằng chứng mã nguồn đã xem | Đánh giá, rủi ro và thứ tự xử lý |
+|---|---|---|
+| Danh mục/gói | `backend/src/TiemChung.Api/CatalogEndpoints.cs` (CRUD, lọc, kiểm quyền, giá, gói; `PUT /packages` chặn sửa thành phần khi gói đã có trong đăng ký); `backend/src/TiemChung.Contracts/CatalogContracts.cs` | **Đã có nền tảng S2**, không làm lại. Các trường chuyên môn `LieuLuong`, `TheTich`, `PhanUngSauTiem` đã tồn tại trong entity `VacXin` nhưng DTO danh mục chưa khai thác; nâng cao có kiểm duyệt thuộc **(C) mở rộng A04**, không cấp quyền tự code. Test sau: thay giá/đổi thành phần sau khi có đăng ký, dữ liệu khách nhìn thấy và giá snapshot |
+| Hồ sơ | `backend/src/TiemChung.Api/ProfileEndpoints.cs` (thêm, sửa, xóa có kiểm quyền, scope và audit; CCCD khách hàng chống trùng; người được tiêm gắn khách hàng) | **Đã có S3**, không viết lại. Phát hiện **(A) P2: thông báo validation số điện thoại ghi “tối đa 15 ký tự” trong khi kiểm 10–11 chữ số** (cùng file, `ValidateCustomer`); chỉ sửa bằng gói nhỏ có owner/review, không tự sửa. Kiểm tiếp hồ sơ sau khi có lịch/tiêm, liên kết khách/người được tiêm và UI lỗi mạng |
+| Đăng ký dịch vụ | `backend/src/TiemChung.Api/RegistrationEndpoints.cs` (kiểm liên kết khách/người được tiêm, quyền, vaccine/package Active, đối chiếu `ExpectedUnitPrice` và `ExpectedComponents`, giá dòng `GiaTaiThoiDiemDangKy`, transaction/audit); `RegistrationContracts.cs` | **Đã có snapshot đơn giá S4**, tuyệt đối không giao làm lại. **(B) kiểm thử tích hợp** xem giá/đăng ký cũ sau đổi danh mục và chặn package component; `Detail` đọc thành phần từ `GoiVacXin_VacXin` hiện hành nhưng hiện có chặn thay đổi sau khi gói đã được tham chiếu, do đó **chưa có bằng chứng lỗi** |
+| Thanh toán | `backend/src/TiemChung.Api/PaymentEndpoints.cs`, `PaymentContracts.cs` (`ThuNgan`, thu toàn bộ một lần, transaction, uniqueness, audit, kiểm tổng, không ghi trùng); `TiemChungDbContext.cs` unique index `ThanhToan.MaDangKy` | **Đã có contract S4**, không viết lại. `Summaries` hiện từ chối `MaKhuyenMai != null` là **ràng buộc của contract chưa có S6**, không phải bug đã chứng minh. **(B) P1 điểm giao S6→Payment→S5:** chỉ mở PR tương thích sau khi Bảo chốt cách tính/snapshot và có review. Không thay đổi tổng 0 hoặc nới điều kiện ghi tiêm khi chưa chốt |
+| Dữ liệu và ranh giới | `SCOPE.md`, `AGENTS.md`, đề cương đề tài | S6 thuộc **Bảo** (Promotion + Registration/Payment giao thoa); S7 thuộc **Quý** (báo cáo read-only); Đạt không tự chỉnh branch/PR người khác; file dùng chung/contract/migration chỉ sửa có review, **một migration tại một thời điểm**. Các mở rộng A04/A02 vẫn ở trạng thái thiết kế cho đến khi người dùng/nhóm duyệt thay phạm vi |
+
+**Bộ kiểm chứng cần thực hiện sau này (không đánh dấu PASS khi chưa chạy):**
+1. `T01`: Giá và thành phần gói hiển thị tại thời điểm chọn; nếu catalog thay trước khi đăng ký, API trả xung đột và không tạo đăng ký.
+2. `T02`: Gói đã được đăng ký không cho thay thành phần trái quy tắc; đơn giá trên đăng ký cũ không thay theo giá danh mục mới.
+3. `T03`: Tài khoản khách không thể đọc/ghi hồ sơ hoặc đăng ký thuộc khách khác; người được tiêm phải thuộc đúng khách hàng của đăng ký.
+4. `T04`: Thu toàn bộ thành công chỉ một lần; request đồng thời/lặp không tạo hai thanh toán hoặc audit thành công giả.
+5. `T05`: Trường hợp ưu đãi S6 (khi có contract) tính **giá sau giảm nhất quán** ở Registration → Payment → S5; không giả lập trạng thái PASS từ main chưa tích hợp.
+6. `T06`: Xóa/sửa hồ sơ đã tham chiếu không làm mất lịch, chỉ định, mũi tiêm; phản hồi lỗi chính xác.
+7. `T07`: Xác minh thông báo điện thoại và UI Web/Windows; không thay đổi quy tắc số điện thoại theo suy đoán trước khi chốt.
+
+**Điểm tiếp tục trong vòng rà soát toàn diện (E4), theo thứ tự và KHÔNG phụ thuộc phải chờ S6/S7:**
+- **Đợt 2:** lịch hẹn & nhắc lịch (Q07) → khám/chỉ định tối thiểu (Q04) → ghi tiêm, lô/tồn và theo dõi sau tiêm (Q06); chỉ đọc code S5, bảo toàn các test đã nghiệm thu.
+- **Đợt 3:** thống kê/báo cáo S7 (phối hợp owner Quý, chỉ đọc chưa sửa) → phân quyền S1, Web/Windows → rà UML/báo cáo ↔ code ↔ SCOPE → ma trận kiểm thử S8.
+- Khi phát hiện lỗi thực tế, tách **lỗi đã có chứng cứ** khỏi **rủi ro cần kiểm** và **tính năng mới ngoài phạm vi**; chỉ đề xuất **một lát sửa có owner, file, test, tác động** sau khi có căn cứ. Không thêm QD-018 nếu người dùng chưa chốt quyết định nghiệp vụ mới.
+
