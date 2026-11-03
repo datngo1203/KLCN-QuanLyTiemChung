@@ -271,7 +271,7 @@
 
 > **Đây là checklist cho công việc RÀ SOÁT, không thay cho cột `Trạng thái` của `SCOPE.md` và KHÔNG xác nhận module đã nghiệm thu.** Mọi dấu [x] bên dưới chỉ nghĩa là **đã đọc/đối chiếu tĩnh** và ghi phát hiện ở E5–E7. Test thực chưa chạy phải để [ ]. Trước mỗi phiên, đọc `AGENTS.md`/`SCOPE.md` ở `main`, `BUSINESS_DECISIONS.md` tại nhánh PR #63; sau đó kiểm lại nhánh và PR mới.
 
-**Mục tiêu cố định:** Rà đủ **7 quy trình nghiệp vụ** và các chức năng đi kèm, xác định lỗi có căn cứ, kiểm giao thoa S6→S5, chuẩn bị test S8; **không** đào sâu A04/A02 chỉ vì đã có nhiều QD, không xây tính năng C/D ngoài `SCOPE.md` nếu chưa duyệt.
+**Mục tiêu điều phối được điều chỉnh ngày 03/11/2026:** **DỪNG rà soát tĩnh diện rộng** vì E5–E7 đã đủ để khởi động S8; ưu tiên chứng cứ **S8.1 luồng liên thông thực tế trên `main`** (hồ sơ → đăng ký → thanh toán → lịch → chỉ định → ghi tiêm → theo dõi → lịch sử/SQL). Đây là smoke test tích hợp khác với kiểm thử từng module S4/S5. S6/S7 làm song song và sẽ kiểm lại khi merge. Không thêm BA/UX mới trong lúc chưa có blocker thực tế.
 
 #### Checkpoint khảo sát đọc code — không phải PASS/FAIL runtime
 - [x] **R1. Danh mục/vắc xin/gói**: đã đọc Catalog/Contracts/EF và xác minh CRUD, giá, giới hạn đổi cấu phần gói; **chưa** kiểm DB thực hoặc dữ liệu y khoa nguồn (E5).
@@ -284,10 +284,10 @@
 - [x] **R8. Windows mức ViewModel/role sơ bộ**: đã đọc ShellViewModel, Screening/Catalog/Payment/Vaccination/Report; main Report vẫn dùng `SampleReportService`; phần khác có API/gating. **Chưa xem toàn bộ ViewsV2, route/UX và chạy app**; chưa xác nhận toàn bộ 6 vai trò thao tác thành công.
 
 #### Việc còn mở — mỗi lần tiếp tục CHỈ CHỌN MỘT mục có giới hạn
-- [ ] **N1 (ngay kế tiếp):** rà **Windows sáu vai trò** bằng cách đọc navigation/menu, ViewModel + service *các màn còn thiếu*, lập ma trận actor→màn→đọc/ghi→API. **Giới hạn:** chỉ lập bảng luồng còn thiếu; không đi sâu refactor UI hay thiết kế lại toàn bộ; không tuyên bố đã chạy WPF.
+- [ ] **N1 (TẠM HOÃN — không phải blocker của S8.1):** chỉ trở lại rà chi tiết Windows sáu vai trò nếu S8.1 hoặc yêu cầu nghiệm thu cụ thể phát hiện lỗ hổng; không đọc tiếp ViewModels/ViewsV2 chỉ để tăng độ phủ phân tích.
 - [ ] **N2:** xác minh **trạng thái PR/CI/S6 của Bảo và S7 của Quý** bằng thông tin PR mới nhất hoặc phản hồi owner, không suy từ nhánh đơn lẻ. Kiểm contract ưu đãi/số tiền chỉ khi thực sự có code/PR; phân loại điểm giao Registration→Payment→S5.
 - [ ] **N3:** đối chiếu **7 nghiệp vụ khảo sát ↔ UML/báo cáo ↔ phạm vi/demo S0–S8**; không ép quy trình nhập kho đầy đủ vào code khi `SCOPE.md` không có.
-- [ ] **N4:** kiểm thử **S8 end-to-end trên bản tích hợp thật**, gồm Web→API→SQL→Windows, quyền, snapshot giá, thanh toán/ưu đãi, lịch→bác sĩ→điều dưỡng→theo dõi, báo cáo, thời gian, đồng thời/tranh tồn, rollback; chỉ đánh dấu PASS sau khi có bằng chứng chạy test.
+- [ ] **N4 — BẮT ĐẦU NGAY S8.1:** dùng DB SQL Server **disposable/test độc lập** và code `main` thực sự, chạy một kịch bản Web/Windows → API → SQL: tạo hồ sơ/người được tiêm → đăng ký **một vắc xin lẻ** → thanh toán mô phỏng một lần → Lễ tân tạo lịch → Bác sĩ kết luận Đủ điều kiện/chỉ định → Điều dưỡng ghi mũi từ lô `[DEMO]` hợp lệ → theo dõi → khách đọc lịch sử. Chụp/log các ID và xác minh SQL/audit/tồn, không sửa code, không viết migration, không đụng DB khác. Nếu thiếu môi trường/UI thật, ghi **BLOCKED + bước mở khóa**, không tự coi là PASS. **Dừng khi có 1 bộ bằng chứng PASS hoặc một blocker tái hiện được**; không phát sinh feature/UX mới. Sau đó kiểm bản tích hợp S6/S7 riêng ở S8.2 với khuyến mãi/báo cáo và các ca hồi quy tiền/tồn.
 - [ ] **N5:** khi N1–N4 đủ căn cứ, **tổng hợp danh sách lỗi/thiếu sót theo A/B/C/D**, ưu tiên P0/P1 và một PR nhỏ đúng owner cho từng lỗi, không làm một cục. Nếu không có lỗi thật, ghi **“chưa chứng minh lỗi”**, không tự tạo việc.
 
 **Điểm dừng để chống sa đà:**
@@ -297,5 +297,5 @@
 4. Không tự sửa code/SQL/migration, AGENTS/SCOPE, không merge PR; Bảo sở hữu S6, Quý sở hữu S7; S5 đóng băng, bất kỳ tương thích phải có owner/review/test hồi quy.
 5. Cuối mỗi lượt: **cập nhật đúng checkbox rà soát và điểm tiếp tục trong file này**; ghi commit/PR; trước lượt mới đối chiếu `main` và `SCOPE.md` thật. Nếu phần chưa thể kiểm vì cần chạy môi trường, để [ ] và không tự tuyên bố PASS.
 
-**Câu resume ngắn:** `Đọc AGENTS.md, SCOPE.md trên main và BUSINESS_DECISIONS.md nhánh docs/business-decisions-20261103, mục E8. Tiếp tục mục N đầu tiên chưa đánh dấu, kiểm trạng thái PR mới, rà trong phạm vi, cập nhật E8 sau lượt; tuyệt đối không tự mở rộng A04/A02 hay sửa code/SQL/S6/S7.`
+**Câu resume ngắn (ưu tiên hiện tại):** `Đọc AGENTS.md, SCOPE.md trên main và BUSINESS_DECISIONS.md nhánh docs/business-decisions-20261103, mục E8. DỪNG audit thêm. Thực hiện S8.1 một luồng tích hợp thực tế trên DB test riêng, báo PASS/FAIL/BLOCKED + evidence, không sửa code/SQL/migration/S5/S6/S7. Cập nhật checklist sau khi có kết quả; S6/S7 song song, S8.2 sau khi tích hợp. Chỉ xử lý blocker có bằng chứng.`
 
