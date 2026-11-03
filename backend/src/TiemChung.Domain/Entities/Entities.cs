@@ -117,22 +117,24 @@ public sealed class KhuyenMai
     public decimal MucUuDai { get; set; }
 }
 
-public sealed class LoaiTiemChung
+public sealed class CongNgheVacXin
 {
+    public int MaCongNghe { get; set; }
     public string Code { get; set; } = string.Empty;
-    public string TrangThai { get; set; } = "Active";
-    public int MaLoaiTiemChung { get; set; }
-    public string TenLoaiTiemChung { get; set; } = string.Empty;
+    public string TenCongNghe { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
+    public string? DacDiemKyThuat { get; set; }
+    public string? GhiChuChuyenMon { get; set; }
+    public string? NguonThongTin { get; set; }
+    public string? DuongDanNguon { get; set; }
+    public DateTimeOffset? NgayCapNhatThongTin { get; set; }
+    public string TrangThai { get; set; } = "Active";
 }
 
-public sealed class LoaiVacXin
+public sealed class VacXin_CongNghe
 {
-    public string Code { get; set; } = string.Empty;
-    public string TrangThai { get; set; } = "Active";
-    public int MaLoaiVacXin { get; set; }
-    public string TenLoaiVacXin { get; set; } = string.Empty;
-    public string MoTa { get; set; } = string.Empty;
+    public int MaVacXin { get; set; }
+    public int MaCongNghe { get; set; }
 }
 
 public sealed class Benh
@@ -155,8 +157,6 @@ public sealed class VacXin
     public string? DuongDanNguon { get; set; }
     public DateTimeOffset? NgayCapNhatThongTin { get; set; }
     public int MaVacXin { get; set; }
-    public int MaLoaiVacXin { get; set; }
-    public int MaLoaiTiemChung { get; set; }
     public string TenVacXin { get; set; } = string.Empty;
     public string NhaSanXuat { get; set; } = string.Empty;
     public string XuatXu { get; set; } = string.Empty;

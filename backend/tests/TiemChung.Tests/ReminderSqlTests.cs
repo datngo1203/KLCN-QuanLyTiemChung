@@ -100,13 +100,13 @@ public sealed class ReminderSqlTests
         });
     }
     [Fact] public async Task MigrationPreservesLegacyRejectsConflictAndGuardsDown() {
-        await Run(async f=>{var a=await Appointment(f);var migrator=f.Db.GetService<IMigrator>();const string prior="20261101071624_S5PostVaccinationFollowUp";
+        await SqlFixtureLifecycle.RunAsync(() => AppointmentSqlTests.Fixture.Create(true), async f=>{var a=await Appointment(f);var migrator=f.Db.GetService<IMigrator>();const string prior="20261101071624_S5PostVaccinationFollowUp";
             await migrator.MigrateAsync(prior);await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT NhacLich(MaLichHen,KenhGui,ThoiDiemGui,TrangThai) VALUES({a.Id},{"Email"},{DateTime.UtcNow},{"Legacy"})");
-            await migrator.MigrateAsync();var legacy=await f.Db.Set<NhacLich>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaNhanVien);Assert.Null(legacy.NoiDungMoPhong);
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);var legacy=await f.Db.Set<NhacLich>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaNhanVien);Assert.Null(legacy.NoiDungMoPhong);
             await migrator.MigrateAsync(prior);await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT NhacLich(MaLichHen,KenhGui,ThoiDiemGui,TrangThai) VALUES({a.Id},{"LogMoPhong"},{DateTime.UtcNow},{"Legacy"}),({a.Id},{"LogMoPhong"},{DateTime.UtcNow},{"Legacy"})");
-            await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>migrator.MigrateAsync());
+            await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>migrator.MigrateAsync(HistoricalCatalogFixture.Latest));
             // Only remove these two newly inserted conflict fixtures; retain legacy Email and every source row.
-            await f.Db.Database.ExecuteSqlRawAsync("DELETE NhacLich WHERE KenhGui=N'LogMoPhong'");await migrator.MigrateAsync();
+            await f.Db.Database.ExecuteSqlRawAsync("DELETE NhacLich WHERE KenhGui=N'LogMoPhong'");await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             using var created=await f.Reception.PostAsJsonAsync(Path(a.Id),new{});Assert.Equal(HttpStatusCode.Created,created.StatusCode);
             await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>migrator.MigrateAsync(prior));Assert.False(f.Db.Database.HasPendingModelChanges());});
     }

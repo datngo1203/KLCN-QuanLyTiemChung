@@ -82,7 +82,7 @@ public sealed class S1WindowsClientTests
         await identity.LoginAsync("staff", "input");
         var vm = new CatalogViewModel(new CatalogApiService(identity), identity.Permissions) { Name = "valid" };
         Assert.False(vm.CanWrite); Assert.False(vm.SaveCommand.CanExecute(null));
-        vm.SelectTabCommand.Execute("Loại tiêm chủng");
+        vm.SelectTabCommand.Execute("Phòng bệnh");
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (!vm.CanInteract) await Task.Delay(10, timeout.Token);
         vm.Name = "valid";

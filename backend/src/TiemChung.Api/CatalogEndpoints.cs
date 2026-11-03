@@ -24,23 +24,22 @@ public static class CatalogEndpoints
             }
             catch (DbUpdateException) { throw new IdentityFailure(503, "dependencyUnavailable"); }
         });
-        MapLookup<LoaiTiemChung>(group, "injection-types", "LTC", "MaLoaiTiemChung", "TenLoaiTiemChung", 120);
-        MapLookup<LoaiVacXin>(group, "vaccine-types", "LVX", "MaLoaiVacXin", "TenLoaiVacXin", 120);
+        MapTechnologies(group);
         MapLookup<Benh>(group, "diseases", "BENH", "MaBenh", "TenBenh", 150);
 
         group.MapGet("/suggestions", async (TiemChungDbContext db, CancellationToken ct) => Results.Ok(new CatalogSuggestionsDto(
             await db.Vaccines.AsNoTracking().Select(v => v.NhaSanXuat.Trim()).Where(x => x != "").Distinct().Order().ToArrayAsync(ct),
             await db.Vaccines.AsNoTracking().Select(v => v.XuatXu.Trim()).Where(x => x != "").Distinct().Order().ToArrayAsync(ct), AdministrationRoutes)));
 
-        group.MapGet("/vaccines", async (string? search, int? diseaseId, int? vaccineTypeId, int? injectionTypeId, decimal? minPrice, decimal? maxPrice,
+        group.MapGet("/vaccines", async (string? search, int? diseaseId, int? technologyId, decimal? minPrice, decimal? maxPrice,
             string? status, TiemChungDbContext db, CancellationToken ct) => {
-            ValidateFilters(search, diseaseId, vaccineTypeId, injectionTypeId, minPrice, maxPrice, status);
+            ValidateFilters(search, diseaseId, technologyId, minPrice, maxPrice, status);
             search = search?.Trim();
             var query = db.Vaccines.AsNoTracking().Where(v =>
                 (string.IsNullOrEmpty(search) || v.Code.Contains(search) || v.TenVacXin.Contains(search) || v.NhaSanXuat.Contains(search) ||
                     db.Set<VacXin_Benh>().Any(l => l.MaVacXin == v.MaVacXin && db.Set<Benh>().Any(d => d.MaBenh == l.MaBenh && d.TenBenh.Contains(search)))) &&
                 (!diseaseId.HasValue || db.Set<VacXin_Benh>().Any(l => l.MaVacXin == v.MaVacXin && l.MaBenh == diseaseId)) &&
-                (!vaccineTypeId.HasValue || v.MaLoaiVacXin == vaccineTypeId) && (!injectionTypeId.HasValue || v.MaLoaiTiemChung == injectionTypeId) &&
+                (!technologyId.HasValue || db.Set<VacXin_CongNghe>().Any(l => l.MaVacXin == v.MaVacXin && l.MaCongNghe == technologyId)) &&
                 (!minPrice.HasValue || v.Gia >= minPrice) && (!maxPrice.HasValue || v.Gia <= maxPrice) && (status == null || v.TrangThai == status));
             return Results.Ok(new VaccineListResponse("database", await Vaccines(db, await query.OrderBy(v => v.MaVacXin).ToArrayAsync(ct), ct)));
         });
@@ -71,22 +70,22 @@ public static class CatalogEndpoints
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
             var actor = await RequireWrite(context, auth, true, ct);
             var row = await db.Vaccines.FindAsync([id], ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+            db.RemoveRange(await db.Set<VacXin_CongNghe>().Where(x => x.MaVacXin == id).ToArrayAsync(ct));
             db.RemoveRange(await db.Set<VacXin_Benh>().Where(x => x.MaVacXin == id).ToArrayAsync(ct));
             db.RemoveRange(await db.Set<VaccineRegimen>().Where(x => x.VaccineId == id).ToArrayAsync(ct));
             db.Remove(row); await Audit(db, context, actor, "deleted", "vaccines", id, ct); await tx.CommitAsync(ct);
             return Results.NoContent();
         });
-        group.MapGet("/packages", async (string? search, int? diseaseId, int? vaccineTypeId, int? injectionTypeId, decimal? minPrice, decimal? maxPrice,
+        group.MapGet("/packages", async (string? search, int? diseaseId, int? technologyId, decimal? minPrice, decimal? maxPrice,
             string? status, TiemChungDbContext db, CancellationToken ct) => {
-            ValidateFilters(search, diseaseId, vaccineTypeId, injectionTypeId, minPrice, maxPrice, status); search = search?.Trim();
+            ValidateFilters(search, diseaseId, technologyId, minPrice, maxPrice, status); search = search?.Trim();
             var rows = await db.Set<GoiVacXin>().AsNoTracking().Where(p =>
                 (string.IsNullOrEmpty(search) || p.Code.Contains(search) || p.TenGoi.Contains(search) || db.Set<GoiVacXin_VacXin>().Any(l => l.MaGoi == p.MaGoi &&
-                    db.Vaccines.Any(v => v.MaVacXin == l.MaVacXin && (v.Code.Contains(search) || v.TenVacXin.Contains(search) ||
+                    db.Vaccines.Any(v => v.MaVacXin == l.MaVacXin && (v.Code.Contains(search) || v.TenVacXin.Contains(search) || v.NhaSanXuat.Contains(search) ||
                         db.Set<VacXin_Benh>().Any(vd => vd.MaVacXin == v.MaVacXin && db.Set<Benh>().Any(d => d.MaBenh == vd.MaBenh && d.TenBenh.Contains(search))))))) &&
                 (!minPrice.HasValue || p.GiaGoi >= minPrice) && (!maxPrice.HasValue || p.GiaGoi <= maxPrice) && (status == null || p.TrangThai == status) &&
-                ((!diseaseId.HasValue && !vaccineTypeId.HasValue && !injectionTypeId.HasValue) || db.Set<GoiVacXin_VacXin>().Any(l => l.MaGoi == p.MaGoi &&
-                    db.Vaccines.Any(v => v.MaVacXin == l.MaVacXin && (!vaccineTypeId.HasValue || v.MaLoaiVacXin == vaccineTypeId) &&
-                        (!injectionTypeId.HasValue || v.MaLoaiTiemChung == injectionTypeId) &&
+                ((!diseaseId.HasValue && !technologyId.HasValue) || db.Set<GoiVacXin_VacXin>().Any(l => l.MaGoi == p.MaGoi &&
+                    db.Vaccines.Any(v => v.MaVacXin == l.MaVacXin && (!technologyId.HasValue || db.Set<VacXin_CongNghe>().Any(vt => vt.MaVacXin == v.MaVacXin && vt.MaCongNghe == technologyId)) &&
                         (!diseaseId.HasValue || db.Set<VacXin_Benh>().Any(vd => vd.MaVacXin == v.MaVacXin && vd.MaBenh == diseaseId))))))
                 .OrderBy(p => p.MaGoi).ToArrayAsync(ct);
             return Results.Ok(new { source = "database", items = await Packages(db, rows, ct) });
@@ -131,10 +130,54 @@ public static class CatalogEndpoints
         return app;
     }
 
+    private static VaccineTechnologyDto TechnologyDto(CongNgheVacXin t) => new(t.MaCongNghe, t.TenCongNghe, t.MoTa, t.Code, t.TrangThai,
+        t.DacDiemKyThuat, t.GhiChuChuyenMon, t.NguonThongTin, t.DuongDanNguon, t.NgayCapNhatThongTin);
+
+    private static void MapTechnologies(RouteGroupBuilder group)
+    {
+        const string route = "/vaccine-technologies";
+        group.MapGet(route, async (string? search, string? status, TiemChungDbContext db, CancellationToken ct) => {
+            ValidateFilters(search, null, null, null, null, status); search = search?.Trim();
+            var rows = await db.Set<CongNgheVacXin>().AsNoTracking().Where(t =>
+                (string.IsNullOrEmpty(search) || t.Code.Contains(search) || t.TenCongNghe.Contains(search)) && (status == null || t.TrangThai == status))
+                .OrderBy(t => t.MaCongNghe).ToArrayAsync(ct);
+            return Results.Ok(new { source = "database", items = rows.Select(TechnologyDto) });
+        });
+        group.MapGet(route + "/{id:int}", async (int id, TiemChungDbContext db, CancellationToken ct) =>
+            Results.Ok(TechnologyDto(await db.Set<CongNgheVacXin>().AsNoTracking().SingleOrDefaultAsync(t => t.MaCongNghe == id, ct) ?? throw new IdentityFailure(404, "resourceNotFound"))));
+        async Task<IResult> Save(int? id, VaccineTechnologyRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct)
+        {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var actor = await RequireWrite(context, auth, false, ct);
+            var row = id.HasValue ? await db.Set<CongNgheVacXin>().FindAsync([id.Value], ct) ?? throw new IdentityFailure(404, "resourceNotFound") : new CongNgheVacXin();
+            ValidateCode(req.Code, "CNVX", id.HasValue ? row.Code : null); ValidateText(req.Name, 120); ValidateText(req.Description, 500, false); ValidateStatus(req.Status);
+            ValidateText(req.TechnicalCharacteristics, 2000, false); ValidateText(req.ProfessionalNotes, 2000, false);
+            ValidateText(req.SourceName, 250, false); ValidateUrl(req.SourceUrl);
+            if (!id.HasValue) { row.Code = req.Code!; db.Add(row); }
+            row.TenCongNghe = req.Name.Trim(); row.MoTa = req.Description?.Trim() ?? ""; row.TrangThai = req.Status ?? row.TrangThai;
+            row.DacDiemKyThuat = req.TechnicalCharacteristics?.Trim(); row.GhiChuChuyenMon = req.ProfessionalNotes?.Trim();
+            row.NguonThongTin = req.SourceName?.Trim(); row.DuongDanNguon = req.SourceUrl?.Trim(); row.NgayCapNhatThongTin = req.InformationUpdatedAt;
+            await db.SaveChangesAsync(ct);
+            await Audit(db, context, actor, id.HasValue ? "updated" : "created", "vaccine-technologies", row.MaCongNghe, ct);
+            await tx.CommitAsync(ct);
+            return id.HasValue ? Results.Ok(TechnologyDto(row)) : Results.Created($"/api/v1/catalog/vaccine-technologies/{row.MaCongNghe}", TechnologyDto(row));
+        }
+        group.MapPost(route, (VaccineTechnologyRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => Save(null, req, context, auth, db, ct));
+        group.MapPut(route + "/{id:int}", (int id, VaccineTechnologyRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => Save(id, req, context, auth, db, ct));
+        group.MapDelete(route + "/{id:int}", async (int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var actor = await RequireWrite(context, auth, false, ct);
+            var row = await db.Set<CongNgheVacXin>().FindAsync([id], ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+            // Restrict FK refuses a referenced technology; links must be removed explicitly on the vaccine.
+            db.Remove(row); await Audit(db, context, actor, "deleted", "vaccine-technologies", id, ct); await tx.CommitAsync(ct);
+            return Results.NoContent();
+        });
+    }
+
     private static void MapLookup<T>(RouteGroupBuilder group, string resource, string prefix, string idProperty, string nameProperty, int nameMax) where T : class, new()
     {
         group.MapGet("/" + resource, async (string? search, string? status, TiemChungDbContext db, CancellationToken ct) => {
-            ValidateFilters(search, null, null, null, null, null, status); search = search?.Trim();
+            ValidateFilters(search, null, null, null, null, status); search = search?.Trim();
             var items = await db.Set<T>().AsNoTracking().Where(x =>
                 (string.IsNullOrEmpty(search) || EF.Property<string>(x, nameProperty).Contains(search) || EF.Property<string>(x, "Code").Contains(search)) &&
                 (status == null || EF.Property<string>(x, "TrangThai") == status)).OrderBy(x => EF.Property<int>(x, idProperty))
@@ -175,17 +218,16 @@ public static class CatalogEndpoints
     {
         if (rows.Length == 0) return [];
         var ids = rows.Select(x => x.MaVacXin).ToArray();
-        var typeIds = rows.Select(x => x.MaLoaiVacXin).Distinct().ToArray(); var injectionIds = rows.Select(x => x.MaLoaiTiemChung).Distinct().ToArray();
-        var types = await db.Set<LoaiVacXin>().AsNoTracking().Where(x => typeIds.Contains(x.MaLoaiVacXin)).ToDictionaryAsync(x => x.MaLoaiVacXin, ct);
-        var injections = await db.Set<LoaiTiemChung>().AsNoTracking().Where(x => injectionIds.Contains(x.MaLoaiTiemChung)).ToDictionaryAsync(x => x.MaLoaiTiemChung, ct);
+        var technologies = await (from link in db.Set<VacXin_CongNghe>().AsNoTracking() join t in db.Set<CongNgheVacXin>().AsNoTracking() on link.MaCongNghe equals t.MaCongNghe
+            where ids.Contains(link.MaVacXin) orderby t.MaCongNghe select new { link.MaVacXin, Technology = new CatalogReferenceDto(t.MaCongNghe, t.Code, t.TenCongNghe) }).ToArrayAsync(ct);
         var diseases = await (from link in db.Set<VacXin_Benh>().AsNoTracking() join d in db.Set<Benh>().AsNoTracking() on link.MaBenh equals d.MaBenh
             where ids.Contains(link.MaVacXin) orderby d.MaBenh select new { link.MaVacXin, Disease = new CatalogReferenceDto(d.MaBenh, d.Code, d.TenBenh) }).ToArrayAsync(ct);
         var regimens = await db.Set<VaccineRegimen>().AsNoTracking().Where(x => ids.Contains(x.VaccineId)).OrderBy(x => x.Id).ToArrayAsync(ct);
         var regimenIds = regimens.Select(x => x.Id).ToArray();
         var doses = await db.Set<VaccineRegimenDose>().AsNoTracking().Where(x => regimenIds.Contains(x.RegimenId)).OrderBy(x => x.DoseOrder).ToArrayAsync(ct);
-        return rows.Select(v => new VaccineDto(v.MaVacXin, v.TenVacXin, v.NhaSanXuat, v.XuatXu, v.Gia, v.MaLoaiVacXin, v.MaLoaiTiemChung) {
-            Code = v.Code, Status = v.TrangThai, VaccineType = new(v.MaLoaiVacXin, types[v.MaLoaiVacXin].Code, types[v.MaLoaiVacXin].TenLoaiVacXin),
-            InjectionType = new(v.MaLoaiTiemChung, injections[v.MaLoaiTiemChung].Code, injections[v.MaLoaiTiemChung].TenLoaiTiemChung),
+        return rows.Select(v => new VaccineDto(v.MaVacXin, v.TenVacXin, v.NhaSanXuat, v.XuatXu, v.Gia) {
+            Code = v.Code, Status = v.TrangThai,
+            Technologies = technologies.Where(t => t.MaVacXin == v.MaVacXin).Select(t => t.Technology).ToArray(),
             Diseases = diseases.Where(d => d.MaVacXin == v.MaVacXin).Select(d => d.Disease).ToArray(), Description = v.MoTa,
             TargetAudience = v.DoiTuongSuDung, AdministrationRoute = v.DuongDung, AdministrationRouteNote = v.DuongDungKhac,
             Dosage = v.LieuLuong, Volume = v.TheTich, SourceName = v.NguonThongTin, SourceUrl = v.DuongDanNguon, InformationUpdatedAt = v.NgayCapNhatThongTin,
@@ -242,9 +284,9 @@ public static class CatalogEndpoints
             throw new IdentityFailure(400, "validation");
     }
     private static void ValidatePrice(decimal value) { if (value < 0 || value > 9999999999999999m || decimal.Truncate(value) != value) throw new IdentityFailure(400, "validation"); }
-    private static void ValidateFilters(string? search, int? disease, int? vaccine, int? injection, decimal? min, decimal? max, string? status)
+    private static void ValidateFilters(string? search, int? disease, int? technology, decimal? min, decimal? max, string? status)
     {
-        if (search?.Length > 150 || disease is <= 0 || vaccine is <= 0 || injection is <= 0 || min > max) throw new IdentityFailure(400, "validation");
+        if (search?.Length > 150 || disease is <= 0 || technology is <= 0 || min > max) throw new IdentityFailure(400, "validation");
         if (min.HasValue) ValidatePrice(min.Value); if (max.HasValue) ValidatePrice(max.Value); ValidateStatus(status);
     }
     private static async Task ValidateVaccine(VaccineRequest req, VacXin? row, TiemChungDbContext db, CancellationToken ct)
@@ -266,8 +308,12 @@ public static class CatalogEndpoints
                 throw new IdentityFailure(400, "validation");
             ValidateText(routeNote, 500, false);
         }
-        if (!await db.Set<LoaiVacXin>().AnyAsync(x => x.MaLoaiVacXin == req.VaccineTypeId && (x.TrangThai == "Active" || row != null && x.MaLoaiVacXin == row.MaLoaiVacXin), ct) ||
-            !await db.Set<LoaiTiemChung>().AnyAsync(x => x.MaLoaiTiemChung == req.InjectionTypeId && (x.TrangThai == "Active" || row != null && x.MaLoaiTiemChung == row.MaLoaiTiemChung), ct)) throw new IdentityFailure(400, "validation");
+        if (req.TechnologyIds != null) {
+            if (req.TechnologyIds.Any(x => x <= 0) || req.TechnologyIds.Distinct().Count() != req.TechnologyIds.Length ||
+                await db.Set<CongNgheVacXin>().CountAsync(x => req.TechnologyIds.Contains(x.MaCongNghe) &&
+                    (x.TrangThai == "Active" || row != null && db.Set<VacXin_CongNghe>().Any(l => l.MaVacXin == row.MaVacXin && l.MaCongNghe == x.MaCongNghe)), ct) != req.TechnologyIds.Length)
+                throw new IdentityFailure(400, "validation");
+        }
         if (req.DiseaseIds != null) {
             if (req.DiseaseIds.Length == 0 || req.DiseaseIds.Any(x => x <= 0) || req.DiseaseIds.Distinct().Count() != req.DiseaseIds.Length ||
                 await db.Set<Benh>().CountAsync(x => req.DiseaseIds.Contains(x.MaBenh), ct) != req.DiseaseIds.Length) throw new IdentityFailure(400, "validation");
@@ -289,7 +335,7 @@ public static class CatalogEndpoints
     private static void SetVaccine(VacXin row, VaccineRequest req)
     {
         row.TenVacXin = req.Name.Trim(); row.NhaSanXuat = req.Manufacturer.Trim(); row.XuatXu = req.Origin.Trim();
-        row.Gia = req.Price; row.MaLoaiVacXin = req.VaccineTypeId; row.MaLoaiTiemChung = req.InjectionTypeId; row.TrangThai = req.Status ?? row.TrangThai;
+        row.Gia = req.Price; row.TrangThai = req.Status ?? row.TrangThai;
         row.MoTa = req.Description?.Trim() ?? row.MoTa; row.DoiTuongSuDung = req.TargetAudience?.Trim() ?? row.DoiTuongSuDung;
         row.DuongDung = req.AdministrationRoute ?? row.DuongDung;
         row.DuongDungKhac = row.DuongDung == "Other" ? req.AdministrationRouteNote?.Trim() ?? row.DuongDungKhac : null;
@@ -299,6 +345,12 @@ public static class CatalogEndpoints
     }
     private static async Task SetVaccineChildren(TiemChungDbContext db, int id, VaccineRequest req, CancellationToken ct)
     {
+        // Omitted technologies preserve existing links; [] explicitly removes all.
+        if (req.TechnologyIds != null) {
+            db.RemoveRange(await db.Set<VacXin_CongNghe>().Where(x => x.MaVacXin == id).ToArrayAsync(ct));
+            await db.SaveChangesAsync(ct);
+            db.AddRange(req.TechnologyIds.Select(t => new VacXin_CongNghe { MaVacXin = id, MaCongNghe = t }));
+        }
         if (req.DiseaseIds != null) {
             db.RemoveRange(await db.Set<VacXin_Benh>().Where(x => x.MaVacXin == id).ToArrayAsync(ct));
             await db.SaveChangesAsync(ct);

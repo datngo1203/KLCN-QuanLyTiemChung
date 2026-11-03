@@ -96,11 +96,11 @@ public sealed class DevelopmentInventorySeedSqlTests
             if (scenario == "missing") {
                 await f.Db.Set<GoiVacXin_VacXin>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
                 await f.Db.Set<VacXin_Benh>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
+                await f.Db.Set<VacXin_CongNghe>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
                 await f.Db.Set<VaccineRegimen>().Where(x => x.VaccineId == source.MaVacXin).ExecuteDeleteAsync();
                 f.Db.Remove(source);
             } else if (scenario == "renamed") source.TenVacXin = "Non-demo source";
-            else f.Db.Add(new VacXin { Code="VX-SYNTHETIC", TenVacXin=source.TenVacXin, MaLoaiVacXin=source.MaLoaiVacXin,
-                MaLoaiTiemChung=source.MaLoaiTiemChung, NhaSanXuat="Synthetic", XuatXu="Synthetic", Gia=1, TrangThai="Active" });
+            else f.Db.Add(new VacXin { Code="VX-SYNTHETIC", TenVacXin=source.TenVacXin, NhaSanXuat="Synthetic", XuatXu="Synthetic", Gia=1, TrangThai="Active" });
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentInventorySeed.RunAsync(f.Db, Development));
             Assert.Contains("requires exactly one synthetic catalog vaccine '[DEMO] Vắc xin B'", error.Message);

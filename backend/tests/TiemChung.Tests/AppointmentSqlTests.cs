@@ -173,14 +173,14 @@ public sealed class AppointmentSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task MigrationPreservesLegacyRowsAndRefusesLossyDown()
     {
-        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(true), async f => {
             var migrator=f.Db.GetService<IMigrator>();await migrator.MigrateAsync("20261029000847_G3SinglePayment");
             await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO LichHenTiem(MaNguoiDuocTiem,ThoiGianHen,DiemTiem,TrangThai) VALUES ({f.RecipientId},{DateTime.UtcNow},{"legacy room"},{"Planned"})");
-            await migrator.MigrateAsync();await migrator.MigrateAsync();
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             var legacy=await f.Db.Set<LichHenTiem>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaDangKy);Assert.Equal("legacy room",legacy.DiemTiem);Assert.Equal("Planned",legacy.TrangThai);
             Assert.Empty((await f.Reception.GetFromJsonAsync<AppointmentListResponse>(Route))!.Items);
             await Problem(await f.Reception.GetAsync(Route+"/"+legacy.MaLichHen),404,"resourceNotFound");
-            await migrator.MigrateAsync("20261029000847_G3SinglePayment");await migrator.MigrateAsync();
+            await migrator.MigrateAsync("20261029000847_G3SinglePayment");await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             var registration=await f.Register();using var created=await f.Reception.PostAsJsonAsync(Route,f.Request(registration,registration.Items[0]));Assert.Equal(HttpStatusCode.Created,created.StatusCode);
             await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync("20261029000847_G3SinglePayment"));
             Assert.Equal(2,await f.Db.Set<LichHenTiem>().CountAsync());
@@ -344,12 +344,12 @@ public sealed class AppointmentSqlTests
             using var response=await Reception.PostAsJsonAsync("/api/v1/registrations",new CreateRegistrationRequest(CustomerId,RecipientId,[new("vaccine",v.MaVacXin,2,v.Gia),new("package",p.MaGoi,2,p.GiaGoi,[new(v.MaVacXin,2)])]));
             Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public static async Task<Fixture> Create()
+        public static Task<Fixture> Create() => Create(false);
+        public static async Task<Fixture> Create(bool historicalCatalog)
         {
-            var b=await CatalogSqlTests.Fixture.Create();var f=new Fixture {Base=b};
+            var b=await CatalogSqlTests.Fixture.Create(historicalCatalog: historicalCatalog);var f=new Fixture {Base=b};
             try {
-                var type=new LoaiTiemChung { Code="LTC-SYNTHETIC",TenLoaiTiemChung="[DEMO] S5"};var vt=new LoaiVacXin { Code="LVX-SYNTHETIC",TenLoaiVacXin="[DEMO] S5"};b.Db.AddRange(type,vt);await b.Db.SaveChangesAsync();
-                var v=new VacXin { Code="VX-SYNTHETIC",TenVacXin="[DEMO] S5 vaccine",MaLoaiVacXin=vt.MaLoaiVacXin,MaLoaiTiemChung=type.MaLoaiTiemChung,TrangThai="Active",Gia=100};var p=new GoiVacXin { Code="GOI-SYNTHETIC",TenGoi="[DEMO] S5 package",GiaGoi=150,TrangThai="Active"};var c=new KhachHang {HoTen="[DEMO] S5 customer"};b.Db.AddRange(v,p,c);await b.Db.SaveChangesAsync();
+                var v=new VacXin { Code="VX-SYNTHETIC",TenVacXin="[DEMO] S5 vaccine",TrangThai="Active",Gia=100};var p=new GoiVacXin { Code="GOI-SYNTHETIC",TenGoi="[DEMO] S5 package",GiaGoi=150,TrangThai="Active"};var c=new KhachHang {HoTen="[DEMO] S5 customer"};b.Db.AddRange(v,p,c);await b.Db.SaveChangesAsync();
                 var recipient=new NguoiDuocTiem {MaKhachHang=c.MaKhachHang,HoTen="[DEMO] S5 recipient"};b.Db.AddRange(recipient,new GoiVacXin_VacXin {MaGoi=p.MaGoi,MaVacXin=v.MaVacXin,SoLuong=2});await b.Db.SaveChangesAsync();
                 f.CustomerId=c.MaKhachHang;f.RecipientId=recipient.MaNguoiDuocTiem;f.Reception=await f.Actor("LeTan",true);return f;
             }catch(Exception e){await SqlFixtureLifecycle.CleanupAfterFailureAsync(e,f.DisposeAsync);throw;}

@@ -1,11 +1,10 @@
 namespace TiemChung.Contracts;
 
-public sealed record VaccineDto(int Id, string Name, string Manufacturer, string Origin, decimal Price, int VaccineTypeId = 0, int InjectionTypeId = 0)
+public sealed record VaccineDto(int Id, string Name, string Manufacturer, string Origin, decimal Price)
 {
     public string Code { get; init; } = "";
     public string Status { get; init; } = "Active";
-    public CatalogReferenceDto? VaccineType { get; init; }
-    public CatalogReferenceDto? InjectionType { get; init; }
+    public CatalogReferenceDto[] Technologies { get; init; } = [];
     public CatalogReferenceDto[] Diseases { get; init; } = [];
     public string? Description { get; init; }
     public string? TargetAudience { get; init; }
@@ -24,10 +23,10 @@ public sealed record ModuleDto(string Code, string Name, string Owner, string St
 public sealed record CatalogReferenceDto(int Id, string Code, string Name);
 public sealed record CatalogTypeDto(int Id, string Name, string Description, string Code = "", string Status = "Active");
 public sealed record CatalogTypeRequest(string Name, string? Description, string? Code = null, string? Status = null);
-public sealed record VaccineRequest(string Name, string Manufacturer, string Origin, [property: System.Text.Json.Serialization.JsonRequired] decimal Price, int VaccineTypeId, int InjectionTypeId,
+public sealed record VaccineRequest(string Name, string Manufacturer, string Origin, [property: System.Text.Json.Serialization.JsonRequired] decimal Price,
     string? Code = null, string? Status = null, int[]? DiseaseIds = null, string? Description = null, string? TargetAudience = null,
     string? AdministrationRoute = null, string? AdministrationRouteNote = null, string? Dosage = null, decimal? Volume = null,
-    string? SourceName = null, string? SourceUrl = null, DateTimeOffset? InformationUpdatedAt = null, VaccineRegimenRequest[]? Regimens = null);
+    string? SourceName = null, string? SourceUrl = null, DateTimeOffset? InformationUpdatedAt = null, VaccineRegimenRequest[]? Regimens = null, int[]? TechnologyIds = null);
 public sealed record VaccineRegimenRequest(string Name, string TargetAudience, string? Summary, VaccineRegimenDoseRequest[] Doses, string? SourceName = null, string? SourceUrl = null);
 public sealed record VaccineRegimenDoseRequest(int DoseOrder, string TimingLabel, int? MinimumIntervalDays = null, int? RecommendedIntervalDays = null, string? Note = null);
 public sealed record VaccineRegimenDto(int Id, string Name, string TargetAudience, string? Summary, string? SourceName, string? SourceUrl, VaccineRegimenDoseDto[] Doses);
@@ -45,3 +44,9 @@ public sealed record PackageDto(int Id, string Name, decimal Price, PackageItemD
     public CatalogReferenceDto[] Diseases { get; init; } = [];
 }
 public sealed record CatalogSuggestionsDto(string[] Manufacturers, string[] Origins, string[] AdministrationRoutes);
+
+public sealed record VaccineTechnologyRequest(string Name, string? Description, string? Code = null, string? Status = null,
+    string? TechnicalCharacteristics = null, string? ProfessionalNotes = null, string? SourceName = null,
+    string? SourceUrl = null, DateTimeOffset? InformationUpdatedAt = null);
+public sealed record VaccineTechnologyDto(int Id, string Name, string Description, string Code, string Status,
+    string? TechnicalCharacteristics, string? ProfessionalNotes, string? SourceName, string? SourceUrl, DateTimeOffset? InformationUpdatedAt);

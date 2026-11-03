@@ -26,27 +26,27 @@ public sealed class CatalogSqlTests
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async fixture => {
         var client = fixture.Client;
         var types = new Dictionary<string,int>();
-        foreach (var route in new[] { "injection-types", "vaccine-types" }) {
+        foreach (var route in new[] { "vaccine-technologies" }) {
             Assert.Empty((await List(client,route)).EnumerateArray());
             Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync(Path(route),new { name="Type", description="" })).StatusCode);
         }
         await fixture.Login();
-        foreach (var route in new[] { "injection-types", "vaccine-types" }) {
+        foreach (var route in new[] { "vaccine-technologies" }) {
             foreach (var name in new[] { "", " ", new string('a',121) })
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path(route),new { name, description="" })).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path(route),new { name="valid", description=new string('a',501) })).StatusCode);
-            var created=await Created(client.PostAsJsonAsync(Path(route),new { name="Type "+route, description="demo", code=route == "injection-types" ? "LTC-TYPE" : "LVX-TYPE" }));
+            var created=await Created(client.PostAsJsonAsync(Path(route),new { name="Type "+route, description="demo", code="CNVX-TYPE" }));
             types[route]=created.GetProperty("id").GetInt32();
             Assert.Equal(HttpStatusCode.OK,(await client.PutAsJsonAsync(Path(route,types[route]),new { name="Updated "+route, description="" })).StatusCode);
             Assert.Equal("Updated "+route,(await List(client,route))[0].GetProperty("name").GetString());
             Assert.Equal(HttpStatusCode.NotFound,(await client.PutAsJsonAsync(Path(route,int.MaxValue),new { name="valid",description="" })).StatusCode);
         }
         var disease=(await Created(client.PostAsJsonAsync(Path("diseases"),new { code="BENH-SYNTHETIC", name="Synthetic disease", description="" }))).GetProperty("id").GetInt32();
-        VaccineRequest Vaccine(string name="Vaccine", decimal price=125000, int? type=null) => new(name,"Demo maker","Demo origin",price,type ?? types["vaccine-types"],types["injection-types"],
+        VaccineRequest Vaccine(string name="Vaccine", decimal price=125000, int? type=null) => new(name,"Demo maker","Demo origin",price,TechnologyIds:[type ?? types["vaccine-technologies"]],
             Code:name == "Second" ? "VX-SECOND" : "VX-VACCINE", DiseaseIds:[disease], TargetAudience:"Synthetic audience", AdministrationRoute:"Oral");
         foreach (var bad in new[] { Vaccine(""), Vaccine(price:-1), Vaccine(price:1.5m), Vaccine(price:10000000000000000m), Vaccine(type:0), Vaccine(type:int.MaxValue), Vaccine(new string('a',151)), Vaccine() with { Manufacturer=null! } })
             Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path("vaccines"),bad)).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path("vaccines"),new { name="Vaccine", manufacturer="Maker", origin="Origin", vaccineTypeId=types["vaccine-types"], injectionTypeId=types["injection-types"] })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path("vaccines"),new { name="Vaccine", manufacturer="Maker", origin="Origin", technologyIds=new[] { types["vaccine-technologies"] } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path("packages"),new { name="Package", items=new[] { new { vaccineId=1,quantity=1 } } })).StatusCode);
         foreach (var payload in new[] { "{", "{\"name\":\"Vaccine\",\"price\":\"bad\"}" }) {
             using var invalid=await client.PostAsync(Path("vaccines"),new StringContent(payload,System.Text.Encoding.UTF8,"application/json"));
@@ -57,17 +57,17 @@ public sealed class CatalogSqlTests
         var vaccine=(await Created(client.PostAsJsonAsync(Path("vaccines"),Vaccine()))).GetProperty("id").GetInt32();
         var second=(await Created(client.PostAsJsonAsync(Path("vaccines"),Vaccine("Second",250000)))).GetProperty("id").GetInt32();
         Assert.Equal(HttpStatusCode.OK,(await client.PutAsJsonAsync(Path("vaccines",vaccine),Vaccine("Updated vaccine",150000))).StatusCode);
-        Assert.Single((await List(client,$"vaccines?search=Updated&vaccineTypeId={types["vaccine-types"]}&injectionTypeId={types["injection-types"]}&minPrice=150000&maxPrice=150000")).EnumerateArray());
+        Assert.Single((await List(client,$"vaccines?search=Updated&technologyId={types["vaccine-technologies"]}&minPrice=150000&maxPrice=150000")).EnumerateArray());
         Assert.Empty((await List(client,"vaccines?minPrice=300000")).EnumerateArray());
-        foreach (var query in new[] { "minPrice=-1", "minPrice=2&maxPrice=1", "vaccineTypeId=0", "search="+new string('a',151) })
+        foreach (var query in new[] { "minPrice=-1", "minPrice=2&maxPrice=1", "technologyId=0", "search="+new string('a',151) })
             Assert.Equal(HttpStatusCode.BadRequest,(await client.GetAsync(Path("vaccines?"+query))).StatusCode);
         PackageRequest Package(params PackageItemDto[] items) => new("Package",300000,items,Code:"GOI-PACKAGE",TargetAudience:"Synthetic audience");
         foreach (var bad in new[] { Package(), Package(new PackageItemDto(vaccine,0)), Package(new PackageItemDto(int.MaxValue,1)), Package(new PackageItemDto(vaccine,1),new(vaccine,2)), Package(new PackageItemDto(vaccine,101)), Package(new PackageItemDto(vaccine,1)) with { Price=-1 }, Package(new PackageItemDto(vaccine,1)) with { Items=null! } })
             Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync(Path("packages"),bad)).StatusCode);
         var package=(await Created(client.PostAsJsonAsync(Path("packages"),Package(new PackageItemDto(vaccine,1),new(second,2))))).GetProperty("id").GetInt32();
         Assert.Equal(2,(await List(client,"packages"))[0].GetProperty("items").GetArrayLength());
-        Assert.Single((await List(client,$"packages?vaccineTypeId={types["vaccine-types"]}&minPrice=300000&maxPrice=300000")).EnumerateArray());
-        Assert.Empty((await List(client,"packages?vaccineTypeId=2147483647")).EnumerateArray());
+        Assert.Single((await List(client,$"packages?technologyId={types["vaccine-technologies"]}&minPrice=300000&maxPrice=300000")).EnumerateArray());
+        Assert.Empty((await List(client,"packages?technologyId=2147483647")).EnumerateArray());
         Assert.Equal(HttpStatusCode.OK,(await client.PutAsJsonAsync(Path("packages",package),Package(new PackageItemDto(vaccine,3)))).StatusCode);
         Assert.Equal(3,(await List(client,"packages"))[0].GetProperty("items")[0].GetProperty("quantity").GetInt32());
         Assert.Equal(HttpStatusCode.BadRequest,(await client.PutAsJsonAsync(Path("packages",package),Package(new PackageItemDto(second,0)))).StatusCode);
@@ -92,7 +92,7 @@ public sealed class CatalogSqlTests
         foreach (var id in new[] { vaccine,second }) Assert.Equal(HttpStatusCode.NoContent,(await client.DeleteAsync(Path("vaccines",id))).StatusCode);
         foreach (var route in types.Keys) Assert.Equal(HttpStatusCode.NoContent,(await client.DeleteAsync(Path(route,types[route]))).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent,(await client.DeleteAsync(Path("diseases",disease))).StatusCode);
-        foreach (var route in new[] { "vaccines","packages","vaccine-types","injection-types","diseases" }) {
+        foreach (var route in new[] { "vaccines","packages","vaccine-technologies","diseases" }) {
             Assert.Empty((await List(client,route)).EnumerateArray());
             Assert.Equal(HttpStatusCode.NotFound,(await client.DeleteAsync(Path(route,int.MaxValue))).StatusCode);
         }
@@ -106,11 +106,11 @@ public sealed class CatalogSqlTests
     public async Task EveryWriteChecksCurrentEmployeePermissionsAndCustomerIsReadOnly()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-        var routes=new[] { "injection-types","vaccine-types","diseases","vaccines","packages" };
+        var routes=new[] { "vaccine-technologies","diseases","vaccines","packages" };
         object Payload(string route) => route switch {
-            "vaccines" => new VaccineRequest("Vaccine","Maker","Origin",1,1,1),
+            "vaccines" => new VaccineRequest("Vaccine","Maker","Origin",1),
             "packages" => new PackageRequest("Package",1,[new(1,1)]),
-            _ => new CatalogTypeRequest("Type","",route == "injection-types" ? "LTC-TYPE" : route == "diseases" ? "BENH-TYPE" : "LVX-TYPE")
+            _ => new CatalogTypeRequest("Type","",route == "diseases" ? "BENH-TYPE" : "CNVX-TYPE")
         };
         async Task Denied(HttpStatusCode expected) {
             foreach (var route in routes) {
@@ -127,7 +127,7 @@ public sealed class CatalogSqlTests
         await Denied(HttpStatusCode.Forbidden);
         var clinical=await f.Db.Set<QuyenHan>().SingleAsync(x=>x.Code=="QuanLyDanhMucChuyenMon");
         f.Db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=account.MaTaiKhoan, MaQuyen=clinical.MaQuyen }); await f.Db.SaveChangesAsync();
-        Assert.Equal(HttpStatusCode.Created,(await f.Client.PostAsJsonAsync(Path("vaccine-types"),Payload("vaccine-types"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created,(await f.Client.PostAsJsonAsync(Path("vaccine-technologies"),Payload("vaccine-technologies"))).StatusCode);
         foreach (var route in new[] { "vaccines","packages" }) Assert.Equal(HttpStatusCode.Forbidden,(await f.Client.PostAsJsonAsync(Path(route),Payload(route))).StatusCode);
         // Verified customer with even an explicit catalog grant must still be refused.
         var customer=new TaiKhoan { AccountType="Customer",TenDangNhap="s2-customer",LoginEmail="s2@example.invalid",NormalizedEmail="S2@EXAMPLE.INVALID",EmailVerifiedAt=DateTimeOffset.UtcNow,TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
@@ -150,8 +150,8 @@ public sealed class CatalogSqlTests
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
         var first=await f.Db.Vaccines.FirstAsync(); first.Gia=123456; await f.Db.SaveChangesAsync();
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
-        Assert.Equal(2,await f.Db.Vaccines.CountAsync()); Assert.Equal(2,await f.Db.Set<LoaiTiemChung>().CountAsync());
-        Assert.Equal(2,await f.Db.Set<LoaiVacXin>().CountAsync()); Assert.Single(await f.Db.Set<GoiVacXin>().ToArrayAsync());
+        Assert.Equal(2,await f.Db.Vaccines.CountAsync());
+        Assert.Equal(2,await f.Db.Set<CongNgheVacXin>().CountAsync()); Assert.Single(await f.Db.Set<GoiVacXin>().ToArrayAsync());
         Assert.Equal(2,await f.Db.Set<GoiVacXin_VacXin>().CountAsync());
         Assert.Equal(123456,(await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==first.MaVacXin)).Gia);
         using var http=f.Factory.CreateClient();
@@ -159,20 +159,20 @@ public sealed class CatalogSqlTests
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
         var desktop=new TiemChung.Desktop.Services.CatalogApiService(identity);
         var rows=await desktop.ListAsync<TiemChung.Desktop.Services.CatalogVaccine>("vaccines"); Assert.Equal(2,rows.Length);
-        await desktop.SaveAsync("injection-types",null,new { name="Windows SQL",description="",code="LTC-WINDOWS-SQL" });
-        var created=(await desktop.ListAsync<TiemChung.Desktop.Services.CatalogType>("injection-types","Windows SQL")).Single();
-        await desktop.SaveAsync("injection-types",created.Id,new { name="Windows updated",description="saved" });
-        Assert.Equal("Windows updated",(await f.Db.Set<LoaiTiemChung>().AsNoTracking().SingleAsync(x=>x.MaLoaiTiemChung==created.Id)).TenLoaiTiemChung);
+        await desktop.SaveAsync("vaccine-technologies",null,new { name="Windows SQL",description="",code="CNVX-WINDOWS-SQL" });
+        var created=(await desktop.ListAsync<TiemChung.Desktop.Services.CatalogType>("vaccine-technologies","Windows SQL")).Single();
+        await desktop.SaveAsync("vaccine-technologies",created.Id,new { name="Windows updated",description="saved" });
+        Assert.Equal("Windows updated",(await f.Db.Set<CongNgheVacXin>().AsNoTracking().SingleAsync(x=>x.MaCongNghe==created.Id)).TenCongNghe);
         await Assert.ThrowsAsync<HttpRequestException>(()=>desktop.DeleteAsync("vaccines",rows[0].Id));
-        await desktop.DeleteAsync("injection-types",created.Id);
-        Assert.Empty(await desktop.ListAsync<TiemChung.Desktop.Services.CatalogType>("injection-types","Windows"));
+        await desktop.DeleteAsync("vaccine-technologies",created.Id);
+        Assert.Empty(await desktop.ListAsync<TiemChung.Desktop.Services.CatalogType>("vaccine-technologies","Windows"));
         await identity.LogoutAsync();
-        await Assert.ThrowsAsync<HttpRequestException>(()=>desktop.SaveAsync("injection-types",null,new { name="Denied",description="" }));
+        await Assert.ThrowsAsync<HttpRequestException>(()=>desktop.SaveAsync("vaccine-technologies",null,new { name="Denied",description="" }));
         });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task WindowsCommandsManageAllFiveCatalogsWithRF02ACompatibilityFields()
+    public async Task WindowsCommandsManageAllFourCatalogsWithRF02ACompatibilityFields()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
@@ -186,13 +186,13 @@ public sealed class CatalogSqlTests
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
             while (!vm.CanInteract) await Task.Delay(10,timeout.Token);
         }
-        foreach (var tab in new[] { "Loại tiêm chủng", "Loại vắc xin", "Bệnh / phòng bệnh", "Vắc xin", "Gói vắc xin" }) {
+        foreach (var tab in new[] { "Phòng bệnh", "Công nghệ vắc xin", "Vắc xin", "Gói vắc xin" }) {
             await Command(vm.SelectTabCommand,tab);
             await Command(vm.NewCommand);
             vm.Name="Windows command "+tab; vm.Description="SQL";
             if (vm.ShowVaccine) {
                 vm.Manufacturer="Demo"; vm.Origin="Demo"; vm.Price="-1";
-                vm.VaccineType=vm.VaccineTypes.First(); vm.InjectionType=vm.InjectionTypes.First();
+                vm.Technologies.First().Included=true;
                 await Command(vm.SaveCommand); Assert.Contains("Giá phải",vm.Feedback);
                 Assert.Equal("Windows command "+tab,vm.Name);
             }
@@ -226,7 +226,7 @@ public sealed class CatalogSqlTests
             using var http=f.Factory.CreateClient(); var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
             var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };
-            await vm.InitializeAsync();Assert.Equal(vm.VaccineTypes[0].Name,vm.VaccineTypes[0].ToString());
+            await vm.InitializeAsync();Assert.NotEmpty(vm.Technologies);
             async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command,object? parameter=null) {
                 Assert.True(command.CanExecute(parameter));command.Execute(parameter);
                 using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -236,7 +236,7 @@ public sealed class CatalogSqlTests
             await Command(vm.NewCommand);notified.Clear();vm.Name="[DEMO] Vắc xin Đỏ";
             Assert.Equal("VX-DEMO-VAC-XIN-DO",vm.Code);Assert.Contains(nameof(vm.Code),notified);
             vm.Code="VX-WINDOWS-CUSTOM";vm.Name="[DEMO] Tên tự chọn";Assert.Equal("VX-WINDOWS-CUSTOM",vm.Code);
-            vm.Manufacturer="Synthetic";vm.Origin="Synthetic";vm.Price="100000";vm.VaccineType=vm.VaccineTypes.First();vm.InjectionType=vm.InjectionTypes.First();
+            vm.Manufacturer="Synthetic";vm.Origin="Synthetic";vm.Price="100000";vm.Technologies.First().Included=true;
             foreach(var missing in new[]{"target","route","disease"}) {
                 vm.TargetAudience=missing=="target" ? "" : "Synthetic audience";
                 vm.AdministrationRoute=missing=="route" ? null : vm.AdministrationRoutes.First();
@@ -356,7 +356,7 @@ public sealed class CatalogSqlTests
                 using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 while(vm.IsBusy)await Task.Delay(10,timeout.Token);
             }
-            foreach(var (tab,resource,prefix) in new[] { ("Loại tiêm chủng","injection-types","LTC"),("Loại vắc xin","vaccine-types","LVX"),("Bệnh / phòng bệnh","diseases","BENH") }) {
+            foreach(var (tab,resource,prefix) in new[] { ("Công nghệ vắc xin","vaccine-technologies","CNVX"),("Phòng bệnh","diseases","BENH") }) {
                 await Command(vm.SelectTabCommand,tab);var referenced=vm.Rows.First();
                 await Command(vm.NewCommand);vm.Name="[DEMO] B1 "+resource;vm.Description="Synthetic B1";
                 var code=vm.Code;Assert.StartsWith(prefix+"-",code);
@@ -409,7 +409,7 @@ public sealed class CatalogSqlTests
             Client.DefaultRequestHeaders.Authorization=new("Bearer",json.RootElement.GetProperty("accessToken").GetString());
         }
         internal required OwnedSqlTestDatabase Database { get; init; }
-        public static async Task<Fixture> Create(Func<TiemChungDbContext, Task>? afterDatabaseCreated = null) {
+        public static async Task<Fixture> Create(Func<TiemChungDbContext, Task>? afterDatabaseCreated = null, bool historicalCatalog = false) {
             var owner = await OwnedSqlTestDatabase.CreateAsync(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION")
                 ?? throw new InvalidOperationException("SQL required."));
             TiemChungDbContext? db = null;
@@ -424,7 +424,10 @@ public sealed class CatalogSqlTests
                 }).Build();
                 db = new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(connection).Options);
                 if (afterDatabaseCreated is not null) await afterDatabaseCreated(db);
-                await db.Database.MigrateAsync();
+                if (historicalCatalog) {
+                    await Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>(db).MigrateAsync(HistoricalCatalogFixture.Latest);
+                    await HistoricalCatalogFixture.ConfigureAsync(db);
+                } else await db.Database.MigrateAsync();
                 await DevelopmentAdminSeed.RunAsync(db,new SeedEnvironment("Development"),config);
                 factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b=>b.UseEnvironment("Development").ConfigureAppConfiguration((_,c)=>c.AddConfiguration(config)).ConfigureServices(s=> {
                     s.RemoveAll<DbContextOptions<TiemChungDbContext>>(); s.RemoveAll<TiemChungDbContext>(); s.AddDbContext<TiemChungDbContext>(o=>o.UseSqlServer(connection));

@@ -300,12 +300,13 @@ public sealed class VaccinationSqlTests
         public TiemChungDbContext Db=>Base.Db;
         public HttpClient Nurse=null!, OtherNurse=null!, Doctor=null!, Cashier=null!;
         public int A,B,PackageId,NurseAccountId,NurseEmployeeId;
-        public static async Task<Fixture> Create()
+        public static Task<Fixture> Create() => Create(false);
+        public static async Task<Fixture> Create(bool historicalCatalog)
         {
-            var b=await AppointmentSqlTests.Fixture.Create();var f=new Fixture{Base=b};
+            var b=await AppointmentSqlTests.Fixture.Create(historicalCatalog);var f=new Fixture{Base=b};
             try {
                 var environment=new TestEnvironment();
-                await DevelopmentCatalogSeed.RunAsync(f.Db,environment);await DevelopmentInventorySeed.RunAsync(f.Db,environment);
+                if (historicalCatalog) await HistoricalCatalogFixture.SeedAsync(f.Db); else await DevelopmentCatalogSeed.RunAsync(f.Db,environment);await DevelopmentInventorySeed.RunAsync(f.Db,environment);
                 f.A=(await f.Db.Vaccines.SingleAsync(v=>v.TenVacXin=="[DEMO] Vắc xin A")).MaVacXin;
                 f.B=(await f.Db.Vaccines.SingleAsync(v=>v.TenVacXin=="[DEMO] Vắc xin B")).MaVacXin;
                 f.PackageId=(await f.Db.Set<GoiVacXin>().SingleAsync(p=>p.TenGoi=="[DEMO] Gói A + B")).MaGoi;

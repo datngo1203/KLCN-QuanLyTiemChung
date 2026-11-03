@@ -187,9 +187,8 @@ public sealed class CustomerPasswordResetSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task MigrationPreservesVerificationMailAndCanBeAppliedAgain()
     {
-        await SqlFixtureLifecycle.RunAsync(Fixture.Create, async f => {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create("20261103075906_X21InventoryReceipt"), async f => {
             var migrator = f.Db.GetService<IMigrator>();
-            await migrator.MigrateAsync("20261103075906_X21InventoryReceipt");
             await f.AddCustomer();
             var account = await f.Db.Set<TaiKhoan>().SingleAsync();
             var id = Guid.NewGuid(); var mailId = Guid.NewGuid(); var hash = IdentityTokens.Hash("legacy-token");
@@ -235,10 +234,11 @@ public sealed class CustomerPasswordResetSqlTests
                 .ConfigureAppConfiguration((_, c) => c.AddConfiguration(Config)));
         }
         public TiemChungDbContext NewDb() => new(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(owner.ConnectionString).Options);
-        public static async Task<Fixture> Create() {
+        public static Task<Fixture> Create() => Create(null);
+        public static async Task<Fixture> Create(string? target) {
             var owner = await OwnedSqlTestDatabase.CreateAsync(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL required."));
             var f = new Fixture(owner);
-            try { await f.Db.Database.MigrateAsync(); return f; }
+            try { await f.Db.GetService<IMigrator>().MigrateAsync(target); return f; }
             catch (Exception failure) { await SqlFixtureLifecycle.CleanupAfterFailureAsync(failure, f.DisposeAsync); throw; }
         }
         public async Task AddCustomer() {
