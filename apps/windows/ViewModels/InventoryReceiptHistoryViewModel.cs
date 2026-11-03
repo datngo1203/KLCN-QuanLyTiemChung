@@ -1,3 +1,4 @@
+using System.IO;
 using System.Collections.ObjectModel;
 using TiemChung.Contracts;
 using TiemChung.Desktop.Services;
