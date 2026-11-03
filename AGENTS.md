@@ -24,6 +24,17 @@ Ghi tiêm phải kiểm chứng chỉ định chuyên môn, đúng lịch/ngư�
 Chỉ người sở hữu module sửa module đó; thay đổi contract/schema cần người khác review. Quyết định phân công ngày 02/11/2026: Đạt tiếp tục S5, Bảo triển khai S6, Quý triển khai S7; cả nhóm nghiệm thu S8. Ngoại lệ ngày 31/10/2026 cho phép Đạt dùng Codex làm thay chỉ giải thích giai đoạn trước, không áp dụng mặc định cho công việc giao mới. Giữ nguyên lịch sử đóng góp, không ghi nhận review thay người khác. Không tự cấp hoặc đổi quyền cộng tác GitHub.
 Sau thay đổi: chạy kiểm tra đúng phần bị ảnh hưởng; báo đúng kết quả và các phần chưa kiểm tra. Tiến độ chỉ cập nhật cột Trạng thái trong SCOPE.md; không tạo file tiến độ khác.
 
+## Phối hợp mở rộng nghiệp vụ — cập nhật 03/11/2026
+
+Người dùng **cho phép đề xuất và chuẩn bị thay đổi phạm vi** theo từng lát nghiệp vụ có đầu ra chạy được. Quy định trước đây `SCOPE.md` chỉ cho làm S0–S8 tiếp tục áp dụng cho **phần đã nghiệm thu**; ngoại lệ mới chỉ có hiệu lực sau khi lát bổ sung được mô tả trong `SCOPE.md` và được review/phê duyệt phù hợp. Không áp toàn bộ sổ BA QD-001–017 thành code tự động.
+
+- **Chỉ một lát tại một thời điểm của Đạt:** X1 đọc kho thật qua API/SQL trên Windows A05 là ưu tiên độc lập; chưa triển khai X2 nhập kho/nhà cung cấp hoặc A02/A04 nâng cao nếu chưa chốt lát riêng. Không đụng `VaccinationEndpoints` và phần lưu tiền/ưu đãi khi làm X1.
+- **Owner giữ quyền kiểm soát nhánh:** Bảo giữ S6 và những chỉnh sửa Registration/Payment của S6; Quý giữ S7 Reports; Đạt giữ X1/S5 và điều phối tích hợp. Không code thay/force-push lên branch của Bảo/Quý. Khi phát sinh mâu thuẫn, ghi trong [issue #64](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/64), yêu cầu owner review diff; nếu Đạt được giao sửa thay, làm **PR tương thích riêng**, không tái định danh tác giả, không merge không có review.
+- **Dùng contract nhỏ, tương thích ngược:** tránh sửa DTO/endpoint hiện hữu dùng bởi S6/S7 khi không cần. `Program.cs`, `TiemChungDbContext`, migration, `ShellViewModel`, `NavigationRegistry` là vùng chung phải điều phối; **một migration tại một thời điểm**.
+- **Không có integration branch kéo dài làm nguồn sự thật thứ hai:** mỗi lát dùng branch mới từ `main`, PR nhỏ vào `main`, yêu cầu CI/test/review rồi mới squash merge. Sau mỗi merge, các nhánh chưa merge cần đồng bộ `main` và kiểm lại diff trước khi PR; không cherry-pick mù các thay đổi giao thoa.
+- **Kiểm thử:** làm xong lát nào test DB/API/client và regression chỗ liên quan của lát đó; S8 tổng thể chạy sau các lát dự kiến nộp đã tích hợp. Test của S5 theo S4 cũ **không chứng minh** S6 ưu đãi tương thích, và test S7 trên branch chưa chứng minh đã merge.
+- **Khi bắt đầu phiên Codex/chat mới:** đọc `AGENTS.md`, `SCOPE.md` trên `main`; nếu PR cập nhật này chưa merge, đọc thêm branch `docs/coordination-scope-x1-20261103`, cùng issue #64. Xác nhận module owner, contract, diff/test và **một** lát tiếp theo trước khi code. Tình trạng đã nghiệm thu vẫn chỉ được ghi vào cột `Trạng thái` của `SCOPE.md`.
+
 ## Giới hạn triển khai ở mức khóa luận tốt nghiệp
 
 Quyết định trực tiếp của người dùng ngày 24/10/2026. Áp dụng cho chat điều phối, tác giả và reviewer của Web, Windows, API và SQL. Mục tiêu: sản phẩm đủ tốt để giải thích thiết kế, kiểm chứng chức năng và demo nghiệp vụ thật với dữ liệu giả. Không mặc định nhận yêu cầu vận hành hệ thống y tế production.
