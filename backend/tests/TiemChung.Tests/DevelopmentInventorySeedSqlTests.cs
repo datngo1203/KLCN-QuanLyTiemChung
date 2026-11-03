@@ -95,9 +95,11 @@ public sealed class DevelopmentInventorySeedSqlTests
             var source = await f.Db.Vaccines.SingleAsync(x => x.TenVacXin == "[DEMO] Vắc xin B");
             if (scenario == "missing") {
                 await f.Db.Set<GoiVacXin_VacXin>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
+                await f.Db.Set<VacXin_Benh>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
+                await f.Db.Set<VaccineRegimen>().Where(x => x.VaccineId == source.MaVacXin).ExecuteDeleteAsync();
                 f.Db.Remove(source);
             } else if (scenario == "renamed") source.TenVacXin = "Non-demo source";
-            else f.Db.Add(new VacXin { TenVacXin=source.TenVacXin, MaLoaiVacXin=source.MaLoaiVacXin,
+            else f.Db.Add(new VacXin { Code="VX-SYNTHETIC", TenVacXin=source.TenVacXin, MaLoaiVacXin=source.MaLoaiVacXin,
                 MaLoaiTiemChung=source.MaLoaiTiemChung, NhaSanXuat="Synthetic", XuatXu="Synthetic", Gia=1, TrangThai="Active" });
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentInventorySeed.RunAsync(f.Db, Development));

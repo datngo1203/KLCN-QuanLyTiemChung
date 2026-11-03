@@ -281,6 +281,9 @@ public sealed class RegistrationSqlTests
     {
         // Fixture owns a fresh random test DB. Only this test rolls it back before inserting its legacy row.
         await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
+        await DevelopmentCatalogSeed.RunAsync(f.Db, new EnvironmentStub());
+        var legacyVaccineId = await f.Db.Vaccines.Select(x => x.MaVacXin).FirstAsync();
+        var legacyPackageId = await f.Db.Set<GoiVacXin>().Select(x => x.MaGoi).SingleAsync();
         var migrator = f.Db.GetService<IMigrator>();
         await migrator.MigrateAsync("20261025141042_S3NullableCustomerIdentity");
         var customer = new KhachHang { HoTen = "[DEMO] Before G2", Email = "upgrade-g2@example.invalid", SoDienThoai = "0900000000" };
@@ -291,10 +294,9 @@ public sealed class RegistrationSqlTests
             MaNhanVien = (await f.Db.Set<NhanVien>().SingleAsync()).MaNhanVien, NgayDangKy = DateTime.UtcNow,
             HinhThucTiem = "Legacy fixture", ThoiGianDuKien = DateTime.UtcNow.AddDays(1), TrangThai = "LegacyFixture" };
         f.Db.Add(row); await f.Db.SaveChangesAsync();
-        await DevelopmentCatalogSeed.RunAsync(f.Db, new EnvironmentStub());
-        f.Db.RegistrationVaccineItems.Add(new() { MaDangKy = row.MaDangKy, MaVacXin = (await f.Db.Vaccines.FirstAsync()).MaVacXin,
+        f.Db.RegistrationVaccineItems.Add(new() { MaDangKy = row.MaDangKy, MaVacXin = legacyVaccineId,
             SoLuong = 3, GiaTaiThoiDiemDangKy = 120000 });
-        f.Db.RegistrationPackageItems.Add(new() { MaDangKy = row.MaDangKy, MaGoi = (await f.Db.Set<GoiVacXin>().SingleAsync()).MaGoi,
+        f.Db.RegistrationPackageItems.Add(new() { MaDangKy = row.MaDangKy, MaGoi = legacyPackageId,
             SoLuongGoi = 2, GiaTaiThoiDiemDangKy = 300000 });
         await f.Db.SaveChangesAsync();
         var before = JsonSerializer.Serialize(await f.Db.Registrations.AsNoTracking().SingleAsync());

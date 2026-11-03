@@ -18,7 +18,7 @@ public sealed class InventoryReceivingSqlTests
     private static async Task<ReceiveInventoryRequest> Request(Fixture f,string lot="[DEMO] X21 / +%?#")
     {
         var today=DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).DateTime);
-        return new(lot,(await f.Db.Vaccines.FirstAsync()).MaVacXin,today.AddMonths(-6),today.AddYears(1),100,"[DEMO] Supplier","[DEMO] DOC 001","[DEMO] Cold room A",true);
+        return new(lot,await f.Db.Vaccines.Select(x => x.MaVacXin).FirstAsync(),today.AddMonths(-6),today.AddYears(1),100,"[DEMO] Supplier","[DEMO] DOC 001","[DEMO] Cold room A",true);
     }
     private static async Task<HttpClient> Actor(Fixture f,string? title="ThuKho",bool read=true,bool write=true)
     {

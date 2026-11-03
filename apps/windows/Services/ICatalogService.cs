@@ -4,19 +4,30 @@ using System.Text.Json;
 
 namespace TiemChung.Desktop.Services;
 
-public sealed record CatalogType(int Id, string Name, string Description);
-public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, string Origin, decimal Price, int VaccineTypeId, int InjectionTypeId);
+public sealed record CatalogType(int Id, string Name, string Description, string Code = "", string Status = "Active")
+{
+    public override string ToString() => Name;
+}
+public sealed record CatalogReference(int Id, string Code, string Name);
+public sealed record CatalogSuggestions(string[] Manufacturers, string[] Origins, string[] AdministrationRoutes);
+public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, string Origin, decimal Price, int VaccineTypeId, int InjectionTypeId,
+    string Code = "", string Status = "Active", string? TargetAudience = null, string? AdministrationRoute = null, string? AdministrationRouteNote = null, CatalogReference[]? Diseases = null);
 public sealed record CatalogPackageItem(int VaccineId, int Quantity);
-public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items);
+public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items, string Code = "", string Status = "Active", string? TargetAudience = null);
 public sealed record CatalogList<T>(string Source, T[] Items);
 
 public sealed class CatalogApiService(IdentityApiService? identity = null)
 {
     private readonly IdentityApiService _identity = identity ?? IdentityApiService.Current;
-    public async Task<T[]> ListAsync<T>(string resource, string search = "") {
-        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, $"api/v1/catalog/{resource}?search={Uri.EscapeDataString(search)}");
+    public async Task<T[]> ListAsync<T>(string resource, string search = "", string? status = null) {
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, $"api/v1/catalog/{resource}?search={Uri.EscapeDataString(search)}" + (status == null ? "" : "&status=" + Uri.EscapeDataString(status)));
         await Check(response);
         return (await response.Content.ReadFromJsonAsync<CatalogList<T>>())?.Items ?? throw new HttpRequestException("Phản hồi danh mục không hợp lệ.");
+    }
+    public async Task<CatalogSuggestions> SuggestionsAsync() {
+        using var response = await _identity.SendCatalogAsync(HttpMethod.Get, "api/v1/catalog/suggestions");
+        await Check(response);
+        return await response.Content.ReadFromJsonAsync<CatalogSuggestions>() ?? throw new HttpRequestException("Phản hồi danh mục không hợp lệ.");
     }
     public async Task SaveAsync(string resource, int? id, object body) {
         using var response = await _identity.SendCatalogAsync(id.HasValue ? HttpMethod.Put : HttpMethod.Post,
@@ -34,7 +45,8 @@ public sealed class CatalogApiService(IdentityApiService? identity = null)
         catch (JsonException) { } catch (KeyNotFoundException) { }
         throw new HttpRequestException(code switch {
             "catalogReferenced" => "Không thể xóa: mục đang được tham chiếu.",
-            "validation" => "Kiểm tra tên, loại, giá nguyên VND không âm và thành phần gói.",
+            "validation" => "Kiểm tra mã viết hoa đúng tiền tố, tên, loại, bệnh phòng, đối tượng, đường dùng, giá nguyên VND và thành phần gói.",
+            "catalogDuplicate" => "Mã hoặc tên danh mục đã tồn tại. Hãy chọn giá trị khác.",
             "permissionDenied" => "Bạn không có quyền ghi danh mục này.",
             "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại.",
             "resourceNotFound" => "Mục không còn tồn tại. Hãy tải lại danh sách.",

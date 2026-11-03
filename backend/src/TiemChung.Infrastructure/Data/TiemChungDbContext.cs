@@ -188,6 +188,11 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         loaitiemchung.Property(x => x.TenLoaiTiemChung).IsRequired();
         loaitiemchung.Property(x => x.MoTa).HasColumnType("nvarchar(500)");
         loaitiemchung.Property(x => x.MoTa).IsRequired();
+        loaitiemchung.Property(x => x.Code).HasMaxLength(50).UseCollation("Latin1_General_100_CI_AS");
+        loaitiemchung.HasIndex(x => x.Code).IsUnique();
+        loaitiemchung.Property(x => x.TenLoaiTiemChung).UseCollation("Latin1_General_100_CI_AS");
+        loaitiemchung.HasIndex(x => x.TenLoaiTiemChung).IsUnique();
+        loaitiemchung.Property(x => x.TrangThai).HasColumnType("nvarchar(30)").HasDefaultValue("Active");
 
         var loaivacxin = model.Entity<LoaiVacXin>();
         loaivacxin.ToTable("LoaiVacXin");
@@ -197,6 +202,11 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         loaivacxin.Property(x => x.TenLoaiVacXin).IsRequired();
         loaivacxin.Property(x => x.MoTa).HasColumnType("nvarchar(500)");
         loaivacxin.Property(x => x.MoTa).IsRequired();
+        loaivacxin.Property(x => x.Code).HasMaxLength(50).UseCollation("Latin1_General_100_CI_AS");
+        loaivacxin.HasIndex(x => x.Code).IsUnique();
+        loaivacxin.Property(x => x.TenLoaiVacXin).UseCollation("Latin1_General_100_CI_AS");
+        loaivacxin.HasIndex(x => x.TenLoaiVacXin).IsUnique();
+        loaivacxin.Property(x => x.TrangThai).HasColumnType("nvarchar(30)").HasDefaultValue("Active");
 
         var benh = model.Entity<Benh>();
         benh.ToTable("Benh");
@@ -206,6 +216,11 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         benh.Property(x => x.TenBenh).IsRequired();
         benh.Property(x => x.MoTa).HasColumnType("nvarchar(500)");
         benh.Property(x => x.MoTa).IsRequired();
+        benh.Property(x => x.Code).HasMaxLength(50).UseCollation("Latin1_General_100_CI_AS");
+        benh.HasIndex(x => x.Code).IsUnique();
+        benh.Property(x => x.TenBenh).UseCollation("Latin1_General_100_CI_AS");
+        benh.HasIndex(x => x.TenBenh).IsUnique();
+        benh.Property(x => x.TrangThai).HasColumnType("nvarchar(30)").HasDefaultValue("Active");
 
         var vacxin = model.Entity<VacXin>();
         vacxin.ToTable("VacXin");
@@ -221,7 +236,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         vacxin.Property(x => x.NhaSanXuat).IsRequired();
         vacxin.Property(x => x.XuatXu).HasColumnType("nvarchar(100)");
         vacxin.Property(x => x.XuatXu).IsRequired();
-        vacxin.Property(x => x.LieuLuong).HasColumnType("nvarchar(100)");
+        vacxin.Property(x => x.LieuLuong).HasColumnType("nvarchar(200)");
         vacxin.Property(x => x.LieuLuong).IsRequired();
         vacxin.Property(x => x.TheTich).HasColumnType("decimal(10,2)");
         vacxin.Property(x => x.PhanUngSauTiem).HasColumnType("nvarchar(1000)");
@@ -230,6 +245,14 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         vacxin.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         vacxin.Property(x => x.TrangThai).IsRequired();
         vacxin.ToTable(t => t.HasCheckConstraint("CK_VacXin_Gia", "[Gia] >= 0"));
+        vacxin.Property(x => x.Code).HasMaxLength(50).UseCollation("Latin1_General_100_CI_AS");
+        vacxin.HasIndex(x => x.Code).IsUnique();
+        vacxin.Property(x => x.MoTa).HasMaxLength(2000);
+        vacxin.Property(x => x.DoiTuongSuDung).HasMaxLength(1000);
+        vacxin.Property(x => x.DuongDung).HasMaxLength(30);
+        vacxin.Property(x => x.DuongDungKhac).HasMaxLength(500);
+        vacxin.Property(x => x.NguonThongTin).HasMaxLength(250);
+        vacxin.Property(x => x.DuongDanNguon).HasMaxLength(1000);
 
         var vacxinbenh = model.Entity<VacXin_Benh>();
         vacxinbenh.ToTable("VacXin_Benh");
@@ -249,6 +272,30 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         goivacxin.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         goivacxin.Property(x => x.TrangThai).IsRequired();
         goivacxin.ToTable(t => t.HasCheckConstraint("CK_GoiVacXin_GiaGoi", "[GiaGoi] >= 0"));
+        goivacxin.Property(x => x.Code).HasMaxLength(50).UseCollation("Latin1_General_100_CI_AS");
+        goivacxin.HasIndex(x => x.Code).IsUnique();
+        goivacxin.Property(x => x.MoTa).HasMaxLength(2000);
+        goivacxin.Property(x => x.DoiTuongSuDung).HasMaxLength(1000);
+
+        var regimen = model.Entity<VaccineRegimen>();
+        regimen.ToTable("VaccineRegimen");
+        regimen.HasKey(x => x.Id);
+        regimen.HasOne<VacXin>().WithMany().HasForeignKey(x => x.VaccineId).OnDelete(DeleteBehavior.Restrict);
+        regimen.Property(x => x.Name).HasMaxLength(150);
+        regimen.Property(x => x.TargetAudience).HasMaxLength(1000);
+        regimen.Property(x => x.Summary).HasMaxLength(1500);
+        regimen.Property(x => x.SourceName).HasMaxLength(250);
+        regimen.Property(x => x.SourceUrl).HasMaxLength(1000);
+        var dose = model.Entity<VaccineRegimenDose>();
+        dose.ToTable("VaccineRegimenDose", t => {
+            t.HasCheckConstraint("CK_VaccineRegimenDose_Order", "[DoseOrder] BETWEEN 1 AND 20");
+            t.HasCheckConstraint("CK_VaccineRegimenDose_Intervals", "([MinimumIntervalDays] IS NULL OR [MinimumIntervalDays] >= 0) AND ([RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= 0) AND ([MinimumIntervalDays] IS NULL OR [RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= [MinimumIntervalDays])");
+        });
+        dose.HasKey(x => x.Id);
+        dose.HasOne<VaccineRegimen>().WithMany().HasForeignKey(x => x.RegimenId).OnDelete(DeleteBehavior.Cascade);
+        dose.HasIndex(x => new { x.RegimenId, x.DoseOrder }).IsUnique();
+        dose.Property(x => x.TimingLabel).HasMaxLength(250);
+        dose.Property(x => x.Note).HasMaxLength(500);
 
         var goivacxinvacxin = model.Entity<GoiVacXin_VacXin>();
         goivacxinvacxin.ToTable("GoiVacXin_VacXin");

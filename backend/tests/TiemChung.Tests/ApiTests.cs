@@ -14,7 +14,7 @@ public sealed class ApiTests
 {
     private static WebApplicationFactory<Program> Create() => new WebApplicationFactory<Program>()
         .WithWebHostBuilder(builder => builder.UseEnvironment("Development").ConfigureAppConfiguration((_, config) =>
-            config.AddInMemoryCollection(new Dictionary<string,string?> { ["Catalog:UseDemoData"]="true" })));
+            config.AddInMemoryCollection(new Dictionary<string,string?> { ["ConnectionStrings:TiemChung"]="Server=127.0.0.1,1;Database=Unavailable;User ID=synthetic;Password=Unused-Test!;Connect Timeout=1;TrustServerCertificate=True" })));
 
     [Fact]
     public async Task HealthRunsWithoutDatabase()
@@ -24,14 +24,12 @@ public sealed class ApiTests
     }
 
     [Fact]
-    public async Task CatalogReportsDemoSourceAndFiltersOnServer()
+    public async Task CatalogFailsWithoutSqlInsteadOfReturningSampleData()
     {
         await using var factory = Create();
-        var body = await factory.CreateClient().GetFromJsonAsync<VaccineListResponse>("/api/v1/catalog/vaccines?search=A");
-        Assert.NotNull(body);
-        Assert.Equal("demo", body.Source);
-        Assert.Single(body.Items);
-        Assert.Equal(1, body.Items[0].Id);
+        using var response = await factory.CreateClient().GetAsync("/api/v1/catalog/vaccines");
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("dependencyUnavailable", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -55,6 +53,6 @@ public sealed class ApiTests
         Assert.Contains("CREATE TABLE [InventoryReceipt]", script);
         Assert.Contains("MatKhauHash", script);
         Assert.Contains("CREATE TABLE [CustomerPasswordReset]", script);
-        Assert.Equal(37, context.Model.GetEntityTypes().Count());
+        Assert.Equal(39, context.Model.GetEntityTypes().Count());
     }
 }

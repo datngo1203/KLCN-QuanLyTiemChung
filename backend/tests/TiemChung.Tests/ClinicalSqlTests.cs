@@ -78,7 +78,7 @@ public sealed class ClinicalSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
             var first=await f.Db.Vaccines.FirstAsync();var package=await f.Db.Set<GoiVacXin>().FirstAsync();
-            VacXin Vaccine(string name)=>new(){TenVacXin=name,MaLoaiTiemChung=first.MaLoaiTiemChung,MaLoaiVacXin=first.MaLoaiVacXin,TrangThai="Active",Gia=200};
+            VacXin Vaccine(string name)=>new(){Code="VX-"+name.ToUpperInvariant().Replace("[DEMO] ","DEMO-").Replace(" ","-"),TenVacXin=name,MaLoaiTiemChung=first.MaLoaiTiemChung,MaLoaiVacXin=first.MaLoaiVacXin,TrangThai="Active",Gia=200};
             var second=Vaccine("[DEMO] component 2");var outside=Vaccine("[DEMO] other registration vaccine");f.Db.AddRange(second,outside);await f.Db.SaveChangesAsync();
             f.Db.Add(new GoiVacXin_VacXin {MaGoi=package.MaGoi,MaVacXin=second.MaVacXin,SoLuong=3});await f.Db.SaveChangesAsync();
             async Task<RegistrationDto> Register(RegistrationItemRequest[] items){using var response=await f.Reception.PostAsJsonAsync("/api/v1/registrations",new CreateRegistrationRequest(f.CustomerId,f.RecipientId,items));Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;}
