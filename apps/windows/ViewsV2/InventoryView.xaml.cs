@@ -14,6 +14,11 @@ public partial class InventoryView : UserControl
             await vm.LoadMovementsAsync();
         }
     }
+    private void OpenReceiptHistory(object sender,RoutedEventArgs e)
+    {
+        if(DataContext is not InventoryViewModel vm || !vm.ReceivingHistory.HasAccess)return;
+        new InventoryReceiptHistoryWindow(vm.ReceivingHistory){Owner=Window.GetWindow(this)}.ShowDialog();
+    }
     public InventoryView()
     {
         InitializeComponent();
