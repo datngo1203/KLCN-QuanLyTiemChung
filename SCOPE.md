@@ -29,7 +29,7 @@ Theo quyết định người dùng 03/11, **được đề xuất và chuẩn b
 
 | Mã | Lát được đề xuất | Chủ sở hữu | Hoàn thành khi | Trạng thái |
 |---|---|---|---|---|
-| X1 | **Kho vắc xin: thay màn Windows A05 dùng Sample bằng đọc lô/tồn và biến động qua API/SQL thật** | Đạt | Nhân viên có quyền xem đúng lô/tồn/biến động từ SQL, xử lý rỗng/lỗi/quyền, test backend + WPF, **không thay luồng S5 ghi tiêm/trừ tồn** | ☐ Được người dùng chọn hướng mở rộng; đang chờ review phạm vi của nhóm, chưa triển khai |
+| X1 | **Kho vắc xin: thay màn Windows A05 dùng Sample bằng đọc lô/tồn và biến động qua API/SQL thật** | Đạt | Nhân viên có quyền xem đúng lô/tồn/biến động từ SQL, xử lý rỗng/lỗi/quyền, test backend + WPF, **không thay luồng S5 ghi tiêm/trừ tồn** | ◐ 03/11: Đã triển khai trên [Draft PR #66](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/66), 15 file, commit `831a721`; local backend X1 + S5 57/57, Windows 228/228, build 0 warning/error, full shell/API/SQL có bằng chứng trong PR. **Chưa merge, chưa có review chéo; CI #171 chưa hoàn tất ở lượt kiểm (backend đang chạy)**. Chưa kết luận nghiệm thu; xem [Issue #64](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/64) |
 | X2 | Tiếp nhận lô/nhập vắc xin từ nhà cung cấp phục vụ quy trình (1) | Đạt, cần rà phạm vi lại | Chốt biểu mẫu, nguồn/căn cứ, nhà cung cấp, đối chiếu lô/hạn dùng/số lượng, quyền Kho, transaction + audit trước khi code | ☐ Chưa phê duyệt chi tiết; không nhập chung X1 |
 | XA04 / XA02 | Danh mục chuyên môn và khám sàng lọc nâng cao theo sổ QD-001–017 | Đạt điều phối, phần dùng chung phải review | Chốt lần lượt lát nhỏ, dữ liệu có nguồn và cổng kiểm tra an toàn, không thay đổi mũi đã tiêm | ☐ Backlog, **không** là chỉ thị tự triển khai ngay |
 
