@@ -96,7 +96,7 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
                 var employee=await db.Set<NhanVien>().SingleAsync(x=>x.MaNhanVien==target.MaNhanVien,ct);
                 employee.TrangThai=values[0]; action="employeeStatusChanged"; break;
             case "set-extra-permissions":
-                if(values.Distinct().Count()!=values.Length || values.Any(x=>!IdentityPermissions.Codes.Contains(x)) ||
+                if(values.Distinct().Count()!=values.Length || values.Any(x=>!IdentityPermissions.Codes.Contains(x) && x!=IdentityPermissions.InventoryReceive) ||
                     target.AccountType!="Employee" || target.AdministrativeDuty=="Director" && values.Contains("QuanLyTaiKhoan"))
                     throw new IdentityFailure(400,"validation");
                 await db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==targetId).ExecuteDeleteAsync(ct);
