@@ -87,13 +87,14 @@ public sealed class ReportSqlTests
             f.Db.Add(reg);
             await f.Db.SaveChangesAsync();
 
-            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
-            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            var loaiVacXin = new LoaiVacXin { Code="LVX-SYNTHETIC", TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { Code="LTC-SYNTHETIC", TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
             f.Db.AddRange(loaiVacXin, loaiTiem);
             await f.Db.SaveChangesAsync();
 
             var vaccine = new VacXin
             {
+                Code = "VX-SYNTHETIC",
                 TenVacXin = "Vaccine Test",
                 NhaSanXuat = "Demo",
                 XuatXu = "VN",
@@ -285,13 +286,13 @@ public sealed class ReportSqlTests
             await f.Login();
             var employee = await f.Db.Set<NhanVien>().FirstAsync();
 
-            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
-            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            var loaiVacXin = new LoaiVacXin { Code="LVX-SYNTHETIC", TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { Code="LTC-SYNTHETIC", TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
             f.Db.AddRange(loaiVacXin, loaiTiem);
             await f.Db.SaveChangesAsync();
 
-            var vacA = new VacXin { TenVacXin = "AstraZeneca", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
-            var vacB = new VacXin { TenVacXin = "Pfizer", NhaSanXuat = "PF", XuatXu = "US", LieuLuong = "0.3ml", PhanUngSauTiem = "None", Gia = 200_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
+            var vacA = new VacXin { Code="VX-SYNTHETIC", TenVacXin = "AstraZeneca", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
+            var vacB = new VacXin { Code="VX-PFIZER", TenVacXin = "Pfizer", NhaSanXuat = "PF", XuatXu = "US", LieuLuong = "0.3ml", PhanUngSauTiem = "None", Gia = 200_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
             f.Db.AddRange(vacA, vacB);
             await f.Db.SaveChangesAsync();
 
@@ -341,12 +342,12 @@ public sealed class ReportSqlTests
             await f.Login();
             var employee = await f.Db.Set<NhanVien>().FirstAsync();
 
-            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
-            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            var loaiVacXin = new LoaiVacXin { Code="LVX-SYNTHETIC", TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { Code="LTC-SYNTHETIC", TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
             f.Db.AddRange(loaiVacXin, loaiTiem);
             await f.Db.SaveChangesAsync();
 
-            var vac = new VacXin { TenVacXin = "Vaccine Test", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
+            var vac = new VacXin { Code="VX-SYNTHETIC", TenVacXin = "Vaccine Test", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
             f.Db.Add(vac);
             await f.Db.SaveChangesAsync();
 
@@ -397,12 +398,12 @@ public sealed class ReportSqlTests
             await f.Login();
             var employee = await f.Db.Set<NhanVien>().FirstAsync();
 
-            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
-            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            var loaiVacXin = new LoaiVacXin { Code="LVX-SYNTHETIC", TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { Code="LTC-SYNTHETIC", TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
             f.Db.AddRange(loaiVacXin, loaiTiem);
             await f.Db.SaveChangesAsync();
 
-            var vac = new VacXin { TenVacXin = "Vaccine Boundary", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
+            var vac = new VacXin { Code="VX-SYNTHETIC", TenVacXin = "Vaccine Boundary", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
             f.Db.Add(vac);
             await f.Db.SaveChangesAsync();
 
@@ -451,12 +452,12 @@ public sealed class ReportSqlTests
             await f.Login();
             var employee = await f.Db.Set<NhanVien>().FirstAsync();
 
-            var loaiVacXin = new LoaiVacXin { TenLoaiVacXin = "Loai A", MoTa = "Demo" };
-            var loaiTiem = new LoaiTiemChung { TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
+            var loaiVacXin = new LoaiVacXin { Code="LVX-SYNTHETIC", TenLoaiVacXin = "Loai A", MoTa = "Demo" };
+            var loaiTiem = new LoaiTiemChung { Code="LTC-SYNTHETIC", TenLoaiTiemChung = "Tiem B", MoTa = "Demo" };
             f.Db.AddRange(loaiVacXin, loaiTiem);
             await f.Db.SaveChangesAsync();
 
-            var vac = new VacXin { TenVacXin = "Vaccine Test", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
+            var vac = new VacXin { Code="VX-SYNTHETIC", TenVacXin = "Vaccine Test", NhaSanXuat = "AZ", XuatXu = "UK", LieuLuong = "0.5ml", PhanUngSauTiem = "None", Gia = 100_000m, MaLoaiVacXin = loaiVacXin.MaLoaiVacXin, MaLoaiTiemChung = loaiTiem.MaLoaiTiemChung, TrangThai = "DangSuDung" };
             f.Db.Add(vac);
             await f.Db.SaveChangesAsync();
 

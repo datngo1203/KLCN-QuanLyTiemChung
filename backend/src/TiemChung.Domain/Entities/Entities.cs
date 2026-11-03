@@ -119,6 +119,8 @@ public sealed class KhuyenMai
 
 public sealed class LoaiTiemChung
 {
+    public string Code { get; set; } = string.Empty;
+    public string TrangThai { get; set; } = "Active";
     public int MaLoaiTiemChung { get; set; }
     public string TenLoaiTiemChung { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
@@ -126,6 +128,8 @@ public sealed class LoaiTiemChung
 
 public sealed class LoaiVacXin
 {
+    public string Code { get; set; } = string.Empty;
+    public string TrangThai { get; set; } = "Active";
     public int MaLoaiVacXin { get; set; }
     public string TenLoaiVacXin { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
@@ -133,6 +137,8 @@ public sealed class LoaiVacXin
 
 public sealed class Benh
 {
+    public string Code { get; set; } = string.Empty;
+    public string TrangThai { get; set; } = "Active";
     public int MaBenh { get; set; }
     public string TenBenh { get; set; } = string.Empty;
     public string MoTa { get; set; } = string.Empty;
@@ -140,6 +146,14 @@ public sealed class Benh
 
 public sealed class VacXin
 {
+    public string Code { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? DoiTuongSuDung { get; set; }
+    public string? DuongDung { get; set; }
+    public string? DuongDungKhac { get; set; }
+    public string? NguonThongTin { get; set; }
+    public string? DuongDanNguon { get; set; }
+    public DateTimeOffset? NgayCapNhatThongTin { get; set; }
     public int MaVacXin { get; set; }
     public int MaLoaiVacXin { get; set; }
     public int MaLoaiTiemChung { get; set; }
@@ -161,6 +175,9 @@ public sealed class VacXin_Benh
 
 public sealed class GoiVacXin
 {
+    public string Code { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
+    public string? DoiTuongSuDung { get; set; }
     public int MaGoi { get; set; }
     public string TenGoi { get; set; } = string.Empty;
     public decimal GiaGoi { get; set; }
@@ -172,6 +189,28 @@ public sealed class GoiVacXin_VacXin
     public int MaGoi { get; set; }
     public int MaVacXin { get; set; }
     public int SoLuong { get; set; }
+}
+
+public sealed class VaccineRegimen
+{
+    public int Id { get; set; }
+    public int VaccineId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string TargetAudience { get; set; } = string.Empty;
+    public string? Summary { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceUrl { get; set; }
+}
+
+public sealed class VaccineRegimenDose
+{
+    public int Id { get; set; }
+    public int RegimenId { get; set; }
+    public int DoseOrder { get; set; }
+    public string TimingLabel { get; set; } = string.Empty;
+    public int? MinimumIntervalDays { get; set; }
+    public int? RecommendedIntervalDays { get; set; }
+    public string? Note { get; set; }
 }
 
 public sealed class LoVacXin

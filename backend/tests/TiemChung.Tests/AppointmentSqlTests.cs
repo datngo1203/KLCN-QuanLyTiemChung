@@ -348,8 +348,8 @@ public sealed class AppointmentSqlTests
         {
             var b=await CatalogSqlTests.Fixture.Create();var f=new Fixture {Base=b};
             try {
-                var type=new LoaiTiemChung {TenLoaiTiemChung="[DEMO] S5"};var vt=new LoaiVacXin {TenLoaiVacXin="[DEMO] S5"};b.Db.AddRange(type,vt);await b.Db.SaveChangesAsync();
-                var v=new VacXin {TenVacXin="[DEMO] S5 vaccine",MaLoaiVacXin=vt.MaLoaiVacXin,MaLoaiTiemChung=type.MaLoaiTiemChung,TrangThai="Active",Gia=100};var p=new GoiVacXin {TenGoi="[DEMO] S5 package",GiaGoi=150,TrangThai="Active"};var c=new KhachHang {HoTen="[DEMO] S5 customer"};b.Db.AddRange(v,p,c);await b.Db.SaveChangesAsync();
+                var type=new LoaiTiemChung { Code="LTC-SYNTHETIC",TenLoaiTiemChung="[DEMO] S5"};var vt=new LoaiVacXin { Code="LVX-SYNTHETIC",TenLoaiVacXin="[DEMO] S5"};b.Db.AddRange(type,vt);await b.Db.SaveChangesAsync();
+                var v=new VacXin { Code="VX-SYNTHETIC",TenVacXin="[DEMO] S5 vaccine",MaLoaiVacXin=vt.MaLoaiVacXin,MaLoaiTiemChung=type.MaLoaiTiemChung,TrangThai="Active",Gia=100};var p=new GoiVacXin { Code="GOI-SYNTHETIC",TenGoi="[DEMO] S5 package",GiaGoi=150,TrangThai="Active"};var c=new KhachHang {HoTen="[DEMO] S5 customer"};b.Db.AddRange(v,p,c);await b.Db.SaveChangesAsync();
                 var recipient=new NguoiDuocTiem {MaKhachHang=c.MaKhachHang,HoTen="[DEMO] S5 recipient"};b.Db.AddRange(recipient,new GoiVacXin_VacXin {MaGoi=p.MaGoi,MaVacXin=v.MaVacXin,SoLuong=2});await b.Db.SaveChangesAsync();
                 f.CustomerId=c.MaKhachHang;f.RecipientId=recipient.MaNguoiDuocTiem;f.Reception=await f.Actor("LeTan",true);return f;
             }catch(Exception e){await SqlFixtureLifecycle.CleanupAfterFailureAsync(e,f.DisposeAsync);throw;}

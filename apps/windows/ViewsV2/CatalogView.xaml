@@ -12,6 +12,8 @@
    </Grid></Border>
    <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding CanEdit}">
     <TextBlock Text="{Binding Tab}" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,12"/>
+    <TextBlock Text="Mã nghiệp vụ *"/><TextBox Text="{Binding Code,UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding CodeReadOnly}" MaxLength="50" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã nghiệp vụ" Margin="0,5,0,10"/>
+    <TextBlock Text="{Binding StatusLabel}" Style="{StaticResource CE.Caption}" Margin="0,0,0,10"/>
     <TextBlock Text="Tên *"/><TextBox Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tên danh mục" Margin="0,5,0,10"/>
     <StackPanel Visibility="{Binding ShowLookup,Converter={StaticResource Vis}}"><TextBlock Text="Mô tả"/><TextBox Text="{Binding Description}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mô tả" Margin="0,5,0,10"/></StackPanel>
     <StackPanel Visibility="{Binding ShowVaccine,Converter={StaticResource Vis}}">
@@ -19,6 +21,13 @@
      <TextBlock Text="Loại tiêm chủng *"/><ComboBox ItemsSource="{Binding InjectionTypes}" SelectedItem="{Binding InjectionType}" DisplayMemberPath="Name" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Loại tiêm chủng" Margin="0,5,0,10"/>
      <TextBlock Text="Nhà sản xuất *"/><TextBox Text="{Binding Manufacturer}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Nhà sản xuất" Margin="0,5,0,10"/>
      <TextBlock Text="Xuất xứ *"/><TextBox Text="{Binding Origin}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Xuất xứ" Margin="0,5,0,10"/>
+    </StackPanel>
+    <StackPanel Visibility="{Binding ShowPrice,Converter={StaticResource Vis}}"><TextBlock Text="Đối tượng sử dụng tham khảo *"/><TextBox Text="{Binding TargetAudience,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Đối tượng sử dụng tham khảo" Margin="0,5,0,10"/></StackPanel>
+    <StackPanel Visibility="{Binding ShowVaccine,Converter={StaticResource Vis}}">
+     <TextBlock Text="Bệnh phòng * (danh mục Active)"/>
+     <ItemsControl ItemsSource="{Binding Diseases}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Included}" Margin="0,5"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     <TextBlock Text="Đường dùng *" Margin="0,10,0,0"/><ComboBox ItemsSource="{Binding AdministrationRoutes}" SelectedItem="{Binding AdministrationRoute}" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Đường dùng" Margin="0,5,0,10"/>
+     <StackPanel Visibility="{Binding ShowRouteNote,Converter={StaticResource Vis}}"><TextBlock Text="Mô tả đường dùng khác *"/><TextBox Text="{Binding AdministrationRouteNote,UpdateSourceTrigger=PropertyChanged}" MaxLength="500" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mô tả đường dùng khác" Margin="0,5,0,10"/></StackPanel>
     </StackPanel>
     <StackPanel Visibility="{Binding ShowPrice,Converter={StaticResource Vis}}"><TextBlock Text="Giá VND * (số nguyên, không dấu phân cách)"/><TextBox Text="{Binding Price}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Giá VND" Margin="0,5,0,10"/></StackPanel>
     <StackPanel Visibility="{Binding ShowPackage,Converter={StaticResource Vis}}"><TextBlock Text="Thành phần gói * — chọn vắc xin, nhập số lượng" TextWrapping="Wrap"/><ItemsControl ItemsSource="{Binding PackageChoices}"><ItemsControl.ItemTemplate><DataTemplate><DockPanel Margin="0,5"><TextBox DockPanel.Dock="Right" Width="55" Text="{Binding Quantity}" AutomationProperties.Name="Số lượng"/><CheckBox Content="{Binding Name}" IsChecked="{Binding Included}" VerticalAlignment="Center"/></DockPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>

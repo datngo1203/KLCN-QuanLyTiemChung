@@ -26,11 +26,8 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
 
 var app = builder.Build();
 // Validate the completed configuration, including host/test overrides.
-var demo = app.Configuration.GetValue<bool>("Catalog:UseDemoData");
-if (demo && !app.Environment.IsDevelopment())
-    throw new InvalidOperationException("Dữ liệu mẫu chỉ được dùng ở Development.");
-if (!demo && string.IsNullOrWhiteSpace(app.Configuration.GetConnectionString("TiemChung")))
-    throw new InvalidOperationException("Cần cấu hình ConnectionStrings:TiemChung khi tắt dữ liệu mẫu.");
+if (string.IsNullOrWhiteSpace(app.Configuration.GetConnectionString("TiemChung")))
+    throw new InvalidOperationException("Cần cấu hình ConnectionStrings:TiemChung; Catalog chỉ đọc SQL.");
 if (args.Contains("--seed-inventory"))
 {
     if (args.Any(x => x is "--seed-admin" or "--seed-reception" or "--seed-catalog" or "--migrate"))

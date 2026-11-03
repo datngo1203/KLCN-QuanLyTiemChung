@@ -23,7 +23,6 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__TiemChung: Server=sqlserver;Database=TiemChung;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True
-      Catalog__UseDemoData: 'false'
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -34,7 +33,6 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__TiemChung: Server=sqlserver;Database=TiemChung;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True
-      Catalog__UseDemoData: 'false'
       Identity__SigningKey: ${IDENTITY_SIGNING_KEY:?Set IDENTITY_SIGNING_KEY in infra/.env}
       Identity__MailEncryptionKey: ${IDENTITY_MAIL_ENCRYPTION_KEY:?Set IDENTITY_MAIL_ENCRYPTION_KEY in infra/.env}
       Identity__MailMode: Synthetic
