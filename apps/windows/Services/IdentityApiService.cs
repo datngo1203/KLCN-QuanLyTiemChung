@@ -31,6 +31,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
     public bool CanUseRegistrations => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "LeTan" };
     public bool CanUseClinical => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "BacSi" };
     public bool CanUseVaccinations => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "DieuDuong" };
+    public bool CanReadInventory => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuKho" } && Permissions.Contains("XemKho");
     public bool CanUseAppointments => CanUseRegistrations && Permissions.Contains("QuanLyLichHen");
     public bool CanReadPayments => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuNgan" } && Permissions.Contains("XemThanhToan");
     public bool CanWritePayments => CanReadPayments && Permissions.Contains("GhiThanhToan");

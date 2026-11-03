@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../backend/src/TiemChung.Contracts/TiemChung.Contracts.csproj" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 

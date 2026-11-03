@@ -66,6 +66,7 @@ if (args.Contains("--seed-catalog"))
 }
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
+    if (context.Request.Path.StartsWithSegments("/api/v1/inventory")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/clinical")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
@@ -82,6 +83,7 @@ app.Use(async (context, next) => {
             code=failure.Code, traceId=context.TraceIdentifier, errors=failure.Errors });
     }
     catch (BadHttpRequestException failure) when (context.Request.Path.StartsWithSegments("/api/v1/catalog") ||
+        context.Request.Path.StartsWithSegments("/api/v1/inventory") ||
         context.Request.Path.StartsWithSegments("/api/v1/registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/payment-registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/appointments") ||
@@ -120,6 +122,7 @@ app.MapClinicalEndpoints();
 app.MapVaccinationEndpoints();
 app.MapVaccinationHistoryEndpoints();
 app.MapAftercareEndpoints();
+app.MapInventoryEndpoints();
 
 app.Run();
 
