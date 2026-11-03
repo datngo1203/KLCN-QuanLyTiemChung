@@ -84,3 +84,5 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC.SelfTest.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release
+      - name: WPF ComboBox template hit targets and DPI rendering
+        run: dotnet test apps/windows.ui.tests/TiemChung.Windows.Ui.Tests.csproj --configuration Release
