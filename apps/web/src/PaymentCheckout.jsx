@@ -43,12 +43,13 @@ function CardGateway({ errors }) {
   return <fieldset className="payment-gateway">
     <legend>Thanh toán bằng thẻ quốc tế</legend>
     <div className="payment-fields">
-      <label className="payment-field">Loại thẻ
-        <select name="cardBrand" defaultValue="" required>
+      <div className="payment-field">
+        <label htmlFor="payment-card-brand">Loại thẻ</label>
+        <select id="payment-card-brand" name="cardBrand" defaultValue="" required>
           <option value="" disabled>Chọn loại thẻ</option>
           <option>VISA</option><option>MASTER</option><option>JCB</option>
         </select>
-      </label>
+      </div>
       <Field name="cardholderName" label="Tên chủ thẻ" maxLength={150} autoComplete="off" />
       <Field name="cardNumber" label="Số thẻ" {...numeric} value={number} onChange={formatNumber}
         className="payment-field-wide" maxLength={23} pattern="[0-9 ]{13,23}" placeholder="0000 0000 0000 0000" error={errors.cardNumber} />

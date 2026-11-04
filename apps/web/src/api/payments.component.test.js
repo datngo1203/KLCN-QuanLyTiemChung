@@ -62,6 +62,7 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   assert.equal(field('fullName').value, 'Liên hệ đã chốt')
   assert.equal(host.querySelectorAll('[name=method]').length, 4)
   await act(async () => host.querySelector('[value=TheQuocTe]').click())
+  assert.equal(host.querySelector('select[name=cardBrand]').labels[0].textContent, 'Loại thẻ')
   field('cardNumber').value = '4111 1111 1111 1111'
   field('cvv').value = '683'
   field('terms').checked = true
