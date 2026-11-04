@@ -70,11 +70,12 @@ public sealed class PaymentDraft(RegistrationContact? contact, decimal totalDue)
 
     internal string Review(RecordPaymentRequest request)
     {
-        if (request.CashTendered is { } cash) return $"Tiền mặt · Khách đưa {Money(cash)} · Trả lại {Money(cash - totalDue)}";
-        if (request.Card is { } card) return $"Thẻ tại quầy · {card.CardBrand} · {card.CardholderName?.Trim()}\n" +
+        if (request.CashTendered is { } cash)
+            return $"Phương thức: Tiền mặt\nKhách đưa: {Money(cash)}\nTiền trả lại: {Money(cash - totalDue)}";
+        if (request.Card is { } card) return $"Phương thức: Thẻ tại quầy · {card.CardBrand} · {card.CardholderName?.Trim()}\n" +
             $"{CounterPaymentRules.Mask(CounterPaymentRules.CardDigits(card.CardNumber!))} · Mã xác thực {card.AuthorizationReference?.Trim()}";
         var transfer = request.Transfer!;
-        return $"Chuyển khoản / QR · {transfer.SourceBankOrWallet?.Trim()} · {transfer.AccountHolderName?.Trim()}\n" +
+        return $"Phương thức: Chuyển khoản / QR · {transfer.SourceBankOrWallet?.Trim()} · {transfer.AccountHolderName?.Trim()}\n" +
             $"{CounterPaymentRules.Mask(transfer.SourceAccountOrWalletId!.Trim())} · Tham chiếu {transfer.TransferReference?.Trim()}";
     }
 

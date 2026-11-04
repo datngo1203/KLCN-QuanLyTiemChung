@@ -1,6 +1,13 @@
 export const paymentOutcome = detail => BigInt(detail.totalDue) === 0n ? 'Không phát sinh khoản thu'
-  : detail.paymentState === 'ChoXacNhan' ? 'Chờ Thu ngân xác nhận chuyển khoản'
-  : detail.payment ? 'Đã ghi nhận thanh toán mô phỏng' : 'Chưa ghi nhận thanh toán'
+  : detail.paymentState === 'ChoXacNhan' ? 'Chờ xác nhận'
+  : detail.payment ? 'Đã thanh toán' : 'Chưa thanh toán'
+
+export const paymentMethodLabel = method => ({
+  TienMat: 'Tiền mặt',
+  TheTaiQuay: 'Thẻ tại quầy',
+  ChuyenKhoanQR: 'Chuyển khoản / QR',
+  ChuyenKhoanOnline: 'Chuyển khoản trực tuyến',
+})[method] ?? 'Giao dịch trước đây'
 
 // Financial errors use fixed messages; never display arbitrary backend details or profile data.
 export const paymentError = error => ({

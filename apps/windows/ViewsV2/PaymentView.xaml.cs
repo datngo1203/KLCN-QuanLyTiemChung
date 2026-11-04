@@ -5,6 +5,8 @@ using System.Windows.Input;
 using TiemChung.Contracts;
 using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
+using PaymentMessageBox = Wpf.Ui.Controls.MessageBox;
+using PaymentMessageBoxResult = Wpf.Ui.Controls.MessageBoxResult;
 namespace TiemChung.Desktop.ViewsV2;
 public partial class PaymentView : UserControl
 {
@@ -32,11 +34,18 @@ public partial class PaymentView : UserControl
     private async void ConfirmPayment(object sender, RoutedEventArgs e)
     {
         if (DataContext is not PaymentViewModel vm || vm.BeginConfirmation() is not { } detail) return;
-        var confirmed = MessageBox.Show(Window.GetWindow(this),
-            $"{detail.Code} · {detail.Recipient.FullName}\n{vm.ReviewText}\n\nTổng phải thu: {PaymentDraft.Money(detail.TotalDue)}\n" +
-            "Thanh toán mô phỏng phục vụ khóa luận.\n\n" + (detail.IsPending ? "Xác nhận đã nhận khoản chuyển này?" : "Ghi nhận thanh toán toàn bộ một lần?"),
-            detail.IsPending ? "Xác nhận chuyển khoản mô phỏng" : "Xem lại thanh toán mô phỏng",
-            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        var dialog = new PaymentMessageBox {
+            Owner = Window.GetWindow(this),
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Title = detail.IsPending ? "Xác nhận đã nhận tiền" : "Xác nhận thanh toán",
+            PrimaryButtonText = "Xác nhận",
+            CloseButtonText = "Hủy",
+            Content = new TextBlock {
+                Text = $"Mã đăng ký: {detail.Code}\n{vm.ReviewText}\nTổng phải thu: {PaymentDraft.Money(detail.TotalDue)}\n\nXác nhận thanh toán?",
+                MaxWidth = 420, TextWrapping = TextWrapping.Wrap
+            }
+        };
+        var confirmed = await dialog.ShowDialogAsync() == PaymentMessageBoxResult.Primary;
         await vm.ConfirmAsync(confirmed);
         if (vm.Detail?.HasReceipt == true) { Receipt.BringIntoView(); Receipt.Focus(); }
         else if (sender is Button { IsEnabled: true, IsVisible: true } button) button.Focus();
@@ -46,8 +55,8 @@ public partial class PaymentView : UserControl
         if (DataContext is not PaymentViewModel { CanAcknowledgeRisk: true } vm) return;
         var id = vm.SelectedRegistration!.Id;
         if (MessageBox.Show(Window.GetWindow(this),
-            $"DK-{id:0000}: GET chưa thấy thanh toán thành công. Yêu cầu trước có thể vẫn đang xử lý.\n\nXác nhận đã đối chiếu để mở lại thao tác?",
-            "Xác nhận rủi ro sau đối chiếu", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes
+            $"DK-{id:0000}: Chưa thấy thanh toán thành công. Giao dịch trước có thể vẫn đang xử lý.\n\nXác nhận đã đối chiếu để mở lại thanh toán?",
+            "Đối chiếu thanh toán", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes
             && vm.SelectedRegistration?.Id == id) vm.AcknowledgeRisk();
     }
 

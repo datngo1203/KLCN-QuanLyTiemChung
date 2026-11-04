@@ -15,7 +15,7 @@ public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, i
     public string Code => TransactionCode ?? $"TT-{Id:0000}";
     public string MethodLabel => Method switch {
         "TienMat" => "Tiền mặt", "TheTaiQuay" => "Thẻ tại quầy", "ChuyenKhoanQR" => "Chuyển khoản / QR",
-        "ChuyenKhoanOnline" => "Chuyển khoản trực tuyến", _ => "Mô phỏng (giao dịch cũ)"
+        "ChuyenKhoanOnline" => "Chuyển khoản trực tuyến", _ => "Giao dịch trước đây"
     };
     public string OccurredLabel => OccurredAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm:ss");
     public string PayerAddress => string.Join(", ", new[] { Payer?.AddressLine, Payer?.WardCommune, Payer?.ProvinceCity }
@@ -56,8 +56,8 @@ public sealed record RegistrationPayment(int RegistrationId, string Registration
         "TaiTrungTam" => "Tại trung tâm", "TrucTuyen" => "Trực tuyến", _ => "Chưa chọn"
     };
     internal static string StateLabel(string? state, decimal total, bool hasPayment) =>
-        state == "ChoXacNhan" ? "Chờ xác nhận chuyển khoản" : hasPayment ? "Đã ghi nhận thanh toán mô phỏng"
-        : total == 0 ? "Không phát sinh khoản thu" : "Chưa ghi nhận thanh toán";
+        state == "ChoXacNhan" ? "Chờ xác nhận" : hasPayment ? "Đã thanh toán"
+        : total == 0 ? "Không phát sinh khoản thu" : "Chưa thanh toán";
 }
 
 public sealed class PaymentApiException(string code, string message) : Exception(message)
@@ -88,7 +88,7 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
             // A POST server error, including 503, does not prove rollback.
             if (method == HttpMethod.Post && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized
                 or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
-                throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Hãy đối chiếu bằng GET; không gửi lại tự động.");
+                throw new PaymentApiException("outcomeUnknown", "Chưa xác định kết quả. Vui lòng đối chiếu thanh toán.");
             string? code = null;
             try {
                 using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -104,7 +104,7 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
                 "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại để đối chiếu.",
                 "permissionDenied" => "Thiếu quyền Thu ngân. Vui lòng đăng nhập lại bằng tài khoản phù hợp.",
                 "validation" => "Yêu cầu không hợp lệ. Kiểm tra lại từ khóa hoặc tra cứu lại đăng ký.",
-                "paymentAlreadyRecorded" => "Đăng ký đã có giao dịch. Đang đọc lại kết quả từ API.",
+                "paymentAlreadyRecorded" => "Đăng ký đã có giao dịch. Đang đối chiếu thanh toán.",
                 "paymentNotRequired" => "Không phát sinh khoản thu. Đang đọc lại chi tiết.",
                 "paymentNotPending" => "Giao dịch không còn chờ xác nhận. Đang đọc lại chi tiết.",
                 "paymentDataConflict" => "Dữ liệu thanh toán mâu thuẫn. Đã khóa ghi; cần người phụ trách kiểm tra dữ liệu.",
@@ -148,8 +148,8 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
             return saved;
         }
         catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException) {
-            if (committed) throw new PaymentApiException("recordedUnreadable", "API đã xác nhận lưu nhưng không đọc được kết quả. Chỉ đối chiếu bằng GET.");
-            throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Không gửi lại. Dùng Đối chiếu bằng GET để kiểm tra giao dịch đã lưu.");
+            if (committed) throw new PaymentApiException("recordedUnreadable", "Giao dịch đã xác nhận. Vui lòng đối chiếu để tải biên nhận.");
+            throw new PaymentApiException("outcomeUnknown", "Chưa xác định kết quả. Vui lòng đối chiếu thanh toán.");
         }
     }
 }

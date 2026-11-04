@@ -42,7 +42,7 @@ public static class CounterPaymentRules
                 if (!IsCardBrand(card.CardBrand) || !Text(card.CardholderName?.Trim(), 150) ||
                     !Text(card.AuthorizationReference?.Trim(), 100))
                     return "Chọn loại thẻ và nhập tên chủ thẻ, mã xác thực.";
-                if (!IsCardNumber(card.CardNumber)) return "Số thẻ mô phỏng phải có 12–19 chữ số và đúng kiểm tra Luhn.";
+                if (!IsCardNumber(card.CardNumber)) return "Số thẻ phải có 12–19 chữ số và đúng định dạng.";
                 var local = now.ToOffset(TimeSpan.FromHours(7));
                 if (card.ExpiryMonth is not (>= 1 and <= 12) || card.ExpiryYear is not (>= 1 and <= 9999) ||
                     card.ExpiryYear < local.Year || card.ExpiryYear == local.Year && card.ExpiryMonth < local.Month)

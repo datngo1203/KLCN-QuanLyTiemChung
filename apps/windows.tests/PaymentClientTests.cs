@@ -110,7 +110,7 @@ public sealed class PaymentClientTests
         Assert.NotNull(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
         Assert.Equal(7, vm.SelectedRegistration!.Id); Assert.Equal(7, vm.Detail!.RegistrationId);
         Assert.True(vm.UnknownOutcome); Assert.False(vm.CanRecord); Assert.False(vm.CanAcknowledgeRisk);
-        Assert.Contains("GET", vm.Feedback); Assert.Null(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
+        Assert.Contains("đối chiếu thanh toán", vm.Feedback); Assert.Null(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
         Assert.Equal(1, handler.PostCount);
 
         handler.GetStatus = HttpStatusCode.ServiceUnavailable; await vm.LoadDetailAsync();
@@ -240,7 +240,7 @@ public sealed class PaymentClientTests
         var fake = new Fake { Paid = paid, Zero = !paid }; var vm = await Ready(fake);
         Assert.False(vm.CanRecord); Assert.Null(vm.BeginConfirmation()); Assert.Equal(0, fake.PostCount);
         Assert.Equal(paid, vm.Detail!.Payment is not null);
-        Assert.Contains(paid ? "Đã ghi nhận" : "Không phát sinh", vm.Detail.State);
+        Assert.Contains(paid ? "Đã thanh toán" : "Không phát sinh", vm.Detail.State);
     }
 
     [Fact]

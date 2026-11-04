@@ -47,8 +47,8 @@ public sealed partial class ComboBoxTemplateTests
                 Assert.Single(VisualChildren<T>(view), child => AutomationProperties.GetName(child) == name);
             var selector = Field<ComboBox>("Phương thức thanh toán");
             var cash = Field<VndMoneyInput>("Số tiền khách đưa");
-            var card = Field<TextBox>("Số thẻ mô phỏng");
-            var transfer = Field<TextBox>("Định danh nguồn mô phỏng");
+            var card = Field<TextBox>("Số thẻ");
+            var transfer = Field<TextBox>("Tài khoản hoặc định danh ví");
             Assert.True(cash.IsVisible);
             Assert.False(card.IsVisible || transfer.IsVisible);
             Assert.Equal("Tiền mặt", Assert.Single(VisualChildren<TextBlock>(selector)).Text);
@@ -66,8 +66,19 @@ public sealed partial class ComboBoxTemplateTests
             Assert.Equal("TheTaiQuay", model.Draft.Method);
             Assert.True(card.IsTabStop);
             selector.SetCurrentValue(Selector.SelectedValueProperty, "ChuyenKhoanQR");
+            view.UpdateLayout();
+            Assert.Equal("Chuyển khoản / QR", Assert.Single(VisualChildren<TextBlock>(selector)).Text);
             Assert.True(transfer.IsVisible);
             Assert.False(cash.IsVisible || card.IsVisible);
+            selector.IsDropDownOpen = true;
+            try {
+                var popup = Assert.IsType<Popup>(selector.Template.FindName("PART_Popup", selector));
+                view.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                popup.Child.UpdateLayout();
+                Assert.Equal(new[] { "Tiền mặt", "Thẻ tại quầy", "Chuyển khoản / QR" },
+                    VisualChildren<TextBlock>(popup.Child).Select(label => label.Text));
+            }
+            finally { selector.IsDropDownOpen = false; }
 
             var review = Assert.IsType<Button>(view.FindName("RecordButton"));
             review.BringIntoView();

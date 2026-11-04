@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIdentityClient } from './identity.js'
 import { parseRegistrationJson, money } from '../registrationForm.js'
-import { paymentError, paymentOutcome } from '../paymentView.js'
+import { paymentError, paymentMethodLabel, paymentOutcome } from '../paymentView.js'
 
 test('all G3 monetary decimal tokens remain exact, including transaction amount', () => {
   for (const raw of ['9999999999999999.00', '9007199254740993', '250000.00', '0.00']) {
@@ -18,11 +18,11 @@ test('all G3 monetary decimal tokens remain exact, including transaction amount'
   }
 })
 
-test('payment outcomes distinguish no charge, unrecorded and recorded simulation', () => {
+test('payment outcomes distinguish no charge, unpaid, pending and paid', () => {
   assert.equal(paymentOutcome({ totalDue: '0', payment: null }), 'Không phát sinh khoản thu')
-  assert.equal(paymentOutcome({ totalDue: '250000', payment: null }), 'Chưa ghi nhận thanh toán')
-  assert.equal(paymentOutcome({ totalDue: '9999999999999999', payment: { id: 1 } }), 'Đã ghi nhận thanh toán mô phỏng')
-  assert.equal(paymentOutcome({ totalDue: '250000', paymentState: 'ChoXacNhan', payment: { id: 1 } }), 'Chờ Thu ngân xác nhận chuyển khoản')
+  assert.equal(paymentOutcome({ totalDue: '250000', payment: null }), 'Chưa thanh toán')
+  assert.equal(paymentOutcome({ totalDue: '9999999999999999', payment: { id: 1 } }), 'Đã thanh toán')
+  assert.equal(paymentOutcome({ totalDue: '250000', paymentState: 'ChoXacNhan', payment: { id: 1 } }), 'Chờ xác nhận')
 })
 
 test('payment GET uses authenticated no-store transport, refresh and exact parsing; never POSTs payment', async () => {
@@ -43,7 +43,8 @@ test('payment GET uses authenticated no-store transport, refresh and exact parsi
   const detail = await client.getRegistrationPayment(7)
   assert.equal(detail.payment.amount, '9999999999999999')
   assert.equal(detail.payment.transactionCode, 'TT-DEMO')
-  assert.equal(paymentOutcome(detail), 'Đã ghi nhận thanh toán mô phỏng')
+  assert.equal(paymentOutcome(detail), 'Đã thanh toán')
+  assert.equal(paymentMethodLabel(detail.payment.method), 'Thẻ tại quầy')
   assert.equal(refreshes, 1)
   assert.equal(calls.length, 2)
   for (const { path, options } of calls) {

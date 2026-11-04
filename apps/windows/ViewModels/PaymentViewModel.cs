@@ -100,7 +100,7 @@ public sealed class PaymentViewModel : ViewModelBase
     {
         if (!IsCurrent) return;
         if (error is PaymentApiException { Code: "invalidSession" or "permissionDenied" }) { _denied = true; ClearSessionData(); }
-        var message = error is PaymentApiException ? error.Message : "Không kết nối hoặc đọc được API. Hãy thử lại thao tác tải / đối chiếu bằng GET.";
+        var message = error is PaymentApiException ? error.Message : "Chưa tải được dữ liệu. Kiểm tra kết nối và thử lại.";
         if (list) ListFeedback = message; else Feedback = message;
     }
     public Task SearchAsync() => CanSearch ? LoadPageAsync(1, Search.Trim()) : Task.CompletedTask;
@@ -109,14 +109,14 @@ public sealed class PaymentViewModel : ViewModelBase
     {
         if (!CanBrowse || page < 1 || !MayDiscard()) return;
         _appliedSearch = search;
-        _listBusy = true; ListFeedback = "Đang tải đăng ký từ API / SQL…";
+        _listBusy = true; ListFeedback = "Đang tải đăng ký…";
         Draft = null;
         SelectedRegistration = null; Registrations.Clear(); Refresh();
         try {
             var rows = await _service.SearchAsync(_appliedSearch, page);
             if (!IsCurrent || _denied) return;
             foreach (var row in rows) Registrations.Add(row);
-            _page = page; ListFeedback = rows.Length == 0 ? "Không có kết quả trong trang này." : "Giá và số tiền được đọc từ Payment API / SQL.";
+            _page = page; ListFeedback = "";
         }
         catch (Exception e) { HandleError(e, list: true); }
         finally { _listBusy = false; Refresh(); }
@@ -131,12 +131,12 @@ public sealed class PaymentViewModel : ViewModelBase
         var version = _selectionVersion;
         _detailBusy = true; _reconciled = false;
         if (!_committed.Contains(row.Id)) Detail = null;
-        Feedback = "Đang đọc chi tiết từ API…"; Refresh();
+        Feedback = "Đang tải chi tiết đăng ký…"; Refresh();
         try { await ReadDetailCoreAsync(row.Id, version); }
         catch (Exception e) {
             if (version == _selectionVersion) {
                 HandleError(e);
-                if (HasAccess && _committed.Contains(row.Id)) Feedback = "API đã xác nhận giao dịch trước đó; GET tải lại lỗi. Chỉ đối chiếu bằng GET, không ghi lại.";
+                if (HasAccess && _committed.Contains(row.Id)) Feedback = "Giao dịch đã xác nhận. Vui lòng đối chiếu để tải lại biên nhận.";
             }
         }
         finally { if (version == _selectionVersion) { _detailBusy = false; Refresh(); } }
@@ -159,8 +159,8 @@ public sealed class PaymentViewModel : ViewModelBase
             try { _selected = updated; Registrations[index] = updated; OnPropertyChanged(nameof(SelectedRegistration)); }
             finally { _updatingRow = false; }
         }
-        Feedback = _unknown.Contains(id) ? "GET chưa thấy thanh toán thành công. Chỉ mở lại thao tác sau khi xác nhận rủi ro."
-            : _committed.Contains(id) && !detail.HasReceipt ? "API đã xác nhận lưu. Hãy tải lại biên nhận bằng GET."
+        Feedback = _unknown.Contains(id) ? "Chưa thấy thanh toán thành công. Xác nhận đã đối chiếu để mở lại thao tác."
+            : _committed.Contains(id) && !detail.HasReceipt ? "Giao dịch đã xác nhận. Vui lòng đối chiếu để tải lại biên nhận."
             : detail.State;
         Refresh();
     }
@@ -170,12 +170,11 @@ public sealed class PaymentViewModel : ViewModelBase
             _reviewedRequest = Draft!.Prepare();
             if (_reviewedRequest is null) return null;
             var payer = _reviewedRequest.Payer!;
-            ReviewText = $"Người thanh toán: {payer.FullName} · {payer.PhoneNumber}\n" +
-                string.Join(" · ", new[] { payer.Email, payer.AddressLine, payer.WardCommune, payer.ProvinceCity }
-                    .Where(value => value is not null).Append(Draft.Review(_reviewedRequest)));
+            ReviewText = $"Người thanh toán: {payer.FullName} · {payer.PhoneNumber}\n" + Draft.Review(_reviewedRequest);
         }
         else if (CanConfirmPending && Detail?.Payment is { } pending) {
-            ReviewText = $"Giao dịch {pending.Code}\n{pending.Provider} · {pending.MaskedIdentifier}\nTham chiếu: {pending.Reference}";
+            ReviewText = $"Người thanh toán: {pending.Payer?.FullName}\nPhương thức: {pending.MethodLabel}\n" +
+                $"Mã giao dịch: {pending.Code}\n{pending.Provider} · {pending.MaskedIdentifier}\nTham chiếu: {pending.Reference}";
         }
         else return null;
         _confirmation = Detail; Refresh(); return _confirmation;
@@ -187,14 +186,14 @@ public sealed class PaymentViewModel : ViewModelBase
         if (!confirmed || snapshot is null || !ReferenceEquals(snapshot, Detail) ||
             (snapshot.IsPending ? !CanConfirmPending : !CanRecord || request is null)) { Refresh(); return; }
         var id = snapshot.RegistrationId; var version = _selectionVersion;
-        _saving = true; Feedback = "Đang ghi nhận thanh toán mô phỏng…"; Refresh();
+        _saving = true; Feedback = "Đang xác nhận thanh toán…"; Refresh();
         try {
             try {
                 if (snapshot.IsPending) await _service.ConfirmPendingAsync(id);
                 else await _service.RecordAsync(id, request!);
                 if (!IsCurrent || _denied || version != _selectionVersion) return;
                 _committed.Add(id); Draft = null; Detail = null;
-                Feedback = "Đã ghi nhận thanh toán mô phỏng. Đang tải biên nhận bằng GET…";
+                Feedback = "Đã thanh toán. Đang tải biên nhận…";
             }
             catch (PaymentApiException e) when (e.Code is "paymentAlreadyRecorded" or "paymentNotRequired" or
                 "paymentNotPending" or "paymentDataConflict" or "recordedUnreadable") {
@@ -208,8 +207,8 @@ public sealed class PaymentViewModel : ViewModelBase
                 if (IsCurrent && version == _selectionVersion) {
                     HandleError(e);
                     if (HasAccess) Feedback = _committed.Contains(id)
-                        ? "API đã ghi nhận nhưng chưa tải được biên nhận. Dùng Đối chiếu bằng GET."
-                        : "API đã từ chối ghi tiếp; GET tải lại lỗi. Dùng Đối chiếu bằng GET, không POST lại.";
+                        ? "Đã thanh toán. Chưa tải được biên nhận. Vui lòng đối chiếu thanh toán."
+                        : "Chưa tải lại được kết quả. Vui lòng đối chiếu trước khi thanh toán lại.";
                 }
             }
         }
@@ -217,7 +216,7 @@ public sealed class PaymentViewModel : ViewModelBase
             if (IsCurrent && version == _selectionVersion) {
                 if (e is PaymentApiException { Code: "outcomeUnknown" } || e is not PaymentApiException) { _unknown.Add(id); _reconciled = false; }
                 HandleError(e);
-                if (UnknownOutcome) Feedback = "Kết quả POST chưa xác định. Đã khóa ghi lại đăng ký này; dùng Đối chiếu bằng GET.";
+                if (UnknownOutcome) Feedback = "Chưa xác định kết quả. Vui lòng đối chiếu thanh toán trước khi thao tác lại.";
             }
         }
         finally { _saving = false; Refresh(); }
@@ -226,6 +225,6 @@ public sealed class PaymentViewModel : ViewModelBase
     {
         if (!CanAcknowledgeRisk) return;
         _unknown.Remove(SelectedRegistration!.Id); _reconciled = false;
-        Feedback = "Đã xác nhận rủi ro sau GET đối chiếu. Có thể mở lại thao tác thanh toán."; Refresh();
+        Feedback = "Đã đối chiếu. Có thể thực hiện lại thao tác thanh toán."; Refresh();
     }
 }
