@@ -170,11 +170,12 @@ public sealed class RF02B15CatalogSqlTests
                 while (!vm.CanInteract) await Task.Delay(10, timeout.Token);
             }
             await vm.InitializeAsync(); vm.Selected = Assert.Single(vm.Rows);
-            Assert.True(vm.Technologies.Single(t => t.Id == a.Id).Included); Assert.True(vm.Technologies.Single(t => t.Id == a.Id).Selectable);
-            Assert.False(vm.Technologies.Single(t => t.Id == b.Id).Selectable);
+            Assert.Equal(a.Id, Assert.Single(vm.TechnologySelection.Selected).Id);
+            Assert.False(Assert.Single(vm.TechnologySelection.Selected).Active);
+            Assert.False(vm.TechnologySelection.Add(b.Id));
             vm.Name = "[DEMO] Windows update"; await Command(vm.SaveCommand); Assert.StartsWith("Đã cập nhật", vm.Feedback);
             Assert.Equal(a.Id, Assert.Single((await Read<VaccineDto>(f.Client.GetAsync(Root + "vaccines/" + vaccine.Id))).Technologies).Id);
-            vm.Technologies.Single(t => t.Id == a.Id).Included = false; await Command(vm.SaveCommand); Assert.StartsWith("Đã cập nhật", vm.Feedback);
+            vm.TechnologySelection.Remove(a.Id); await Command(vm.SaveCommand); Assert.StartsWith("Đã cập nhật", vm.Feedback);
             Assert.Empty((await Read<VaccineDto>(f.Client.GetAsync(Root + "vaccines/" + vaccine.Id))).Technologies);
             await vm.SelectResourceAsync("Công nghệ vắc xin"); vm.Selected = vm.Rows.Single(t => t.Id == a.Id);
             Assert.Equal("Synthetic technical details", vm.TechnicalCharacteristics); Assert.Equal("Synthetic source", vm.SourceName);

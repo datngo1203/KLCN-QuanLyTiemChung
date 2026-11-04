@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using TiemChung.Contracts;
 
 namespace TiemChung.Desktop.Services;
 
@@ -13,7 +14,16 @@ public sealed record CatalogType(int Id, string Name, string Description, string
 public sealed record CatalogReference(int Id, string Code, string Name);
 public sealed record CatalogSuggestions(string[] Manufacturers, string[] Origins, string[] AdministrationRoutes);
 public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, string Origin, decimal Price,
-    string Code = "", string Status = "Active", string? TargetAudience = null, string? AdministrationRoute = null, string? AdministrationRouteNote = null, CatalogReference[]? Diseases = null, CatalogReference[]? Technologies = null);
+    string Code = "", string Status = "Active", string? TargetAudience = null, string? AdministrationRoute = null, string? AdministrationRouteNote = null, CatalogReference[]? Diseases = null, CatalogReference[]? Technologies = null)
+{
+    public string? Description { get; init; }
+    public string? Dosage { get; init; }
+    public decimal? Volume { get; init; }
+    public string? SourceName { get; init; }
+    public string? SourceUrl { get; init; }
+    public DateTimeOffset? InformationUpdatedAt { get; init; }
+    public VaccineRegimenDto[] Regimens { get; init; } = [];
+}
 public sealed record CatalogPackageItem(int VaccineId, int Quantity);
 public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items, string Code = "", string Status = "Active", string? TargetAudience = null);
 public sealed record CatalogList<T>(string Source, T[] Items);
@@ -49,6 +59,7 @@ public sealed class CatalogApiService(IdentityApiService? identity = null)
         catch (JsonException) { } catch (KeyNotFoundException) { }
         throw new HttpRequestException(code switch {
             "catalogReferenced" => "Không thể thực hiện: mục đang được tham chiếu. Hãy xử lý bản ghi liên quan trước." + (resource == "vaccines" ? " Vắc xin thuộc gói Active cần ngừng hoặc điều chỉnh gói trước." : ""),
+            "validation" when resource == "vaccines" => "Dữ liệu vắc xin bị từ chối. Kiểm tra trạng thái phòng bệnh/công nghệ và thông tin tham khảo. Bản nháp vẫn được giữ.",
             "validation" => "Kiểm tra mã viết hoa đúng tiền tố, tên, công nghệ, bệnh phòng, đối tượng, đường dùng, giá nguyên VND và thành phần gói.",
             "catalogDuplicate" => "Mã hoặc tên danh mục đã tồn tại. Hãy chọn giá trị khác.",
             "permissionDenied" => "Bạn không có quyền ghi danh mục này.",
