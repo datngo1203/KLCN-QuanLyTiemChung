@@ -7,7 +7,7 @@ using Xunit;
 
 namespace TiemChung.Windows.Tests;
 
-public sealed class CatalogClientTests
+public sealed partial class CatalogClientTests
 {
     private static readonly string[] Permissions = ["QuanLyDanhMucChuyenMon", "QuanLyDanhMucGia"];
     private static CatalogViewModel Create(Handler handler, string[]? permissions = null) => new(new(new IdentityApiService(new HttpClient(handler) { BaseAddress = new("http://test/") })), permissions ?? Permissions) { Confirm = _ => true };

@@ -192,14 +192,16 @@ public sealed class CatalogSqlTests
             vm.Name="Windows command "+tab; vm.Description="SQL";
             if (vm.ShowVaccine) {
                 vm.Manufacturer="Demo"; vm.Origin="Demo"; vm.Price="-1";
-                vm.Technologies.First().Included=true;
+                Assert.True(vm.TechnologySelection.Add(vm.TechnologySelection.Results.First().Id));
+                vm.TargetAudience="Synthetic audience";
+                vm.DiseaseSelection.Add(vm.DiseaseSelection.Results.First().Id);
+                vm.AdministrationRoute=vm.VaccineRoutes.First().Value;
                 await Command(vm.SaveCommand); Assert.Contains("Giá phải",vm.Feedback);
                 Assert.Equal("Windows command "+tab,vm.Name);
             }
             if (vm.ShowPrice) vm.Price="100000";
             if (vm.ShowPackage) { vm.PackageChoices[0].Included=true; vm.PackageChoices[1].Included=true; vm.PackageChoices[1].Quantity="2"; }
             if (vm.ShowPrice) vm.TargetAudience="Synthetic audience";
-            if (vm.ShowVaccine) { vm.Diseases[0].Included=true; vm.AdministrationRoute=vm.AdministrationRoutes.First(); }
             var code=vm.Code; Assert.False(vm.CodeReadOnly); Assert.NotEmpty(code);
             await Command(vm.SaveCommand); Assert.StartsWith("Đã ",vm.Feedback);
             vm.Search="Windows command "+tab; await Command(vm.LoadCommand); Assert.Single(vm.Rows);
@@ -226,7 +228,7 @@ public sealed class CatalogSqlTests
             using var http=f.Factory.CreateClient(); var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
             var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };
-            await vm.InitializeAsync();Assert.NotEmpty(vm.Technologies);
+            await vm.InitializeAsync();Assert.NotEmpty(vm.TechnologySelection.Results);
             async Task Command(TiemChung.Desktop.ViewModels.RelayCommand command,object? parameter=null) {
                 Assert.True(command.CanExecute(parameter));command.Execute(parameter);
                 using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -236,17 +238,19 @@ public sealed class CatalogSqlTests
             await Command(vm.NewCommand);notified.Clear();vm.Name="[DEMO] Vắc xin Đỏ";
             Assert.Equal("VX-DEMO-VAC-XIN-DO",vm.Code);Assert.Contains(nameof(vm.Code),notified);
             vm.Code="VX-WINDOWS-CUSTOM";vm.Name="[DEMO] Tên tự chọn";Assert.Equal("VX-WINDOWS-CUSTOM",vm.Code);
-            vm.Manufacturer="Synthetic";vm.Origin="Synthetic";vm.Price="100000";vm.Technologies.First().Included=true;
-            foreach(var missing in new[]{"target","route","disease"}) {
+            vm.Manufacturer="Synthetic";vm.Origin="Synthetic";vm.Price="100000";Assert.True(vm.TechnologySelection.Add(vm.TechnologySelection.Results.First().Id));
+            var diseaseId = vm.DiseaseSelection.Results.First().Id;
+            foreach(var (missing, field) in new[]{("target", nameof(vm.TargetAudience)), ("route", nameof(vm.AdministrationRoute)), ("disease", nameof(vm.DiseaseSelection))}) {
                 vm.TargetAudience=missing=="target" ? "" : "Synthetic audience";
-                vm.AdministrationRoute=missing=="route" ? null : vm.AdministrationRoutes.First();
-                vm.Diseases[0].Included=missing!="disease";
-                await Command(vm.SaveCommand);Assert.Contains("Kiểm tra",vm.Feedback);
+                vm.AdministrationRoute=missing=="route" ? null : vm.VaccineRoutes.First().Value;
+                if (missing == "disease") vm.DiseaseSelection.Remove(diseaseId);
+                else vm.DiseaseSelection.Add(diseaseId);
+                await Command(vm.SaveCommand);Assert.Equal(field, vm.ValidationField);
                 Assert.Equal("VX-WINDOWS-CUSTOM",vm.Code);Assert.Equal("[DEMO] Tên tự chọn",vm.Name);
                 Assert.Equal(2,await f.Db.Vaccines.CountAsync());
             }
-            vm.TargetAudience="Synthetic audience";vm.AdministrationRoute="Other";vm.Diseases[0].Included=true;
-            await Command(vm.SaveCommand);Assert.Contains("Kiểm tra",vm.Feedback);
+            vm.TargetAudience="Synthetic audience";vm.AdministrationRoute="Other";vm.DiseaseSelection.Add(diseaseId);
+            await Command(vm.SaveCommand);Assert.Equal(nameof(vm.AdministrationRouteNote), vm.ValidationField);
             vm.AdministrationRouteNote="Synthetic route";
             await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var saved=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.Code=="VX-WINDOWS-CUSTOM");Assert.Equal("Active",saved.TrangThai);
@@ -298,10 +302,10 @@ public sealed class CatalogSqlTests
             Assert.Equal("[DEMO] Legacy package renamed",savedPackage.TenGoi);Assert.Equal(345000,savedPackage.GiaGoi);Assert.Equal(package.Code,savedPackage.Code);Assert.Null(savedPackage.DoiTuongSuDung);
             // Supplying new metadata on a legacy record still writes and validates the actual values.
             await Command(vm.SelectTabCommand,"Vắc xin");vm.Selected=vm.Rows.Single(x=>x.Id==vaccine.MaVacXin);
-            vm.TargetAudience="[DEMO] Newly supplied";vm.Diseases[0].Included=true;vm.AdministrationRoute=vm.AdministrationRoutes.First();
+            vm.TargetAudience="[DEMO] Newly supplied";vm.DiseaseSelection.Add(vm.DiseaseSelection.Results.First().Id);vm.AdministrationRoute=vm.VaccineRoutes.First().Value;
             await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var enriched=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin);
-            Assert.Equal("[DEMO] Newly supplied",enriched.DoiTuongSuDung);Assert.Equal(vm.AdministrationRoutes.First(),enriched.DuongDung);
+            Assert.Equal("[DEMO] Newly supplied",enriched.DoiTuongSuDung);Assert.Equal(vm.VaccineRoutes.First().Value,enriched.DuongDung);
             Assert.Single(await f.Db.Set<VacXin_Benh>().Where(x=>x.MaVacXin==vaccine.MaVacXin).ToArrayAsync());
             await identity.LogoutAsync();
         });
@@ -318,15 +322,14 @@ public sealed class CatalogSqlTests
             async Task Save() {
                 vm.SaveCommand.Execute(null);using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
                 while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
-                Assert.Contains("Kiểm tra",vm.Feedback);
             }
             var original=vm.Rows.First();
             foreach(var field in new[]{"target","disease","route"}) {
                 vm.Selected=original;vm.Name="[DEMO] Must not persist";
                 if(field=="target") vm.TargetAudience="";
-                if(field=="disease") foreach(var choice in vm.Diseases) choice.Included=false;
+                if(field=="disease") foreach(var id in vm.DiseaseSelection.SelectedIds) vm.DiseaseSelection.Remove(id);
                 if(field=="route") vm.AdministrationRoute=null;
-                await Save();Assert.Equal("[DEMO] Must not persist",vm.Name);Assert.Equal(original.Code,vm.Code);
+                await Save();Assert.NotNull(vm.ValidationField);Assert.Equal("[DEMO] Must not persist",vm.Name);Assert.Equal(original.Code,vm.Code);
                 var unchanged=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==original.Id);
                 Assert.Equal(original.Name,unchanged.TenVacXin);Assert.Equal(original.Vaccine!.TargetAudience,unchanged.DoiTuongSuDung);
                 Assert.Equal(original.Vaccine.AdministrationRoute,unchanged.DuongDung);
@@ -335,7 +338,7 @@ public sealed class CatalogSqlTests
             vm.SelectTabCommand.Execute("Gói vắc xin");using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
             var package=vm.Rows.Single();vm.Selected=package;vm.TargetAudience="";vm.Name="[DEMO] Must not persist";
-            await Save();var unchangedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.Id);
+            await Save();Assert.Contains("Kiểm tra",vm.Feedback);var unchangedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.Id);
             Assert.Equal(package.Name,unchangedPackage.TenGoi);Assert.Equal(package.Package!.TargetAudience,unchangedPackage.DoiTuongSuDung);
             await identity.LogoutAsync();
         });

@@ -1,0 +1,226 @@
+<UserControl x:Class="TiemChung.Desktop.ViewsV2.CatalogVaccineEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TiemChung.Desktop.ViewsV2"
+             xmlns:vm="clr-namespace:TiemChung.Desktop.ViewModels"
+             KeyboardNavigation.TabNavigation="Local">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleWhen"/>
+        <Style x:Key="Section" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource CE.Border}"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Padding" Value="0,14,0,0"/>
+            <Setter Property="Margin" Value="0,8,0,4"/>
+        </Style>
+        <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource CE.TextBox}">
+            <Setter Property="Margin" Value="0,4,0,10"/>
+            <Setter Property="IsReadOnly" Value="{Binding DataContext.IsReadOnly,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor}}"/>
+        </Style>
+        <Style x:Key="Multiline" TargetType="TextBox" BasedOn="{StaticResource Field}">
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Height" Value="62"/>
+        </Style>
+        <Style x:Key="Helper" TargetType="TextBlock" BasedOn="{StaticResource CE.Caption}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,4,0,10"/>
+        </Style>
+    </UserControl.Resources>
+    <StackPanel IsEnabled="{Binding CanInteract}">
+        <TextBlock Text="Định danh và trạng thái" Style="{StaticResource CE.SectionHeading}"/>
+        <TextBlock Text="Các trường có dấu * cần được nhập khi tạo mới." Style="{StaticResource Helper}"/>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Mã nghiệp vụ *"/>
+                <TextBox x:Name="Code" Text="{Binding Code,UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding CodeReadOnly}"
+                         MaxLength="50" Style="{StaticResource Field}" AutomationProperties.Name="Mã vắc xin"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Trạng thái *"/>
+                <ComboBox ItemsSource="{Binding VaccineStatuses}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                          SelectedValue="{Binding Status}" IsEnabled="{Binding CanEdit}" Style="{StaticResource CE.ComboBox}"
+                          Margin="0,4,0,10" AutomationProperties.Name="Trạng thái vắc xin"/>
+            </StackPanel>
+        </Grid>
+        <TextBlock Text="Tên vắc xin *"/>
+        <TextBox x:Name="VaccineNameInput" Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" MaxLength="150"
+                 Style="{StaticResource Field}" AutomationProperties.Name="Tên vắc xin"/>
+        <TextBlock Text="Mô tả"/>
+        <TextBox x:Name="Description" Text="{Binding Description,UpdateSourceTrigger=PropertyChanged}" MaxLength="2000"
+                 Style="{StaticResource Multiline}" AutomationProperties.Name="Mô tả vắc xin"/>
+
+        <Border Style="{StaticResource Section}">
+            <StackPanel>
+                <TextBlock Text="Phân loại chuyên môn" Style="{StaticResource CE.SectionHeading}"/>
+                <TextBlock Text="Phòng bệnh *" FontWeight="SemiBold" Margin="0,10,0,4"/>
+                <local:CatalogTaxonomyPicker x:Name="DiseaseSelection" DataContext="{Binding DiseaseSelection}"
+                    CanEdit="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor}}"
+                    AutomationProperties.Name="phòng bệnh"/>
+                <TextBlock Text="Công nghệ vắc xin" FontWeight="SemiBold" Margin="0,14,0,0"/>
+                <TextBlock Text="Tùy chọn. Thông tin công nghệ chỉ dùng để tham khảo khi tra cứu." Style="{StaticResource Helper}"/>
+                <local:CatalogTaxonomyPicker x:Name="TechnologySelection" DataContext="{Binding TechnologySelection}"
+                    CanEdit="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor}}"
+                    AutomationProperties.Name="công nghệ vắc xin"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}">
+            <StackPanel>
+                <TextBlock Text="Thông tin sản phẩm" Style="{StaticResource CE.SectionHeading}"/>
+                <TextBlock Text="Gõ để tìm gợi ý đã có hoặc nhập giá trị mới." Style="{StaticResource Helper}"/>
+                <TextBlock Text="Nhà sản xuất *" Margin="0,0,0,4"/>
+                <local:CatalogSuggestionBox x:Name="Manufacturer" Text="{Binding Manufacturer,UpdateSourceTrigger=PropertyChanged}"
+                    Suggestions="{Binding ManufacturerSuggestions}" MaxLength="150" IsEnabled="{Binding CanEdit}"
+                    AutomationProperties.Name="Nhà sản xuất" Margin="0,0,0,10"/>
+                <TextBlock Text="Xuất xứ *" Margin="0,0,0,4"/>
+                <local:CatalogSuggestionBox x:Name="Origin" Text="{Binding Origin,UpdateSourceTrigger=PropertyChanged}"
+                    Suggestions="{Binding OriginSuggestions}" MaxLength="100" IsEnabled="{Binding CanEdit}"
+                    AutomationProperties.Name="Xuất xứ" Margin="0,0,0,10"/>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Liều lượng"/>
+                        <TextBox x:Name="Dosage" Text="{Binding Dosage,UpdateSourceTrigger=PropertyChanged}" MaxLength="200"
+                                 Style="{StaticResource Field}" AutomationProperties.Name="Liều lượng"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Thể tích"/>
+                        <TextBox x:Name="Volume" Text="{Binding Volume,UpdateSourceTrigger=PropertyChanged}" MaxLength="11"
+                                 Style="{StaticResource Field}" AutomationProperties.Name="Thể tích"
+                                 AutomationProperties.HelpText="Số thập phân, tối đa hai chữ số sau dấu phẩy."/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}">
+            <StackPanel>
+                <TextBlock Text="Sử dụng tham khảo" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,10"/>
+                <TextBlock Text="Đối tượng sử dụng *"/>
+                <TextBox x:Name="TargetAudience" Text="{Binding TargetAudience,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000"
+                         Style="{StaticResource Multiline}" AutomationProperties.Name="Đối tượng sử dụng tham khảo"/>
+                <TextBlock Text="Đường dùng *"/>
+                <ComboBox x:Name="AdministrationRoute" ItemsSource="{Binding VaccineRoutes}" SelectedValuePath="Value"
+                          DisplayMemberPath="Label" SelectedValue="{Binding AdministrationRoute}" IsEnabled="{Binding CanEdit}"
+                          Style="{StaticResource CE.ComboBox}" Margin="0,4,0,10" AutomationProperties.Name="Đường dùng"/>
+                <StackPanel Visibility="{Binding ShowRouteNote,Converter={StaticResource VisibleWhen}}">
+                    <TextBlock Text="Mô tả đường dùng khác *"/>
+                    <TextBox x:Name="AdministrationRouteNote" Text="{Binding AdministrationRouteNote,UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="500" Style="{StaticResource Multiline}" AutomationProperties.Name="Mô tả đường dùng khác"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}">
+            <StackPanel>
+                <TextBlock Text="Giá" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
+                <TextBlock Text="Giá VND *"/>
+                <TextBox x:Name="Price" Text="{Binding Price,UpdateSourceTrigger=PropertyChanged}" MaxLength="16"
+                         Style="{StaticResource Field}" AutomationProperties.Name="Giá VND"
+                         AutomationProperties.HelpText="Số nguyên không âm, không dùng dấu phân nhóm."/>
+                <TextBlock Text="{Binding PriceDisplay}" Style="{StaticResource Helper}" Margin="0,0,0,4"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}">
+            <StackPanel>
+                <TextBlock Text="Nguồn tham khảo" Style="{StaticResource CE.SectionHeading}"/>
+                <TextBlock Text="Ghi nguồn đã tra cứu nếu có. Có thể để trống khi chưa có thông tin." Style="{StaticResource Helper}"/>
+                <TextBlock Text="Tên nguồn"/>
+                <TextBox x:Name="SourceName" Text="{Binding SourceName,UpdateSourceTrigger=PropertyChanged}" MaxLength="250"
+                         Style="{StaticResource Field}" AutomationProperties.Name="Tên nguồn thông tin"/>
+                <TextBlock Text="URL nguồn (http/https)"/>
+                <TextBox x:Name="SourceUrl" Text="{Binding SourceUrl,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000"
+                         Style="{StaticResource Field}" AutomationProperties.Name="URL nguồn"/>
+                <TextBlock Text="Ngày cập nhật thông tin"/>
+                <DatePicker x:Name="InformationDate" SelectedDate="{Binding InformationDate}" IsEnabled="{Binding CanEdit}"
+                            Loaded="UseCalendarForDate" Style="{StaticResource CE.DatePicker}" Margin="0,4,0,10"
+                            AutomationProperties.Name="Ngày cập nhật thông tin" AutomationProperties.HelpText="Chọn ngày bằng lịch."/>
+                <Button Content="Bỏ ngày vừa chọn" Click="ClearNewDate" Style="{StaticResource CE.Button.Secondary}"
+                        HorizontalAlignment="Left" Margin="0,0,0,8"
+                        Visibility="{Binding CanClearInformationDate,Converter={StaticResource VisibleWhen}}"/>
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}">
+            <Expander x:Name="Regimens" IsExpanded="False" AutomationProperties.Name="Phác đồ tham khảo">
+                <Expander.Header>
+                    <TextBlock Text="{Binding Regimens.Count,StringFormat='Phác đồ tham khảo · {0}'}" Style="{StaticResource CE.SectionHeading}"/>
+                </Expander.Header>
+                <StackPanel Margin="0,8,0,0">
+                    <TextBlock Text="Ghi lại phác đồ theo nguồn đã tra cứu. Nội dung chỉ dùng để tham khảo." Style="{StaticResource Helper}"/>
+                    <ItemsControl x:Name="RegimenList" ItemsSource="{Binding Regimens}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CatalogRegimenDraft}">
+                                <Border BorderBrush="{StaticResource CE.Border}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <Button DockPanel.Dock="Right" Content="Bỏ phác đồ" Click="RemoveRegimen"
+                                                    Style="{StaticResource CE.Button.Secondary}" AutomationProperties.Name="Bỏ phác đồ tham khảo"
+                                                    Visibility="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor},Converter={StaticResource VisibleWhen}}"/>
+                                            <TextBlock Text="{Binding Doses.Count,StringFormat='{}{0} mũi'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                        <TextBlock Text="Tên phác đồ *"/>
+                                        <TextBox x:Name="RegimenNameInput" Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" MaxLength="150" Style="{StaticResource Field}" AutomationProperties.Name="Tên phác đồ"/>
+                                        <TextBlock Text="Đối tượng tham khảo *"/>
+                                        <TextBox Text="{Binding TargetAudience,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Style="{StaticResource Multiline}" AutomationProperties.Name="Đối tượng phác đồ"/>
+                                        <TextBlock Text="Tóm tắt"/>
+                                        <TextBox Text="{Binding Summary,UpdateSourceTrigger=PropertyChanged}" MaxLength="1500" Style="{StaticResource Multiline}" AutomationProperties.Name="Tóm tắt phác đồ"/>
+                                        <TextBlock Text="Tên nguồn phác đồ"/>
+                                        <TextBox Text="{Binding SourceName,UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Style="{StaticResource Field}" AutomationProperties.Name="Tên nguồn phác đồ"/>
+                                        <TextBlock Text="URL nguồn phác đồ"/>
+                                        <TextBox Text="{Binding SourceUrl,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Style="{StaticResource Field}" AutomationProperties.Name="URL nguồn phác đồ"/>
+                                        <ItemsControl x:Name="DoseList" ItemsSource="{Binding Doses}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:CatalogDoseDraft}">
+                                                    <Border Style="{StaticResource Section}">
+                                                        <StackPanel>
+                                                            <DockPanel Margin="0,0,0,6">
+                                                                <Button DockPanel.Dock="Right" Content="Bỏ mũi" Click="RemoveDose"
+                                                                        Tag="{Binding DataContext,RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                        Style="{StaticResource CE.Button.Secondary}" AutomationProperties.Name="{Binding Order,StringFormat='Bỏ mũi {0}'}"
+                                                                        Visibility="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor},Converter={StaticResource VisibleWhen}}"/>
+                                                                <TextBlock Text="{Binding Order,StringFormat='Mũi {0}'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                            </DockPanel>
+                                                            <TextBlock Text="Thời điểm *"/>
+                                                            <TextBox x:Name="DoseTimingInput" Text="{Binding TimingLabel,UpdateSourceTrigger=PropertyChanged}" MaxLength="250"
+                                                                     Style="{StaticResource Field}" AutomationProperties.Name="Thời điểm mũi"/>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Tối thiểu (ngày)" TextWrapping="Wrap"/>
+                                                                    <TextBox Text="{Binding MinimumIntervalDays,UpdateSourceTrigger=PropertyChanged}" MaxLength="10"
+                                                                             Style="{StaticResource Field}" AutomationProperties.Name="Khoảng cách tối thiểu (ngày)"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="2">
+                                                                    <TextBlock Text="Khuyến nghị (ngày)" TextWrapping="Wrap"/>
+                                                                    <TextBox Text="{Binding RecommendedIntervalDays,UpdateSourceTrigger=PropertyChanged}" MaxLength="10"
+                                                                             Style="{StaticResource Field}" AutomationProperties.Name="Khoảng cách khuyến nghị (ngày)"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                            <TextBlock Text="Ghi chú mũi"/>
+                                                            <TextBox Text="{Binding Note,UpdateSourceTrigger=PropertyChanged}" MaxLength="500"
+                                                                     Style="{StaticResource Multiline}" AutomationProperties.Name="Ghi chú mũi"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="Thêm mũi" Click="AddDose" IsEnabled="{Binding CanAddDose}" Tag="{Binding ElementName=DoseList}"
+                                                Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left"
+                                                Visibility="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor},Converter={StaticResource VisibleWhen}}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button x:Name="AddRegimenButton" Content="Thêm phác đồ" Click="AddRegimen" HorizontalAlignment="Left"
+                            Style="{StaticResource CE.Button.Secondary}"
+                            Visibility="{Binding CanEdit,Converter={StaticResource VisibleWhen}}"/>
+                </StackPanel>
+            </Expander>
+        </Border>
+    </StackPanel>
+</UserControl>

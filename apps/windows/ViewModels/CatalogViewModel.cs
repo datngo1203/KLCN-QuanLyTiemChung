@@ -17,16 +17,6 @@ public sealed class CatalogPackageChoice : ViewModelBase
     public bool Included { get => _included; set => Set(ref _included, value); }
     public string Quantity { get => _quantity; set => Set(ref _quantity, value); }
 }
-public sealed class CatalogDiseaseChoice : ViewModelBase
-{
-    private bool _included;
-    public int Id { get; init; }
-    public string Name { get; init; } = "";
-    public bool Included { get => _included; set => Set(ref _included, value); }
-    public bool Active { get; init; } = true;
-    private bool _selectable = true;
-    public bool Selectable { get => _selectable; set => Set(ref _selectable, value); }
-}
 public sealed record CatalogStatus(string? Value, string Label)
 {
     public override string ToString() => Label;
@@ -37,7 +27,7 @@ public sealed record CatalogRow(int Id, string Name, string Description = "", de
     public string StatusLabel => CatalogStatus.Describe(Status);
 }
 
-public sealed class CatalogViewModel : ViewModelBase
+public sealed partial class CatalogViewModel : ViewModelBase
 {
     private readonly CatalogApiService _service;
     private readonly IReadOnlyCollection<string> _permissions;
@@ -65,15 +55,14 @@ public sealed class CatalogViewModel : ViewModelBase
         NewCommand = new RelayCommand(_ => { if (MayDiscard()) { Clear(); Feedback = "Nhập thông tin để tạo " + ResourceLabel + "."; } }, _ => CanEdit);
         RevertCommand = new RelayCommand(_ => { if (MayDiscard()) { Apply(Selected); Feedback = "Đã hoàn tác thay đổi chưa lưu."; } }, _ => !_busy && IsDirty);
         SelectTabCommand = new RelayCommand(async p => { if (p is string tab) await SelectResourceAsync(tab); }, _ => !_busy);
+        DiseaseSelection.PropertyChanged += OnTaxonomyChanged;
+        TechnologySelection.PropertyChanged += OnTaxonomyChanged;
         MarkClean();
     }
     public IReadOnlyList<string> Tabs { get; } = ["Phòng bệnh", "Công nghệ vắc xin", "Vắc xin", "Gói vắc xin"];
     public IReadOnlyList<CatalogStatus> StatusOptions { get; } = [new("Active", CatalogStatus.Describe("Active")), new("Inactive", CatalogStatus.Describe("Inactive"))];
     public IReadOnlyList<CatalogStatus> StatusFilters { get; } = [new(null, "Tất cả trạng thái"), new("Active", CatalogStatus.Describe("Active")), new("Inactive", CatalogStatus.Describe("Inactive"))];
-    public ObservableCollection<CatalogDiseaseChoice> Diseases { get; } = [];
-    public ObservableCollection<string> AdministrationRoutes { get; } = [];
     public ObservableCollection<CatalogRow> Rows { get; } = [];
-    public ObservableCollection<CatalogDiseaseChoice> Technologies { get; } = [];
     public ObservableCollection<CatalogPackageChoice> PackageChoices { get; } = [];
     public RelayCommand LoadCommand { get; }
     public RelayCommand SaveCommand { get; }
@@ -119,14 +108,17 @@ public sealed class CatalogViewModel : ViewModelBase
     public bool ShowRouteNote => AdministrationRoute == "Other";
     public string Manufacturer { get => _manufacturer; set { Set(ref _manufacturer, value); Refresh(); } }
     public string Origin { get => _origin; set { Set(ref _origin, value); Refresh(); } }
-    public string Price { get => _price; set { Set(ref _price, value); Refresh(); } }
+    public string Price { get => _price; set { Set(ref _price, value); OnPropertyChanged(nameof(PriceDisplay)); Refresh(); } }
     public string Search { get => _search; set => Set(ref _search, value); }
     public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
     public string TechnicalCharacteristics { get => _technical; set { Set(ref _technical, value); Refresh(); } }
     public string ProfessionalNotes { get => _professional; set { Set(ref _professional, value); Refresh(); } }
     public string SourceName { get => _sourceName; set { Set(ref _sourceName, value); Refresh(); } }
     public string SourceUrl { get => _sourceUrl; set { Set(ref _sourceUrl, value); Refresh(); } }
-    public DateTime? InformationDate { get => _informationDate; set { Set(ref _informationDate, value); Refresh(); } }
+    public DateTime? InformationDate { get => _informationDate; set {
+        if (Set(ref _informationDate, value)) OnPropertyChanged(nameof(CanClearInformationDate));
+        Refresh();
+    } }
     public CatalogRow? Selected { get => _selected; set {
         if (_busy || Equals(value, _selected)) return;
         if (!MayDiscard()) { OnPropertyChanged(nameof(Selected)); return; }
@@ -147,7 +139,7 @@ public sealed class CatalogViewModel : ViewModelBase
     private async Task Run(Func<Task> action)
     {
         if (_busy) return;
-        _busy = true; Feedback = ""; Refresh();
+        _busy = true; ValidationField = null; Feedback = ""; Refresh();
         try { await action(); }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException or FormatException or OverflowException) {
             Feedback = e switch {
@@ -166,23 +158,25 @@ public sealed class CatalogViewModel : ViewModelBase
             // Lookups need only their own endpoint; no unrelated catalog can block their CRUD.
             CatalogVaccine[] vaccines = []; CatalogType[] technologies = [], diseases = [];
             CatalogSuggestions? suggestions = null;
-            if (ShowPrice) {
-                vaccines = await _service.ListAsync<CatalogVaccine>("vaccines");
+            if (ShowVaccine) {
                 technologies = await _service.ListAsync<CatalogType>("vaccine-technologies");
-                diseases = await _service.ListAsync<CatalogType>("diseases", status: "Active");
+                diseases = await _service.ListAsync<CatalogType>("diseases");
                 suggestions = await _service.SuggestionsAsync();
             }
+            if (ShowPackage) vaccines = await _service.ListAsync<CatalogVaccine>("vaccines");
             CatalogRow[] rows;
             if (ShowLookup) rows = (await _service.ListAsync<CatalogType>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, x.Description, Code: x.Code, Status: x.Status, Technology: ShowTechnology ? x : null)).ToArray();
             else if (ShowPackage) rows = (await _service.ListAsync<CatalogPackage>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, Price: x.Price, Package: x, Code: x.Code, Status: x.Status)).ToArray();
             else rows = (await _service.ListAsync<CatalogVaccine>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, Price: x.Price, Vaccine: x, Code: x.Code, Status: x.Status)).ToArray();
             _loadingForm = true;
             if (suggestions is not null) {
-                Replace(Technologies, technologies.Select(x => new CatalogDiseaseChoice { Id = x.Id, Name = x.Code + " — " + x.Name + (x.Status == "Inactive" ? " (Ngừng sử dụng)" : ""), Active = x.Status == "Active" }));
-                Replace(Diseases, diseases.Select(x => new CatalogDiseaseChoice { Id = x.Id, Name = x.Name }));
-                Replace(AdministrationRoutes, suggestions!.AdministrationRoutes);
+                _diseaseOptions = diseases;
+                _technologyOptions = technologies;
+                ApplySuggestions(suggestions);
+            }
+            if (ShowPackage) {
                 Replace(PackageChoices, vaccines.Select(x => new CatalogPackageChoice { Id = x.Id, Name = x.Name }));
-                foreach (var child in Diseases.Cast<ViewModelBase>().Concat(Technologies).Concat(PackageChoices)) child.PropertyChanged += (_, _) => Refresh();
+                foreach (var child in PackageChoices) child.PropertyChanged += (_, _) => Refresh();
             }
             Replace(Rows, rows); _hasLoaded = true;
             Apply(Rows.FirstOrDefault(x => x.Id == selectedId));
@@ -192,32 +186,21 @@ public sealed class CatalogViewModel : ViewModelBase
     }
     private async Task Save()
     {
-        if (string.IsNullOrWhiteSpace(Name)) throw new InvalidOperationException("Tên danh mục là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(Name)) throw Invalid(nameof(Name), "Tên danh mục là bắt buộc.");
         if (ShowLookup && Name.Trim().Length > (Resource == "diseases" ? 150 : 120)) throw new InvalidOperationException("Tên quá dài: tối đa " + (Resource == "diseases" ? 150 : 120) + " ký tự.");
         var prefix = Prefix;
-        if (!Regex.IsMatch(Code, "^" + prefix + "-[A-Z0-9]+(?:-[A-Z0-9]+)*$") || Code.Length > 50) throw new InvalidOperationException("Mã phải bắt đầu bằng " + prefix + "-, dùng chữ HOA ASCII, số và dấu gạch nối; tối đa 50 ký tự.");
+        if (!Regex.IsMatch(Code, "^" + prefix + "-[A-Z0-9]+(?:-[A-Z0-9]+)*$") || Code.Length > 50) throw Invalid(nameof(Code), "Mã phải bắt đầu bằng " + prefix + "-, dùng chữ HOA ASCII, số và dấu gạch nối; tối đa 50 ký tự.");
         if (ShowLookup && Description.Length > 500) throw new InvalidOperationException("Mô tả tối đa 500 ký tự.");
         object body;
         if (ShowTechnology) body = new { Name, Description, Code, Status, TechnicalCharacteristics, ProfessionalNotes, SourceName, SourceUrl,
             InformationUpdatedAt = InformationDate is { } date ? (DateTimeOffset?)new DateTimeOffset(DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified), TimeSpan.FromHours(7)) : null };
         else if (ShowLookup) body = new { Name, Description, Code, Status };
+        else if (ShowVaccine) body = BuildVaccineRequest();
         else {
             if (!decimal.TryParse(Price, NumberStyles.None, CultureInfo.InvariantCulture, out var price) || price < 0) throw new InvalidOperationException("Giá phải là số nguyên VND không âm, không dấu phân cách.");
-            var originalAudience = Selected?.Vaccine?.TargetAudience ?? Selected?.Package?.TargetAudience;
-            var targetAudience = Selected is not null && originalAudience is null && TargetAudience.Length == 0 ? null : TargetAudience;
-            if (ShowVaccine) {
-                int[]? diseaseIds = Selected?.Vaccine?.Diseases?.Select(x => x.Id).Except(Diseases.Select(x => x.Id)).Concat(Diseases.Where(x => x.Included).Select(x => x.Id)).ToArray()
-                    ?? Diseases.Where(x => x.Included).Select(x => x.Id).ToArray();
-                if (Selected?.Vaccine is { } original && (original.Diseases?.Length ?? 0) == 0 && diseaseIds.Length == 0) diseaseIds = null;
-                var route = AdministrationRoute ?? (Selected?.Vaccine?.AdministrationRoute is not null ? "" : null);
-                body = new { Name, Manufacturer, Origin, Price = price, Code, TargetAudience = targetAudience,
-                    AdministrationRoute = route, AdministrationRouteNote = ShowRouteNote ? AdministrationRouteNote : null,
-                    DiseaseIds = diseaseIds, TechnologyIds = Technologies.Where(x => x.Included).Select(x => x.Id).ToArray() };
-            }
-            else {
-                var items = PackageChoices.Where(x => x.Included).Select(x => new CatalogPackageItem(x.Id, int.Parse(x.Quantity, CultureInfo.InvariantCulture))).ToArray();
-                body = new { Name, Price = price, Items = items, Code, TargetAudience = targetAudience };
-            }
+            var targetAudience = Selected is not null && Selected.Package?.TargetAudience is null && TargetAudience.Length == 0 ? null : TargetAudience;
+            var items = PackageChoices.Where(x => x.Included).Select(x => new CatalogPackageItem(x.Id, int.Parse(x.Quantity, CultureInfo.InvariantCulture))).ToArray();
+            body = new { Name, Price = price, Items = items, Code, TargetAudience = targetAudience };
         }
         var creating = Selected is null;
         CatalogRow saved;
@@ -253,38 +236,39 @@ public sealed class CatalogViewModel : ViewModelBase
     private void Apply(CatalogRow? row)
     {
         _loadingForm = true;
+        ValidationField = null;
         Set(ref _selected, row, nameof(Selected)); _codeEdited = false;
+        OnPropertyChanged(nameof(CanClearInformationDate));
         // A reload replaces equal-valued rows; reselect the new instance after ItemsSource cleared selection.
         OnPropertyChanged(nameof(Selected));
-        Set(ref _code, row?.Code ?? "", nameof(Code)); Name = row?.Name ?? ""; Description = row?.Description ?? ""; Status = row?.Status ?? "Active";
+        Set(ref _code, row?.Code ?? "", nameof(Code)); Name = row?.Name ?? ""; Description = row?.Vaccine?.Description ?? row?.Description ?? ""; Status = row?.Status ?? "Active";
         Price = row?.Price?.ToString("0.##", CultureInfo.InvariantCulture) ?? "";
         Manufacturer = row?.Vaccine?.Manufacturer ?? ""; Origin = row?.Vaccine?.Origin ?? "";
         TargetAudience = row?.Vaccine?.TargetAudience ?? row?.Package?.TargetAudience ?? "";
         AdministrationRoute = row?.Vaccine?.AdministrationRoute; AdministrationRouteNote = row?.Vaccine?.AdministrationRouteNote ?? "";
         TechnicalCharacteristics = row?.Technology?.TechnicalCharacteristics ?? ""; ProfessionalNotes = row?.Technology?.ProfessionalNotes ?? "";
-        SourceName = row?.Technology?.SourceName ?? ""; SourceUrl = row?.Technology?.SourceUrl ?? "";
-        InformationDate = row?.Technology?.InformationUpdatedAt?.ToOffset(TimeSpan.FromHours(7)).Date;
-        foreach (var technology in Technologies) {
-            technology.Included = row?.Vaccine?.Technologies?.Any(t => t.Id == technology.Id) == true;
-            technology.Selectable = technology.Active || technology.Included;
-        }
-        foreach (var disease in Diseases) disease.Included = row?.Vaccine?.Diseases?.Any(d => d.Id == disease.Id) == true;
+        SourceName = row?.Vaccine?.SourceName ?? row?.Technology?.SourceName ?? "";
+        SourceUrl = row?.Vaccine?.SourceUrl ?? row?.Technology?.SourceUrl ?? "";
+        InformationDate = (row?.Vaccine?.InformationUpdatedAt ?? row?.Technology?.InformationUpdatedAt)?.ToOffset(TimeSpan.FromHours(7)).Date;
+        ApplyVaccine(row?.Vaccine);
         foreach (var choice in PackageChoices) {
             var item = row?.Package?.Items.FirstOrDefault(x => x.VaccineId == choice.Id);
             choice.Included = item is not null; choice.Quantity = (item?.Quantity ?? 1).ToString(CultureInfo.InvariantCulture);
         }
         _loadingForm = false; MarkClean();
     }
-    private string Fingerprint() => JsonSerializer.Serialize(new { Code, Name, Description, Status, Manufacturer, Origin, Price, TargetAudience, AdministrationRoute, AdministrationRouteNote, TechnicalCharacteristics, ProfessionalNotes, SourceName, SourceUrl, InformationDate, Technologies = Technologies.Where(x => x.Included).Select(x => x.Id), Diseases = Diseases.Where(x => x.Included).Select(x => x.Id), Items = PackageChoices.Where(x => x.Included).Select(x => new { x.Id, x.Quantity }) });
+    private string Fingerprint() => JsonSerializer.Serialize(new { Code, Name, Description, Status, Manufacturer, Origin, Price, TargetAudience, AdministrationRoute, AdministrationRouteNote, TechnicalCharacteristics, ProfessionalNotes, SourceName, SourceUrl, InformationDate, Dosage, Volume, Diseases = DiseaseSelection.SelectedIds, Technologies = TechnologySelection.SelectedIds, Regimens, Items = PackageChoices.Where(x => x.Included).Select(x => new { x.Id, x.Quantity }) });
     private void MarkClean() { _baseline = Fingerprint(); Refresh(); }
     private string Prefix => Resource switch { "vaccine-technologies" => "CNVX", "diseases" => "BENH", "packages" => "GOI", _ => "VX" };
     private string SuggestCode(string name)
     {
-        var ascii = new string(name.Normalize(NormalizationForm.FormD).Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToUpperInvariant().Replace('Đ', 'D');
+        var ascii = WithoutDiacritics(name).ToUpperInvariant();
         var slug = Regex.Replace(ascii, "[^A-Z0-9]+", "-").Trim('-');
         var code = Prefix + "-" + slug;
         return slug.Length == 0 ? "" : code[..Math.Min(code.Length, 50)].TrimEnd('-');
     }
+    private static string WithoutDiacritics(string value) => new string(value.Normalize(NormalizationForm.FormD)
+        .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).Replace('Đ', 'D').Replace('đ', 'd');
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values) { target.Clear(); foreach (var value in values) target.Add(value); }
     private void Refresh()
     {
