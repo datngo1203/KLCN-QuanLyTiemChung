@@ -17,6 +17,7 @@ public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, st
     string Code = "", string Status = "Active", string? TargetAudience = null, string? AdministrationRoute = null, string? AdministrationRouteNote = null, CatalogReference[]? Diseases = null, CatalogReference[]? Technologies = null)
 {
     public string? Description { get; init; }
+    public string StatusLabel => Status == "Inactive" ? "Ngừng sử dụng" : "Đang sử dụng";
     public string? Dosage { get; init; }
     public decimal? Volume { get; init; }
     public string? SourceName { get; init; }
@@ -24,8 +25,13 @@ public sealed record CatalogVaccine(int Id, string Name, string Manufacturer, st
     public DateTimeOffset? InformationUpdatedAt { get; init; }
     public VaccineRegimenDto[] Regimens { get; init; } = [];
 }
-public sealed record CatalogPackageItem(int VaccineId, int Quantity);
-public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items, string Code = "", string Status = "Active", string? TargetAudience = null);
+public sealed record CatalogPackageItem(int VaccineId, int Quantity, string? VaccineName = null, string? VaccineCode = null);
+public sealed record CatalogPackage(int Id, string Name, decimal Price, CatalogPackageItem[] Items, string Code = "", string Status = "Active", string? TargetAudience = null)
+{
+    public string? Description { get; init; }
+    public int TotalDoses { get; init; }
+    public CatalogReference[] Diseases { get; init; } = [];
+}
 public sealed record CatalogList<T>(string Source, T[] Items);
 
 public sealed class CatalogApiService(IdentityApiService? identity = null)
@@ -45,19 +51,21 @@ public sealed class CatalogApiService(IdentityApiService? identity = null)
     public async Task<T> SaveAsync<T>(string resource, int? id, object body) {
         using var response = await _identity.SendCatalogAsync(id.HasValue ? HttpMethod.Put : HttpMethod.Post,
             $"api/v1/catalog/{resource}" + (id.HasValue ? $"/{id}" : ""), body);
-        await Check(response, resource);
+        await Check(response, resource, id.HasValue);
         return await response.Content.ReadFromJsonAsync<T>() ?? throw new HttpRequestException("Phản hồi lưu danh mục không hợp lệ. Hãy tải lại để đối chiếu.");
     }
     public async Task DeleteAsync(string resource, int id) {
         using var response = await _identity.SendCatalogAsync(HttpMethod.Delete, $"api/v1/catalog/{resource}/{id}");
         await Check(response, resource);
     }
-    private static async Task Check(HttpResponseMessage response, string? resource = null) {
+    private static async Task Check(HttpResponseMessage response, string? resource = null, bool updating = false) {
         if (response.IsSuccessStatusCode) return;
         var code = "";
         try { using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()); code = json.RootElement.GetProperty("code").GetString(); }
         catch (JsonException) { } catch (KeyNotFoundException) { }
         throw new HttpRequestException(code switch {
+            "catalogReferenced" when resource == "packages" && updating => "Không thể thay đổi thành phần gói vì gói đã được sử dụng trong đăng ký. Có thể cập nhật thông tin khác nếu giữ nguyên thành phần.",
+            "catalogReferenced" when resource == "packages" => "Không thể xóa gói đã được sử dụng trong đăng ký.",
             "catalogReferenced" => "Không thể thực hiện: mục đang được tham chiếu. Hãy xử lý bản ghi liên quan trước." + (resource == "vaccines" ? " Vắc xin thuộc gói Active cần ngừng hoặc điều chỉnh gói trước." : ""),
             "validation" when resource == "vaccines" => "Dữ liệu vắc xin bị từ chối. Kiểm tra trạng thái phòng bệnh/công nghệ và thông tin tham khảo. Bản nháp vẫn được giữ.",
             "validation" => "Kiểm tra mã viết hoa đúng tiền tố, tên, công nghệ, bệnh phòng, đối tượng, đường dùng, giá nguyên VND và thành phần gói.",

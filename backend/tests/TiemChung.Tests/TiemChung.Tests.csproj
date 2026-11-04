@@ -3,7 +3,7 @@
   <ItemGroup>
     <Compile Include="../../../apps/windows/Services/IProfilesService.cs" Link="Windows/IProfilesService.cs" />
     <Compile Include="../../../apps/windows/ViewModels/ProfilesViewModel.cs" Link="Windows/ProfilesViewModel.cs" />
-    <Compile Include="../../../apps/windows/ViewModels/CatalogViewModel.cs;../../../apps/windows/ViewModels/CatalogViewModel.Vaccine.cs" Link="Windows/%(Filename)%(Extension)" />
+    <Compile Include="../../../apps/windows/ViewModels/CatalogViewModel.cs;../../../apps/windows/ViewModels/CatalogViewModel.Vaccine.cs;../../../apps/windows/ViewModels/CatalogViewModel.Package.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../../../apps/windows/ViewModels/ViewModelBase.cs" Link="Windows/ViewModelBase.cs" />
     <Compile Include="../../../apps/windows/ViewModels/RelayCommand.cs" Link="Windows/RelayCommand.cs" />
     <Compile Include="../../../apps/windows/Services/ICatalogService.cs" Link="Windows/ICatalogService.cs" />

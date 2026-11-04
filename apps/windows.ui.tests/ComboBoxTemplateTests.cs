@@ -14,7 +14,7 @@ using Xunit;
 
 namespace TiemChung.Windows.Ui.Tests;
 
-public sealed class ComboBoxTemplateTests(WpfComboBoxHost host) : IClassFixture<WpfComboBoxHost>
+public sealed partial class ComboBoxTemplateTests(WpfComboBoxHost host) : IClassFixture<WpfComboBoxHost>
 {
     [Fact]
     public Task FullSurfaceHitsToggleAndChevronRendersAtSupportedDpisWithoutClipping() =>

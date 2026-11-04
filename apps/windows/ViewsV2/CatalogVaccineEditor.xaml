@@ -117,9 +117,9 @@
             <StackPanel>
                 <TextBlock Text="Giá" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
                 <TextBlock Text="Giá VND *"/>
-                <TextBox x:Name="Price" Text="{Binding Price,UpdateSourceTrigger=PropertyChanged}" MaxLength="16"
+                <local:VndMoneyInput x:Name="Price" RawText="{Binding Price,UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource Field}" AutomationProperties.Name="Giá VND"
-                         AutomationProperties.HelpText="Số nguyên không âm, không dùng dấu phân nhóm."/>
+                         AutomationProperties.HelpText="Số nguyên không âm, phân nhóm bằng dấu cách."/>
                 <TextBlock Text="{Binding PriceDisplay}" Style="{StaticResource Helper}" Margin="0,0,0,4"/>
             </StackPanel>
         </Border>
