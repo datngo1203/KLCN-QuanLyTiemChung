@@ -63,7 +63,7 @@ public static class PaymentEndpoints
 
         group.MapGet("/payment/settings", async (HttpContext context, IdentityAuthorization auth, CancellationToken ct) => {
             await RequireCustomer(context, auth, false, ct);
-            return Results.Ok(new PaymentSettingsDto("Ngân hàng thử nghiệm VAC", "Trung tâm tiêm chủng VAC", "0000000402"));
+            return Results.Ok(new PaymentSettingsDto("Ngân hàng VAC", "Trung tâm tiêm chủng VAC", "0000000402"));
         }).WithName("GetPaymentSettings").Produces<PaymentSettingsDto>();
 
         group.MapPost("/registrations/{id:int}/payment/online", async (int id, OnlinePaymentRequest req,

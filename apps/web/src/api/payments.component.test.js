@@ -40,7 +40,7 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   }
   identity.registrations = async () => ({ items: [{ id: 7, customer, recipient, totalBeforeDiscount: '550000' }] })
   identity.getPaymentSettings = async () => ({
-    receiverBankName: 'VAC', receiverAccountName: 'VAC', receiverAccountNumber: '0000000402',
+    receiverBankName: 'Ngân hàng VAC', receiverAccountName: 'VAC', receiverAccountNumber: '0000000402',
   })
   const pending = Promise.withResolvers()
   const posted = []
@@ -61,6 +61,14 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   await act(async () => host.querySelector('.payment-select').click())
   assert.equal(field('fullName').value, 'Liên hệ đã chốt')
   assert.equal(host.querySelectorAll('[name=method]').length, 4)
+  await act(async () => host.querySelector('[value=TheNoiDia]').click())
+  field('bankName').value = 'Ngân hàng VAC'
+  field('accountHolderName').value = 'Chủ tài khoản'
+  field('cardOrAccountNumber').value = '1122334455'
+  await act(async () => submit())
+  assert.ok(field('otp'))
+  assert.match(host.textContent, /Nhập mã OTP gồm 6 chữ số để xác thực\./)
+  assert.doesNotMatch(host.textContent, /Mã thử/)
   await act(async () => host.querySelector('[value=TheQuocTe]').click())
   assert.equal(host.querySelector('select[name=cardBrand]').labels[0].textContent, 'Loại thẻ')
   field('cardNumber').value = '4111 1111 1111 1111'
@@ -71,6 +79,8 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   assert.equal(field('cvv'), null)
   assert.equal(field('terms').checked, false)
   assert.match(host.querySelector('img').getAttribute('src'), /^data:image\/gif/)
+  assert.match(host.textContent, /Ngân hàng VAC/)
+  assert.doesNotMatch(host.textContent, /Ngân hàng thử nghiệm/)
   assert.equal(posted.length, 0)
   field('fullName').value = 'Người trả tiền'
   field('sourceBankOrWallet').value = 'Ngân hàng thử'

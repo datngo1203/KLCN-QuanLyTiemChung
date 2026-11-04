@@ -76,7 +76,7 @@ function DomesticGateway({ otpStep, setOtpStep }) {
       <Field name="cardOrAccountNumber" label="Số thẻ hoặc tài khoản" {...numeric} pattern="[0-9]{8,20}" maxLength={20} />
     </div>
     {otpStep && <>
-      <p>Nhập mã OTP gồm 6 chữ số để xác thực. Mã thử có thể dùng: 246810.</p>
+      <p>Nhập mã OTP gồm 6 chữ số để xác thực.</p>
       <div className="payment-fields">
         <Field ref={otp} name="otp" label="Mã OTP" {...numeric} pattern="[0-9]{6}" maxLength={6} />
       </div>

@@ -67,7 +67,10 @@ public sealed partial class PaymentSqlTests
             var before = (await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(path))!;
             Assert.Equal(registration.Contact, before.RegistrationContact);
             var settings = await f.Customer.Client.GetFromJsonAsync<PaymentSettingsDto>("/api/v1/payment/settings");
-            Assert.False(string.IsNullOrWhiteSpace(settings?.ReceiverAccountNumber));
+            Assert.NotNull(settings);
+            Assert.Equal("Ngân hàng VAC", settings.ReceiverBankName);
+            Assert.DoesNotContain("Ngân hàng thử nghiệm", settings.ReceiverBankName);
+            Assert.Equal("0000000402", settings.ReceiverAccountNumber);
             Assert.Empty(await f.Db.Payments.ToArrayAsync());
             var pending = method == "ChuyenKhoanOnline";
             var request = Online(method);
