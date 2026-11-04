@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIdentityClient } from './identity.js'
-import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel } from '../registrationForm.js'
+import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel, registrationError } from '../registrationForm.js'
 
 const customers = [{ id: 12 }, { id: 13 }]
 const recipients = [{ id: 34, customerId: 12 }, { id: 35, customerId: 13 }]
@@ -135,4 +135,10 @@ test('registrations use in-memory bearer refresh, strict 201, safe structured 40
     await assert.rejects(client.registrations('', 'POST', payload))
     assert.equal(calls.length - before, 1, 'transport failure must never retry POST')
   }
+})
+
+
+test('registration errors do not expose technical transport messages', () => {
+  assert.equal(registrationError({ status: 401 }), 'Phiên đã hết hạn. Vui lòng đăng nhập lại.')
+  assert.doesNotMatch(registrationError(new Error('API trả HTTP 500')), /API|HTTP|SQL/)
 })

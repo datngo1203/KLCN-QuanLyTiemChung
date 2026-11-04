@@ -6,7 +6,7 @@
 .profiles-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .profiles-toolbar p { font-size: 13px; }
 .profiles-toolbar > .button { flex-shrink: 0; }
-.profiles-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.3fr); align-items: start; gap: 24px; }
+.profiles-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .85fr); align-items: start; gap: 24px; }
 .profile-panel { border: 1px solid var(--line); border-radius: 20px; padding: 28px; background: white; min-width: 0; }
 .profile-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .profile-section-heading h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 21px; line-height: 1.4; margin: 8px 0 0; color: var(--ink); }
@@ -25,7 +25,7 @@
 .profile-empty p { margin: 0 0 16px; }
 .profile-empty p:last-child { margin-bottom: 0; }
 .profile-recipient-list { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
-.profile-recipient-card { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.profile-recipient-card { flex-wrap: wrap; display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
 .profile-initial { display: grid; place-items: center; border-radius: 12px; background: var(--blue-soft); color: var(--primary); width: 44px; height: 44px; flex-shrink: 0; font-weight: 600; font-size: 18px; }
 .profile-recipient-info { min-width: 0; flex: 1; }
 .profile-recipient-info h3 { margin: 0 0 6px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }

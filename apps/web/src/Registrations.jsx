@@ -38,7 +38,7 @@ function MoneyBreakdown({ subtotal, fee, totalBeforeDiscount }) {
   </>
 }
 
-export default function Registrations({ account, active, go, onSavingChange }) {
+export default function Registrations({ account, active, recipientLink = null, navigationRef, go, onSavingChange }) {
   const [view, setView] = useState('list')
   const [step, setStep] = useState(0)
   const [rows, setRows] = useState([])
@@ -66,6 +66,14 @@ export default function Registrations({ account, active, go, onSavingChange }) {
   const [detailId, setDetailId] = useState(null)
   const pending = useRef(false)
   const heading = useRef(null)
+  const resumeLink = useRef(null)
+  if (navigationRef) navigationRef.current = next => {
+    if (pending.current || uncertain) return false
+    const id = next.slice('register/recipient/'.length)
+    if (!draftOpen) return true
+    if (String(draft.recipientId) === id) { resumeLink.current = id; setError(''); setView('form'); return true }
+    return window.confirm('Bỏ bản nháp đăng ký hiện tại để đăng ký cho người khác?')
+  }
 
   useEffect(() => {
     if (active) { heading.current?.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }) }
@@ -95,17 +103,33 @@ export default function Registrations({ account, active, go, onSavingChange }) {
     finally { pending.current = false; setBusy(false) }
   }
 
-  function start() {
+  function start(link = null) {
+    if (pending.current) return
+    setDraft(emptyDraft()); setCustomers([]); setRecipients([]); setFee(null); setDraftOpen(true); setDetail(null); setNotice(''); setChanges([]); setNeedsCatalog(false); setStep(0); setView('form')
     run(async () => {
       const [owners, people, services, settings] = await Promise.all([
         allProfiles(identity, 'customers'), allProfiles(identity, 'recipients'), getRegistrationCatalog(), identity.registrations('/settings'),
       ])
       setFee(settings.consultationFee)
       setCustomers(owners); setRecipients(people); setCatalog(services)
-      setDraft(emptyDraft()); setDraftOpen(true); setDetail(null); setNotice(''); setChanges([]); setNeedsCatalog(false)
+      const person = /^\d+$/.test(link || '') ? people.find(item => String(item.id) === link) : null
+      const owner = person && owners.find(item => item.id === person.customerId)
+      setDraft(owner ? { ...emptyDraft(), customerId: owner.id, recipientId: person.id, contact: prefillContact(owner) } : emptyDraft()); setDraftOpen(true); setDetail(null); setNotice(link !== null && !owner ? 'Không tìm thấy người được tiêm trong hồ sơ của bạn. Vui lòng chọn lại.' : ''); setChanges([]); setNeedsCatalog(false)
       setStep(0); setQuery(''); setKind(''); setView('form')
     })
   }
+
+  const handledLink = useRef(null)
+  useEffect(() => {
+    if (!active || !account || recipientLink === null) { handledLink.current = null; return }
+    if (handledLink.current !== recipientLink) {
+      handledLink.current = recipientLink
+      if (resumeLink.current === recipientLink) { resumeLink.current = null; return }
+      start(recipientLink)
+    }
+  // Start once for each deep link; the request verifies ownership against current lists.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, account, recipientLink])
 
   function showList() { setView('list'); setPage(1); setReload(value => value + 1); setError('') }
 
@@ -118,7 +142,7 @@ export default function Registrations({ account, active, go, onSavingChange }) {
         const person = people.find(item => item.id === Number(current.recipientId) && item.customerId === owner?.id)
         return { ...current, customerId: owner?.id || '', recipientId: person?.id || '' }
       })
-      setNotice('Đã tải lại hồ sơ. Chọn khách hàng và người được tiêm phù hợp để tiếp tục.')
+      setNotice('Đã tải lại hồ sơ. Chọn người được tiêm để tiếp tục.')
     })
   }
 
@@ -166,12 +190,12 @@ export default function Registrations({ account, active, go, onSavingChange }) {
 
   const customer = customers.find(item => item.id === Number(draft.customerId))
   const recipient = recipients.find(item => item.id === Number(draft.recipientId) && item.customerId === Number(draft.customerId))
-  const people = recipients.filter(item => item.customerId === Number(draft.customerId))
+  const people = recipients.filter(item => customers.some(owner => owner.id === item.customerId))
   const filtered = catalog.filter(item => (!kind || item.kind === kind) && `${item.name} ${item.description || ''} ${(item.components || []).map(x => x.vaccineName).join(' ')}`.toLocaleLowerCase('vi').includes(query.trim().toLocaleLowerCase('vi')))
-  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký #${detailId}` : ['Chọn hồ sơ', 'Chọn dịch vụ', 'Thông tin liên hệ & ngày mong muốn tiêm', 'Xem lại đăng ký'][step]
+  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký #${detailId}` : ['Chọn người được tiêm', 'Chọn dịch vụ', 'Thông tin liên hệ & ngày mong muốn tiêm', 'Xem lại đăng ký'][step]
 
   return <section className="registration-page wrap" aria-busy={busy}>
-    <div className="page-intro"><div className="eyebrow">ĐĂNG KÝ DỊCH VỤ</div><h1 ref={heading} tabIndex={-1}>{title}</h1><p>Chọn dịch vụ và lưu đăng ký cho người được tiêm trong hồ sơ của bạn. Các mục [DEMO] có dữ liệu và giá giả để trình diễn.</p></div>
+    <div className="page-intro"><div className="eyebrow">ĐĂNG KÝ DỊCH VỤ</div><h1 ref={heading} tabIndex={-1}>{title}</h1><p>Chọn dịch vụ và lưu đăng ký cho người được tiêm trong hồ sơ của bạn. </p></div>
     {notice && <div className={`registration-message ${uncertain ? 'warning' : ''}`} role="status">{notice}</div>}
     {uncertain && <div className="registration-actions"><button className="button outline" disabled={busy || listLoading} onClick={showList}>Kiểm tra danh sách đăng ký</button>{view === 'list' && checkedList && listReady && <button className="button outline" disabled={busy || listLoading} onClick={() => {
       if (window.confirm('Bạn đã kiểm tra các đăng ký mới nhất và chi tiết, nhưng chưa thấy đăng ký vừa gửi? Gửi lại có thể tạo đăng ký trùng nếu kết quả cũ đến chậm.')) { setUncertain(false); setView('form'); setStep(3); setNotice('Bản nháp được mở lại. Hãy xem kỹ trước khi xác nhận gửi lại.') }
@@ -182,10 +206,10 @@ export default function Registrations({ account, active, go, onSavingChange }) {
       {draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => {
         if (window.confirm('Bỏ bản nháp chưa gửi và chọn lại hồ sơ/dịch vụ?')) { setDraft(emptyDraft()); setDraftOpen(false); setChanges([]); setNeedsCatalog(false); setNotice('Đã bỏ bản nháp chưa gửi.') }
       }}>Bỏ bản nháp</button>}
-      <div className="registration-actions"><button className="button primary" disabled={busy || uncertain || draftOpen} onClick={start}><Plus aria-hidden="true" />{busy ? 'Đang tải hồ sơ và dịch vụ…' : 'Tạo đăng ký'}</button>{draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => { setError(''); setView('form') }}>Tiếp tục bản nháp</button>}<button className="button outline" disabled={busy || listLoading} onClick={() => setReload(value => value + 1)}><RefreshCw aria-hidden="true" />Tải lại</button></div>
+      <div className="registration-actions"><button className="button primary" disabled={busy || uncertain || draftOpen} onClick={() => start()}><Plus aria-hidden="true" />{busy ? 'Đang tải hồ sơ và dịch vụ…' : 'Tạo đăng ký'}</button>{draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => { setError(''); setView('form') }}>Tiếp tục bản nháp</button>}<button className="button outline" disabled={busy || listLoading} onClick={() => setReload(value => value + 1)}><RefreshCw aria-hidden="true" />Tải lại</button></div>
       {listLoading && <p role="status">Đang tải danh sách đăng ký…</p>}
       {listError && <p className="registration-message error" role="alert">{listError} <button className="button outline" onClick={() => setReload(value => value + 1)}>Thử lại</button></p>}
-      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>ĐĂNG KÝ #{row.id} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : row.status}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết #{row.id}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
+      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>ĐĂNG KÝ #{row.id} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết #{row.id}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
     </>}
 
     {view === 'detail' && <>
@@ -197,13 +221,13 @@ export default function Registrations({ account, active, go, onSavingChange }) {
           setNotice(`Bạn đã xác nhận tìm thấy đăng ký #${detail.id}. Bản nháp được kết thúc, không gửi thêm yêu cầu tạo.`)
         }
       }}>Đã tìm thấy đăng ký, kết thúc bản nháp</button>}
-      {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : detail.status}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} /><Lines items={detail.items} />
+      {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} /><Lines items={detail.items} />
         <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} totalBeforeDiscount={detail.totalBeforeDiscount} /><p className="muted">Đăng ký đã được lưu. Chưa phát sinh lịch tiêm hoặc thanh toán trong luồng này; đăng ký không xác nhận đủ điều kiện tiêm.</p></div>}
     </>}
 
     {view === 'form' && <>
       <ol className="registration-steps" aria-label="Các bước đăng ký">{['Hồ sơ', 'Dịch vụ', 'Liên hệ & ngày mong muốn', 'Xem lại'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
-      <form onSubmit={event => { event.preventDefault(); if (step === 0) { if (!customer || !recipient) setError('Chọn đầy đủ khách hàng và người được tiêm.'); else { setError(''); setStep(1) } } else if (step < 3) {
+      <form onSubmit={event => { event.preventDefault(); if (step === 0) { if (!customer || !recipient) setError('Chọn người được tiêm.'); else { setError(''); setStep(1) } } else if (step < 3) {
         try {
           if (step === 1) registrationItems(draft, customers, recipients)
           else {
@@ -214,18 +238,18 @@ export default function Registrations({ account, active, go, onSavingChange }) {
         } catch (failure) { setError(failure.message) }
       } else submit() }}>
         <fieldset className="registration-fieldset" disabled={busy || uncertain}>
-          {step === 0 && <div className="registration-panel registration-profile-select"><h2>Đăng ký cho ai?</h2><p>Chọn hồ sơ đã lưu, không cần nhập lại thông tin cá nhân.</p><label className="demo-field"><span>Khách hàng *</span><select required value={draft.customerId} onChange={event => {
-            const id = event.target.value
-            setDraft(current => ({ ...current, customerId: id, recipientId: '',
-              contact: prefillContact(customers.find(item => item.id === Number(id))) }))
-          }}><option value="">Chọn khách hàng</option>{customers.map(item => <option key={item.id} value={item.id}>{item.fullName} · #{item.id}</option>)}</select></label><label className="demo-field"><span>Người được tiêm *</span><select required disabled={!customer} value={draft.recipientId} onChange={event => setDraft(current => ({ ...current, recipientId: event.target.value }))}><option value="">Chọn người được tiêm</option>{people.map(item => <option key={item.id} value={item.id}>{item.fullName} · {item.dateOfBirth} · {item.relationshipToCustomer} · #{item.id}</option>)}</select></label>{(!customers.length || (customer && !people.length)) && <p role="status">Chưa có hồ sơ phù hợp trong phạm vi tài khoản.</p>}<div className="registration-actions"><button className="button outline" type="button" onClick={reloadProfiles}>Tải lại hồ sơ</button><button className="button text-button" type="button" onClick={() => go('account')}>Mở Hồ sơ để thêm hoặc kiểm tra liên kết</button></div></div>}
+          {step === 0 && <div className="registration-panel registration-profile-select"><h2>Chọn người được tiêm</h2><p>Chọn người đã có trong hồ sơ của bạn.</p><label className="demo-field"><span>Người được tiêm *</span><select required value={draft.recipientId} onChange={event => {
+            const person = people.find(item => item.id === Number(event.target.value))
+            const owner = person && customers.find(item => item.id === person.customerId)
+            setDraft(current => ({ ...current, customerId: owner?.id || '', recipientId: person?.id || '', contact: prefillContact(owner) }))
+          }}><option value="">Chọn người được tiêm</option>{people.map(item => <option key={item.id} value={item.id}>{item.fullName} · {item.dateOfBirth ? item.dateOfBirth.split('-').reverse().join('/') : 'Chưa cập nhật'} · {item.relationshipToCustomer || 'Chưa cập nhật'}</option>)}</select></label>{!people.length && <p role="status">Chưa có người được tiêm. Hãy thêm hoặc tìm hồ sơ có sẵn.</p>}<div className="registration-actions"><button className="button outline" type="button" onClick={reloadProfiles}>Tải lại hồ sơ</button><button className="button text-button" type="button" onClick={() => go('account')}>Thêm người được tiêm</button><button className="button text-button" type="button" onClick={() => go('account')}>Tìm hồ sơ có sẵn</button></div></div>}
 
-          {step === 1 && <div className="registration-workspace"><div className="registration-panel"><h2>Danh mục dịch vụ</h2><p className="muted">Danh mục từ cơ sở dữ liệu; không xác nhận tồn kho hoặc chỉ định y khoa.</p><label className="registration-search"><Search aria-hidden="true" /><input type="search" aria-label="Tìm dịch vụ" placeholder="Tìm tên vắc xin, gói hoặc thành phần" maxLength={150} value={query} onChange={event => setQuery(event.target.value)} /></label><div className="registration-actions">{[['', 'Tất cả'], ['vaccine', 'Vắc xin lẻ'], ['package', 'Gói vắc xin']].map(([value, label]) => <button key={value} className={`filter-tab ${kind === value ? 'selected' : ''}`} aria-pressed={kind === value} type="button" onClick={() => setKind(value)}>{label}</button>)}</div><p className="muted">{filtered.length} dịch vụ</p><ul className="registration-services">{filtered.map(item => { const selected = draft.items.some(x => serviceKey(x) === serviceKey(item)); return <li key={serviceKey(item)}><small>{kindName(item.kind)}</small><h3>{item.name}</h3>{item.description && <p>{item.description}</p>}<Components items={item.components} /><div className="registration-service-action"><strong>{money(item.price)}</strong><button type="button" className="button outline" disabled={selected || draft.items.length >= 100} aria-label={`${selected ? 'Đã chọn' : 'Chọn'} ${item.name}`} onClick={() => setDraft(current => ({ ...current, items: [...current.items, { ...item, quantity: 1 }] }))}>{selected ? 'Đã chọn' : 'Chọn'}{!selected && <Plus aria-hidden="true" />}</button></div></li> })}</ul>{!filtered.length && <div className="empty-state">Không có dịch vụ phù hợp. Thử đổi từ khóa hoặc loại dịch vụ.</div>}</div>
+          {step === 1 && <div className="registration-workspace"><div className="registration-panel"><h2>Danh mục dịch vụ</h2><p className="muted">Danh mục chưa xác nhận tình trạng vắc xin hoặc chỉ định y khoa.</p><label className="registration-search"><Search aria-hidden="true" /><input type="search" aria-label="Tìm dịch vụ" placeholder="Tìm tên vắc xin, gói hoặc thành phần" maxLength={150} value={query} onChange={event => setQuery(event.target.value)} /></label><div className="registration-actions">{[['', 'Tất cả'], ['vaccine', 'Vắc xin lẻ'], ['package', 'Gói vắc xin']].map(([value, label]) => <button key={value} className={`filter-tab ${kind === value ? 'selected' : ''}`} aria-pressed={kind === value} type="button" onClick={() => setKind(value)}>{label}</button>)}</div><p className="muted">{filtered.length} dịch vụ</p><ul className="registration-services">{filtered.map(item => { const selected = draft.items.some(x => serviceKey(x) === serviceKey(item)); return <li key={serviceKey(item)}><small>{kindName(item.kind)}</small><h3>{item.name}</h3>{item.description && <p>{item.description}</p>}<Components items={item.components} /><div className="registration-service-action"><strong>{money(item.price)}</strong><button type="button" className="button outline" disabled={selected || draft.items.length >= 100} aria-label={`${selected ? 'Đã chọn' : 'Chọn'} ${item.name}`} onClick={() => setDraft(current => ({ ...current, items: [...current.items, { ...item, quantity: 1 }] }))}>{selected ? 'Đã chọn' : 'Chọn'}{!selected && <Plus aria-hidden="true" />}</button></div></li> })}</ul>{!filtered.length && <div className="empty-state">Không có dịch vụ phù hợp. Thử đổi từ khóa hoặc loại dịch vụ.</div>}</div>
             <aside className="registration-panel registration-summary"><h2>Dịch vụ đã chọn</h2><p>{recipient?.fullName} · {customer?.fullName}</p>{!draft.items.length && <p>Chọn dịch vụ từ danh mục để bắt đầu.</p>}<Lines items={draft.items} onChange={(item, quantity) => { if (quantity === '' || /^\d{1,3}$/.test(quantity)) setDraft(current => ({ ...current, items: current.items.map(x => serviceKey(x) === serviceKey(item) ? { ...x, quantity } : x) })) }} onRemove={item => setDraft(current => ({ ...current, items: current.items.filter(x => serviceKey(x) !== serviceKey(item)) }))} /><div className="registration-total"><span>Tổng tạm tính</span><strong>{money(total(draft.items))}</strong></div></aside></div>}
 
           {changes.length > 0 && step > 0 && <div className="registration-message warning" role="alert"><strong>Các mục đã thay đổi</strong><ul>{changes.map(change => <li key={change}>{change}</li>)}</ul></div>}
           {needsCatalog && <button className="button outline" type="button" onClick={() => run(updateCatalog)}>Thử tải lại giá và thành phần</button>}
-          {error && <p className="registration-message error" role="alert">{error}</p>}
+          {error && <p className="registration-message error" role="alert">{error}{step === 0 && fee === null && <button type="button" className="button outline" onClick={() => start(recipientLink)}>Thử lại</button>}</p>}
           {step === 2 && <div className="registration-panel registration-profile-select">
             <h2>Thông tin liên hệ</h2>
             <p>Thông tin này được lưu cùng đăng ký. Bạn có thể sửa cho lần đăng ký này.</p>
@@ -246,7 +270,7 @@ export default function Registrations({ account, active, go, onSavingChange }) {
             </label>
             <p className="muted">Cơ sở sẽ xác nhận lịch ở bước sau.</p>
           </div>}
-          {step === 3 && <div className="registration-panel"><h2>Kiểm tra trước khi xác nhận</h2><dl className="registration-review-profiles"><div><dt>Khách hàng</dt><dd>{customer?.fullName} · #{customer?.id}</dd></div><div><dt>Người được tiêm</dt><dd>{recipient?.fullName} · #{recipient?.id}</dd></div></dl><ContactSnapshot contact={draft.contact} preferredDate={draft.preferredDate} /><Lines items={draft.items} />
+          {step === 3 && <div className="registration-panel"><h2>Kiểm tra trước khi xác nhận</h2><dl className="registration-review-profiles"><div><dt>Khách hàng</dt><dd>{customer?.fullName}</dd></div><div><dt>Người được tiêm</dt><dd>{recipient?.fullName}</dd></div></dl><ContactSnapshot contact={draft.contact} preferredDate={draft.preferredDate} /><Lines items={draft.items} />
             <MoneyBreakdown subtotal={total(draft.items)} fee={fee} totalBeforeDiscount={total(draft.items) + BigInt(fee)} /><p>Chỉ xác nhận đăng ký dịch vụ. Nhân viên sẽ xử lý các bước tiếp theo theo điều kiện nghiệp vụ; chưa tạo lịch hay thanh toán.</p></div>}
           <div className="registration-actions registration-form-actions"><button className="button outline" type="button" onClick={showList}>Lưu bản nháp trong phiên, về danh sách</button>{step > 0 && <button className="button outline" type="button" onClick={() => { setStep(value => value - 1); setError('') }}><ArrowLeft aria-hidden="true" />Quay lại</button>}<button className="button primary" type="submit" disabled={needsCatalog || (step === 0 && (!customer || !recipient)) || (step > 0 && !draft.items.length)}>{busy ? 'Đang gửi đăng ký…' : step === 3 ? 'Xác nhận đăng ký' : step === 2 ? 'Xem lại' : step === 1 ? 'Nhập thông tin liên hệ' : 'Chọn dịch vụ'}<ArrowRight aria-hidden="true" /></button></div>
         </fieldset>

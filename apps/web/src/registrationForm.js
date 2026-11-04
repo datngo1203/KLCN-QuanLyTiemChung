@@ -116,7 +116,7 @@ export async function allProfiles(client, resource) {
   }
 }
 
-export const registrationError = error => error.status === 401 ? 'Phiên đã hết hạn. Vui lòng vào Tài khoản để đăng nhập lại.'
+export const registrationError = error => error.status === 401 ? 'Phiên đã hết hạn. Vui lòng đăng nhập lại.'
   : error.status === 403 ? 'Bạn không có quyền truy cập đăng ký hoặc hồ sơ này. Hãy kiểm tra tài khoản và liên kết hồ sơ.'
     : error instanceof TypeError || ['AbortError', 'TimeoutError', 'SyntaxError'].includes(error.name) ? 'Không kết nối được dịch vụ. Bản nháp vẫn được giữ để thử lại.'
-      : error.message
+      : /API|HTTP|SQL|JSON/i.test(error.message || '') ? 'Không thể thực hiện yêu cầu. Vui lòng thử lại.' : error.message

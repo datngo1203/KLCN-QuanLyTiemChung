@@ -13,13 +13,13 @@ import './theme.css'
 import './Catalog.css'
 
 const pages = [
-  ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
+  ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ tiêm chủng'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
   ['payment', 'Thanh toán'], ['schedule', 'Lịch hẹn'], ['history', 'Lịch sử tiêm'],
 ]
 
 const pageFromHash = () => {
   const path = window.location.hash.slice(1)
-  return pages.some(([id]) => id === path) || path.startsWith('catalog/vaccines/') ? path : 'home'
+  return pages.some(([id]) => id === path) || (path.startsWith('catalog/vaccines/') || path.startsWith('register/recipient/')) ? path : 'home'
 }
 
 const offers = [
@@ -31,6 +31,8 @@ function App() {
   const [sessionBusy, setSessionBusy] = useState(false)
   const [page, setPage] = useState(pageFromHash)
   const mainRef = useRef(null)
+  const registrationNavigation = useRef(null)
+  const returnAfterLogin = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [toast, setToast] = useState('')
@@ -43,9 +45,10 @@ function App() {
   }
   useEffect(() => {
     const navigate = () => {
-      if (registrationBusy) { window.history.replaceState(null, '', `#${page}`); return }
+      const next = pageFromHash()
+      if (registrationBusy || (next.startsWith('register/recipient/') && registrationNavigation.current && !registrationNavigation.current(next))) { window.history.replaceState(null, '', `#${page}`); return }
       setMobileMenuOpen(false)
-      setPage(pageFromHash())
+      setPage(next)
     }
     window.addEventListener('hashchange', navigate)
     return () => window.removeEventListener('hashchange', navigate)
@@ -54,7 +57,13 @@ function App() {
     mainRef.current?.focus({ preventScroll: true })
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [page])
-  const go = (next) => { if (registrationBusy) return; setMobileMenuOpen(false); setPage(next); window.location.hash = next }
+  useEffect(() => {
+    if (account && returnAfterLogin.current) {
+      const next = returnAfterLogin.current; returnAfterLogin.current = null
+      setPage(next); window.history.replaceState(null, '', `#${next}`)
+    }
+  }, [account])
+  const go = (next) => { if (registrationBusy || (next.startsWith('register/recipient/') && registrationNavigation.current && !registrationNavigation.current(next))) return; if (!account && next === 'account' && page.startsWith('register/recipient/')) returnAfterLogin.current = page; setMobileMenuOpen(false); setPage(next); window.history.pushState(null, '', `#${next}`) }
 
   return (
     <div className="app-shell">
@@ -66,18 +75,18 @@ function App() {
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
           {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} className={page === id || (id === 'catalog' && page.startsWith('catalog/')) ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
-        <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')} aria-label="Tài khoản">{account ? 'Tài khoản' : 'Đăng nhập'}</button>
+        <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')} aria-label={account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}>{account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}</button>
         <button disabled={registrationBusy} className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
         {page === 'promotions' && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
-        {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} />}
+        {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
         {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
-        {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
+        {(account || page.startsWith('register')) && <div hidden={!page.startsWith('register')}><Registrations key={account?.accountId || 'guest'} account={account} active={page.startsWith('register')} navigationRef={registrationNavigation} recipientLink={page.startsWith('register/recipient/') ? page.slice('register/recipient/'.length) : null} go={go} onSavingChange={setRegistrationBusy} /></div>}
         {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
         {page === 'schedule' && <Schedule key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
         {page === 'history' && <VaccinationHistory key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
