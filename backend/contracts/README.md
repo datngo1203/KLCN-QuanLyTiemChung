@@ -312,6 +312,26 @@ A08 đọc biên nhận bằng GET sau khi nhận 201 (thu tại quầy), 200 (x
 G5 với tổng dương phải kiểm giao dịch G3 hợp lệ, toàn bộ số tiền và đúng đăng ký; `DaDangKy` hay remainingAmount=0 không đủ làm bằng chứng. Điều kiện tiền khi tổng 0 chờ quyết định ở G5, không tự coi đủ điều kiện tiêm. G6 sẽ snapshot khoản giảm lúc đăng ký; G3 không đọc MucUuDai hiện hành, áp ưu đãi hoặc hồi tố giá/khoản giảm.
 
 
+## RF-04B2 — Checkout Web
+
+Ba route sau yêu cầu Customer Active, phiên hợp lệ và email đã xác minh. Route theo đăng ký kiểm cả hai liên kết hồ sơ Active như GET Payment. Đăng ký ngoài phạm vi hoặc không tồn tại đều trả 403.
+
+| Route | Request | Kết quả |
+|---|---|---|
+| `GET /api/v1/payment/settings` | Không có body | 200 `{ receiverBankName, receiverAccountName, receiverAccountNumber }` với tài khoản thử nghiệm VAC. Chỉ đọc. |
+| `POST /api/v1/registrations/{id}/payment/online` | `{ payer, method, termsAccepted, internationalCard?, domestic?, transfer? }` | 201, Location trỏ tới GET Payment. Tổng VND, loại `ToanBo`, trạng thái, mã giao dịch và thời điểm do server quyết định. |
+| `PUT /api/v1/registrations/{id}/payment/channel` | `{ channel: "TaiTrungTam" }` | 200 chi tiết. Nếu chưa có thanh toán, lưu kênh dự kiến, ghi audit khi kênh thay đổi và giữ trạng thái chưa thanh toán. |
+
+- `payer` dùng tên, điện thoại, tỉnh/thành, phường/xã, địa chỉ bắt buộc và email tùy chọn. Web điền từ `registrationContact`. Chỉnh sửa chỉ lưu vào snapshot giao dịch. `termsAccepted` phải là `true`, server lưu thời điểm đồng ý UTC.
+- `TheQuocTe` nhận `internationalCard: { cardBrand, cardholderName, cardNumber, expiryMonth, expiryYear, cvv }`. Kiểm prefix và độ dài VISA/MASTER/JCB, Luhn, tháng hết hạn theo UTC+7 và CVV 3 chữ số ASCII. Lưu metadata đã che và trạng thái `ThanhCong`, nhân viên null.
+- `TheNoiDia` nhận `domestic: { bankName, accountHolderName, cardOrAccountNumber, otp }`. Ngân hàng 1–100 ký tự, chủ tài khoản 1–150, định danh 8–20 chữ số ASCII, OTP thử nghiệm 6 chữ số ASCII. Lưu metadata đã che và trạng thái `ThanhCong`, nhân viên null.
+- `ChuyenKhoanOnline` nhận `transfer` cùng cấu trúc chuyển khoản tại quầy. Mở hướng dẫn chỉ GET settings và tạo QR tại trình duyệt. Khi khách xác nhận đã chuyển, lưu metadata và mã tham chiếu, trạng thái `ChoXacNhan`, nhân viên null. A08 dùng route confirm B1 để xác nhận trên cùng ID và mã giao dịch.
+- Mỗi request online có đúng một payload tương ứng phương thức. Trường ngoài contract bị từ chối. Số thẻ, CVV, OTP và định danh nguồn đầy đủ chỉ dùng trong request; biên nhận chỉ có metadata.
+- Dùng chung khóa đăng ký, phép tính tổng, unique index và audit B1. Online đặt `TrucTuyen` cùng transaction với thanh toán. S5 chỉ chấp nhận thanh toán hợp lệ đã thành công và S7 chỉ tính doanh thu từ trạng thái `ThanhCong`.
+- Web đối chiếu bằng GET sau 201 hoặc 409 trùng/không cần thu. 409 dữ liệu mâu thuẫn khóa gửi và hướng dẫn liên hệ quầy. Nếu mất kết nối, timeout hoặc lỗi 5xx, Web khóa gửi lại và GET đối chiếu. Nếu GET chưa thấy giao dịch, khách phải xác nhận đã kiểm tra để thử lại. Phiên thay đổi sẽ bỏ kết quả cũ.
+
+Migration `20261104134233_RF04B2WebCheckout` thay một CHECK tổ hợp phương thức, nhân viên, trạng thái và thời điểm đồng ý. Các thanh toán tại quầy và legacy theo B1 vẫn đọc được. Bản ghi online thử nghiệm từ fixture cũ thiếu thời điểm đồng ý sẽ bị SQL từ chối khi nâng cấp. Down dừng với lỗi 51006 nếu đã có lịch sử thanh toán online.
+
 ## S5.1 — Lịch hẹn từ dịch vụ đã chốt (Windows)
 
 Chỉ tạo/xem buổi hẹn; không đồng nghĩa đủ điều kiện tiêm. Không tự bung số lượng/gói thành mũi, suy phác đồ, kiểm tiền trước khi xếp hẹn hoặc tạo chỉ định/lô. Không đổi/hủy lịch, ghi tiêm hoặc nhắc lịch. S5.2 mở Customer GET theo ownership bên dưới.

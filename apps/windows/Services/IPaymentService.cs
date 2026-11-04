@@ -15,7 +15,8 @@ public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, i
     public string Code => TransactionCode ?? $"TT-{Id:0000}";
     public string MethodLabel => Method switch {
         "TienMat" => "Tiền mặt", "TheTaiQuay" => "Thẻ tại quầy", "ChuyenKhoanQR" => "Chuyển khoản / QR",
-        "ChuyenKhoanOnline" => "Chuyển khoản trực tuyến", _ => "Giao dịch trước đây"
+        "ChuyenKhoanOnline" => "Chuyển khoản trực tuyến", "TheQuocTe" => "Thẻ quốc tế",
+        "TheNoiDia" => "Thẻ / tài khoản nội địa", _ => "Giao dịch trước đây"
     };
     public string OccurredLabel => OccurredAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm:ss");
     public string PayerAddress => string.Join(", ", new[] { Payer?.AddressLine, Payer?.WardCommune, Payer?.ProvinceCity }

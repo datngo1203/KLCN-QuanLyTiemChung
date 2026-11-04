@@ -7,7 +7,26 @@ export const paymentMethodLabel = method => ({
   TheTaiQuay: 'Thẻ tại quầy',
   ChuyenKhoanQR: 'Chuyển khoản / QR',
   ChuyenKhoanOnline: 'Chuyển khoản trực tuyến',
+  TheQuocTe: 'Thẻ VISA / MASTER / JCB',
+  TheNoiDia: 'Thẻ / tài khoản nội địa (ATM)',
 })[method] ?? 'Giao dịch trước đây'
+
+export const registrationCode = id => `DK-${String(id).padStart(4, '0')}`
+
+export function cardNumberValid(brand, value) {
+  const digits = value.replaceAll(' ', '')
+  if (!/^[0-9]{13,19}$/.test(digits)) return false
+  const prefix = Number(digits.slice(0, 4))
+  const brandMatch = {
+    VISA: digits.startsWith('4') && [13, 16, 19].includes(digits.length),
+    MASTER: digits.length === 16 && (prefix >= 5100 && prefix <= 5599 || prefix >= 2221 && prefix <= 2720),
+    JCB: digits.length >= 16 && prefix >= 3528 && prefix <= 3589,
+  }
+  return !!brandMatch[brand] && [...digits].reverse().reduce((sum, char, index) => {
+    const digit = Number(char) * (index % 2 === 0 ? 1 : 2)
+    return sum + (digit > 9 ? digit - 9 : digit)
+  }, 0) % 10 === 0
+}
 
 // Financial errors use fixed messages; never display arbitrary backend details or profile data.
 export const paymentError = error => ({

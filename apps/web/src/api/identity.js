@@ -18,6 +18,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
   let tokens = null
   let refreshing = null
   let sessionVersion = 0
+  const paymentWrites = new Map()
   async function call(path, body, accessToken) {
     const response = await request(`${baseUrl}/api/v1/auth/${path}`, {
       method: body === undefined ? 'GET' : 'POST',
@@ -46,7 +47,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       }).finally(() => { refreshing = null })
     return refreshing
   }
-  async function profiles(path, method = 'GET', body, registration = false) {
+  async function profiles(path, method = 'GET', body, registration = false, paymentStatus) {
     if (!tokens) throw Object.assign(new Error(messages.invalidSession), { status: 401 })
     const version = sessionVersion
     const send = () => request(`${baseUrl}/api/v1/${path}`, {
@@ -56,13 +57,17 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     const session = tokens
     let response = await send()
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
-    if (response.status === 401) {
+    if (response.status === 401 && !paymentStatus) {
       if (tokens === session) await refresh(session)
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
       if (!tokens) throw new Error(messages.invalidSession)
       response = await send()
     }
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
+    if (paymentStatus && response.ok) {
+      if (response.status !== paymentStatus) throw new Error('Chưa xác định được kết quả.')
+      return
+    }
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
@@ -75,13 +80,55 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
     return result
   }
+
+  async function writePayment(id, action, body) {
+    if (paymentWrites.has(id)) throw new Error('Cần đối chiếu kết quả trước khi tiếp tục.')
+    const version = sessionVersion
+    const online = action === 'online'
+    const attempt = { status: 'sending', action }
+    paymentWrites.set(id, attempt)
+    attempt.done = profiles(`registrations/${id}/payment/${action}`, online ? 'POST' : 'PUT', body, false, online ? 201 : 200)
+    try {
+      await attempt.done
+      if (version === sessionVersion) attempt.status = 'committed'
+    } catch (error) {
+      if (version === sessionVersion) {
+        if (['paymentAlreadyRecorded', 'paymentNotRequired'].includes(error.code)) attempt.status = 'reconcile'
+        else if (error.status === 409) attempt.status = 'conflict'
+        else if (!error.status || error.status >= 500 || error.status === 408) attempt.status = 'unknown'
+        else paymentWrites.delete(id)
+      }
+      throw error
+    }
+  }
+
+  async function getRegistrationPayment(id) {
+    const version = sessionVersion
+    const attempt = paymentWrites.get(id)
+    if (attempt?.status === 'sending') await attempt.done.catch(() => {})
+    if (version !== sessionVersion) throw new Error(messages.invalidSession)
+    const detail = await profiles(`registrations/${id}/payment`, 'GET', undefined, true)
+    if (attempt && attempt === paymentWrites.get(id)) {
+      if (detail.payment || detail.totalDue === '0' || attempt.action === 'channel' && detail.expectedChannel === 'TaiTrungTam')
+        paymentWrites.delete(id)
+      else if (attempt.status === 'unknown') attempt.status = 'unconfirmed'
+    }
+    return detail
+  }
   return {
     profiles,
     appointments: (query = '') => profiles(`appointments${query}`),
     getAppointment: id => profiles(`appointments/${id}`),
     vaccinationHistory: (query = '') => profiles(`vaccinations/history${query}`),
     registrations: (path = '', method = 'GET', body) => profiles(`registrations${path}`, method, body, true),
-    getRegistrationPayment: id => profiles(`registrations/${id}/payment`, 'GET', undefined, true),
+    getRegistrationPayment,
+    getPaymentSettings: () => profiles('payment/settings'),
+    recordOnlinePayment: (id, body) => writePayment(id, 'online', body),
+    selectCenterPayment: id => writePayment(id, 'channel', { channel: 'TaiTrungTam' }),
+    paymentWriteState: id => paymentWrites.get(id)?.status,
+    acknowledgePaymentRetry(id) {
+      if (paymentWrites.get(id)?.status === 'unconfirmed') paymentWrites.delete(id)
+    },
     async changePassword(currentPassword, newPassword, confirmation) {
       if (!currentPassword) throw new Error('Nhập mật khẩu hiện tại.')
       if (newPassword.length < 12 || newPassword.length > 128 || newPassword === currentPassword)
@@ -97,6 +144,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       await call('change-password', { currentPassword, newPassword }, tokens.accessToken)
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
       tokens = null
+      paymentWrites.clear()
       sessionVersion++
     },
     async register(email, password, confirmation) {
@@ -110,12 +158,14 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       if (newPassword.length < 12 || newPassword.length > 128) throw new Error('Mật khẩu mới cần 12–128 ký tự.')
       await call('password-resets/confirm', { token, newPassword })
       tokens = null
+      paymentWrites.clear()
       sessionVersion++
     },
     confirm: token => call('email-verifications/confirm', { token }),
     resend: email => call('email-verifications/resend', { email }),
     async login(identifier, password) {
       tokens = null
+      paymentWrites.clear()
       const version = ++sessionVersion
       const session = await call('login', { identifier, password, clientType: 'native' })
       try {
@@ -137,6 +187,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       if (tokens) await call('logout', { clientType: 'native', refreshToken: tokens.refreshToken })
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
       tokens = null
+      paymentWrites.clear()
       sessionVersion++
     },
   }

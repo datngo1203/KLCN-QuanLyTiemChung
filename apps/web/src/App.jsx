@@ -78,7 +78,7 @@ function App() {
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {(account || page === 'register') && <div hidden={page !== 'register'}><Registrations key={account?.accountId || 'guest'} account={account} active={page === 'register'} go={go} onSavingChange={setRegistrationBusy} /></div>}
-        {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} go={go} />}
+        {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
         {page === 'schedule' && <Schedule key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
         {page === 'history' && <VaccinationHistory key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
       </main>

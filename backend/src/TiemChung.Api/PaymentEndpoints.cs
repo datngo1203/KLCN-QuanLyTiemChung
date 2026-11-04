@@ -61,6 +61,76 @@ public static class PaymentEndpoints
             return Results.Ok(dto);
         }).WithName("GetRegistrationPayment").Produces<RegistrationPaymentDto>();
 
+        group.MapGet("/payment/settings", async (HttpContext context, IdentityAuthorization auth, CancellationToken ct) => {
+            await RequireCustomer(context, auth, false, ct);
+            return Results.Ok(new PaymentSettingsDto("Ngân hàng thử nghiệm VAC", "Trung tâm tiêm chủng VAC", "0000000402"));
+        }).WithName("GetPaymentSettings").Produces<PaymentSettingsDto>();
+
+        group.MapPost("/registrations/{id:int}/payment/online", async (int id, OnlinePaymentRequest req,
+            HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var actor = await RequireCustomer(context, auth, true, ct);
+            var row = await LockOwnedRegistration(db, actor, id, ct);
+            var before = await Detail(db, row, actor, ct);
+            if (before.Payment is not null) throw new IdentityFailure(409, "paymentAlreadyRecorded");
+            if (before.TotalDue == 0) throw new IdentityFailure(409, "paymentNotRequired");
+            var now = DateTimeOffset.UtcNow;
+            var payer = OnlinePaymentRules.NormalizePayer(req.Payer);
+            if (payer is null || !req.TermsAccepted) throw new IdentityFailure(400, "validation");
+
+            var (provider, holder, identifier, reference) = req switch {
+                { Method: "TheQuocTe", InternationalCard: { } card, Domestic: null, Transfer: null }
+                    when OnlinePaymentRules.ValidCard(card, now) =>
+                    (card.CardBrand!, card.CardholderName!.Trim(), CounterPaymentRules.CardDigits(card.CardNumber!), (string?)null),
+                { Method: "TheNoiDia", Domestic: { } atm, InternationalCard: null, Transfer: null }
+                    when OnlinePaymentRules.ValidDomestic(atm) =>
+                    (atm.BankName!.Trim(), atm.AccountHolderName!.Trim(), atm.CardOrAccountNumber!.Trim(), null),
+                { Method: "ChuyenKhoanOnline", Transfer: { } transfer, InternationalCard: null, Domestic: null }
+                    when OnlinePaymentRules.ValidTransfer(transfer) =>
+                    (transfer.SourceBankOrWallet!.Trim(), transfer.AccountHolderName!.Trim(),
+                        transfer.SourceAccountOrWalletId!.Trim(), transfer.TransferReference!.Trim()),
+                _ => throw new IdentityFailure(400, "validation")
+            };
+
+            row.KenhThanhToanDuKien = "TrucTuyen";
+            var payment = new ThanhToan {
+                MaDangKy = id, SoTien = before.TotalDue, LoaiThanhToan = "ToanBo",
+                PhuongThuc = req.Method!, TrangThai = req.Method == "ChuyenKhoanOnline" ? "ChoXacNhan" : "ThanhCong",
+                ThoiDiem = now.UtcDateTime, MaGiaoDich = $"TT-{Guid.NewGuid():N}", DongYDieuKhoanLuc = now,
+                TenNguoiThanhToan = payer.FullName, SoDienThoaiThanhToan = payer.PhoneNumber, EmailThanhToan = payer.Email,
+                TinhThanhThanhToan = payer.ProvinceCity, PhuongXaThanhToan = payer.WardCommune, DiaChiThanhToan = payer.AddressLine,
+                NhaCungCapThanhToan = provider, TenChuTaiKhoanThe = holder,
+                SoDinhDanhMasked = CounterPaymentRules.Mask(identifier), ThamChieuThanhToan = reference
+            };
+            db.Payments.Add(payment);
+            await db.SaveChangesAsync(ct);
+            Audit(db, context, actor, payment, "payments.recorded");
+            await db.SaveChangesAsync(ct);
+            var dto = await Detail(db, row, actor, ct);
+            await tx.CommitAsync(ct);
+            return Results.Created($"/api/v1/registrations/{id}/payment", dto);
+        }).WithName("RecordOnlinePayment").Produces<RegistrationPaymentDto>(201);
+
+        group.MapPut("/registrations/{id:int}/payment/channel", async (int id, PaymentChannelRequest req,
+            HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var actor = await RequireCustomer(context, auth, true, ct);
+            if (req.Channel != "TaiTrungTam") throw new IdentityFailure(400, "validation");
+            var row = await LockOwnedRegistration(db, actor, id, ct);
+            var detail = await Detail(db, row, actor, ct);
+            if (detail.Payment is not null) throw new IdentityFailure(409, "paymentAlreadyRecorded");
+            if (row.KenhThanhToanDuKien != req.Channel) {
+                row.KenhThanhToanDuKien = req.Channel;
+                var audit = IdentityTransactions.Audit(db, "payments.channelSelected", context.TraceIdentifier,
+                    actor.Account.MaTaiKhoan, session: actor.Session.Id);
+                audit.ResourceType = "Registration";
+                audit.ResourceId = id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                await db.SaveChangesAsync(ct);
+            }
+            await tx.CommitAsync(ct);
+            return Results.Ok(detail with { ExpectedChannel = req.Channel });
+        }).WithName("SelectPaymentChannel").Produces<RegistrationPaymentDto>();
+
         group.MapPost("/registrations/{id:int}/payment", async (int id, RecordPaymentRequest req,
             HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
@@ -122,11 +192,31 @@ public static class PaymentEndpoints
         }).WithName("ConfirmRegistrationPayment").Produces<RegistrationPaymentDto>();
     }
 
-    private static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct) =>
+    private static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct,
+        bool customer = false) =>
         // All collectors lock the same registration after Identity account/session locks.
         await db.Registrations.FromSqlInterpolated(
             $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={id}")
-            .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+            .SingleOrDefaultAsync(ct) ?? throw (customer
+                ? new IdentityFailure(403, "permissionDenied") : new IdentityFailure(404, "resourceNotFound"));
+
+    private static async Task<DangKyDichVu> LockOwnedRegistration(TiemChungDbContext db, IdentityActor actor, int id,
+        CancellationToken ct)
+    {
+        if (id <= 0) throw new IdentityFailure(400, "validation");
+        var row = await LockRegistration(db, id, ct, customer: true);
+        if (!await RegistrationEndpoints.Scope(db, actor).AnyAsync(r => r.MaDangKy == id, ct))
+            throw new IdentityFailure(403, "permissionDenied");
+        return row;
+    }
+
+    private static async Task<IdentityActor> RequireCustomer(HttpContext context, IdentityAuthorization auth, bool write,
+        CancellationToken ct)
+    {
+        var actor = await auth.RequireAsync(context, write, ct);
+        if (!actor.IsCustomer) throw new IdentityFailure(403, "permissionDenied");
+        return actor;
+    }
 
     private static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
     {
@@ -196,15 +286,21 @@ public static class PaymentEndpoints
                 payment.SoDinhDanhMasked is null && payment.ThamChieuThanhToan is null;
 
         if (payment.SoTienKhachDua is not null || !CounterPaymentRules.Text(payment.NhaCungCapThanhToan, 100) ||
-            !CounterPaymentRules.Text(payment.TenChuTaiKhoanThe, 150) || !CounterPaymentRules.Text(payment.ThamChieuThanhToan, 100) ||
+            !CounterPaymentRules.Text(payment.TenChuTaiKhoanThe, 150) ||
             payment.SoDinhDanhMasked is not { Length: >= 4 and <= 8 } masked || !masked.StartsWith("****", StringComparison.Ordinal))
             return false;
 
+        var online = payment.DongYDieuKhoanLuc is not null && OnlinePaymentRules.NormalizePayer(Payer(payment)) is not null;
+        var onlineSuccess = online && payment.TrangThai == "ThanhCong" && payment.MaNhanVien is null &&
+            payment.ThamChieuThanhToan is null && masked.Length == 8 && masked[4..].All(char.IsAsciiDigit);
+        var reference = CounterPaymentRules.Text(payment.ThamChieuThanhToan, 100);
         return payment.PhuongThuc switch {
-            "TheTaiQuay" => success && CounterPaymentRules.IsCardBrand(payment.NhaCungCapThanhToan) &&
+            "TheTaiQuay" => success && reference && CounterPaymentRules.IsCardBrand(payment.NhaCungCapThanhToan) &&
                 masked.Length == 8 && masked[4..].All(char.IsAsciiDigit),
-            "ChuyenKhoanQR" => success && masked[4..].All(CounterPaymentRules.IsSourceCharacter),
-            "ChuyenKhoanOnline" => (success || payment.TrangThai == "ChoXacNhan" && payment.MaNhanVien is null) &&
+            "ChuyenKhoanQR" => success && reference && masked[4..].All(CounterPaymentRules.IsSourceCharacter),
+            "TheQuocTe" => onlineSuccess && OnlinePaymentRules.IsInternationalBrand(payment.NhaCungCapThanhToan),
+            "TheNoiDia" => onlineSuccess,
+            "ChuyenKhoanOnline" => online && reference && (success || payment.TrangThai == "ChoXacNhan" && payment.MaNhanVien is null) &&
                 masked[4..].All(CounterPaymentRules.IsSourceCharacter),
             _ => false
         };
