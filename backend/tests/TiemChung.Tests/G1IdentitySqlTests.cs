@@ -62,7 +62,7 @@ public sealed class G1IdentitySqlTests
                 Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/customers/{customer.Id}", body with { FullName = "[DEMO] G1 updated" })).StatusCode);
                 Assert.Equal("[DEMO] G1 updated", (await f.Db.Customers.AsNoTracking().SingleAsync(c => c.MaKhachHang == customer.Id)).HoTen);
             }
-            Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/catalog/injection-types", new { name = "denied", description = "" })).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/catalog/vaccine-technologies", new { name = "denied", description = "" })).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new { clientType = "native", refreshToken = session.GetProperty("refreshToken").GetString() })).StatusCode);
         }
         });

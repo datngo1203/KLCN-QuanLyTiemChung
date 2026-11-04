@@ -23,13 +23,16 @@ public sealed class CatalogDiseaseChoice : ViewModelBase
     public int Id { get; init; }
     public string Name { get; init; } = "";
     public bool Included { get => _included; set => Set(ref _included, value); }
+    public bool Active { get; init; } = true;
+    private bool _selectable = true;
+    public bool Selectable { get => _selectable; set => Set(ref _selectable, value); }
 }
 public sealed record CatalogStatus(string? Value, string Label)
 {
     public override string ToString() => Label;
     public static string Describe(string value) => value == "Inactive" ? "Inactive — Ngừng sử dụng" : "Active — Đang sử dụng";
 }
-public sealed record CatalogRow(int Id, string Name, string Description = "", decimal? Price = null, CatalogVaccine? Vaccine = null, CatalogPackage? Package = null, string Code = "", string Status = "Active")
+public sealed record CatalogRow(int Id, string Name, string Description = "", decimal? Price = null, CatalogVaccine? Vaccine = null, CatalogPackage? Package = null, string Code = "", string Status = "Active", CatalogType? Technology = null)
 {
     public string StatusLabel => CatalogStatus.Describe(Status);
 }
@@ -44,7 +47,8 @@ public sealed class CatalogViewModel : ViewModelBase
     private string? _route;
     private CatalogStatus _filter;
     private CatalogRow? _selected;
-    private CatalogType? _vaccineType, _injectionType;
+    private string _technical = "", _professional = "", _sourceName = "", _sourceUrl = "";
+    private DateTime? _informationDate;
 
     // The view supplies the native confirmation; absent confirmation always keeps the draft/record.
     public Func<string, bool>? Confirm { get; set; }
@@ -63,14 +67,13 @@ public sealed class CatalogViewModel : ViewModelBase
         SelectTabCommand = new RelayCommand(async p => { if (p is string tab) await SelectResourceAsync(tab); }, _ => !_busy);
         MarkClean();
     }
-    public IReadOnlyList<string> Tabs { get; } = ["Loại tiêm chủng", "Loại vắc xin", "Bệnh / phòng bệnh", "Vắc xin", "Gói vắc xin"];
+    public IReadOnlyList<string> Tabs { get; } = ["Phòng bệnh", "Công nghệ vắc xin", "Vắc xin", "Gói vắc xin"];
     public IReadOnlyList<CatalogStatus> StatusOptions { get; } = [new("Active", CatalogStatus.Describe("Active")), new("Inactive", CatalogStatus.Describe("Inactive"))];
     public IReadOnlyList<CatalogStatus> StatusFilters { get; } = [new(null, "Tất cả trạng thái"), new("Active", CatalogStatus.Describe("Active")), new("Inactive", CatalogStatus.Describe("Inactive"))];
     public ObservableCollection<CatalogDiseaseChoice> Diseases { get; } = [];
     public ObservableCollection<string> AdministrationRoutes { get; } = [];
     public ObservableCollection<CatalogRow> Rows { get; } = [];
-    public ObservableCollection<CatalogType> VaccineTypes { get; } = [];
-    public ObservableCollection<CatalogType> InjectionTypes { get; } = [];
+    public ObservableCollection<CatalogDiseaseChoice> Technologies { get; } = [];
     public ObservableCollection<CatalogPackageChoice> PackageChoices { get; } = [];
     public RelayCommand LoadCommand { get; }
     public RelayCommand SaveCommand { get; }
@@ -83,6 +86,7 @@ public sealed class CatalogViewModel : ViewModelBase
     public bool ShowPackage => Tab == "Gói vắc xin";
     public bool ShowLookup => !ShowVaccine && !ShowPackage;
     public bool ShowPrice => !ShowLookup;
+    public bool ShowTechnology => Tab == "Công nghệ vắc xin";
     public bool CanWrite => _permissions.Contains("QuanLyDanhMucChuyenMon") && (ShowLookup || _permissions.Contains("QuanLyDanhMucGia"));
     public bool CanEdit => CanInteract && CanWrite;
     public bool IsReadOnly => !CanWrite;
@@ -93,7 +97,7 @@ public sealed class CatalogViewModel : ViewModelBase
     public string EmptyMessage => string.IsNullOrWhiteSpace(Search) && StatusFilter.Value is null ? "Chưa có dữ liệu. Chọn Thêm mới để tạo danh mục." : "Không có kết quả phù hợp. Thử từ khóa hoặc trạng thái khác.";
     public string SearchHint => ShowVaccine ? "Tìm mã, tên vắc xin hoặc bệnh phòng" : "Tìm mã hoặc tên " + ResourceLabel;
     public string DataSourceLabel => "API / SQL thật · [DEMO] là dữ liệu giả";
-    public string ResourceLabel => Resource switch { "injection-types" => "loại tiêm chủng", "vaccine-types" => "loại vắc xin", "diseases" => "bệnh", "packages" => "gói vắc xin", _ => "vắc xin" };
+    public string ResourceLabel => Resource switch { "vaccine-technologies" => "công nghệ vắc xin", "diseases" => "phòng bệnh", "packages" => "gói vắc xin", _ => "vắc xin" };
     public string FormTitle => Selected is null ? (IsReadOnly ? "Xem " : "Thêm ") + ResourceLabel : "Chi tiết " + ResourceLabel;
     public string SaveLabel => Selected is null ? "Tạo mới" : "Lưu thay đổi";
     public string EditLabel => IsDirty ? "Có thay đổi chưa lưu" : Selected is null ? (IsReadOnly ? "Chọn bản ghi trong danh sách để xem." : "Bản ghi mới") : "Đã lưu · " + Selected.Code;
@@ -118,14 +122,17 @@ public sealed class CatalogViewModel : ViewModelBase
     public string Price { get => _price; set { Set(ref _price, value); Refresh(); } }
     public string Search { get => _search; set => Set(ref _search, value); }
     public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
-    public CatalogType? VaccineType { get => _vaccineType; set { Set(ref _vaccineType, value); Refresh(); } }
-    public CatalogType? InjectionType { get => _injectionType; set { Set(ref _injectionType, value); Refresh(); } }
+    public string TechnicalCharacteristics { get => _technical; set { Set(ref _technical, value); Refresh(); } }
+    public string ProfessionalNotes { get => _professional; set { Set(ref _professional, value); Refresh(); } }
+    public string SourceName { get => _sourceName; set { Set(ref _sourceName, value); Refresh(); } }
+    public string SourceUrl { get => _sourceUrl; set { Set(ref _sourceUrl, value); Refresh(); } }
+    public DateTime? InformationDate { get => _informationDate; set { Set(ref _informationDate, value); Refresh(); } }
     public CatalogRow? Selected { get => _selected; set {
         if (_busy || Equals(value, _selected)) return;
         if (!MayDiscard()) { OnPropertyChanged(nameof(Selected)); return; }
         Apply(value); Feedback = "";
     } }
-    private string Resource => Tab switch { "Loại tiêm chủng" => "injection-types", "Loại vắc xin" => "vaccine-types", "Bệnh / phòng bệnh" => "diseases", "Gói vắc xin" => "packages", _ => "vaccines" };
+    private string Resource => Tab switch { "Công nghệ vắc xin" => "vaccine-technologies", "Phòng bệnh" => "diseases", "Gói vắc xin" => "packages", _ => "vaccines" };
     public async Task SelectResourceAsync(string tab)
     {
         if (_busy || !Tabs.Contains(tab) || !MayDiscard()) { OnPropertyChanged(nameof(Tab)); return; }
@@ -157,26 +164,25 @@ public sealed class CatalogViewModel : ViewModelBase
         _loadFailed = false;
         try {
             // Lookups need only their own endpoint; no unrelated catalog can block their CRUD.
-            CatalogVaccine[] vaccines = []; CatalogType[] types = [], injections = [], diseases = [];
+            CatalogVaccine[] vaccines = []; CatalogType[] technologies = [], diseases = [];
             CatalogSuggestions? suggestions = null;
             if (ShowPrice) {
                 vaccines = await _service.ListAsync<CatalogVaccine>("vaccines");
-                types = await _service.ListAsync<CatalogType>("vaccine-types");
-                injections = await _service.ListAsync<CatalogType>("injection-types");
+                technologies = await _service.ListAsync<CatalogType>("vaccine-technologies");
                 diseases = await _service.ListAsync<CatalogType>("diseases", status: "Active");
                 suggestions = await _service.SuggestionsAsync();
             }
             CatalogRow[] rows;
-            if (ShowLookup) rows = (await _service.ListAsync<CatalogType>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, x.Description, Code: x.Code, Status: x.Status)).ToArray();
+            if (ShowLookup) rows = (await _service.ListAsync<CatalogType>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, x.Description, Code: x.Code, Status: x.Status, Technology: ShowTechnology ? x : null)).ToArray();
             else if (ShowPackage) rows = (await _service.ListAsync<CatalogPackage>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, Price: x.Price, Package: x, Code: x.Code, Status: x.Status)).ToArray();
             else rows = (await _service.ListAsync<CatalogVaccine>(Resource, Search, StatusFilter.Value)).Select(x => new CatalogRow(x.Id, x.Name, Price: x.Price, Vaccine: x, Code: x.Code, Status: x.Status)).ToArray();
             _loadingForm = true;
             if (suggestions is not null) {
-                Replace(VaccineTypes, types); Replace(InjectionTypes, injections);
+                Replace(Technologies, technologies.Select(x => new CatalogDiseaseChoice { Id = x.Id, Name = x.Code + " — " + x.Name + (x.Status == "Inactive" ? " (Ngừng sử dụng)" : ""), Active = x.Status == "Active" }));
                 Replace(Diseases, diseases.Select(x => new CatalogDiseaseChoice { Id = x.Id, Name = x.Name }));
                 Replace(AdministrationRoutes, suggestions!.AdministrationRoutes);
                 Replace(PackageChoices, vaccines.Select(x => new CatalogPackageChoice { Id = x.Id, Name = x.Name }));
-                foreach (var child in Diseases.Cast<ViewModelBase>().Concat(PackageChoices)) child.PropertyChanged += (_, _) => Refresh();
+                foreach (var child in Diseases.Cast<ViewModelBase>().Concat(Technologies).Concat(PackageChoices)) child.PropertyChanged += (_, _) => Refresh();
             }
             Replace(Rows, rows); _hasLoaded = true;
             Apply(Rows.FirstOrDefault(x => x.Id == selectedId));
@@ -192,7 +198,9 @@ public sealed class CatalogViewModel : ViewModelBase
         if (!Regex.IsMatch(Code, "^" + prefix + "-[A-Z0-9]+(?:-[A-Z0-9]+)*$") || Code.Length > 50) throw new InvalidOperationException("Mã phải bắt đầu bằng " + prefix + "-, dùng chữ HOA ASCII, số và dấu gạch nối; tối đa 50 ký tự.");
         if (ShowLookup && Description.Length > 500) throw new InvalidOperationException("Mô tả tối đa 500 ký tự.");
         object body;
-        if (ShowLookup) body = new { Name, Description, Code, Status };
+        if (ShowTechnology) body = new { Name, Description, Code, Status, TechnicalCharacteristics, ProfessionalNotes, SourceName, SourceUrl,
+            InformationUpdatedAt = InformationDate is { } date ? (DateTimeOffset?)new DateTimeOffset(DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified), TimeSpan.FromHours(7)) : null };
+        else if (ShowLookup) body = new { Name, Description, Code, Status };
         else {
             if (!decimal.TryParse(Price, NumberStyles.None, CultureInfo.InvariantCulture, out var price) || price < 0) throw new InvalidOperationException("Giá phải là số nguyên VND không âm, không dấu phân cách.");
             var originalAudience = Selected?.Vaccine?.TargetAudience ?? Selected?.Package?.TargetAudience;
@@ -204,7 +212,7 @@ public sealed class CatalogViewModel : ViewModelBase
                 var route = AdministrationRoute ?? (Selected?.Vaccine?.AdministrationRoute is not null ? "" : null);
                 body = new { Name, Manufacturer, Origin, Price = price, Code, TargetAudience = targetAudience,
                     AdministrationRoute = route, AdministrationRouteNote = ShowRouteNote ? AdministrationRouteNote : null,
-                    DiseaseIds = diseaseIds, VaccineTypeId = VaccineType?.Id ?? 0, InjectionTypeId = InjectionType?.Id ?? 0 };
+                    DiseaseIds = diseaseIds, TechnologyIds = Technologies.Where(x => x.Included).Select(x => x.Id).ToArray() };
             }
             else {
                 var items = PackageChoices.Where(x => x.Included).Select(x => new CatalogPackageItem(x.Id, int.Parse(x.Quantity, CultureInfo.InvariantCulture))).ToArray();
@@ -215,7 +223,7 @@ public sealed class CatalogViewModel : ViewModelBase
         CatalogRow saved;
         if (ShowLookup) {
             var value = await _service.SaveAsync<CatalogType>(Resource, Selected?.Id, body);
-            saved = new(value.Id, value.Name, value.Description, Code: value.Code, Status: value.Status);
+            saved = new(value.Id, value.Name, value.Description, Code: value.Code, Status: value.Status, Technology: ShowTechnology ? value : null);
         }
         else if (ShowVaccine) {
             var value = await _service.SaveAsync<CatalogVaccine>(Resource, Selected?.Id, body);
@@ -253,8 +261,13 @@ public sealed class CatalogViewModel : ViewModelBase
         Manufacturer = row?.Vaccine?.Manufacturer ?? ""; Origin = row?.Vaccine?.Origin ?? "";
         TargetAudience = row?.Vaccine?.TargetAudience ?? row?.Package?.TargetAudience ?? "";
         AdministrationRoute = row?.Vaccine?.AdministrationRoute; AdministrationRouteNote = row?.Vaccine?.AdministrationRouteNote ?? "";
-        VaccineType = VaccineTypes.FirstOrDefault(x => x.Id == row?.Vaccine?.VaccineTypeId);
-        InjectionType = InjectionTypes.FirstOrDefault(x => x.Id == row?.Vaccine?.InjectionTypeId);
+        TechnicalCharacteristics = row?.Technology?.TechnicalCharacteristics ?? ""; ProfessionalNotes = row?.Technology?.ProfessionalNotes ?? "";
+        SourceName = row?.Technology?.SourceName ?? ""; SourceUrl = row?.Technology?.SourceUrl ?? "";
+        InformationDate = row?.Technology?.InformationUpdatedAt?.ToOffset(TimeSpan.FromHours(7)).Date;
+        foreach (var technology in Technologies) {
+            technology.Included = row?.Vaccine?.Technologies?.Any(t => t.Id == technology.Id) == true;
+            technology.Selectable = technology.Active || technology.Included;
+        }
         foreach (var disease in Diseases) disease.Included = row?.Vaccine?.Diseases?.Any(d => d.Id == disease.Id) == true;
         foreach (var choice in PackageChoices) {
             var item = row?.Package?.Items.FirstOrDefault(x => x.VaccineId == choice.Id);
@@ -262,9 +275,9 @@ public sealed class CatalogViewModel : ViewModelBase
         }
         _loadingForm = false; MarkClean();
     }
-    private string Fingerprint() => JsonSerializer.Serialize(new { Code, Name, Description, Status, Manufacturer, Origin, Price, TargetAudience, AdministrationRoute, AdministrationRouteNote, VaccineTypeId = VaccineType?.Id, InjectionTypeId = InjectionType?.Id, Diseases = Diseases.Where(x => x.Included).Select(x => x.Id), Items = PackageChoices.Where(x => x.Included).Select(x => new { x.Id, x.Quantity }) });
+    private string Fingerprint() => JsonSerializer.Serialize(new { Code, Name, Description, Status, Manufacturer, Origin, Price, TargetAudience, AdministrationRoute, AdministrationRouteNote, TechnicalCharacteristics, ProfessionalNotes, SourceName, SourceUrl, InformationDate, Technologies = Technologies.Where(x => x.Included).Select(x => x.Id), Diseases = Diseases.Where(x => x.Included).Select(x => x.Id), Items = PackageChoices.Where(x => x.Included).Select(x => new { x.Id, x.Quantity }) });
     private void MarkClean() { _baseline = Fingerprint(); Refresh(); }
-    private string Prefix => Resource switch { "injection-types" => "LTC", "vaccine-types" => "LVX", "diseases" => "BENH", "packages" => "GOI", _ => "VX" };
+    private string Prefix => Resource switch { "vaccine-technologies" => "CNVX", "diseases" => "BENH", "packages" => "GOI", _ => "VX" };
     private string SuggestCode(string name)
     {
         var ascii = new string(name.Normalize(NormalizationForm.FormD).Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray()).ToUpperInvariant().Replace('Đ', 'D');
@@ -275,7 +288,7 @@ public sealed class CatalogViewModel : ViewModelBase
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values) { target.Clear(); foreach (var value in values) target.Add(value); }
     private void Refresh()
     {
-        foreach (var name in new[] { nameof(CodeReadOnly), nameof(StatusLabel), nameof(CanInteract), nameof(CanWrite), nameof(CanEdit), nameof(IsReadOnly), nameof(IsBusy), nameof(LoadFailed), nameof(ShowEmpty), nameof(EmptyMessage), nameof(FormTitle), nameof(SaveLabel), nameof(EditLabel), nameof(IsDirty), nameof(ShowVaccine), nameof(ShowPackage), nameof(ShowLookup), nameof(ShowPrice), nameof(SearchHint) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(CodeReadOnly), nameof(StatusLabel), nameof(CanInteract), nameof(CanWrite), nameof(CanEdit), nameof(IsReadOnly), nameof(IsBusy), nameof(LoadFailed), nameof(ShowEmpty), nameof(EmptyMessage), nameof(FormTitle), nameof(SaveLabel), nameof(EditLabel), nameof(IsDirty), nameof(ShowTechnology), nameof(ShowVaccine), nameof(ShowPackage), nameof(ShowLookup), nameof(ShowPrice), nameof(SearchHint) }) OnPropertyChanged(name);
         foreach (var command in new[] { SaveCommand, DeleteCommand, LoadCommand, NewCommand, RevertCommand, SelectTabCommand }) command?.NotifyCanExecuteChanged();
     }
 }

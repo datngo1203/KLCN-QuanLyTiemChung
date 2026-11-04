@@ -32,5 +32,4 @@ export async function getVaccine(id) {
   return catalog.items.find(item => item.id === Number(id)) || null
 }
 export const getPackages = (search = '', filters = {}) => apiGet(`/api/v1/catalog/packages?${catalogQuery(search, filters)}`, true)
-export const getVaccineTypes = () => apiGet('/api/v1/catalog/vaccine-types')
-export const getInjectionTypes = () => apiGet('/api/v1/catalog/injection-types')
+export const getVaccineTechnologies = () => apiGet('/api/v1/catalog/vaccine-technologies')

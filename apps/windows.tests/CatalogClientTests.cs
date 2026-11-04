@@ -18,14 +18,13 @@ public sealed class CatalogClientTests
         while (vm.IsBusy) await Task.Delay(5, timeout.Token);
     }
     [Theory]
-    [InlineData("Loại tiêm chủng", "injection-types", "LTC")]
-    [InlineData("Loại vắc xin", "vaccine-types", "LVX")]
-    [InlineData("Bệnh / phòng bệnh", "diseases", "BENH")]
+    [InlineData("Công nghệ vắc xin", "vaccine-technologies", "CNVX")]
+    [InlineData("Phòng bệnh", "diseases", "BENH")]
     public async Task LookupCreateStatusUpdateBusinessCodeAndSelection(string tab, string resource, string prefix)
     {
         var h = new Handler(); var vm = Create(h);
         await Execute(vm, vm.SelectTabCommand, tab);
-        Assert.Equal(5, vm.Tabs.Count); Assert.All(h.Paths, x => Assert.Contains("/" + resource, x));
+        Assert.Equal(4, vm.Tabs.Count); Assert.All(h.Paths, x => Assert.Contains("/" + resource, x));
         vm.Name = "Đối tượng thử"; Assert.Equal(prefix + "-DOI-TUONG-THU", vm.Code);
         vm.Code = prefix + "-CUSTOM"; vm.Name = "Tên khác"; Assert.Equal(prefix + "-CUSTOM", vm.Code);
         vm.Description = "Mô tả"; vm.Status = "Inactive";
@@ -39,7 +38,7 @@ public sealed class CatalogClientTests
     [Fact]
     public async Task SearchAndFilterAreEncodedAndEmptyStatesDistinguishNoData()
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         Assert.True(vm.ShowEmpty); Assert.Contains("Chưa có dữ liệu", vm.EmptyMessage);
         vm.Search = "BENH A&+?"; vm.StatusFilter = vm.StatusFilters[2]; await Execute(vm, vm.LoadCommand);
         Assert.Contains("search=BENH%20A%26%2B%3F&status=Inactive", h.Paths.Last());
@@ -48,20 +47,20 @@ public sealed class CatalogClientTests
     [Fact]
     public async Task DirtyDiscardCanCancelSwitchRowNewAndRefreshThenRevert()
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         vm.Name = "Bản nháp"; var code = vm.Code; vm.Confirm = _ => false;
-        await Execute(vm, vm.SelectTabCommand, "Loại vắc xin"); Assert.Equal("Bệnh / phòng bệnh", vm.Tab);
+        await Execute(vm, vm.SelectTabCommand, "Công nghệ vắc xin"); Assert.Equal("Phòng bệnh", vm.Tab);
         vm.Selected = new(9, "Khác", Code: "BENH-OTHER"); Assert.Null(vm.Selected);
         vm.NewCommand.Execute(null); vm.LoadCommand.Execute(null);
         Assert.Equal("Bản nháp", vm.Name); Assert.Equal(code, vm.Code);
         vm.Confirm = _ => true; vm.RevertCommand.Execute(null); Assert.False(vm.IsDirty); Assert.Empty(vm.Name);
-        vm.Name = "Mới"; await Execute(vm, vm.SelectTabCommand, "Loại vắc xin"); Assert.Empty(vm.Code); Assert.Empty(vm.Search); Assert.Empty(vm.Rows);
-        vm.Name = "Tên"; Assert.Equal("LVX-TEN", vm.Code);
+        vm.Name = "Mới"; await Execute(vm, vm.SelectTabCommand, "Công nghệ vắc xin"); Assert.Empty(vm.Code); Assert.Empty(vm.Search); Assert.Empty(vm.Rows);
+        vm.Name = "Tên"; Assert.Equal("CNVX-TEN", vm.Code);
     }
     [Fact]
     public async Task ReloadKeepsDataSelectionAndDraftWhileBusyAndAfterNetworkFailure()
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         vm.Name = "Lưu"; await Execute(vm, vm.SaveCommand); var row = vm.Selected;
         vm.Description = "Đang nhập"; h.Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
         vm.LoadCommand.Execute(null); Assert.True(vm.IsBusy); Assert.False(vm.SaveCommand.CanExecute(null));
@@ -80,14 +79,14 @@ public sealed class CatalogClientTests
     [InlineData("resourceNotFound", "không còn")]
     public async Task BackendErrorsKeepDraft(string error, string message)
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         vm.Name = "Bản nháp"; vm.Description = "Giữ input"; var code = vm.Code; h.Error = error;
         await Execute(vm, vm.SaveCommand); Assert.Contains(message, vm.Feedback); Assert.Equal("Giữ input", vm.Description); Assert.Equal(code, vm.Code); Assert.True(vm.IsDirty);
     }
     [Fact]
     public async Task InvalidLookupInputIsSpecificAndSendsNoWrite()
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         await Execute(vm, vm.SaveCommand); Assert.Contains("Tên", vm.Feedback);
         vm.Name = "Tên"; vm.Code = "WRONG-CODE"; await Execute(vm, vm.SaveCommand); Assert.Contains("BENH-", vm.Feedback);
         vm.Code = "BENH-VALID"; vm.Description = new('x', 501); await Execute(vm, vm.SaveCommand); Assert.Contains("500", vm.Feedback); Assert.Empty(h.Writes);
@@ -95,7 +94,7 @@ public sealed class CatalogClientTests
     [Fact]
     public async Task DeleteConfirmsCodeNameAndReferencedFailureKeepsDraftThenSuccess()
     {
-        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler(); var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         vm.Name = "Tên bệnh"; await Execute(vm, vm.SaveCommand); var row = vm.Selected!;
         vm.Confirm = message => { Assert.Contains(row.Code, message); Assert.Contains(row.Name, message); return false; };
         await Execute(vm, vm.DeleteCommand); Assert.DoesNotContain("DELETE", h.Writes);
@@ -106,7 +105,7 @@ public sealed class CatalogClientTests
     [Fact]
     public async Task SuccessfulCreateWithFailedReloadKeepsCommittedIdentityAndPreventsDuplicatePost()
     {
-        var h = new Handler { FailReadAfterWrite = true }; var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Bệnh / phòng bệnh");
+        var h = new Handler { FailReadAfterWrite = true }; var vm = Create(h); await Execute(vm, vm.SelectTabCommand, "Phòng bệnh");
         vm.Name = "Đã tạo"; await Execute(vm, vm.SaveCommand);
         Assert.StartsWith("Đã tạo", vm.Feedback); Assert.True(vm.LoadFailed); Assert.True(vm.CodeReadOnly); Assert.NotNull(vm.Selected);
         vm.Name = "Đổi tên"; await Execute(vm, vm.SaveCommand); Assert.Equal(new[] { "POST", "PUT" }, h.Writes);
@@ -120,9 +119,27 @@ public sealed class CatalogClientTests
             Assert.True(vm.LoadCommand.CanExecute(null)); Assert.False(vm.NewCommand.CanExecute(null)); Assert.False(vm.SaveCommand.CanExecute(null)); Assert.False(vm.DeleteCommand.CanExecute(null));
         }
         var clinical = Create(new Handler(), ["QuanLyDanhMucChuyenMon"]);
-        await Execute(clinical, clinical.SelectTabCommand, "Bệnh / phòng bệnh"); Assert.True(clinical.CanWrite);
+        await Execute(clinical, clinical.SelectTabCommand, "Phòng bệnh"); Assert.True(clinical.CanWrite);
         await Execute(clinical, clinical.SelectTabCommand, "Vắc xin"); Assert.False(clinical.CanWrite);
     }
+    [Fact]
+    public async Task FourResourcesAndTechnologyMetadataRoundTripPreserveDraftOnErrorAndCommittedDataOnReloadFailure()
+    {
+        var h = new Handler(); var vm = Create(h);
+        Assert.Equal(new[] { "Phòng bệnh", "Công nghệ vắc xin", "Vắc xin", "Gói vắc xin" }, vm.Tabs);
+        await Execute(vm, vm.SelectTabCommand, "Công nghệ vắc xin");
+        vm.Name = "[DEMO] Công nghệ"; vm.TechnicalCharacteristics = "Kỹ thuật synthetic"; vm.ProfessionalNotes = "Tham khảo";
+        vm.SourceName = "Synthetic"; vm.SourceUrl = "https://example.invalid/technology"; vm.InformationDate = new(2026,11,4);
+        h.Error = "validation"; await Execute(vm, vm.SaveCommand);
+        Assert.Equal("Kỹ thuật synthetic", vm.TechnicalCharacteristics); Assert.True(vm.IsDirty);
+        h.Error = null; await Execute(vm, vm.SaveCommand);
+        Assert.Equal("Kỹ thuật synthetic", vm.TechnicalCharacteristics); Assert.Equal("Tham khảo", vm.ProfessionalNotes);
+        Assert.Equal("Synthetic", vm.SourceName); Assert.Equal("https://example.invalid/technology", vm.SourceUrl);
+        Assert.Equal(new DateTime(2026,11,4), vm.InformationDate); Assert.StartsWith("CNVX-", vm.Code); Assert.True(vm.CodeReadOnly);
+        vm.TechnicalCharacteristics = "Updated"; h.FailReadAfterWrite = true; await Execute(vm, vm.SaveCommand);
+        Assert.True(vm.LoadFailed); Assert.Equal("Updated", vm.TechnicalCharacteristics); Assert.Equal("Tham khảo", vm.ProfessionalNotes);
+    }
+
     private sealed class Handler : HttpMessageHandler
     {
         public List<string> Paths { get; } = []; public List<string> Writes { get; } = [];
@@ -142,7 +159,7 @@ public sealed class CatalogClientTests
             if (Error is not null) return new(HttpStatusCode.Conflict) { Content = JsonContent.Create(new { code = Error }) };
             if (request.Method == HttpMethod.Delete) { _saved = null; return new(HttpStatusCode.NoContent); }
             LastBody = (await JsonDocument.ParseAsync(await request.Content!.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken)).RootElement.Clone();
-            _saved = new(71, LastBody.GetProperty("name").GetString()!, LastBody.GetProperty("description").GetString()!, LastBody.GetProperty("code").GetString()!, LastBody.GetProperty("status").GetString()!);
+            _saved = JsonSerializer.Deserialize<CatalogType>(LastBody.GetRawText(), new JsonSerializerOptions(JsonSerializerDefaults.Web))! with { Id = 71 };
             return Ok(_saved);
         }
         private static HttpResponseMessage Ok(object body) => new(HttpStatusCode.OK) { Content = JsonContent.Create(body) };

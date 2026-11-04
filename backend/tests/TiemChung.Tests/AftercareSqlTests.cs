@@ -144,11 +144,11 @@ public sealed class AftercareSqlTests
     [Fact,Trait("Category","SqlIntegration")]
     public async Task MigrationPreservesLegacyHasRecorderFkAndRefusesLossyDowngrade()
     {
-        await Run(async f=>{var shot=await Shot(f);var migrator=f.Db.GetService<IMigrator>();const string previous="20261101023132_S5VaccinationRecord";
+        await SqlFixtureLifecycle.RunAsync(() => VaccinationSqlTests.Fixture.Create(true), async f=>{var shot=await Shot(f);var migrator=f.Db.GetService<IMigrator>();const string previous="20261101023132_S5VaccinationRecord";
             await migrator.MigrateAsync(previous);await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO TheoDoiSauTiem(MaMuiTiem,TinhTrang,MucDoPhanUng,HuongXuTri,ThoiDiem) VALUES({shot.Id},{"[DEMO] legacy condition"},{"[DEMO] legacy severity"},{"[DEMO] legacy treatment"},{shot.AdministeredAt.UtcDateTime})");
-            await migrator.MigrateAsync();await migrator.MigrateAsync();var legacy=await f.Db.Set<TheoDoiSauTiem>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaNhanVien);Assert.Equal("[DEMO] legacy treatment",legacy.HuongXuTri);
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);var legacy=await f.Db.Set<TheoDoiSauTiem>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaNhanVien);Assert.Equal("[DEMO] legacy treatment",legacy.HuongXuTri);
             Assert.Null((await f.Nurse.GetFromJsonAsync<FollowUpDetailDto>(Path(shot.Id)))!.FollowUp!.RecordedBy);
-            await migrator.MigrateAsync(previous);await migrator.MigrateAsync();Assert.Null((await f.Db.Set<TheoDoiSauTiem>().AsNoTracking().SingleAsync()).MaNhanVien);
+            await migrator.MigrateAsync(previous);await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);Assert.Null((await f.Db.Set<TheoDoiSauTiem>().AsNoTracking().SingleAsync()).MaNhanVien);
             await Assert.ThrowsAsync<SqlException>(()=>f.Db.Database.ExecuteSqlRawAsync("UPDATE TheoDoiSauTiem SET MaNhanVien=2147483647"));
             await f.Db.Set<TheoDoiSauTiem>().ExecuteUpdateAsync(s=>s.SetProperty(r=>r.MaNhanVien,f.NurseEmployeeId));
             await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync(previous));Assert.Equal(f.NurseEmployeeId,(await f.Db.Set<TheoDoiSauTiem>().AsNoTracking().SingleAsync()).MaNhanVien);Assert.False(f.Db.Database.HasPendingModelChanges());

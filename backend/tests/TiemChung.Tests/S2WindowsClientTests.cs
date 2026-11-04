@@ -14,10 +14,10 @@ public sealed class S2WindowsClientTests
         var identity=new IdentityApiService(new HttpClient(handler) { BaseAddress=new Uri("http://localhost/") });
         Assert.True((await identity.LoginAsync("staff","input")).Succeeded);
         var catalog=new CatalogApiService(identity);
-        Assert.Empty(await catalog.ListAsync<CatalogType>("injection-types"));
+        Assert.Empty(await catalog.ListAsync<CatalogType>("vaccine-technologies"));
         Assert.Equal(1,handler.Refreshes); Assert.Equal(2,handler.CatalogReads);
         handler.Forbidden=true;
-        var error=await Assert.ThrowsAsync<HttpRequestException>(()=>catalog.SaveAsync("injection-types",null,new { name="Test",description="" }));
+        var error=await Assert.ThrowsAsync<HttpRequestException>(()=>catalog.SaveAsync("vaccine-technologies",null,new { name="Test",description="" }));
         Assert.Contains("không có quyền",error.Message); Assert.Equal(1,handler.Refreshes);
     }
     [Fact]
@@ -26,7 +26,7 @@ public sealed class S2WindowsClientTests
         var handler = new Handler { PauseRefresh = true };
         var identity = new IdentityApiService(new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") });
         await identity.LoginAsync("staff", "input");
-        var load = new CatalogApiService(identity).ListAsync<CatalogType>("injection-types");
+        var load = new CatalogApiService(identity).ListAsync<CatalogType>("vaccine-technologies");
         await handler.RefreshStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var logout = identity.LogoutAsync();
         Assert.False(logout.IsCompleted);

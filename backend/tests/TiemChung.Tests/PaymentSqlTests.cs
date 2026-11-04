@@ -345,7 +345,7 @@ public sealed class PaymentSqlTests
     [InlineData("space")]
     public async Task MigrationPreservesCompatibleDataAndStopsBeforeDdlForConflicts(string kind)
     {
-        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(historicalCatalog: true), async f => {
         var registration = await f.Register();
         var migrator = f.Db.GetService<IMigrator>();
         await migrator.MigrateAsync("20261028172727_G2RegistrationNullableFields");
@@ -355,14 +355,14 @@ public sealed class PaymentSqlTests
         await f.Db.SaveChangesAsync();
         var before = JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().OrderBy(p => p.MaThanhToan).ToArrayAsync());
         if (kind == "valid") {
-            await migrator.MigrateAsync(); await migrator.MigrateAsync();
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest); await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             Assert.Equal(1, await UniqueIndex(f.Db));
             f.Db.Add(f.Payment(registration));
             var error = await Assert.ThrowsAsync<DbUpdateException>(() => f.Db.SaveChangesAsync());
             Assert.IsType<SqlException>(error.InnerException);
             f.Db.ChangeTracker.Clear();
         } else {
-            var error = await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync());
+            var error = await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync(HistoricalCatalogFixture.Latest));
             Assert.Contains(kind == "duplicate" ? "duplicate registration payments" : "incompatible legacy payment", error.Message);
             Assert.Equal(0, await UniqueIndex(f.Db));
             Assert.DoesNotContain("20261029000847_G3SinglePayment", await f.Db.Database.GetAppliedMigrationsAsync());
@@ -505,13 +505,13 @@ public sealed class PaymentSqlTests
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public static async Task<Fixture> Create(PaymentGate? gate = null)
+        public static async Task<Fixture> Create(PaymentGate? gate = null, bool historicalCatalog = false)
         {
-            var b = await CatalogSqlTests.Fixture.Create();
+            var b = await CatalogSqlTests.Fixture.Create(historicalCatalog: historicalCatalog);
             Fixture? partial = null;
             try {
             await b.Login();
-            await DevelopmentCatalogSeed.RunAsync(b.Db, new SeedEnvironment());
+            if (historicalCatalog) await HistoricalCatalogFixture.SeedAsync(b.Db); else await DevelopmentCatalogSeed.RunAsync(b.Db, new SeedEnvironment());
             var customer = new KhachHang { HoTen = "[DEMO] G3 Customer", Email = "g3@example.invalid" };
             b.Db.Add(customer); await b.Db.SaveChangesAsync();
             var recipient = new NguoiDuocTiem { HoTen = "[DEMO] G3 Recipient", MaKhachHang = customer.MaKhachHang,

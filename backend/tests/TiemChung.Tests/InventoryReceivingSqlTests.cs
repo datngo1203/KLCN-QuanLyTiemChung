@@ -122,15 +122,15 @@ public sealed class InventoryReceivingSqlTests
     [Fact,Trait("Category","SqlIntegration")]
     public async Task MigrationPreservesLegacyLotsMovementsAndDoesNotGrantReceivePermission()
     {
-        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(historicalCatalog: true),async f=>{
             await f.Db.GetService<IMigrator>().MigrateAsync("20261101134612_S5ReminderSimulation");
             var req=await Request(f);var lot=new LoVacXin{SoLo=req.LotNumber,MaVacXin=req.VaccineId,NgaySanXuat=req.ManufacturedOn,HanSuDung=req.ExpiresOn,SoLuongBanDau=100,SoLuongTon=7,TrangThai="Inactive"};f.Db.Add(lot);await f.Db.SaveChangesAsync();
             var movement=new BienDongKho{SoLo=req.LotNumber,MaNhanVien=f.EmployeeId,LoaiBienDong="Legacy",SoLuong=93,ThoiDiem=DateTime.UtcNow};f.Db.Add(movement);await f.Db.SaveChangesAsync();
             var before=(byte[])f.Db.Entry(lot).Property("RowVersion").CurrentValue!;
-            await f.Db.GetService<IMigrator>().MigrateAsync();await f.Db.Entry(lot).ReloadAsync();Assert.Equal(before,(byte[])f.Db.Entry(lot).Property("RowVersion").CurrentValue!);Assert.Equal(7,lot.SoLuongTon);Assert.Equal("Inactive",lot.TrangThai);
+            await f.Db.GetService<IMigrator>().MigrateAsync(HistoricalCatalogFixture.Latest);await f.Db.Entry(lot).ReloadAsync();Assert.Equal(before,(byte[])f.Db.Entry(lot).Property("RowVersion").CurrentValue!);Assert.Equal(7,lot.SoLuongTon);Assert.Equal("Inactive",lot.TrangThai);
             Assert.Single(await f.Db.Set<BienDongKho>().ToArrayAsync());Assert.Empty(await f.Db.Set<InventoryReceipt>().ToArrayAsync());
             var permission=await f.Db.Set<QuyenHan>().SingleAsync(p=>p.Code=="NhapKho");Assert.False(await f.Db.Set<TaiKhoan_QuyenHan>().AnyAsync(g=>g.MaQuyen==permission.MaQuyen));
-            await f.Db.Database.MigrateAsync();Assert.Single(await f.Db.Set<QuyenHan>().Where(p=>p.Code=="NhapKho").ToArrayAsync());
+            await f.Db.GetService<IMigrator>().MigrateAsync(HistoricalCatalogFixture.Latest);Assert.Single(await f.Db.Set<QuyenHan>().Where(p=>p.Code=="NhapKho").ToArrayAsync());
         });
     }
     [Fact,Trait("Category","SqlIntegration")]

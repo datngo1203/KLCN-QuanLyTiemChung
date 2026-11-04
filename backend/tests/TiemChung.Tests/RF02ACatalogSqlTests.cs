@@ -28,7 +28,7 @@ public sealed class RF02ACatalogSqlTests
     {
         var source = await f.Db.Vaccines.AsNoTracking().OrderBy(x => x.MaVacXin).FirstAsync();
         var disease = await f.Db.Set<Benh>().OrderBy(x => x.MaBenh).FirstAsync();
-        return new("Synthetic vaccine", " Synthetic maker ", " Synthetic origin ", 123000, source.MaLoaiVacXin, source.MaLoaiTiemChung,
+        return new("Synthetic vaccine", " Synthetic maker ", " Synthetic origin ", 123000,
             Code: "VX-SYNTHETIC-NEW", DiseaseIds: [disease.MaBenh], Description: " Synthetic description ", TargetAudience: " Synthetic audience ",
             AdministrationRoute: "Oral", Dosage: " Synthetic dosage ", Volume: 0.75m, SourceName: " Dữ liệu mô phỏng ", SourceUrl: "https://example.invalid/reference",
             InformationUpdatedAt: new DateTimeOffset(2026, 11, 3, 0, 0, 0, TimeSpan.Zero), Regimens: [
@@ -54,14 +54,14 @@ public sealed class RF02ACatalogSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task CodesValidateDuplicateCaseInsensitiveAndRemainImmutableForAllFiveResources()
+    public async Task CodesValidateDuplicateCaseInsensitiveAndRemainImmutableForAllFourResources()
     {
         await WithCatalog(async f => {
             var request = await Request(f);
             foreach (var code in new string?[] { null, "", "VX", "LVX-WRONG", "vx-lowercase", " VX-SPACE", "VX-SPACE ", "VX-A_B", "VX-Ắ", "VX--A", "VX-A\n", "VX-" + new string('A',48) })
                 await Error(f.Client.PostAsJsonAsync(Root + "vaccines", request with { Code = code }), HttpStatusCode.BadRequest);
             await Error(f.Client.PostAsJsonAsync(Root + "vaccines", request with { Code = "VX-DEMO-VAC-XIN-A" }), HttpStatusCode.Conflict, "catalogDuplicate");
-            foreach (var (route, prefix) in new[] { ("injection-types", "LTC"), ("vaccine-types", "LVX"), ("diseases", "BENH") }) {
+            foreach (var (route, prefix) in new[] { ("vaccine-technologies", "CNVX"), ("diseases", "BENH") }) {
                 var created = await Success<CatalogTypeDto>(f.Client.PostAsJsonAsync(Root + route, new CatalogTypeRequest(" Synthetic lookup ", null, prefix + "-SYNTHETIC")), HttpStatusCode.Created);
                 Assert.Equal("Synthetic lookup", created.Name); Assert.Equal("Active", created.Status);
                 await Error(f.Client.PostAsJsonAsync(Root + route, new CatalogTypeRequest("synthetic LOOKUP", "", prefix + "-SECOND")), HttpStatusCode.Conflict, "catalogDuplicate");
@@ -93,8 +93,8 @@ public sealed class RF02ACatalogSqlTests
         await WithCatalog(async f => {
             var vaccine = (await List(f.Client, "vaccines"))[0].GetProperty("id").GetInt32();
             var detail = await Success<VaccineDto>(f.Client.GetAsync(Root + "vaccines/" + vaccine));
-            Assert.Equal(2, detail.Diseases.Length); Assert.NotEmpty(detail.Code); Assert.NotNull(detail.VaccineType); Assert.NotNull(detail.InjectionType);
-            Assert.NotEmpty(detail.VaccineType.Code); Assert.NotEmpty(detail.InjectionType.Code); Assert.Equal(2, Assert.Single(detail.Regimens).Doses.Length);
+            Assert.Equal(2, detail.Diseases.Length); Assert.NotEmpty(detail.Code); Assert.Single(detail.Technologies);
+            Assert.NotEmpty(detail.Technologies[0].Code); Assert.Equal(2, Assert.Single(detail.Regimens).Doses.Length);
             var request = await Request(f);
             var created = await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root + "vaccines", request), HttpStatusCode.Created);
             Assert.Equal(2, created.Regimens.Length); Assert.Equal(2, created.Regimens[0].Doses.Length); Assert.Single(created.Regimens[1].Doses);
@@ -106,7 +106,7 @@ public sealed class RF02ACatalogSqlTests
             foreach (var search in new[] { detail.Code, detail.Name, detail.Diseases[1].Name })
                 Assert.Contains(await List(f.Client, "vaccines?search=" + Uri.EscapeDataString(search)), x => x.GetProperty("id").GetInt32() == detail.Id);
             Assert.Single(await List(f.Client, "vaccines?diseaseId=" + detail.Diseases[1].Id));
-            Assert.Single(await List(f.Client, $"vaccines?vaccineTypeId={detail.VaccineTypeId}&injectionTypeId={detail.InjectionTypeId}&minPrice={detail.Price}&maxPrice={detail.Price}&status=Active"));
+            Assert.Single(await List(f.Client, $"vaccines?technologyId={detail.Technologies[0].Id}&minPrice={detail.Price}&maxPrice={detail.Price}&status=Active"));
             var packageRow = Assert.Single(await List(f.Client, "packages"));
             var package = await Success<PackageDto>(f.Client.GetAsync(Root + "packages/" + packageRow.GetProperty("id").GetInt32()));
             Assert.Equal(2, package.Items.Length); Assert.Equal(2, package.TotalDoses); Assert.Equal(2, package.Diseases.Length);
@@ -114,7 +114,7 @@ public sealed class RF02ACatalogSqlTests
             foreach (var search in new[] { package.Code, package.Name, detail.Code, detail.Name, detail.Diseases[0].Name })
                 Assert.Single(await List(f.Client, "packages?search=" + Uri.EscapeDataString(search)));
             Assert.Single(await List(f.Client, "packages?diseaseId=" + detail.Diseases[0].Id));
-            Assert.Single(await List(f.Client, $"packages?vaccineTypeId={detail.VaccineTypeId}&injectionTypeId={detail.InjectionTypeId}&minPrice={package.Price}&maxPrice={package.Price}&status=Active"));
+            Assert.Single(await List(f.Client, $"packages?technologyId={detail.Technologies[0].Id}&minPrice={package.Price}&maxPrice={package.Price}&status=Active"));
             var metadata = await Success<CatalogSuggestionsDto>(f.Client.GetAsync(Root + "suggestions"));
             Assert.Equal(metadata.Manufacturers.Distinct().Count(), metadata.Manufacturers.Length);
             Assert.Contains("Synthetic maker", metadata.Manufacturers); Assert.Contains("Synthetic origin", metadata.Origins);
@@ -139,7 +139,7 @@ public sealed class RF02ACatalogSqlTests
             using var delete = await f.Client.DeleteAsync(Root + "diseases/" + disease.Id); Assert.Equal(HttpStatusCode.NoContent,delete.StatusCode);
             // An old price/name request omits RF-02 fields; it must never clear the graph or legacy data.
             await f.Db.Vaccines.Where(x => x.MaVacXin == vaccine.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.PhanUngSauTiem,"Legacy preserved"));
-            var oldPut = new VaccineRequest("Legacy price update", req.Manufacturer, req.Origin, 456000, req.VaccineTypeId, req.InjectionTypeId);
+            var oldPut = new VaccineRequest("Legacy price update", req.Manufacturer, req.Origin, 456000);
             var legacy = await Success<VaccineDto>(f.Client.PutAsJsonAsync(Root + "vaccines/" + vaccine.Id, oldPut));
             Assert.Equal(updated.Code,legacy.Code); Assert.Equal(updated.SourceName,legacy.SourceName); Assert.Equal(updated.Dosage,legacy.Dosage);
             Assert.Equal(updated.Volume,legacy.Volume); Assert.Equal(updated.Regimens.Length,legacy.Regimens.Length); Assert.Equal(updated.Diseases,legacy.Diseases);
@@ -174,7 +174,7 @@ public sealed class RF02ACatalogSqlTests
             Assert.Equal("Synthetic other route",other.AdministrationRouteNote);
             var inactiveDisease=await f.Db.Set<Benh>().FirstAsync(); inactiveDisease.TrangThai="Inactive";await f.Db.SaveChangesAsync();
             await Error(f.Client.PostAsJsonAsync(Root + "vaccines",req with { Code="VX-INACTIVE-DISEASE",DiseaseIds=[inactiveDisease.MaBenh] }),HttpStatusCode.BadRequest);
-            foreach(var route in new[]{"vaccines","packages","diseases","injection-types","vaccine-types"})
+            foreach(var route in new[]{"vaccines","packages","diseases","vaccine-technologies"})
                 await Error(f.Client.GetAsync(Root+route+"?status=Draft"),HttpStatusCode.BadRequest);
             await Error(f.Client.PostAsJsonAsync(Root+"packages",new PackageRequest("Invalid",1,[new(vaccine.Id,1)],"GOI-INVALID")),HttpStatusCode.BadRequest);
         });
@@ -253,8 +253,6 @@ public sealed class RF02ACatalogSqlTests
             Assert.Null(first.DoiTuongSuDung);Assert.Null(first.NguonThongTin);Assert.Null(first.DuongDung);Assert.Empty(await f.Db.Set<VaccineRegimen>().ToArrayAsync());
             Assert.Equal("Inactive",(await f.Db.Vaccines.SingleAsync(x=>x.MaVacXin==2)).TrangThai);
             var link=Assert.Single(await f.Db.Set<VacXin_Benh>().ToArrayAsync());Assert.Equal(1,link.MaVacXin);Assert.Equal(1,link.MaBenh);
-            Assert.Equal("LTC-DUONG-TIEM-THU",(await f.Db.Set<LoaiTiemChung>().SingleAsync()).Code);
-            Assert.Equal("LVX-LOAI-THU",(await f.Db.Set<LoaiVacXin>().SingleAsync()).Code);
             var disease=await f.Db.Set<Benh>().SingleAsync();Assert.Equal("BENH-BENH-THU",disease.Code);Assert.Equal("Active",disease.TrangThai);
             var package=await f.Db.Set<GoiVacXin>().SingleAsync();Assert.Equal("GOI-GOI-THU",package.Code);Assert.Equal("Inactive",package.TrangThai);
             Assert.Equal(3,(await f.Db.Set<GoiVacXin_VacXin>().SingleAsync()).SoLuong);
@@ -374,25 +372,29 @@ public sealed class RF02ACatalogSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task MigrationPreflightRefusesInvalidLegacyPackageWithoutRewritingBusinessState()
     {
-        await WithCatalog(async f => {
-            var migrator=f.Db.GetService<IMigrator>();await migrator.MigrateAsync("20261103183142_RF02ACatalogSchemaContract");
-            var vaccine=await f.Db.Vaccines.AsNoTracking().OrderBy(x=>x.MaVacXin).FirstAsync();
-            var package=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync();
-            await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
-            var beforeVaccine=JsonSerializer.Serialize(await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin));
-            var beforePackage=JsonSerializer.Serialize(await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync());
-            var beforeLinks=JsonSerializer.Serialize(await f.Db.Set<GoiVacXin_VacXin>().AsNoTracking().OrderBy(x=>x.MaVacXin).ToArrayAsync());
-            var error=await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync());
-            Assert.Equal(51000,error.Number);Assert.Contains("Active package "+package.MaGoi,error.Message);Assert.Contains("non-Active vaccine "+vaccine.MaVacXin,error.Message);
-            Assert.Equal(beforeVaccine,JsonSerializer.Serialize(await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==vaccine.MaVacXin)));
-            Assert.Equal(beforePackage,JsonSerializer.Serialize(await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync()));
-            Assert.Equal(beforeLinks,JsonSerializer.Serialize(await f.Db.Set<GoiVacXin_VacXin>().AsNoTracking().OrderBy(x=>x.MaVacXin).ToArrayAsync()));
-            Assert.DoesNotContain("20261103192651_RF02AActivePackagePreflight",await f.Db.Database.GetAppliedMigrationsAsync());
-            // Only the fixture owner explicitly deactivates its own synthetic package, then retries preflight.
-            await f.Db.Set<GoiVacXin>().Where(x=>x.MaGoi==package.MaGoi).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
-            await migrator.MigrateAsync();await migrator.MigrateAsync();
-            Assert.Equal("Inactive",await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.TrangThai).SingleAsync());
-            Assert.Equal("Inactive",await f.Db.Set<GoiVacXin>().Select(x=>x.TrangThai).SingleAsync());Assert.False(f.Db.Database.HasPendingModelChanges());
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(async db => {
+            var migrator = db.GetService<IMigrator>(); await migrator.MigrateAsync("20261103183142_RF02ACatalogSchemaContract");
+            await db.Database.ExecuteSqlRawAsync("""
+                INSERT LoaiTiemChung (Code,TenLoaiTiemChung,MoTa) VALUES ('LTC-OLD','Legacy','');
+                INSERT LoaiVacXin (Code,TenLoaiVacXin,MoTa) VALUES ('LVX-OLD','Legacy','');
+                INSERT VacXin (Code,MaLoaiVacXin,MaLoaiTiemChung,TenVacXin,NhaSanXuat,XuatXu,LieuLuong,TheTich,PhanUngSauTiem,Gia,TrangThai)
+                VALUES ('VX-OLD',1,1,'Legacy','','','',0,'',100,'Inactive');
+                INSERT GoiVacXin (Code,TenGoi,GiaGoi,TrangThai) VALUES ('GOI-OLD','Legacy',100,'Active');
+                INSERT GoiVacXin_VacXin (MaGoi,MaVacXin,SoLuong) VALUES (1,1,2);
+                """);
+            var before = await db.Database.SqlQueryRaw<string>("SELECT (SELECT * FROM GoiVacXin_VacXin FOR JSON PATH) AS Value").SingleAsync();
+            var error = await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync());
+            Assert.Equal(51000, error.Number); Assert.Contains("Active package 1", error.Message); Assert.Contains("non-Active vaccine 1", error.Message);
+            Assert.Equal(before, await db.Database.SqlQueryRaw<string>("SELECT (SELECT * FROM GoiVacXin_VacXin FOR JSON PATH) AS Value").SingleAsync());
+            Assert.Equal("Active", await db.Set<GoiVacXin>().Select(x => x.TrangThai).SingleAsync());
+            Assert.DoesNotContain("20261103192651_RF02AActivePackagePreflight", await db.Database.GetAppliedMigrationsAsync());
+            await db.Set<GoiVacXin>().ExecuteUpdateAsync(s => s.SetProperty(x => x.TrangThai, "Inactive"));
+        }), async f => {
+            await f.Db.Database.MigrateAsync();
+            Assert.Equal("Inactive", await f.Db.Vaccines.Select(x => x.TrangThai).SingleAsync());
+            Assert.Equal("Inactive", await f.Db.Set<GoiVacXin>().Select(x => x.TrangThai).SingleAsync());
+            Assert.Equal(2, (await f.Db.Set<GoiVacXin_VacXin>().SingleAsync()).SoLuong);
+            Assert.False(f.Db.Database.HasPendingModelChanges());
         });
     }
 

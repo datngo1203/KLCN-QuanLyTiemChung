@@ -78,7 +78,7 @@ public sealed class ClinicalSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
             var first=await f.Db.Vaccines.FirstAsync();var package=await f.Db.Set<GoiVacXin>().FirstAsync();
-            VacXin Vaccine(string name)=>new(){Code="VX-"+name.ToUpperInvariant().Replace("[DEMO] ","DEMO-").Replace(" ","-"),TenVacXin=name,MaLoaiTiemChung=first.MaLoaiTiemChung,MaLoaiVacXin=first.MaLoaiVacXin,TrangThai="Active",Gia=200};
+            VacXin Vaccine(string name)=>new(){Code="VX-"+name.ToUpperInvariant().Replace("[DEMO] ","DEMO-").Replace(" ","-"),TenVacXin=name,TrangThai="Active",Gia=200};
             var second=Vaccine("[DEMO] component 2");var outside=Vaccine("[DEMO] other registration vaccine");f.Db.AddRange(second,outside);await f.Db.SaveChangesAsync();
             f.Db.Add(new GoiVacXin_VacXin {MaGoi=package.MaGoi,MaVacXin=second.MaVacXin,SoLuong=3});await f.Db.SaveChangesAsync();
             async Task<RegistrationDto> Register(RegistrationItemRequest[] items){using var response=await f.Reception.PostAsJsonAsync("/api/v1/registrations",new CreateRegistrationRequest(f.CustomerId,f.RecipientId,items));Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;}
@@ -182,11 +182,11 @@ public sealed class ClinicalSqlTests
     [Fact,Trait("Category","SqlIntegration")]
     public async Task MigrationPreservesLegacyAndBlocksLossyDownWithoutFakeBackfill()
     {
-        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(true),async f=>{
             var r=await f.Register();var migrator=f.Db.GetService<IMigrator>();await migrator.MigrateAsync(Previous);
             await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO PhieuKhamSangLoc(MaDangKy,MaNguoiDuocTiem,MaNhanVien,ChiSoSinhTon,TienSuBenhLy,KetLuan,LyDoHoan) VALUES({r.Id},{f.RecipientId},{f.EmployeeId},{"[DEMO] preserved vital text"},{"[DEMO] preserved history"},{"[DEMO] old conclusion"},{"[DEMO] old reason"})");
-            await migrator.MigrateAsync();await migrator.MigrateAsync();var legacy=await f.Db.Set<PhieuKhamSangLoc>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaLichHen);Assert.Null(legacy.ThoiDiemKham);Assert.Equal("[DEMO] preserved vital text",legacy.ChiSoSinhTon);Assert.Equal("[DEMO] preserved history",legacy.TienSuBenhLy);Assert.Equal("[DEMO] old conclusion",legacy.KetLuan);Assert.Equal("[DEMO] old reason",legacy.LyDoHoan);
-            await migrator.MigrateAsync(Previous);await migrator.MigrateAsync();
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);var legacy=await f.Db.Set<PhieuKhamSangLoc>().AsNoTracking().SingleAsync();Assert.Null(legacy.MaLichHen);Assert.Null(legacy.ThoiDiemKham);Assert.Equal("[DEMO] preserved vital text",legacy.ChiSoSinhTon);Assert.Equal("[DEMO] preserved history",legacy.TienSuBenhLy);Assert.Equal("[DEMO] old conclusion",legacy.KetLuan);Assert.Equal("[DEMO] old reason",legacy.LyDoHoan);
+            await migrator.MigrateAsync(Previous);await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             var a=await Appointment(f,r);using var doctor=await f.Actor("BacSi",false);await Post(doctor,a.Id,new("Tạm hoãn","[DEMO] reason",[]));
             await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync(Previous));Assert.Equal(2,await f.Db.Set<PhieuKhamSangLoc>().CountAsync());Assert.False(f.Db.Database.HasPendingModelChanges());
         });
@@ -194,11 +194,11 @@ public sealed class ClinicalSqlTests
     [Fact,Trait("Category","SqlIntegration")]
     public async Task MigrationRefusesDuplicateLegacyIndicationsWithoutDeletingThem()
     {
-        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
+        await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(true),async f=>{
             var r=await f.Register();var migrator=f.Db.GetService<IMigrator>();await migrator.MigrateAsync(Previous);var v=r.Items.First(x=>x.Kind=="vaccine").ServiceId;
             await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO PhieuKhamSangLoc(MaDangKy,MaNguoiDuocTiem,MaNhanVien,ChiSoSinhTon,TienSuBenhLy,KetLuan) VALUES({r.Id},{f.RecipientId},{f.EmployeeId},{"[DEMO] legacy vitals"},{"[DEMO] legacy history"},{"[DEMO] legacy conclusion"})");
             for(var i=0;i<2;i++)await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ChiDinhTiem(MaPhieuKham,MaVacXin,KetQuaChiDinh,ThoiGian,GhiChu) SELECT MaPhieuKham,{v},{"DuocTiem"},{DateTime.UtcNow},{"[DEMO] duplicate preserved"} FROM PhieuKhamSangLoc");
-            await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync());Assert.Equal(2,await f.Db.Set<ChiDinhTiem>().CountAsync());
+            await Assert.ThrowsAsync<SqlException>(()=>migrator.MigrateAsync(HistoricalCatalogFixture.Latest));Assert.Equal(2,await f.Db.Set<ChiDinhTiem>().CountAsync());
         });
     }
 }

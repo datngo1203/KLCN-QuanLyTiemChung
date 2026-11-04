@@ -269,6 +269,70 @@ namespace TiemChung.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TiemChung.Domain.Entities.CongNgheVacXin", b =>
+                {
+                    b.Property<int>("MaCongNghe")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCongNghe"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("Latin1_General_100_CI_AS");
+
+                    b.Property<string>("DacDiemKyThuat")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("DuongDanNguon")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("GhiChuChuyenMon")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("MoTa")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("NgayCapNhatThongTin")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NguonThongTin")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("TenCongNghe")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .UseCollation("Latin1_General_100_CI_AS");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("Active");
+
+                    b.HasKey("MaCongNghe");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("TenCongNghe")
+                        .IsUnique();
+
+                    b.ToTable("CongNgheVacXin", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CongNgheVacXin_Status", "[TrangThai] IN ('Active','Inactive')");
+                        });
+                });
+
             modelBuilder.Entity("TiemChung.Domain.Entities.CustomerPasswordReset", b =>
                 {
                     b.Property<Guid>("Id")
@@ -845,86 +909,6 @@ namespace TiemChung.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_LoVacXin_SoLuongTon", "[SoLuongTon] >= 0");
                         });
-                });
-
-            modelBuilder.Entity("TiemChung.Domain.Entities.LoaiTiemChung", b =>
-                {
-                    b.Property<int>("MaLoaiTiemChung")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLoaiTiemChung"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<string>("MoTa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TenLoaiTiemChung")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(120)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("Active");
-
-                    b.HasKey("MaLoaiTiemChung");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("TenLoaiTiemChung")
-                        .IsUnique();
-
-                    b.ToTable("LoaiTiemChung", (string)null);
-                });
-
-            modelBuilder.Entity("TiemChung.Domain.Entities.LoaiVacXin", b =>
-                {
-                    b.Property<int>("MaLoaiVacXin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLoaiVacXin"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<string>("MoTa")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TenLoaiVacXin")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(120)")
-                        .UseCollation("Latin1_General_100_CI_AS");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("Active");
-
-                    b.HasKey("MaLoaiVacXin");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("TenLoaiVacXin")
-                        .IsUnique();
-
-                    b.ToTable("LoaiVacXin", (string)null);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.MuiTiem", b =>
@@ -1506,12 +1490,6 @@ namespace TiemChung.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("MaLoaiTiemChung")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaLoaiVacXin")
-                        .HasColumnType("int");
-
                     b.Property<string>("MoTa")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -1551,10 +1529,6 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.HasIndex("MaLoaiTiemChung");
-
-                    b.HasIndex("MaLoaiVacXin");
-
                     b.ToTable("VacXin", null, t =>
                         {
                             t.HasCheckConstraint("CK_VacXin_Gia", "[Gia] >= 0");
@@ -1574,6 +1548,21 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasIndex("MaBenh");
 
                     b.ToTable("VacXin_Benh", (string)null);
+                });
+
+            modelBuilder.Entity("TiemChung.Domain.Entities.VacXin_CongNghe", b =>
+                {
+                    b.Property<int>("MaVacXin")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaCongNghe")
+                        .HasColumnType("int");
+
+                    b.HasKey("MaVacXin", "MaCongNghe");
+
+                    b.HasIndex("MaCongNghe");
+
+                    b.ToTable("VacXin_CongNghe", (string)null);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.VaccineRegimen", b =>
@@ -2052,26 +2041,26 @@ namespace TiemChung.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("TiemChung.Domain.Entities.VacXin", b =>
-                {
-                    b.HasOne("TiemChung.Domain.Entities.LoaiTiemChung", null)
-                        .WithMany()
-                        .HasForeignKey("MaLoaiTiemChung")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TiemChung.Domain.Entities.LoaiVacXin", null)
-                        .WithMany()
-                        .HasForeignKey("MaLoaiVacXin")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TiemChung.Domain.Entities.VacXin_Benh", b =>
                 {
                     b.HasOne("TiemChung.Domain.Entities.Benh", null)
                         .WithMany()
                         .HasForeignKey("MaBenh")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.VacXin", null)
+                        .WithMany()
+                        .HasForeignKey("MaVacXin")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TiemChung.Domain.Entities.VacXin_CongNghe", b =>
+                {
+                    b.HasOne("TiemChung.Domain.Entities.CongNgheVacXin", null)
+                        .WithMany()
+                        .HasForeignKey("MaCongNghe")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

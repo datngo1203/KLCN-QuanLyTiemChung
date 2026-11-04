@@ -56,7 +56,7 @@ public sealed class RegistrationSqlTests
         Assert.Equal(HttpStatusCode.OK, packageUpdate.StatusCode);
         var vaccine = f.Vaccines[0];
         using var vaccineUpdate = await f.Admin.PutAsJsonAsync("/api/v1/catalog/vaccines/" + vaccine.MaVacXin,
-            new VaccineRequest(vaccine.TenVacXin, vaccine.NhaSanXuat, vaccine.XuatXu, 777000, vaccine.MaLoaiVacXin, vaccine.MaLoaiTiemChung));
+            new VaccineRequest(vaccine.TenVacXin, vaccine.NhaSanXuat, vaccine.XuatXu, 777000));
         Assert.Equal(HttpStatusCode.OK, vaccineUpdate.StatusCode);
         foreach (var old in previous) {
             var current = (await f.Customer.GetFromJsonAsync<RegistrationDto>(Route + "/" + old.Id))!;
@@ -280,8 +280,8 @@ public sealed class RegistrationSqlTests
     public async Task MigrationUpgradesExistingRowsWithoutRewritingThemAndIsRepeatable()
     {
         // Fixture owns a fresh random test DB. Only this test rolls it back before inserting its legacy row.
-        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
-        await DevelopmentCatalogSeed.RunAsync(f.Db, new EnvironmentStub());
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(historicalCatalog: true), async f => {
+        await HistoricalCatalogFixture.SeedAsync(f.Db);
         var legacyVaccineId = await f.Db.Vaccines.Select(x => x.MaVacXin).FirstAsync();
         var legacyPackageId = await f.Db.Set<GoiVacXin>().Select(x => x.MaGoi).SingleAsync();
         var migrator = f.Db.GetService<IMigrator>();
@@ -302,7 +302,7 @@ public sealed class RegistrationSqlTests
         var before = JsonSerializer.Serialize(await f.Db.Registrations.AsNoTracking().SingleAsync());
         var beforeSingles = JsonSerializer.Serialize(await f.Db.RegistrationVaccineItems.AsNoTracking().ToArrayAsync());
         var beforePackages = JsonSerializer.Serialize(await f.Db.RegistrationPackageItems.AsNoTracking().ToArrayAsync());
-        await f.Db.Database.MigrateAsync(); await f.Db.Database.MigrateAsync();
+        await f.Db.GetService<IMigrator>().MigrateAsync(HistoricalCatalogFixture.Latest); await f.Db.GetService<IMigrator>().MigrateAsync(HistoricalCatalogFixture.Latest);
         Assert.Equal(before, JsonSerializer.Serialize(await f.Db.Registrations.AsNoTracking().SingleAsync()));
         Assert.Equal(beforeSingles, JsonSerializer.Serialize(await f.Db.RegistrationVaccineItems.AsNoTracking().ToArrayAsync()));
         Assert.Equal(beforePackages, JsonSerializer.Serialize(await f.Db.RegistrationPackageItems.AsNoTracking().ToArrayAsync()));
@@ -326,7 +326,7 @@ public sealed class RegistrationSqlTests
         var vaccine = f.Vaccines[0];
         Task<HttpResponseMessage> Register() => f.Customer.PostAsJsonAsync(Route, f.Request("single"));
         Task<HttpResponseMessage> Update() => f.Admin.PutAsJsonAsync("/api/v1/catalog/vaccines/" + vaccine.MaVacXin,
-            new VaccineRequest(vaccine.TenVacXin, vaccine.NhaSanXuat, vaccine.XuatXu, 800000, vaccine.MaLoaiVacXin, vaccine.MaLoaiTiemChung));
+            new VaccineRequest(vaccine.TenVacXin, vaccine.NhaSanXuat, vaccine.XuatXu, 800000));
         gate.Arm();
         var first = registrationFirst ? Register() : Update();
         await gate.Locked.Task.WaitAsync(TimeSpan.FromSeconds(20));

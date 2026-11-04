@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
-import { getVaccines, getPackages, getVaccineTypes, getInjectionTypes } from './api/client'
+import { getVaccines, getPackages, getVaccineTechnologies } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
 import { money } from './registrationForm'
 
 export default function Catalog({ query, setQuery }) {
-  const [vaccineTypes, setVaccineTypes] = useState([])
-  const [injectionTypes, setInjectionTypes] = useState([])
-  const [filters, setFilters] = useState({ vaccineTypeId: '', injectionTypeId: '', minPrice: '', maxPrice: '' })
+  const [technologies, setTechnologies] = useState([])
+  const [filters, setFilters] = useState({ technologyId: '', minPrice: '', maxPrice: '' })
   const [submitted, setSubmitted] = useState({ search: query, filters: {} })
   const [data, setData] = useState({ vaccines: [], packages: [], source: '' })
   const [error, setError] = useState('')
@@ -16,11 +15,10 @@ export default function Catalog({ query, setQuery }) {
   const [reload, setReload] = useState(0)
   useEffect(() => {
     let active = true
-    Promise.all([getVaccineTypes(), getInjectionTypes(), getVaccines(submitted.search, submitted.filters), getPackages(submitted.search, submitted.filters)])
-      .then(([types, injections, vaccines, packages]) => {
+    Promise.all([getVaccineTechnologies(), getVaccines(submitted.search, submitted.filters), getPackages(submitted.search, submitted.filters)])
+      .then(([types, vaccines, packages]) => {
         if (!active) return
-        setVaccineTypes(types.items)
-        setInjectionTypes(injections.items)
+        setTechnologies(types.items)
         setData({ vaccines: vaccines.items, packages: packages.items, source: vaccines.source })
       }).catch(err => { if (active) setError(`Không tải được danh mục. ${err.message}`) })
       .finally(() => { if (active) setLoading(false) })
@@ -35,8 +33,7 @@ export default function Catalog({ query, setQuery }) {
     <form className="catalog-controls" onSubmit={event => { event.preventDefault(); setLoading(true); setError(''); setSubmitted({ search: query, filters: { ...filters } }) }}>
       <div className="search-box"><span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} maxLength={150} aria-label="Tìm theo tên" placeholder="Tìm vắc xin hoặc gói theo tên"/><button className="button primary" type="submit" disabled={loading}>Tìm kiếm</button></div>
       <div className="catalog-filters">
-        <label>Loại vắc xin<select name="vaccineTypeId" value={filters.vaccineTypeId} onChange={changeFilter}><option value="">Tất cả</option>{vaccineTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
-        <label>Loại tiêm chủng<select name="injectionTypeId" value={filters.injectionTypeId} onChange={changeFilter}><option value="">Tất cả</option>{injectionTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+        <label>Công nghệ vắc xin<select name="technologyId" value={filters.technologyId} onChange={changeFilter}><option value="">Tất cả</option>{technologies.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
         <label>Giá từ (VND)<input type="number" min="0" step="1" name="minPrice" value={filters.minPrice} onChange={changeFilter}/></label>
         <label>Giá đến (VND)<input type="number" min={filters.minPrice || '0'} step="1" name="maxPrice" value={filters.maxPrice} onChange={changeFilter}/></label>
       </div>

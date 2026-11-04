@@ -14,7 +14,7 @@ public sealed class VaccinationMigrationSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task UpDownUpPreservesLegacyAndProtectsNewLinksWithoutBackfill()
     {
-        await SqlFixtureLifecycle.RunAsync(() => AppointmentSqlTests.Fixture.Create(), async f => {
+        await SqlFixtureLifecycle.RunAsync(() => AppointmentSqlTests.Fixture.Create(true), async f => {
             var registration = await f.Register();
             var vaccine = registration.Items.Single(x => x.Kind == "vaccine").ServiceId;
             f.Db.Add(new LoVacXin { SoLo="[DEMO] S55 legacy", MaVacXin=vaccine,
@@ -24,12 +24,12 @@ public sealed class VaccinationMigrationSqlTests
             await migrator.MigrateAsync(Previous);
             await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO MuiTiem(MaNguoiDuocTiem,SoLo,MaNhanVien,ThoiDiemTiem,ViTriTiem,TrangThai) VALUES({f.RecipientId},{"[DEMO] S55 legacy"},{f.EmployeeId},{new DateTime(2026,1,1)},{"[DEMO] preserved site"},{"Legacy"})");
             await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO BienDongKho(SoLo,MaNhanVien,LoaiBienDong,SoLuong,ThoiDiem) VALUES({"[DEMO] S55 legacy"},{f.EmployeeId},{"Legacy"},{5},{new DateTime(2026,1,1)})");
-            await migrator.MigrateAsync(); await migrator.MigrateAsync();
+            await migrator.MigrateAsync(HistoricalCatalogFixture.Latest); await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             var legacy = await f.Db.Set<MuiTiem>().AsNoTracking().SingleAsync();
             Assert.Null(legacy.MaChiDinh); Assert.Equal("[DEMO] preserved site", legacy.ViTriTiem);
             var movement = await f.Db.Set<BienDongKho>().AsNoTracking().SingleAsync();
             Assert.Null(movement.MaMuiTiem); Assert.Equal(5, movement.SoLuong); Assert.Equal("Legacy", movement.LoaiBienDong);
-            await migrator.MigrateAsync(Previous); await migrator.MigrateAsync();
+            await migrator.MigrateAsync(Previous); await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             Assert.Null((await f.Db.Set<MuiTiem>().AsNoTracking().SingleAsync()).MaChiDinh);
             Assert.Null((await f.Db.Set<BienDongKho>().AsNoTracking().SingleAsync()).MaMuiTiem);
 

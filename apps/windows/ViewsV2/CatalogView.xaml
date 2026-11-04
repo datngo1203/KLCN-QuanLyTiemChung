@@ -68,10 +68,19 @@
        <TextBlock Text="Mô tả"/><TextBox KeyboardNavigation.TabIndex="2" Text="{Binding Description,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mô tả" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalScrollBarVisibility="Auto" Margin="0,4,0,10"/>
        <TextBlock Text="Trạng thái *"/><ComboBox KeyboardNavigation.TabIndex="3" ItemsSource="{Binding StatusOptions}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Status}" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Trạng thái danh mục" Margin="0,4,0,6"/>
       </StackPanel>
+      <StackPanel Visibility="{Binding ShowTechnology,Converter={StaticResource Vis}}">
+       <TextBlock Text="Đặc điểm kỹ thuật"/><TextBox Text="{Binding TechnicalCharacteristics,UpdateSourceTrigger=PropertyChanged}" MaxLength="2000" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalScrollBarVisibility="Auto" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Đặc điểm kỹ thuật" Margin="0,4,0,10"/>
+       <TextBlock Text="Ghi chú chuyên môn tham khảo"/><TextBox Text="{Binding ProfessionalNotes,UpdateSourceTrigger=PropertyChanged}" MaxLength="2000" AcceptsReturn="True" TextWrapping="Wrap" Height="80" VerticalScrollBarVisibility="Auto" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Ghi chú chuyên môn tham khảo" Margin="0,4,0,10"/>
+       <TextBlock Text="Nguồn thông tin"/><TextBox Text="{Binding SourceName,UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Nguồn thông tin" Margin="0,4,0,10"/>
+       <TextBlock Text="URL nguồn (http/https)"/><TextBox Text="{Binding SourceUrl,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="URL nguồn" Margin="0,4,0,10"/>
+       <TextBlock Text="Ngày cập nhật thông tin"/><DatePicker SelectedDate="{Binding InformationDate}" Style="{StaticResource CE.DatePicker}" AutomationProperties.Name="Ngày cập nhật thông tin" Margin="0,4,0,10"/>
+       <TextBlock Text="Chỉ là thông tin tham khảo; không tự sinh chỉ định, cảnh báo hoặc lịch tiêm." Style="{StaticResource CE.Caption}" Margin="0,0,0,10"/>
+      </StackPanel>
       <TextBlock Text="{Binding StatusLabel}" Style="{StaticResource CE.Caption}" Margin="0,0,0,10"/>
     <StackPanel Visibility="{Binding ShowVaccine,Converter={StaticResource Vis}}">
-     <TextBlock Text="Loại vắc xin *"/><ComboBox ItemsSource="{Binding VaccineTypes}" SelectedItem="{Binding VaccineType}" DisplayMemberPath="Name" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Loại vắc xin" Margin="0,5,0,10"/>
-     <TextBlock Text="Loại tiêm chủng *"/><ComboBox ItemsSource="{Binding InjectionTypes}" SelectedItem="{Binding InjectionType}" DisplayMemberPath="Name" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Loại tiêm chủng" Margin="0,5,0,10"/>
+     <TextBlock Text="Công nghệ vắc xin (không bắt buộc)"/>
+     <TextBlock Text="Chưa có nguồn xác nhận: để trống. Thông tin tham khảo, không quyết định điều kiện tiêm." Style="{StaticResource CE.Caption}"/>
+     <ItemsControl ItemsSource="{Binding Technologies}"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Name}" IsChecked="{Binding Included}" IsEnabled="{Binding Selectable}" Margin="0,5"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="Nhà sản xuất *"/><TextBox Text="{Binding Manufacturer,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Nhà sản xuất" Margin="0,5,0,10"/>
      <TextBlock Text="Xuất xứ *"/><TextBox Text="{Binding Origin,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Xuất xứ" Margin="0,5,0,10"/>
     </StackPanel>

@@ -1,25 +1,26 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getVaccine, getVaccines, getPackages, getVaccineTypes, getInjectionTypes, getRegistrationCatalog } from './client.js'
+import { getVaccine, getVaccines, getPackages, getVaccineTechnologies, getRegistrationCatalog } from './client.js'
 import { money } from '../registrationForm.js'
 
-test('catalog sends encoded search and type/price filters to the public API', async () => {
+test('catalog sends encoded search and technology/disease/price filters to the public API', async () => {
   const calls = []
   const original = globalThis.fetch
   globalThis.fetch = async url => { calls.push(new URL(url)); return Response.json({ source: 'database', items: [] }) }
   try {
-    await getVaccines('A & B', { vaccineTypeId: 2, injectionTypeId: '', minPrice: 0, maxPrice: 250000 })
+    await getVaccines('A & B', { technologyId: 2, diseaseId: '', minPrice: 0, maxPrice: 250000 })
     assert.equal(calls[0].pathname, '/api/v1/catalog/vaccines')
     assert.equal(calls[0].searchParams.get('search'), 'A & B')
-    assert.equal(calls[0].searchParams.get('vaccineTypeId'), '2')
+    assert.equal(calls[0].searchParams.get('technologyId'), '2')
     assert.equal(calls[0].searchParams.get('minPrice'), '0')
     assert.equal(calls[0].searchParams.get('maxPrice'), '250000')
     assert.equal(calls[0].searchParams.has('injectionTypeId'), false)
-    await getPackages('gói', { injectionTypeId: 1 })
+    await getPackages('gói', { technologyId: 1, diseaseId: 3 })
     assert.equal(calls[1].pathname, '/api/v1/catalog/packages')
-    assert.equal(calls[1].searchParams.get('injectionTypeId'), '1')
-    await getVaccineTypes(); await getInjectionTypes()
-    assert.deepEqual(calls.slice(2).map(x => x.pathname), ['/api/v1/catalog/vaccine-types', '/api/v1/catalog/injection-types'])
+    assert.equal(calls[1].searchParams.get('technologyId'), '1')
+    assert.equal(calls[1].searchParams.get('diseaseId'), '3')
+    await getVaccineTechnologies()
+    assert.deepEqual(calls.slice(2).map(x => x.pathname), ['/api/v1/catalog/vaccine-technologies'])
   } finally { globalThis.fetch = original }
 })
 
