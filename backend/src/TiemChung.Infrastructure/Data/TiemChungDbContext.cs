@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TiemChung.Domain.Entities;
 
+
 namespace TiemChung.Infrastructure.Data;
 
 public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbContext> options) : DbContext(options)
@@ -15,6 +16,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
     public DbSet<HangDoiVacXin> VaccineWaitlists => Set<HangDoiVacXin>();
     public DbSet<ThanhToan> Payments => Set<ThanhToan>();
     public DbSet<KhuyenMai> Promotions => Set<KhuyenMai>();
+    
 
     protected override void OnModelCreating(ModelBuilder model)
     {

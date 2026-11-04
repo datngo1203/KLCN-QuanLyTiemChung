@@ -4,6 +4,8 @@ using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using TiemChung.Domain.Rules;
 using TiemChung.Infrastructure.Data;
+using TiemChung.Infrastructure;
+using TiemChung.Api;
 
 namespace TiemChung.Api;
 
