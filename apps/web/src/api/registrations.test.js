@@ -139,5 +139,6 @@ test('registrations use in-memory bearer refresh, strict 201, safe structured 40
 
 
 test('registration errors do not expose technical transport messages', () => {
+  assert.equal(registrationError({ status: 401 }), 'Phiên đã hết hạn. Vui lòng đăng nhập lại.')
   assert.doesNotMatch(registrationError(new Error('API trả HTTP 500')), /API|HTTP|SQL/)
 })
