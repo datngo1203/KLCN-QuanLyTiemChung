@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using TiemChung.Infrastructure.Data;
@@ -31,12 +32,13 @@ public static partial class ProfileEndpoints
 
             var body = await IdentityEndpoints.Payload(context, customer
                 ? ["fullName", "dateOfBirth", "phoneNumber"]
-                : ["fullName", "dateOfBirth", "identityNumber"], ct);
-            var name = IdentityEndpoints.Value(body, "fullName").Trim();
-            var dob = ReadBirthDate(body);
-            if (name.Length is 0 or > 150 || dob == DateOnly.MinValue || dob > ProfileRules.Today(DateTimeOffset.UtcNow))
-                throw ClaimUnavailable();
-
+                : ["mode", "profileCode", "phoneNumber", "fullName", "dateOfBirth"], ct);
+            await db.Database.ExecuteSqlRawAsync("""
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock @Resource=N'KLCN.Profiles.Claim',
+                    @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
+                IF @result < 0 THROW 51001, 'Profile claim lock unavailable', 1;
+                """, ct);
             var accountId = actor.Account.MaTaiKhoan;
             var links = db.Set<AccountProfileLink>().Where(l => l.State == "Active");
             var customerId = await links.Where(l => l.AccountId == accountId && l.CustomerId != null)
@@ -44,6 +46,10 @@ public static partial class ProfileEndpoints
 
             if (customer)
             {
+                var name = IdentityEndpoints.Value(body, "fullName").Trim();
+                var dob = ReadBirthDate(body);
+                if (name.Length is 0 or > 150 || dob == DateOnly.MinValue || dob > ProfileRules.Today(DateTimeOffset.UtcNow))
+                    throw ClaimUnavailable();
                 var phone = IdentityEndpoints.Value(body, "phoneNumber").Trim();
                 if (customerId is not null || actor.Account.LoginEmail is not string email ||
                     phone.Length is < 10 or > 11 || !phone.All(char.IsAsciiDigit))
@@ -62,24 +68,61 @@ public static partial class ProfileEndpoints
             }
             else
             {
-                if (customerId is null) throw ClaimUnavailable();
-                var number = OptionalIdentity(body)?.Trim();
-                if (number?.Length > 0 && (number.Length != 12 || !number.All(char.IsAsciiDigit)))
-                    throw ClaimUnavailable();
-                var candidates = await db.Recipients.AsNoTracking().Where(r => r.MaKhachHang == customerId &&
-                    r.NgaySinh == dob).ToListAsync(ct);
-                var matches = candidates.Where(r => SameText(r.HoTen, name) &&
-                    (string.IsNullOrEmpty(number) || r.CCCD?.Trim() == number)).Take(2).ToArray();
+                var mode = IdentityEndpoints.Value(body, "mode");
+                var phone = IdentityEndpoints.Value(body, "phoneNumber").Trim();
+                if (phone.Length is < 10 or > 11 || !phone.All(char.IsAsciiDigit))
+                    throw new IdentityFailure(400, "validation");
+
+                var candidates = from recipient in db.Recipients.AsNoTracking()
+                                 join customerRow in db.Customers.AsNoTracking()
+                                     on recipient.MaKhachHang equals customerRow.MaKhachHang
+                                 where (customerId == null || customerRow.MaKhachHang == customerId)
+                                     && customerRow.SoDienThoai.Trim() == phone
+                                 select new { Recipient = recipient, Owner = customerRow };
+
+                string? name = null;
+                if (mode == "profileCode")
+                {
+                    var code = IdentityEndpoints.Value(body, "profileCode").Trim().ToUpperInvariant();
+                    if (body.TryGetProperty("fullName", out _) || body.TryGetProperty("dateOfBirth", out _)
+                        || !Regex.IsMatch(code, @"\AVAC-[0-9A-F]{12}\z"))
+                        throw new IdentityFailure(400, "validation");
+                    candidates = candidates.Where(x => x.Recipient.MaHoSo == code);
+                }
+                else if (mode == "personalInfo")
+                {
+                    name = IdentityEndpoints.Value(body, "fullName").Trim();
+                    var dob = ReadBirthDate(body);
+                    if (body.TryGetProperty("profileCode", out _) || name.Length is 0 or > 150
+                        || dob == DateOnly.MinValue || dob > ProfileRules.Today(DateTimeOffset.UtcNow))
+                        throw new IdentityFailure(400, "validation");
+                    candidates = candidates.Where(x => x.Recipient.NgaySinh == dob);
+                }
+                else throw new IdentityFailure(400, "validation");
+
+                var rows = await candidates.ToListAsync(ct);
+                var matches = rows.Where(x => x.Owner.SoDienThoai.Trim() == phone
+                    && (name is null || SameText(x.Recipient.HoTen, name))).Take(2).ToArray();
                 if (matches.Length != 1) throw ClaimUnavailable();
 
-                var match = matches[0];
+                var (match, owner) = (matches[0].Recipient, matches[0].Owner);
+                if (customerId is null && await links.AnyAsync(l => l.CustomerId == owner.MaKhachHang, ct))
+                    throw ClaimUnavailable();
                 var linkedAccount = await links.Where(l => l.RecipientId == match.MaNguoiDuocTiem)
                     .Select(l => (int?)l.AccountId).SingleOrDefaultAsync(ct);
                 if (linkedAccount is not null && linkedAccount != accountId) throw ClaimUnavailable();
+
+                var now = DateTimeOffset.UtcNow;
+                if (customerId is null)
+                    db.Add(new AccountProfileLink { AccountId = accountId, CustomerId = owner.MaKhachHang, CreatedAt = now });
                 if (linkedAccount is null)
-                    db.Add(new AccountProfileLink { AccountId = accountId, RecipientId = match.MaNguoiDuocTiem, CreatedAt = DateTimeOffset.UtcNow });
-                profile = new RecipientDto(match.MaNguoiDuocTiem, match.MaKhachHang, match.HoTen, match.CCCD,
-                    match.NgaySinh, match.GioiTinh, match.QuanHeVoiKhachHang);
+                    db.Add(new AccountProfileLink { AccountId = accountId, RecipientId = match.MaNguoiDuocTiem, CreatedAt = now });
+                profile = new
+                {
+                    recipient = new RecipientDto(match.MaNguoiDuocTiem, match.MaKhachHang, match.HoTen, match.CCCD,
+                        match.NgaySinh, match.GioiTinh, match.QuanHeVoiKhachHang, match.MaHoSo),
+                    customer = ToCustomerDto(owner)
+                };
             }
         }
         catch (IdentityFailure error)
@@ -93,7 +136,21 @@ public static partial class ProfileEndpoints
         var outcome = failure is null ? "Success" : failure.Status == 429 ? "RateLimited" : "Denied";
         IdentityTransactions.Audit(db, "profiles.claimOutcome", context.TraceIdentifier, actor.Account.MaTaiKhoan,
             session: actor.Session.Id, outcome: outcome).ResourceType = resource;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException error) when (!customer && failure is null
+            && error.Entries.Any(entry => entry.Entity is AccountProfileLink)
+            && error.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+        {
+            foreach (var link in db.ChangeTracker.Entries<AccountProfileLink>().Where(x => x.State == EntityState.Added).ToArray())
+                link.State = EntityState.Detached;
+            var audit = db.ChangeTracker.Entries<SecurityAudit>().Single(x => x.Entity.Action == "profiles.claimOutcome");
+            audit.Entity.Outcome = "Denied";
+            await db.SaveChangesAsync(ct);
+            failure = ClaimUnavailable();
+        }
         await tx.CommitAsync(ct);
 
         if (failure is not null) throw failure;

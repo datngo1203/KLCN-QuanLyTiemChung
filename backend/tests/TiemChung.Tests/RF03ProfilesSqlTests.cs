@@ -30,11 +30,26 @@ public sealed class RF03ProfilesSqlTests
             Assert.Equal(0, await BirthColumns(f));
             await f.Db.Database.ExecuteSqlRawAsync("""
                 INSERT KhachHang(HoTen, SoDienThoai, Email)
-                VALUES(N'[DEMO] Legacy RF03', '0900000000', 'legacy@example.invalid')
+                VALUES(N'[DEMO] Legacy RF03', '0900000000', 'legacy@example.invalid');
+                DECLARE @customer int = CONVERT(int, SCOPE_IDENTITY());
+                INSERT NguoiDuocTiem(MaKhachHang, HoTen, NgaySinh, GioiTinh, QuanHeVoiKhachHang)
+                VALUES(@customer, N'Legacy RF05 A', '2015-01-01', N'Nam', N'Con'),
+                      (@customer, N'Legacy RF05 B', '2015-01-02', N'Nam', N'Con');
                 """);
             await migrator.MigrateAsync();
             await migrator.MigrateAsync();
             Assert.Equal(2, await BirthColumns(f));
+            var legacyCodes = await f.Db.Recipients.Where(x => x.HoTen.StartsWith("Legacy RF05"))
+                .Select(x => x.MaHoSo).ToArrayAsync();
+            Assert.Equal(2, legacyCodes.Distinct().Count());
+            Assert.All(legacyCodes, code => Assert.Matches(@"^VAC-[0-9A-F]{12}$", code));
+            Assert.Equal(1, await f.Db.Database.SqlQuery<int>($"""
+                SELECT COUNT(*) AS [Value] FROM sys.indexes
+                WHERE object_id = OBJECT_ID('dbo.NguoiDuocTiem') AND name = 'IX_NguoiDuocTiem_MaHoSo' AND is_unique = 1
+                """).SingleAsync());
+            await migrator.MigrateAsync();
+            Assert.Equal(legacyCodes.Order(), (await f.Db.Recipients.Where(x => x.HoTen.StartsWith("Legacy RF05"))
+                .Select(x => x.MaHoSo).ToArrayAsync()).Order());
             Assert.False(f.Db.Database.HasPendingModelChanges());
 
             await f.Db.Set<NhanVien>().ExecuteUpdateAsync(s => s.SetProperty(e => e.ChucDanh, "LeTan"));
@@ -64,7 +79,15 @@ public sealed class RF03ProfilesSqlTests
 
             await migrator.MigrateAsync(previous);
             Assert.Equal(0, await BirthColumns(f));
+            Assert.Equal(0, await f.Db.Database.SqlQuery<int>($"""
+                SELECT COUNT(*) AS [Value] FROM sys.columns
+                WHERE object_id = OBJECT_ID('dbo.NguoiDuocTiem') AND name = 'MaHoSo'
+                """).SingleAsync());
             await migrator.MigrateAsync();
+            var reappliedCodes = await f.Db.Recipients.Where(x => x.HoTen.StartsWith("Legacy RF05"))
+                .Select(x => x.MaHoSo).ToArrayAsync();
+            Assert.Equal(2, reappliedCodes.Distinct().Count());
+            Assert.All(reappliedCodes, code => Assert.Matches(@"^VAC-[0-9A-F]{12}$", code));
             var afterRollback = await f.Db.Customers.AsNoTracking().SingleAsync(c => c.MaKhachHang == legacy.Id);
             Assert.Equal(legacy.FullName, afterRollback.HoTen);
             Assert.Null(afterRollback.NgaySinh);
@@ -275,7 +298,7 @@ public sealed class RF03ProfilesSqlTests
             await f.Db.SaveChangesAsync();
 
             using var actor = await Login(f, account);
-            var claim = new { fullName = target.HoTen, dateOfBirth = Child };
+            var claim = new { mode = "personalInfo", fullName = target.HoTen, dateOfBirth = Child, phoneNumber = Phone };
             await AssertUnavailable(actor, RecipientClaim, claim);
             using var ownerClaim = await actor.PostAsJsonAsync(CustomerClaim, new { fullName = owner.HoTen, dateOfBirth = Adult, phoneNumber = Phone });
             Assert.Equal(HttpStatusCode.OK, ownerClaim.StatusCode);
@@ -283,10 +306,10 @@ public sealed class RF03ProfilesSqlTests
             await AssertUnavailable(actor, RecipientClaim, claim with { fullName = crossCustomer.HoTen });
             await AssertUnavailable(actor, RecipientClaim, claim with { fullName = linkedElsewhere.HoTen });
             await AssertUnavailable(actor, RecipientClaim, claim);
-            var identified = new { fullName = " [demo] twins ", dateOfBirth = Child, identityNumber = target.CCCD };
+            var identified = new { mode = "profileCode", profileCode = target.MaHoSo.ToLowerInvariant(), phoneNumber = Phone };
             using var linked = await actor.PostAsJsonAsync(RecipientClaim, identified);
             Assert.Equal(HttpStatusCode.OK, linked.StatusCode);
-            Assert.Equal(target.MaNguoiDuocTiem, (await linked.Content.ReadFromJsonAsync<RecipientDto>())!.Id);
+            Assert.Equal(target.MaNguoiDuocTiem, (await linked.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("recipient").GetProperty("id").GetInt32());
             var mine = Assert.Single((await actor.GetFromJsonAsync<RecipientListResponse>("/api/v1/recipients"))!.Items);
             Assert.Equal(target.MaNguoiDuocTiem, mine.Id);
             Assert.Single(await f.Db.Set<AccountProfileLink>().Where(l => l.AccountId == account.MaTaiKhoan && l.RecipientId != null).ToArrayAsync());
@@ -299,6 +322,72 @@ public sealed class RF03ProfilesSqlTests
             Assert.Equal(HttpStatusCode.OK, optionalIdentity.StatusCode);
             using var repeated = await otherActor.PostAsJsonAsync(RecipientClaim, claim with { fullName = crossCustomer.HoTen });
             Assert.Equal(HttpStatusCode.OK, repeated.StatusCode);
+        });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task RecipientClaimLinksOwnerAndRecipientOnceAcrossConcurrentAccounts() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var first = await AddAccount(f, "rf05-first@example.invalid");
+            var second = await AddAccount(f, "rf05-second@example.invalid");
+            var owner = await AddCustomer(f, "Owner RF05", "rf05-owner@example.invalid");
+            var recipient = AddRecipient(f, owner, "Recipient RF05");
+            await f.Db.SaveChangesAsync();
+            Assert.Matches(@"^VAC-[0-9A-F]{12}$", recipient.MaHoSo);
+
+            using var a = await Login(f, first);
+            using var b = await Login(f, second);
+            using var missing = await a.PostAsJsonAsync(RecipientClaim,
+                new { mode = "personalInfo", fullName = recipient.HoTen, dateOfBirth = Child });
+            Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+            using var mixed = await a.PostAsJsonAsync(RecipientClaim,
+                new { mode = "profileCode", profileCode = recipient.MaHoSo, phoneNumber = Phone, fullName = recipient.HoTen });
+            Assert.Equal(HttpStatusCode.BadRequest, mixed.StatusCode);
+            var body = new { mode = "personalInfo", fullName = " recipient rf05 ", dateOfBirth = Child, phoneNumber = Phone };
+            await AssertUnavailable(a, RecipientClaim, body with { phoneNumber = "0900000001" });
+
+            var results = await Task.WhenAll(a.PostAsJsonAsync(RecipientClaim, body), b.PostAsJsonAsync(RecipientClaim, body));
+            using var success = Assert.Single(results, x => x.StatusCode == HttpStatusCode.OK);
+            using var conflict = Assert.Single(results, x => x.StatusCode == HttpStatusCode.Conflict);
+            Assert.Equal("profileClaimUnavailable", await Code(conflict));
+            var links = await f.Db.Set<AccountProfileLink>().AsNoTracking().Where(x =>
+                x.CustomerId == owner.MaKhachHang || x.RecipientId == recipient.MaNguoiDuocTiem).ToListAsync();
+            Assert.Equal(2, links.Count);
+            var account = Assert.Single(links.Select(x => x.AccountId).Distinct());
+            var winner = account == first.MaTaiKhoan ? a : b;
+            using var retry = await winner.PostAsJsonAsync(RecipientClaim, body);
+            Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+            Assert.Equal(2, await f.Db.Set<AccountProfileLink>().CountAsync(x =>
+                x.CustomerId == owner.MaKhachHang || x.RecipientId == recipient.MaNguoiDuocTiem));
+        });
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task RecipientClaimRollsBackLinksAndSuccessAuditOnSqlFailure(bool failOnAudit) =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var account = await AddAccount(f, "rollback-rf05@example.invalid");
+            var owner = await AddCustomer(f, "Owner rollback", "owner-rollback@example.invalid");
+            var recipient = AddRecipient(f, owner, "Recipient rollback");
+            await f.Db.SaveChangesAsync();
+            using var actor = await Login(f, account);
+            if (failOnAudit)
+                await f.Db.Database.ExecuteSqlRawAsync("""
+                    ALTER TABLE dbo.SecurityAudit ADD CONSTRAINT CK_TestClaimAuditFailure
+                        CHECK (Action <> 'profiles.claimOutcome' OR Outcome <> 'Success');
+                    """);
+            else
+                await f.Db.Database.ExecuteSqlRawAsync("""
+                    ALTER TABLE dbo.AccountProfileLink ADD CONSTRAINT CK_TestClaimFailure CHECK (RecipientId IS NULL);
+                    """);
+
+            using var result = await actor.PostAsJsonAsync(RecipientClaim,
+                new { mode = "profileCode", profileCode = recipient.MaHoSo, phoneNumber = Phone });
+            Assert.False(result.IsSuccessStatusCode);
+            Assert.Empty(await f.Db.Set<AccountProfileLink>().Where(x => x.AccountId == account.MaTaiKhoan).ToArrayAsync());
+            Assert.False(await f.Db.Set<SecurityAudit>().AnyAsync(x => x.ActorAccountId == account.MaTaiKhoan
+                && x.Action == "profiles.claimOutcome" && x.Outcome == "Success"));
         });
 
     private static Task<int> BirthColumns(CatalogSqlTests.Fixture f) => f.Db.Database.SqlQuery<int>($"""

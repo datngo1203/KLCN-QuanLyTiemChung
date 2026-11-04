@@ -57,6 +57,7 @@ public sealed class KhachHang
 
 public sealed class NguoiDuocTiem
 {
+    public string MaHoSo { get; private set; } = "VAC-" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(6));
     public int MaNguoiDuocTiem { get; set; }
     public int MaKhachHang { get; set; }
     public string HoTen { get; set; } = string.Empty;

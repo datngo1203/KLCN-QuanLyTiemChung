@@ -11,6 +11,7 @@ internal static class HistoricalCatalogFixture
 
     internal static Task ConfigureAsync(TiemChungDbContext db) => db.Database.ExecuteSqlRawAsync("""
         -- Historical suites keep the catalog migration pinned but write customers with the current EF model.
+        ALTER TABLE NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL;
         ALTER TABLE KhachHang ADD DanhXung nvarchar(10) NULL, NgaySinh date NULL;
         ALTER TABLE DangKyDichVu ADD TenNguoiLienHe nvarchar(150) NULL, SoDienThoaiLienHe varchar(11) NULL,
             EmailLienHe nvarchar(254) NULL, TinhThanhLienHe nvarchar(100) NULL, PhuongXaLienHe nvarchar(100) NULL,

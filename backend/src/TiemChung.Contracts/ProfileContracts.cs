@@ -29,7 +29,8 @@ public sealed record RecipientDto(
     string? IdentityNumber,
     DateOnly DateOfBirth,
     string Gender,
-    string RelationshipToCustomer);
+    string RelationshipToCustomer,
+    string? ProfileCode = null);
 
 public sealed record CreateRecipientRequest(
     int CustomerId,

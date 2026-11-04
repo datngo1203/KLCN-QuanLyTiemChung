@@ -260,7 +260,7 @@ public sealed partial class PaymentSqlTests
             var snapshot = await LegacySnapshot(f.Db);
             await migrator.MigrateAsync(b1);
             Assert.Equal(snapshot, await LegacySnapshot(f.Db));
-            await migrator.MigrateAsync(b2);
+            await migrator.MigrateAsync();
             Assert.False(f.Db.Database.HasPendingModelChanges());
             Assert.Equal(snapshot, await LegacySnapshot(f.Db));
             using var response = await f.Customer.Client.PostAsJsonAsync(Path(online.Id) + "/online", Online("ChuyenKhoanOnline"));

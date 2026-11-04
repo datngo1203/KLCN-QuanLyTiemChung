@@ -667,6 +667,8 @@ public sealed partial class PaymentSqlTests
             var before = await LegacySnapshot(f.Db);
             await migrator.MigrateAsync(current);
             Assert.Equal(before, await LegacySnapshot(f.Db));
+            // The B1 guard needs the B1 schema, while the current API reads recipient codes.
+            await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL DEFAULT 'VAC-000000000000'");
             var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
             Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
             Assert.Null(legacy.TransactionCode); Assert.Null(legacy.Payer);
