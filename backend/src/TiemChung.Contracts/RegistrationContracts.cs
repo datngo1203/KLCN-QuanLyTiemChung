@@ -27,14 +27,14 @@ public sealed record RegistrationItemDto(int Id, string Kind, int ServiceId, str
     decimal UnitPrice, decimal LineTotal, RegistrationComponentDto[]? Components);
 public sealed record RegistrationSummaryDto(int Id, DateTimeOffset CreatedAt, string Status,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, int? EmployeeId, decimal Subtotal, string Currency,
-    DateOnly? PreferredDate, decimal? ConsultationFee)
+    DateOnly? PreferredDate, decimal? ConsultationFee, string? ExpectedChannel = null)
 {
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
 }
 public sealed record RegistrationDto(int Id, DateTimeOffset CreatedAt, string Status,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, int? EmployeeId,
     RegistrationItemDto[] Items, decimal Subtotal, string Currency,
-    DateOnly? PreferredDate, RegistrationContactDto? Contact, decimal? ConsultationFee)
+    DateOnly? PreferredDate, RegistrationContactDto? Contact, decimal? ConsultationFee, string? ExpectedChannel = null)
 {
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
 }

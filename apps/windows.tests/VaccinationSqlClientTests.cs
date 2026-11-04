@@ -113,7 +113,11 @@ public sealed class VaccinationSqlFixture : IAsyncDisposable
             await reception.LogoutAsync();
             using var doctorHttp=f.Factory.CreateClient();var doctor=new IdentityApiService(doctorHttp);Assert.True((await doctor.LoginAsync("s55.doctor",f.Password)).Succeeded);
             var clinical=new ScreeningApiService(doctor);foreach(var appointment in created){var detail=await clinical.GetAsync(appointment.Id);await clinical.CreateAsync(appointment.Id,new("Đủ điều kiện",null,detail.AllowedVaccines.Select(v=>v.Id).ToArray()));}await doctor.LogoutAsync();
-            using var cashierHttp=f.Factory.CreateClient();var cashier=new IdentityApiService(cashierHttp);Assert.True((await cashier.LoginAsync("s55.cashier",f.Password)).Succeeded);await new PaymentApiService(cashier).RecordAsync(registrationId);await cashier.LogoutAsync();
+            using var cashierHttp=f.Factory.CreateClient();var cashier=new IdentityApiService(cashierHttp);Assert.True((await cashier.LoginAsync("s55.cashier",f.Password)).Succeeded);
+            var payment = new PaymentApiService(cashier);
+            var due = (await payment.GetAsync(registrationId)).TotalDue;
+            await payment.RecordAsync(registrationId, new(new("[DEMO] Cashier payer", "0900000107"), "TienMat", due));
+            await cashier.LogoutAsync();
             f.Db.ChangeTracker.Clear();return f;
         }catch(Exception error){await SqlFixtureLifecycle.CleanupAfterFailureAsync(error,f.DisposeAsync);throw;}
     }

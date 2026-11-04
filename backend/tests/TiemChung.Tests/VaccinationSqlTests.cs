@@ -134,9 +134,28 @@ public sealed class VaccinationSqlTests
             Assert.Equal(before, await f.Snapshot());
 
             await f.Db.Payments.Where(p => p.MaDangKy == registrationId)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.SoTien, source.Registration.Subtotal + 50000m));
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.SoTien, source.Registration.Subtotal + 50000m)
+                    .SetProperty(p => p.SoTienKhachDua, source.Registration.Subtotal + 50000m));
             using var response = await f.Nurse.PostAsJsonAsync(Route, Request(id));
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PendingTransferBlocksVaccinationUntilCashierConfirms()
+    {
+        await Run(async f => {
+            var source = await f.Source(recordPayment: false);
+            var payment = PaymentSqlTests.Pending(source.Registration);
+            f.Db.Add(payment); await f.Db.SaveChangesAsync();
+            var id = source.Assessment.Indications.Single().Id;
+            var before = await f.Snapshot();
+            await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(id)), 409, "vaccinationPaymentRequired");
+            Assert.Equal(before, await f.Snapshot());
+            using var confirmation = await f.Cashier.PostAsync($"/api/v1/registrations/{source.Registration.Id}/payment/confirm", null);
+            Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+            using var shot = await f.Nurse.PostAsJsonAsync(Route, Request(id));
+            Assert.Equal(HttpStatusCode.Created, shot.StatusCode);
         });
     }
 
@@ -154,7 +173,10 @@ public sealed class VaccinationSqlTests
             if(scenario is "missing" or "zero")f.Db.Remove(payment);
             if(scenario=="otherRegistration")payment.MaDangKy=(await f.Register()).Id;
             if(scenario=="amount")payment.SoTien--;
-            if(scenario=="status")payment.TrangThai="Legacy";
+            if(scenario=="status") {
+                await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
+                payment.TrangThai="Legacy";
+            }
             if(scenario=="method")payment.PhuongThuc="Legacy";
             if(scenario=="type")payment.LoaiThanhToan="Legacy";
             if(scenario=="discount") {
@@ -346,14 +368,18 @@ public sealed class VaccinationSqlTests
                 [new("vaccine",A,2,150000),new("package",PackageId,1,350000,[new(A,1),new(B,1)])]));
             Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public async Task<SourceData> Source(string kind="vaccine",int[]? vaccineIds=null)
+        public async Task<SourceData> Source(string kind="vaccine",int[]? vaccineIds=null,bool recordPayment=true)
         {
             var registration=await Register();
             using var appointed=await Base.Reception.PostAsJsonAsync("/api/v1/appointments",Base.Request(registration,registration.Items.Single(i=>i.Kind==kind)));
             Assert.Equal(HttpStatusCode.Created,appointed.StatusCode);var appointment=(await appointed.Content.ReadFromJsonAsync<AppointmentDto>())!;
             using var assessed=await Doctor.PostAsJsonAsync($"/api/v1/clinical/appointments/{appointment.Id}/assessment",new CreateClinicalAssessmentRequest("Đủ điều kiện",null,vaccineIds??[A]));
             Assert.Equal(HttpStatusCode.Created,assessed.StatusCode);var assessment=(await assessed.Content.ReadFromJsonAsync<ClinicalAssessmentDto>())!;
-            using var paid=await Cashier.PostAsJsonAsync($"/api/v1/registrations/{registration.Id}/payment",new{});Assert.Equal(HttpStatusCode.Created,paid.StatusCode);
+            if (recordPayment) {
+                using var paid = await Cashier.PostAsJsonAsync($"/api/v1/registrations/{registration.Id}/payment",
+                    PaymentSqlTests.Cash(registration.TotalBeforeDiscount + 1));
+                Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
+            }
             return new(registration,appointment,assessment);
         }
         public async Task<string> Snapshot()

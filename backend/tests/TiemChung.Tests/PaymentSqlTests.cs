@@ -26,6 +26,16 @@ public sealed class PaymentSqlTests
 {
     private const string ListPath = "/api/v1/payment-registrations";
     private static string Path(int id) => $"/api/v1/registrations/{id}/payment";
+    internal static RecordPaymentRequest Cash(decimal amount) =>
+        new(new("[DEMO] Người thanh toán", "0900000107"), "TienMat", amount);
+
+    internal static ThanhToan Pending(RegistrationDto registration) => new() {
+        MaDangKy = registration.Id, SoTien = registration.TotalBeforeDiscount, LoaiThanhToan = "ToanBo",
+        PhuongThuc = "ChuyenKhoanOnline", TrangThai = "ChoXacNhan", ThoiDiem = DateTime.UtcNow.AddMinutes(-10),
+        MaGiaoDich = $"TT-{Guid.NewGuid():N}", TenNguoiThanhToan = "[DEMO] Người thanh toán", SoDienThoaiThanhToan = "0900000107",
+        NhaCungCapThanhToan = "Synthetic Bank", TenChuTaiKhoanThe = "[DEMO] Chủ tài khoản",
+        SoDinhDanhMasked = "****0107", ThamChieuThanhToan = "DEMO-PENDING-107"
+    };
 
     [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("single")]
@@ -40,7 +50,7 @@ public sealed class PaymentSqlTests
         var before = await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
         Assert.Equal(registration.Subtotal, before!.TotalDue); Assert.True(before.CanRecordPayment);
         Assert.True(before.RequiresPayment); Assert.Null(before.Payment); Assert.True(before.IsSimulation);
-        using var response = await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { });
+        using var response = await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(Path(registration.Id), response.Headers.Location!.OriginalString);
         Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
@@ -49,7 +59,9 @@ public sealed class PaymentSqlTests
         Assert.Equal(saved.TotalDue, saved.PaidAmount); Assert.Equal(0, saved.RemainingAmount);
         Assert.False(saved.RequiresPayment); Assert.False(saved.CanRecordPayment);
         Assert.NotNull(saved.Payment); Assert.Equal("ToanBo", saved.Payment.Type);
-        Assert.Equal("MoPhong", saved.Payment.Method); Assert.Equal("ThanhCong", saved.Payment.Status);
+        Assert.Equal("TienMat", saved.Payment.Method); Assert.Equal("ThanhCong", saved.Payment.Status);
+        Assert.Equal("ThanhCong", saved.PaymentState); Assert.Equal(saved.TotalDue, saved.Payment.CashTendered);
+        Assert.Equal(0, saved.Payment.ChangeAmount); Assert.NotNull(saved.Payment.TransactionCode);
         Assert.True(saved.Payment.IsSimulation); Assert.Equal(f.Cashier.Employee!.MaNhanVien, saved.Payment.EmployeeId);
         Assert.Equal(TimeSpan.Zero, saved.Payment.OccurredAt.Offset);
         Assert.Equal(JsonSerializer.Serialize(registration.Items), JsonSerializer.Serialize(saved.Items));
@@ -65,7 +77,7 @@ public sealed class PaymentSqlTests
         // Each HTTP request uses a new scoped DbContext, including the Customer verification GET.
         var reloaded = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
         Assert.Equal(JsonSerializer.Serialize(saved with { CanRecordPayment = false }), JsonSerializer.Serialize(reloaded));
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentAlreadyRecorded");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 409, "paymentAlreadyRecorded");
         Assert.Equal(1, await fresh.Payments.CountAsync());
         Assert.Equal(1, await fresh.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded"));
         });
@@ -95,7 +107,7 @@ public sealed class PaymentSqlTests
             Assert.Equal(totalDue, before.RemainingAmount);
             Assert.Null(before.Payment);
 
-            using var response = await f.Cashier.Client.PostAsJsonAsync(path, new { });
+            using var response = await f.Cashier.Client.PostAsJsonAsync(path, Cash(totalDue));
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var saved = (await response.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
             Assert.Equal(totalDue, saved.TotalDue);
@@ -108,7 +120,7 @@ public sealed class PaymentSqlTests
             Assert.Equal(registration.Id, payment.MaDangKy);
             Assert.Equal(saved.Payment.Id, payment.MaThanhToan);
             Assert.Equal(totalDue, payment.SoTien);
-            Assert.Equal("MoPhong", payment.PhuongThuc);
+            Assert.Equal("TienMat", payment.PhuongThuc);
             Assert.Equal("ToanBo", payment.LoaiThanhToan);
             Assert.Equal("ThanhCong", payment.TrangThai);
             Assert.Equal(payment.PhuongThuc, saved.Payment.Method);
@@ -117,7 +129,7 @@ public sealed class PaymentSqlTests
 
             var reloaded = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(path);
             Assert.Equal(JsonSerializer.Serialize(saved), JsonSerializer.Serialize(reloaded));
-            using var duplicate = await f.Cashier.Client.PostAsJsonAsync(path, new { });
+            using var duplicate = await f.Cashier.Client.PostAsJsonAsync(path, Cash(totalDue));
             await Problem(duplicate, 409, "paymentAlreadyRecorded");
             Assert.Equal(1, await fresh.Payments.CountAsync());
         });
@@ -135,9 +147,9 @@ public sealed class PaymentSqlTests
         var firstActor = secondCashierFirst ? other : f.Cashier;
         var secondActor = secondCashierFirst ? f.Cashier : other;
         gate.Armed = true;
-        var first = firstActor.Client.PostAsJsonAsync(Path(registration.Id), new { });
+        var first = firstActor.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount));
         await gate.Locked.Task.WaitAsync(TimeSpan.FromSeconds(20));
-        var second = secondActor.Client.PostAsJsonAsync(Path(registration.Id), new { });
+        var second = secondActor.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount));
         try {
             await gate.Contending.Task.WaitAsync(TimeSpan.FromSeconds(20));
             Assert.False(second.IsCompleted);
@@ -161,7 +173,8 @@ public sealed class PaymentSqlTests
         async Task Denied(HttpClient client, int expected) {
             await Problem(await client.GetAsync(ListPath), expected);
             await Problem(await client.GetAsync(Path(registration.Id)), expected);
-            await Problem(await client.PostAsJsonAsync(Path(registration.Id), new { }), expected);
+            await Problem(await client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), expected);
+            await Problem(await client.PostAsync(Path(registration.Id) + "/confirm", null), expected);
         }
         using var anonymous = f.Base.Factory.CreateClient();
         await Denied(anonymous, 401);
@@ -175,7 +188,7 @@ public sealed class PaymentSqlTests
         var view = await reader.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
         Assert.False(view!.CanRecordPayment); Assert.True(view.RequiresPayment);
         Assert.Equal(HttpStatusCode.OK, (await reader.Client.GetAsync(ListPath)).StatusCode);
-        await Problem(await reader.Client.PostAsJsonAsync(Path(registration.Id), new { }), 403, "permissionDenied");
+        await Problem(await reader.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 403, "permissionDenied");
         var writerOnly = await f.Actor("ThuNgan", "GhiThanhToan");
         await Denied(writerOnly.Client, 403);
         await f.Db.Set<TaiKhoan_QuyenHan>().Where(g => g.MaTaiKhoan == f.Cashier.Account.MaTaiKhoan).ExecuteDeleteAsync();
@@ -201,11 +214,11 @@ public sealed class PaymentSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
-        await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { });
+        await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount));
         var own = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
         Assert.NotNull(own!.Payment); Assert.False(own.CanRecordPayment);
         await Problem(await f.Customer.Client.GetAsync(ListPath), 403, "permissionDenied");
-        await Problem(await f.Customer.Client.PostAsJsonAsync(Path(registration.Id), new { }), 403, "permissionDenied");
+        await Problem(await f.Customer.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 403, "permissionDenied");
         var stranger = await f.Actor(null);
         foreach (var id in new[] { registration.Id, int.MaxValue }) {
             using var response = await stranger.Client.GetAsync(Path(id));
@@ -241,7 +254,7 @@ public sealed class PaymentSqlTests
         Assert.Equal(0, detail!.Subtotal); Assert.Equal(0, detail.TotalDue); Assert.Equal(0, detail.PaidAmount);
         Assert.Equal(0, detail.RemainingAmount); Assert.False(detail.RequiresPayment); Assert.False(detail.CanRecordPayment);
         Assert.Null(detail.Payment); Assert.Equal("Không phát sinh khoản thu.", detail.Message);
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentNotRequired");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 409, "paymentNotRequired");
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
         Assert.False(await f.Db.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
         });
@@ -259,10 +272,11 @@ public sealed class PaymentSqlTests
         using var created = await f.Customer.Client.PostAsJsonAsync("/api/v1/registrations", request);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var registration = (await created.Content.ReadFromJsonAsync<RegistrationDto>())!;
-        using var response = await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { });
+        using var response = await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var saved = (await response.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
         Assert.Equal(limit, saved.TotalDue); Assert.Equal(limit, saved.Payment!.Amount);
+        Assert.Equal(limit, saved.Payment.CashTendered); Assert.Equal(0, saved.Payment.ChangeAmount);
         await using var fresh = f.NewDb();
         Assert.Equal(limit, (await fresh.Payments.SingleAsync()).SoTien);
         });
@@ -273,9 +287,9 @@ public sealed class PaymentSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var first = await f.Register(); var second = await f.Register();
-        Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(first.Id), new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(first.Id), Cash(first.TotalBeforeDiscount))).StatusCode);
         await f.Db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX G3FixtureOtherUnique ON dbo.ThanhToan(SoTien);");
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(second.Id), new { }), 503, "dependencyUnavailable");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(second.Id), Cash(second.TotalBeforeDiscount)), 503, "dependencyUnavailable");
         Assert.Equal(1, await f.Db.Payments.CountAsync());
         Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded"));
         });
@@ -291,14 +305,14 @@ public sealed class PaymentSqlTests
         await f.Db.Database.ExecuteSqlRawAsync(failure == "payment"
             ? "ALTER TABLE dbo.ThanhToan ADD CONSTRAINT G3FixtureFailure CHECK (SoTien < 0);"
             : "CREATE TRIGGER G3FixtureFailure ON dbo.SecurityAudit AFTER INSERT AS IF EXISTS(SELECT 1 FROM inserted WHERE Action='payments.recorded') THROW 51000, 'Synthetic G3 audit failure', 1;");
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 503, "dependencyUnavailable");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 503, "dependencyUnavailable");
         await using var fresh = f.NewDb();
         Assert.Empty(await fresh.Payments.ToArrayAsync());
         Assert.False(await fresh.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
         Assert.Equal("DaDangKy", (await fresh.Registrations.SingleAsync()).TrangThai);
         await f.Db.Database.ExecuteSqlRawAsync(failure == "payment"
             ? "ALTER TABLE dbo.ThanhToan DROP CONSTRAINT G3FixtureFailure;" : "DROP TRIGGER dbo.G3FixtureFailure;");
-        Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount))).StatusCode);
         });
     }
 
@@ -327,7 +341,7 @@ public sealed class PaymentSqlTests
         }
         await Problem(await f.Cashier.Client.GetAsync(Path(int.MaxValue)), 404, "resourceNotFound");
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(int.MaxValue), new { }), 404, "resourceNotFound");
-        foreach (var field in new[] { "amount", "employeeId", "status", "method", "type", "discount", "paidAt", "unexpected" })
+        foreach (var field in new[] { "amount", "employeeId", "transactionCode", "status", "type", "discount", "paidAt", "unexpected" })
             await Problem(await f.Cashier.Client.PostAsync(Path(first.Id), new StringContent("{\"" + field + "\":1}", Encoding.UTF8, "application/json")), 400, "validation");
         foreach (var json in new[] { "{", "null", "[]" })
             await Problem(await f.Cashier.Client.PostAsync(Path(first.Id), new StringContent(json, Encoding.UTF8, "application/json")), 400, "validation");
@@ -347,12 +361,13 @@ public sealed class PaymentSqlTests
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         var payment = f.Payment(registration);
+        if (kind == "status") await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
         Corrupt(payment, kind); f.Db.Add(payment); await f.Db.SaveChangesAsync();
         var before = JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().SingleAsync());
         await Problem(await f.Cashier.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
         await Problem(await f.Customer.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
         await Problem(await f.Cashier.Client.GetAsync(ListPath), 409, "paymentDataConflict");
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentDataConflict");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 409, "paymentDataConflict");
         await using var fresh = f.NewDb();
         Assert.Equal(before, JsonSerializer.Serialize(await fresh.Payments.SingleAsync()));
         Assert.False(await fresh.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
@@ -382,7 +397,7 @@ public sealed class PaymentSqlTests
                 await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.MaKhuyenMai, promo.MaKhuyenMai)); break;
         }
         await Problem(await f.Cashier.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
-        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentDataConflict");
+        await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 409, "paymentDataConflict");
         Assert.Empty(await f.Db.Payments.ToArrayAsync());
         });
     }
@@ -404,23 +419,20 @@ public sealed class PaymentSqlTests
         await migrator.MigrateAsync("20261028172727_G2RegistrationNullableFields");
         var payment = f.Payment(registration);
         if (kind is not ("valid" or "duplicate")) Corrupt(payment, kind);
-        f.Db.Add(payment); if (kind == "duplicate") f.Db.Add(f.Payment(registration));
-        await f.Db.SaveChangesAsync();
-        var before = JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().OrderBy(p => p.MaThanhToan).ToArrayAsync());
+        await InsertLegacy(f.Db, payment);
+        if (kind == "duplicate") await InsertLegacy(f.Db, f.Payment(registration));
+        var before = await LegacySnapshot(f.Db);
         if (kind == "valid") {
             await migrator.MigrateAsync(HistoricalCatalogFixture.Latest); await migrator.MigrateAsync(HistoricalCatalogFixture.Latest);
             Assert.Equal(1, await UniqueIndex(f.Db));
-            f.Db.Add(f.Payment(registration));
-            var error = await Assert.ThrowsAsync<DbUpdateException>(() => f.Db.SaveChangesAsync());
-            Assert.IsType<SqlException>(error.InnerException);
-            f.Db.ChangeTracker.Clear();
+            await Assert.ThrowsAsync<SqlException>(() => InsertLegacy(f.Db, f.Payment(registration)));
         } else {
             var error = await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync(HistoricalCatalogFixture.Latest));
             Assert.Contains(kind == "duplicate" ? "duplicate registration payments" : "incompatible legacy payment", error.Message);
             Assert.Equal(0, await UniqueIndex(f.Db));
             Assert.DoesNotContain("20261029000847_G3SinglePayment", await f.Db.Database.GetAppliedMigrationsAsync());
         }
-        Assert.Equal(before, JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().OrderBy(p => p.MaThanhToan).ToArrayAsync()));
+        Assert.Equal(before, await LegacySnapshot(f.Db));
         Assert.Equal(registration.Subtotal, (await f.Customer.Client.GetFromJsonAsync<RegistrationDto>("/api/v1/registrations/" + registration.Id))!.Subtotal);
         });
     }
@@ -434,15 +446,245 @@ public sealed class PaymentSqlTests
         Assert.Equal(new[] { "get" }, paths.GetProperty(ListPath).EnumerateObject().Select(x => x.Name));
         var detail = paths.GetProperty("/api/v1/registrations/{id}/payment");
         Assert.Equal(new[] { "get", "post" }, detail.EnumerateObject().Select(x => x.Name).Order());
+        Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/registrations/{id}/payment/confirm").EnumerateObject().Select(x => x.Name));
+        Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.EndsWith("/payment/online"));
         Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.StartsWith("/api/v1/payments"));
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("RecordPaymentRequest");
-        if (request.TryGetProperty("properties", out var requestProperties)) Assert.Empty(requestProperties.EnumerateObject());
+        Assert.Equal(new[] { "card", "cashTendered", "method", "payer", "transfer" },
+            request.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
         Assert.False(request.GetProperty("additionalProperties").GetBoolean());
         var props = schemas.GetProperty("RegistrationPaymentDto").GetProperty("properties");
-        foreach (var field in new[] { "registrationId", "registrationStatus", "customer", "recipient", "items", "subtotal", "totalDue", "paidAmount", "remainingAmount", "requiresPayment", "canRecordPayment", "isSimulation", "payment" })
+        foreach (var field in new[] { "registrationId", "registrationStatus", "customer", "recipient", "items", "subtotal", "totalDue", "paidAmount", "remainingAmount", "requiresPayment", "canRecordPayment", "isSimulation", "payment", "paymentState", "expectedChannel", "canConfirmPendingPayment" })
             Assert.True(props.TryGetProperty(field, out _), field);
         Assert.Contains("RegistrationPaymentDto", detail.GetProperty("post").GetProperty("responses").GetProperty("201").GetRawText());
+        });
+    }
+
+    private static Task InsertLegacy(TiemChungDbContext db, ThanhToan p) => db.Database.ExecuteSqlInterpolatedAsync($"""
+        INSERT dbo.ThanhToan (MaDangKy, MaNhanVien, SoTien, PhuongThuc, ThoiDiem, LoaiThanhToan, TrangThai)
+        VALUES ({p.MaDangKy}, {p.MaNhanVien}, {p.SoTien}, {p.PhuongThuc}, {p.ThoiDiem}, {p.LoaiThanhToan}, {p.TrangThai})
+        """);
+
+    private static Task<string> LegacySnapshot(TiemChungDbContext db) => db.Database.SqlQueryRaw<string>("""
+        SELECT (SELECT MaThanhToan, MaDangKy, MaNhanVien, SoTien, PhuongThuc, ThoiDiem, LoaiThanhToan, TrangThai
+            FROM dbo.ThanhToan ORDER BY MaThanhToan FOR JSON PATH) AS Value
+        """).SingleAsync();
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("TienMat", null, null)]
+    [InlineData("TheTaiQuay", "VISA", "****4242")]
+    [InlineData("ChuyenKhoanQR", "Synthetic Bank", "****1234")]
+    public async Task CounterMethodsPersistOnlyReceiptMetadataAndReload(string method, string? provider, string? masked)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            var another = await f.Register();
+            var total = registration.TotalBeforeDiscount;
+            var payer = new PaymentPayer("  [DEMO] Payer khác liên hệ  ", "0900000107", "payer@example.invalid", "Tỉnh", "Phường", "Địa chỉ");
+            var request = new RecordPaymentRequest(payer, method,
+                method == "TienMat" ? total + 20000 : null,
+                method == "TheTaiQuay" ? new("VISA", "[DEMO] Holder", "4242 4242 4242 4242", 12, 2099, "AUTH-107") : null,
+                method == "ChuyenKhoanQR" ? new("Synthetic Bank", "[DEMO] Holder", "SYNTHETIC-1234", "QR-107") : null);
+            var url = Path(registration.Id);
+            using var post = await f.Cashier.Client.PostAsJsonAsync(url, request);
+            Assert.Equal(HttpStatusCode.Created, post.StatusCode);
+            var saved = (await post.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
+            var receipt = saved.Payment!;
+            Assert.Equal(payer with { FullName = payer.FullName!.Trim() }, receipt.Payer);
+            Assert.Equal(total, receipt.Amount);
+            Assert.Equal(f.Cashier.Employee!.MaNhanVien, receipt.EmployeeId);
+            Assert.Equal(provider, receipt.Provider); Assert.Equal(masked, receipt.MaskedIdentifier);
+            Assert.Equal(request.Card?.AuthorizationReference ?? request.Transfer?.TransferReference, receipt.Reference);
+            Assert.Equal(method == "TienMat" ? 20000m : (decimal?)null, receipt.ChangeAmount);
+            Assert.Equal(registration.Contact, saved.RegistrationContact);
+            Assert.Equal(receipt, (await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!.Payment);
+
+            using var secondPost = await f.Cashier.Client.PostAsJsonAsync(Path(another.Id), Cash(another.TotalBeforeDiscount));
+            Assert.Equal(HttpStatusCode.Created, secondPost.StatusCode);
+            var second = (await secondPost.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!.Payment!;
+            Assert.NotEqual(receipt.TransactionCode, second.TransactionCode);
+            await using var fresh = f.NewDb();
+            var stored = await fresh.Payments.SingleAsync(p => p.MaDangKy == registration.Id);
+            Assert.Equal(receipt.TransactionCode, stored.MaGiaoDich); Assert.Equal(total, stored.SoTien);
+            Assert.Equal(provider, stored.NhaCungCapThanhToan); Assert.Equal(masked, stored.SoDinhDanhMasked);
+            Assert.Equal(receipt.Reference, stored.ThamChieuThanhToan);
+            Assert.Equal(receipt.CashTendered, stored.SoTienKhachDua);
+            Assert.Equal(f.CustomerProfile.HoTen, (await fresh.Customers.SingleAsync(c => c.MaKhachHang == f.CustomerProfile.MaKhachHang)).HoTen);
+            var serialized = JsonSerializer.Serialize(stored);
+            Assert.DoesNotContain("4242424242424242", serialized); Assert.DoesNotContain("4242 4242 4242 4242", serialized);
+            Assert.DoesNotContain("SYNTHETIC-1234", serialized);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task InvalidCounterInputsLeavePaymentSlotAndAuditEmpty()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            var total = registration.TotalBeforeDiscount;
+            var cash = Cash(total);
+            var card = new CounterCard("VISA", "[DEMO] Cardholder", "4242 4242 4242 4242", 12, 2099, "AUTH-107");
+            var cardRequest = new RecordPaymentRequest(cash.Payer, "TheTaiQuay", Card: card);
+            var transfer = new CounterTransfer("Synthetic Bank", "[DEMO] Holder", "ABC-1234", "QR-107");
+            var transferRequest = new RecordPaymentRequest(cash.Payer, "ChuyenKhoanQR", Transfer: transfer);
+            foreach (var invalid in new[] {
+                cash with { CashTendered = total - 1 }, cash with { CashTendered = total + .5m },
+                cash with { CashTendered = CounterPaymentRules.MaxMoney + 1 }, cash with { CashTendered = null },
+                cash with { Payer = null }, cash with { Payer = cash.Payer! with { FullName = " " } },
+                cash with { Payer = cash.Payer! with { PhoneNumber = "０900000107" } },
+                cash with { Payer = cash.Payer! with { Email = "Display <payer@example.invalid>" } },
+                cash with { Payer = cash.Payer! with { ProvinceCity = new('x', 101) } },
+                cash with { Payer = cash.Payer! with { AddressLine = new('x', 251) } },
+                cardRequest with { Card = card with { CardNumber = "4242 4242 4242 4241" } },
+                cardRequest with { Card = card with { CardNumber = "4242.4242.4242.4242" } },
+                cardRequest with { Card = card with { ExpiryYear = 2020 } },
+                cardRequest with { Card = card with { ExpiryMonth = 13 } },
+                cardRequest with { Card = card with { AuthorizationReference = new('x', 101) } },
+                cardRequest with { Card = card with { CardBrand = "Other" } },
+                cardRequest with { CashTendered = total }, cardRequest with { Card = null },
+                transferRequest with { Transfer = transfer with { TransferReference = "" } },
+                transferRequest with { Transfer = transfer with { SourceAccountOrWalletId = "A/B" } },
+                transferRequest with { Transfer = transfer with { SourceBankOrWallet = null } },
+                cash with { Method = "MoPhong" }, cash with { Method = "ChuyenKhoanOnline" }
+            }) await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), invalid), 400, "validation");
+            Assert.False(await f.Db.Payments.AnyAsync());
+            Assert.False(await f.Db.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.recorded"));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PendingTransferIsUnpaidUntilOneCashierConfirmsSameRow()
+    {
+        var gate = new PaymentGate();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(gate), async f => {
+            var direct = await f.Register();
+            var registration = await f.Register();
+            var url = Path(registration.Id);
+            var confirm = url + "/confirm";
+            await Problem(await f.Cashier.Client.PostAsync(confirm, null), 409, "paymentNotPending");
+            using var recorded = await f.Cashier.Client.PostAsJsonAsync(Path(direct.Id), Cash(direct.TotalBeforeDiscount));
+            Assert.Equal(HttpStatusCode.Created, recorded.StatusCode);
+            var row = Pending(registration);
+            f.Db.Add(row); await f.Db.SaveChangesAsync();
+            await f.Db.Registrations.ExecuteUpdateAsync(update => update.SetProperty(r => r.KenhThanhToanDuKien, "TrucTuyen"));
+            var pending = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!;
+            Assert.Equal("ChoXacNhan", pending.PaymentState); Assert.Equal("TrucTuyen", pending.ExpectedChannel);
+            Assert.Equal(0, pending.PaidAmount); Assert.Equal(pending.TotalDue, pending.RemainingAmount);
+            Assert.Null(pending.Payment!.EmployeeId); Assert.False(pending.CanRecordPayment); Assert.True(pending.CanConfirmPendingPayment);
+            var summary = (await f.Cashier.Client.GetFromJsonAsync<PaymentRegistrationListResponse>(ListPath))!.Items.Single(x => x.Id == registration.Id);
+            Assert.Equal("ChoXacNhan", summary.PaymentState); Assert.Equal(0, summary.PaidAmount);
+            Assert.Equal(pending.TotalDue, summary.RemainingAmount);
+            Assert.Equal("TrucTuyen", (await f.Customer.Client.GetFromJsonAsync<RegistrationDto>($"/api/v1/registrations/{registration.Id}"))!.ExpectedChannel);
+            Assert.False((await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!.CanConfirmPendingPayment);
+            await Problem(await f.Customer.Client.PostAsync(confirm, null), 403, "permissionDenied");
+            var reader = await f.Actor("ThuNgan", "XemThanhToan");
+            Assert.False((await reader.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!.CanConfirmPendingPayment);
+            await Problem(await reader.Client.PostAsync(confirm, null), 403, "permissionDenied");
+            await Problem(await f.Cashier.Client.PostAsJsonAsync(url, Cash(pending.TotalDue)), 409, "paymentAlreadyRecorded");
+
+            var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var reportPath = $"/api/v1/reports/monthly-revenue?from={today[..7]}&to={today}";
+            var before = (await f.Base.Client.GetFromJsonAsync<MonthlyRevenueReportDto>(reportPath))!;
+            Assert.Equal(direct.TotalBeforeDiscount, before.TotalRevenue);
+            Assert.Equal(1, Assert.Single(before.Items).TransactionCount);
+
+            var other = await f.Actor("ThuNgan", "XemThanhToan", "GhiThanhToan");
+            gate.Armed = true;
+            var first = f.Cashier.Client.PostAsync(confirm, null);
+            await gate.Locked.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            var second = other.Client.PostAsync(confirm, null);
+            try {
+                await gate.Contending.Task.WaitAsync(TimeSpan.FromSeconds(20));
+                Assert.False(second.IsCompleted);
+            } finally { gate.Release.TrySetResult(); }
+            using var result = await first;
+            Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+            await Problem(await second, 409, "paymentNotPending");
+            var receipt = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!;
+            Assert.Equal("ThanhCong", receipt.PaymentState); Assert.Equal(receipt.TotalDue, receipt.PaidAmount);
+            Assert.Equal(0, receipt.RemainingAmount); Assert.False(receipt.CanConfirmPendingPayment);
+            Assert.Equal(row.MaThanhToan, receipt.Payment!.Id); Assert.Equal(row.MaGiaoDich, receipt.Payment.TransactionCode);
+            Assert.Equal(f.Cashier.Employee!.MaNhanVien, receipt.Payment.EmployeeId); Assert.True(receipt.Payment.OccurredAt.UtcDateTime > row.ThoiDiem);
+            await using var fresh = f.NewDb();
+            var saved = await fresh.Payments.SingleAsync(p => p.MaDangKy == registration.Id);
+            Assert.Equal(row.MaThanhToan, saved.MaThanhToan); Assert.Equal("ThanhCong", saved.TrangThai);
+            var audit = await fresh.Set<SecurityAudit>().SingleAsync(a => a.Action == "payments.confirmed");
+            Assert.Equal(f.Cashier.Account.MaTaiKhoan, audit.ActorAccountId); Assert.Equal(saved.MaThanhToan.ToString(), audit.ResourceId);
+            var after = (await f.Base.Client.GetFromJsonAsync<MonthlyRevenueReportDto>(reportPath))!;
+            Assert.Equal(direct.TotalBeforeDiscount + pending.TotalDue, after.TotalRevenue);
+            Assert.Equal(2, Assert.Single(after.Items).TransactionCount);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("amount")]
+    [InlineData("provider")]
+    [InlineData("mask")]
+    public async Task CorruptPendingCannotBeReadOrConfirmed(string kind)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            var payment = Pending(registration);
+            switch (kind) {
+                case "amount": payment.SoTien--; break;
+                case "provider": payment.NhaCungCapThanhToan = null; break;
+                case "mask": payment.SoDinhDanhMasked = "0901234567"; break;
+            }
+            f.Db.Add(payment); await f.Db.SaveChangesAsync();
+            var url = Path(registration.Id);
+            await Problem(await f.Cashier.Client.GetAsync(url), 409, "paymentDataConflict");
+            await Problem(await f.Cashier.Client.PostAsync(url + "/confirm", null), 409, "paymentDataConflict");
+            await using var fresh = f.NewDb();
+            Assert.Null((await fresh.Payments.SingleAsync()).MaNhanVien);
+            Assert.False(await fresh.Set<SecurityAudit>().AnyAsync(a => a.Action == "payments.confirmed"));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task B1MigrationRoundTripsLegacyAndProtectsNewRowsAndReceiptHistory()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            const string previous = "20261104094327_RF04ARegistrationSnapshot";
+            const string current = "20261104112618_RF04B1CashierPayment";
+            var first = await f.Register();
+            var second = await f.Register();
+            var pendingRegistration = await f.Register();
+            var migrator = f.Db.GetService<IMigrator>();
+            await migrator.MigrateAsync(previous);
+            await InsertLegacy(f.Db, f.Payment(first));
+            await InsertLegacy(f.Db, f.Payment(second));
+            var before = await LegacySnapshot(f.Db);
+            await migrator.MigrateAsync(current);
+            Assert.Equal(before, await LegacySnapshot(f.Db));
+            var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
+            Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
+            Assert.Null(legacy.TransactionCode); Assert.Null(legacy.Payer);
+            Assert.Equal(2, await f.Db.Payments.CountAsync(p => p.MaGiaoDich == null));
+            await migrator.MigrateAsync(previous);
+            Assert.Equal(before, await LegacySnapshot(f.Db));
+            await migrator.MigrateAsync(current);
+            await migrator.MigrateAsync(current);
+            Assert.False(f.Db.Database.HasPendingModelChanges());
+
+            var pending = Pending(pendingRegistration);
+            f.Db.Add(pending); await f.Db.SaveChangesAsync();
+            Assert.Null((await f.Db.Payments.AsNoTracking().SingleAsync(p => p.MaDangKy == pendingRegistration.Id)).MaNhanVien);
+            await using var fresh = f.NewDb();
+            var duplicateCode = Pending(await f.Register());
+            duplicateCode.MaGiaoDich = pending.MaGiaoDich;
+            fresh.Add(duplicateCode);
+            var duplicate = Assert.IsType<SqlException>((await Assert.ThrowsAsync<DbUpdateException>(() => fresh.SaveChangesAsync())).InnerException);
+            Assert.Contains("IX_ThanhToan_MaGiaoDich", duplicate.Message);
+            var tender = Assert.IsType<SqlException>(await Record.ExceptionAsync(() => f.Db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE dbo.ThanhToan SET SoTienKhachDua=1 WHERE MaThanhToan={pending.MaThanhToan}")));
+            Assert.Contains("CK_ThanhToan_SoTienKhachDua", tender.Message);
+            Assert.Equal(51004, (await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync(previous))).Number);
+            Assert.Contains(current, await f.Db.Database.GetAppliedMigrationsAsync());
+            using var confirmed = await f.Cashier.Client.PostAsync(Path(pendingRegistration.Id) + "/confirm", null);
+            Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+            Assert.Equal(51005, (await Assert.ThrowsAsync<SqlException>(() => migrator.MigrateAsync(previous))).Number);
+            Assert.Equal(3, await f.Db.Payments.CountAsync());
         });
     }
 

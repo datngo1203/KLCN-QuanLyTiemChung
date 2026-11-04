@@ -63,6 +63,7 @@ public sealed class AftercareSqlTests
     {
         await Run(async f=>{
             var shot=await Shot(f);await f.Db.Set<LoVacXin>().Where(l=>l.SoLo==shot.LotNumber).ExecuteUpdateAsync(s=>s.SetProperty(l=>l.SoLuongTon,0).SetProperty(l=>l.HanSuDung,DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1)).SetProperty(l=>l.TrangThai,"Inactive"));
+            await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
             await f.Db.Set<ThanhToan>().Where(p=>p.MaDangKy==shot.RegistrationId).ExecuteUpdateAsync(s=>s.SetProperty(p=>p.TrangThai,"[DEMO] changed"));
             var before=await f.Snapshot();Assert.Null((await f.Nurse.GetFromJsonAsync<FollowUpDetailDto>(Path(shot.Id)))!.FollowUp);Assert.Equal(before,await f.Snapshot());
             var source=await Unchanged(f);using var saved=await f.Nurse.PostAsJsonAsync(Path(shot.Id),Request());Assert.Equal(HttpStatusCode.Created,saved.StatusCode);

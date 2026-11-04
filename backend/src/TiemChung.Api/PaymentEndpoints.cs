@@ -67,28 +67,73 @@ public static class PaymentEndpoints
             var actor = await auth.RequireAsync(context, true, ct);
             RequireCashier(actor, true);
             if (id <= 0) throw new IdentityFailure(400, "validation");
-            // All collectors lock the same registration after Identity account/session locks.
-            var row = await db.Registrations.FromSqlInterpolated(
-                $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={id}")
-                .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+            var row = await LockRegistration(db, id, ct);
             var before = await Detail(db, row, actor, ct);
             if (before.Payment is not null) throw new IdentityFailure(409, "paymentAlreadyRecorded");
             if (before.TotalDue == 0) throw new IdentityFailure(409, "paymentNotRequired");
+            var now = DateTimeOffset.UtcNow;
+            if (CounterPaymentRules.Validate(req, before.TotalDue, now) is not null)
+                throw new IdentityFailure(400, "validation");
+            var payer = CounterPaymentRules.NormalizePayer(req.Payer)!;
+            var card = req.Card;
+            var transfer = req.Transfer;
             var payment = new ThanhToan {
                 MaDangKy = id, MaNhanVien = actor.Employee!.MaNhanVien, SoTien = before.TotalDue,
-                LoaiThanhToan = "ToanBo", PhuongThuc = "MoPhong", TrangThai = "ThanhCong", ThoiDiem = DateTime.UtcNow
+                LoaiThanhToan = "ToanBo", PhuongThuc = req.Method!, TrangThai = "ThanhCong", ThoiDiem = now.UtcDateTime,
+                MaGiaoDich = $"TT-{Guid.NewGuid():N}",
+                // SqlClient infers scale for decimal(18,0), so strip trailing fractional zeroes after validation.
+                SoTienKhachDua = req.CashTendered is { } cash ? decimal.Truncate(cash) : null,
+                TenNguoiThanhToan = payer.FullName, SoDienThoaiThanhToan = payer.PhoneNumber, EmailThanhToan = payer.Email,
+                TinhThanhThanhToan = payer.ProvinceCity, PhuongXaThanhToan = payer.WardCommune, DiaChiThanhToan = payer.AddressLine,
+                NhaCungCapThanhToan = card?.CardBrand ?? transfer?.SourceBankOrWallet?.Trim(),
+                TenChuTaiKhoanThe = card?.CardholderName?.Trim() ?? transfer?.AccountHolderName?.Trim(),
+                ThamChieuThanhToan = card?.AuthorizationReference?.Trim() ?? transfer?.TransferReference?.Trim(),
+                SoDinhDanhMasked = card is not null ? CounterPaymentRules.Mask(CounterPaymentRules.CardDigits(card.CardNumber!))
+                    : transfer is not null ? CounterPaymentRules.Mask(transfer.SourceAccountOrWalletId!.Trim()) : null
             };
             db.Payments.Add(payment);
             await db.SaveChangesAsync(ct);
-            var audit = IdentityTransactions.Audit(db, "payments.recorded", context.TraceIdentifier,
-                actor.Account.MaTaiKhoan, session: actor.Session.Id);
-            audit.ResourceType = "Payment";
-            audit.ResourceId = payment.MaThanhToan.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Audit(db, context, actor, payment, "payments.recorded");
             await db.SaveChangesAsync(ct);
             var dto = await Detail(db, row, actor, ct);
             await tx.CommitAsync(ct);
             return Results.Created($"/api/v1/registrations/{id}/payment", dto);
         }).WithName("RecordRegistrationPayment").Produces<RegistrationPaymentDto>(201);
+
+        group.MapPost("/registrations/{id:int}/payment/confirm", async (int id, HttpContext context,
+            IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var actor = await auth.RequireAsync(context, true, ct);
+            RequireCashier(actor, true);
+            if (id <= 0) throw new IdentityFailure(400, "validation");
+            var row = await LockRegistration(db, id, ct);
+            var before = await Detail(db, row, actor, ct);
+            if (!before.CanConfirmPendingPayment) throw new IdentityFailure(409, "paymentNotPending");
+
+            var payment = await db.Payments.SingleAsync(p => p.MaDangKy == id, ct);
+            payment.TrangThai = "ThanhCong";
+            payment.MaNhanVien = actor.Employee!.MaNhanVien;
+            payment.ThoiDiem = DateTime.UtcNow;
+            Audit(db, context, actor, payment, "payments.confirmed");
+            await db.SaveChangesAsync(ct);
+            var dto = await Detail(db, row, actor, ct);
+            await tx.CommitAsync(ct);
+            return Results.Ok(dto);
+        }).WithName("ConfirmRegistrationPayment").Produces<RegistrationPaymentDto>();
+    }
+
+    private static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct) =>
+        // All collectors lock the same registration after Identity account/session locks.
+        await db.Registrations.FromSqlInterpolated(
+            $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={id}")
+            .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+
+    private static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
+    {
+        var audit = IdentityTransactions.Audit(db, action, context.TraceIdentifier,
+            actor.Account.MaTaiKhoan, session: actor.Session.Id);
+        audit.ResourceType = "Payment";
+        audit.ResourceId = payment.MaThanhToan.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static void RequireCashier(IdentityActor actor, bool write)
@@ -111,6 +156,7 @@ public static class PaymentEndpoints
         var payments = await db.Payments.AsNoTracking().Where(p => ids.Contains(p.MaDangKy)).ToArrayAsync(ct);
         return rows.Select(row => {
             if (row.TrangThai != "DaDangKy" || row.MaKhuyenMai is not null ||
+                row.KenhThanhToanDuKien is not (null or "TaiTrungTam" or "TrucTuyen") ||
                 !customers.TryGetValue(row.MaKhachHang, out var customer) ||
                 !recipients.TryGetValue(row.MaNguoiDuocTiem, out var recipient) || recipient.MaKhachHang != row.MaKhachHang)
                 throw new IdentityFailure(409, "paymentDataConflict");
@@ -124,14 +170,44 @@ public static class PaymentEndpoints
             var total = subtotal + fee;
             if (fee < 0 || decimal.Truncate(fee) != fee || total > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
             var existing = payments.Where(p => p.MaDangKy == row.MaDangKy).ToArray();
-            if (existing.Length > 1 || existing.Any(p => p.LoaiThanhToan != "ToanBo" || p.PhuongThuc != "MoPhong" ||
-                p.TrangThai != "ThanhCong" || p.SoTien <= 0 || p.SoTien != total))
+            if (existing.Length > 1 || existing.Any(p => !ValidPayment(p, total)))
                 throw new IdentityFailure(409, "paymentDataConflict");
-            var paid = existing.Sum(p => p.SoTien);
+            var successful = existing.Where(p => p.TrangThai == "ThanhCong").Select(p => p.SoTien).ToArray();
+            var payment = existing.SingleOrDefault();
             return new PaymentRegistrationSummaryDto(row.MaDangKy, Utc(row.NgayDangKy), new(customer.MaKhachHang, customer.HoTen),
-                new(recipient.MaNguoiDuocTiem, recipient.HoTen), subtotal, total, paid,
-                RegistrationRules.RemainingAmount(total, existing.Select(p => p.SoTien)), existing.SingleOrDefault()?.MaThanhToan, "VND", row.PhiKhamTuVan);
+                new(recipient.MaNguoiDuocTiem, recipient.HoTen), subtotal, total, successful.Sum(),
+                RegistrationRules.RemainingAmount(total, successful), payment?.MaThanhToan, "VND", row.PhiKhamTuVan,
+                payment?.TrangThai ?? "ChuaThanhToan", row.KenhThanhToanDuKien);
         }).ToArray();
+    }
+
+    private static PaymentPayer Payer(ThanhToan payment) => new(payment.TenNguoiThanhToan, payment.SoDienThoaiThanhToan,
+        payment.EmailThanhToan, payment.TinhThanhThanhToan, payment.PhuongXaThanhToan, payment.DiaChiThanhToan);
+
+    private static bool ValidPayment(ThanhToan payment, decimal total)
+    {
+        if (payment.LoaiThanhToan != "ToanBo" || payment.SoTien <= 0 || payment.SoTien != total) return false;
+        var success = payment.TrangThai == "ThanhCong" && payment.MaNhanVien is > 0;
+        if (payment.PhuongThuc == "MoPhong") return success;
+        if (!CounterPaymentRules.Text(payment.MaGiaoDich, 50) || CounterPaymentRules.NormalizePayer(Payer(payment)) is null) return false;
+        if (payment.PhuongThuc == "TienMat")
+            return success && CounterPaymentRules.IsCash(payment.SoTienKhachDua, total) &&
+                payment.NhaCungCapThanhToan is null && payment.TenChuTaiKhoanThe is null &&
+                payment.SoDinhDanhMasked is null && payment.ThamChieuThanhToan is null;
+
+        if (payment.SoTienKhachDua is not null || !CounterPaymentRules.Text(payment.NhaCungCapThanhToan, 100) ||
+            !CounterPaymentRules.Text(payment.TenChuTaiKhoanThe, 150) || !CounterPaymentRules.Text(payment.ThamChieuThanhToan, 100) ||
+            payment.SoDinhDanhMasked is not { Length: >= 4 and <= 8 } masked || !masked.StartsWith("****", StringComparison.Ordinal))
+            return false;
+
+        return payment.PhuongThuc switch {
+            "TheTaiQuay" => success && CounterPaymentRules.IsCardBrand(payment.NhaCungCapThanhToan) &&
+                masked.Length == 8 && masked[4..].All(char.IsAsciiDigit),
+            "ChuyenKhoanQR" => success && masked[4..].All(CounterPaymentRules.IsSourceCharacter),
+            "ChuyenKhoanOnline" => (success || payment.TrangThai == "ChoXacNhan" && payment.MaNhanVien is null) &&
+                masked[4..].All(CounterPaymentRules.IsSourceCharacter),
+            _ => false
+        };
     }
 
     private static async Task<RegistrationPaymentDto> Detail(TiemChungDbContext db, DangKyDichVu row, IdentityActor actor, CancellationToken ct)
@@ -140,13 +216,20 @@ public static class PaymentEndpoints
         var registration = await RegistrationEndpoints.Detail(db, row, ct);
         var payment = await db.Payments.AsNoTracking().SingleOrDefaultAsync(p => p.MaDangKy == row.MaDangKy, ct);
         var requiresPayment = summary.RemainingAmount > 0;
-        var canRecord = requiresPayment && !actor.IsCustomer && actor.Employee?.ChucDanh == "ThuNgan" &&
+        var canWrite = !actor.IsCustomer && actor.Employee?.ChucDanh == "ThuNgan" &&
             actor.Permissions.Contains("XemThanhToan") && actor.Permissions.Contains("GhiThanhToan");
+        var pending = summary.PaymentState == "ChoXacNhan";
         return new(row.MaDangKy, row.TrangThai, summary.Customer, summary.Recipient, registration.Items,
-            summary.Subtotal, summary.TotalDue, summary.PaidAmount, summary.RemainingAmount, "VND", requiresPayment, canRecord, true,
-            payment is not null ? "Đã ghi nhận thanh toán mô phỏng toàn bộ; không xử lý tiền thật."
+            summary.Subtotal, summary.TotalDue, summary.PaidAmount, summary.RemainingAmount, "VND", requiresPayment,
+            canWrite && requiresPayment && payment is null, true,
+            pending ? "Đang chờ Thu ngân xác nhận chuyển khoản mô phỏng."
+                : payment is not null ? "Đã ghi nhận thanh toán mô phỏng toàn bộ; không xử lý tiền thật."
                 : summary.TotalDue == 0 ? "Không phát sinh khoản thu." : "Chưa ghi nhận thanh toán mô phỏng; không xử lý tiền thật.",
             payment is null ? null : new(payment.MaThanhToan, payment.MaDangKy, payment.SoTien, payment.MaNhanVien,
-                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true), summary.ConsultationFee);
+                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true,
+                payment.MaGiaoDich, payment.PhuongThuc == "MoPhong" ? null : Payer(payment), payment.NhaCungCapThanhToan,
+                payment.TenChuTaiKhoanThe, payment.SoDinhDanhMasked, payment.ThamChieuThanhToan,
+                payment.SoTienKhachDua, payment.SoTienKhachDua - payment.SoTien), summary.ConsultationFee,
+            summary.PaymentState, summary.ExpectedChannel, canWrite && pending, registration.Contact);
     }
 }

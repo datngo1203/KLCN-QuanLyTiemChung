@@ -125,6 +125,9 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dangkydichvu.Property(x => x.PhuongXaLienHe).HasColumnType("nvarchar(100)");
         dangkydichvu.Property(x => x.DiaChiLienHe).HasColumnType("nvarchar(250)");
         dangkydichvu.Property(x => x.PhiKhamTuVan).HasColumnType("decimal(18,0)");
+        dangkydichvu.Property(x => x.KenhThanhToanDuKien).HasColumnType("nvarchar(30)");
+        dangkydichvu.ToTable(t => t.HasCheckConstraint("CK_DangKyDichVu_KenhThanhToanDuKien",
+            "[KenhThanhToanDuKien] IS NULL OR [KenhThanhToanDuKien] IN ('TaiTrungTam','TrucTuyen')"));
         dangkydichvu.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         dangkydichvu.Property(x => x.TrangThai).IsRequired();
         dangkydichvu.Property<byte[]>("RowVersion").IsRowVersion();
@@ -175,6 +178,28 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         thanhtoan.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         thanhtoan.Property(x => x.TrangThai).IsRequired();
         thanhtoan.ToTable(t => t.HasCheckConstraint("CK_ThanhToan_SoTien", "[SoTien] > 0"));
+        thanhtoan.Property(x => x.MaGiaoDich).HasColumnType("nvarchar(50)");
+        thanhtoan.HasIndex(x => x.MaGiaoDich).IsUnique().HasFilter("[MaGiaoDich] IS NOT NULL");
+        thanhtoan.Property(x => x.TenNguoiThanhToan).HasColumnType("nvarchar(150)");
+        thanhtoan.Property(x => x.SoDienThoaiThanhToan).HasColumnType("varchar(11)");
+        thanhtoan.Property(x => x.EmailThanhToan).HasColumnType("nvarchar(254)");
+        thanhtoan.Property(x => x.TinhThanhThanhToan).HasColumnType("nvarchar(100)");
+        thanhtoan.Property(x => x.PhuongXaThanhToan).HasColumnType("nvarchar(100)");
+        thanhtoan.Property(x => x.DiaChiThanhToan).HasColumnType("nvarchar(250)");
+        thanhtoan.Property(x => x.NhaCungCapThanhToan).HasColumnType("nvarchar(100)");
+        thanhtoan.Property(x => x.TenChuTaiKhoanThe).HasColumnType("nvarchar(150)");
+        thanhtoan.Property(x => x.SoDinhDanhMasked).HasColumnType("nvarchar(30)");
+        thanhtoan.Property(x => x.ThamChieuThanhToan).HasColumnType("nvarchar(100)");
+        thanhtoan.Property(x => x.SoTienKhachDua).HasColumnType("decimal(18,0)");
+        thanhtoan.Property(x => x.DongYDieuKhoanLuc).HasColumnType("datetimeoffset");
+        thanhtoan.ToTable(t => {
+            t.HasCheckConstraint("CK_ThanhToan_TrangThai", "[TrangThai] IN ('ChoXacNhan','ThanhCong')");
+            t.HasCheckConstraint("CK_ThanhToan_SoTienKhachDua", "[SoTienKhachDua] IS NULL OR [SoTienKhachDua] >= [SoTien]");
+            t.HasCheckConstraint("CK_ThanhToan_NhanVien",
+                "([PhuongThuc] NOT IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') OR [MaNhanVien] IS NOT NULL) AND " +
+                "([TrangThai] <> 'ChoXacNhan' OR ([PhuongThuc] = 'ChuyenKhoanOnline' AND [MaNhanVien] IS NULL)) AND " +
+                "([PhuongThuc] <> 'ChuyenKhoanOnline' OR [TrangThai] <> 'ThanhCong' OR [MaNhanVien] IS NOT NULL)");
+        });
 
         var khuyenmai = model.Entity<KhuyenMai>();
         khuyenmai.ToTable("KhuyenMai");

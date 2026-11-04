@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { identity } from './api/identity'
 import { consultationFeeLabel, money } from './registrationForm'
-import { paymentError, paymentOutcome } from './paymentView'
+import { paymentError, paymentMethodLabel, paymentOutcome } from './paymentView'
 import './Registrations.css'
 import './Payments.css'
 
@@ -20,9 +20,9 @@ function ReadError({ error, retry, go }) {
 export default function Payments({ account, go }) {
   return <section className="registration-page payments-page wrap">
     <div className="page-intro"><div className="eyebrow">KẾT QUẢ TỪ QUẦY THU NGÂN</div><h1>Thanh toán dịch vụ</h1><p>Xem kết quả Thu ngân đã ghi nhận cho các đăng ký thuộc hồ sơ của bạn.</p></div>
-    <p className="registration-message warning">Thanh toán mô phỏng — Không xác nhận tiền thật</p>
     {account?.accountType === 'customer' ? <PaymentWorkspace key={account.accountId} go={go} />
       : <div className="registration-panel"><h2>Đăng nhập tài khoản khách hàng</h2><p>Đăng nhập để xem đăng ký và kết quả thanh toán thuộc hồ sơ của bạn.</p><button className="button primary" onClick={() => go('account')}>Vào Tài khoản</button></div>}
+    <p className="muted">Thanh toán trong môi trường thử nghiệm, không kết nối cổng thanh toán thực tế.</p>
   </section>
 }
 
@@ -112,14 +112,14 @@ function PaymentDetail({ id, retry, accessDenied, go }) {
       </dl>
       <div className="registration-total"><span>Tổng phải thu (VND)</span><strong>{money(detail.totalDue)}</strong></div>
       <div className="registration-message" role="status"><strong>{paymentOutcome(detail)}</strong>
-        {detail.payment ? <p>Giao dịch do Thu ngân ghi nhận để mô phỏng, không xác nhận tiền thật.</p>
-          : BigInt(detail.totalDue) > 0n && <p>Vui lòng liên hệ quầy Thu ngân để ghi nhận thanh toán. Bạn có thể tải lại kết quả sau khi Thu ngân hoàn tất.</p>}
+        {detail.paymentState === 'ChoXacNhan' ? <p>Khoản chuyển đang chờ đối chiếu tại quầy.</p>
+          : !detail.payment && BigInt(detail.totalDue) > 0n && <p>Vui lòng liên hệ quầy Thu ngân để thanh toán.</p>}
       </div>
-      {detail.payment && <dl className="payment-transaction">
-        <div><dt>Mã giao dịch</dt><dd>TT-{String(detail.payment.id).padStart(4, '0')}</dd></div>
-        <div><dt>Số tiền đã ghi nhận</dt><dd>{money(detail.payment.amount)}</dd></div>
-        <div><dt>Thời điểm ghi nhận (giờ địa phương)</dt><dd><time dateTime={detail.payment.occurredAt}>{dateTime(detail.payment.occurredAt)}</time></dd></div>
-        <div><dt>Phương thức</dt><dd>Mô phỏng — Không xác nhận tiền thật</dd></div>
+      {detail.payment && detail.paymentState !== 'ChoXacNhan' && <dl className="payment-transaction">
+        <div><dt>Mã giao dịch</dt><dd>{detail.payment.transactionCode ?? `TT-${String(detail.payment.id).padStart(4, '0')}`}</dd></div>
+        <div><dt>Số tiền đã thu</dt><dd>{money(detail.payment.amount)}</dd></div>
+        <div><dt>Thời điểm thanh toán</dt><dd><time dateTime={detail.payment.occurredAt}>{dateTime(detail.payment.occurredAt)}</time></dd></div>
+        <div><dt>Phương thức</dt><dd>{paymentMethodLabel(detail.payment.method)}</dd></div>
       </dl>}
       <p className="muted">Tải lại kết quả để xem cập nhật mới nhất. Khi tải lại trang, bạn cần đăng nhập lại để xem kết quả.</p>
     </>}

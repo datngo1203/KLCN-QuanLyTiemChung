@@ -215,9 +215,12 @@ public sealed class RF02B15CatalogSqlTests
                 VALUES ({customerId}, {recipient.MaNguoiDuocTiem}, SYSUTCDATETIME(), 'DaThanhToan')
                 """);
             var registrationId = await db.Database.SqlQueryRaw<int>("SELECT MaDangKy AS [Value] FROM DangKyDichVu").SingleAsync();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT ThanhToan (MaDangKy, MaNhanVien, SoTien, ThoiDiem, TrangThai, PhuongThuc, LoaiThanhToan)
+                VALUES ({registrationId}, {employee.MaNhanVien}, 300, SYSUTCDATETIME(), 'ThanhCong', 'MoPhong', 'ToanBo')
+                """);
             var item = new ChiTietVacXinLe { MaDangKy = registrationId, MaVacXin = 1, SoLuong = 1, GiaTaiThoiDiemDangKy = 100 };
             db.AddRange(item, new ChiTietGoiVacXin { MaDangKy = registrationId, MaGoi = 1, SoLuongGoi = 1, GiaTaiThoiDiemDangKy = 200 },
-                new ThanhToan { MaDangKy = registrationId, MaNhanVien = employee.MaNhanVien, SoTien = 300, ThoiDiem = DateTime.UtcNow, TrangThai = "ThanhCong", PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo" },
                 new LoVacXin { SoLo = "[DEMO] LEGACY", MaVacXin = 1, NgaySanXuat = new(2026,1,1), HanSuDung = new(2027,1,1), SoLuongBanDau = 10, SoLuongTon = 9, TrangThai = "Active" }); await db.SaveChangesAsync();
             var appointment = new LichHenTiem { MaDangKy = registrationId, MaChiTietVacXin = item.MaChiTietVacXin, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, ThoiGianHen = DateTime.UtcNow, DiemTiem = "[DEMO]", TrangThai = "DaHen" }; db.Add(appointment); await db.SaveChangesAsync();
             var clinical = new PhieuKhamSangLoc { MaLichHen = appointment.MaLichHen, MaDangKy = registrationId, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, MaNhanVien = employee.MaNhanVien, ThoiDiemKham = DateTimeOffset.UtcNow, KetLuan = "DuDieuKien" }; db.Add(clinical); await db.SaveChangesAsync();

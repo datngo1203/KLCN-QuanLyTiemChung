@@ -171,7 +171,8 @@ public sealed class DevelopmentInventorySeedSqlTests
                 f.Db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=f.LastAccountId,
                     MaQuyen=(await f.Db.Set<QuyenHan>().SingleAsync(x => x.Code == code)).MaQuyen });
             await f.Db.SaveChangesAsync();
-            using var paid = await cashier.PostAsJsonAsync($"/api/v1/registrations/{registration.Id}/payment", new { });
+            using var paid = await cashier.PostAsJsonAsync($"/api/v1/registrations/{registration.Id}/payment",
+                PaymentSqlTests.Cash(registration.TotalBeforeDiscount));
             Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
             f.Db.ChangeTracker.Clear();
