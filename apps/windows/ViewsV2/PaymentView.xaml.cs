@@ -21,7 +21,7 @@ public partial class PaymentView : UserControl
     private async void RegistrationChanged(object sender, SelectionChangedEventArgs e)
     {
         if (e.Source != sender || sender is not ListBox list || DataContext is not PaymentViewModel vm ||
-            list.SelectedItem is not PaymentRegistration row) return;
+            list.SelectedItem is not PaymentRegistration row || vm.SelectedRegistration?.Id == row.Id) return;
         vm.SelectedRegistration = row;
         if (vm.SelectedRegistration != row) {
             list.SetCurrentValue(Selector.SelectedItemProperty, vm.SelectedRegistration);
