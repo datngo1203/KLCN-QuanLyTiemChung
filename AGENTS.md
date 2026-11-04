@@ -144,6 +144,7 @@ Kiểm tra bình thường/lỗi/rỗng, bàn phím và nút vô hiệu; giữ v
 10. Không áp cùng một bố cục cho mọi module. UX-01 là ví dụ về tư duy thiết kế theo tác vụ, không phải template bắt buộc.
 11. Không dùng dữ liệu Sample hoặc state UI để chứng minh nghiệp vụ thật. Màn mock phải có nhãn rõ và chỉ chuyển thành màn thật trong gói nghiệp vụ tương ứng, gọi API thật theo phạm vi đã giao.
 12. Áp dụng các quy tắc UX trên ngay trong quá trình phát triển từng gói G2–G8. Mỗi gói vẫn tuân thủ phạm vi, tiêu chí nghiệm thu và điểm dừng đã giao; các quy tắc này không tự cấp phép triển khai gói tiếp theo.
+13. Với **ô nhập tiền VND editable** trên Web/Windows, hiển thị phân nhóm hàng nghìn bằng **dấu cách ngay trong ô khi người dùng nhập** (ví dụ `300000000` → `300 000 000`). Không dùng dấu `.` hoặc `,` làm dấu phân nhóm trong input. Dấu cách chỉ là presentation; ViewModel/request/API/SQL vẫn dùng giá trị số nguyên VND chính xác. Implementation phải xử lý caret/backspace/delete/paste hợp lý, không âm thầm diễn giải decimal hoặc dấu phân nhóm khác, và phải tái sử dụng formatter/behavior thay vì copy logic từng ô.
 
 ## Bí mật và môi trường
 
