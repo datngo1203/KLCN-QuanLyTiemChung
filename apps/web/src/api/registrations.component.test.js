@@ -28,6 +28,7 @@ after(async () => { globalThis.fetch = fetchOriginal; await server?.close(); awa
 async function render(t, fee, fail) {
   let price = 500000
   let posted = []
+  let destination
   const nav = { current: null }
   const preferredDate = new Date(Date.now() + 24 * 3600000).toISOString().slice(0, 10)
   let changed = false
@@ -57,7 +58,7 @@ async function render(t, fee, fail) {
   const host = document.createElement('div'); document.body.append(host)
   const root = createRoot(host)
   t.after(async () => { await act(async () => root.unmount()); host.remove() })
-  await act(async () => root.render(createElement(Registrations, { account: customer, active: true, navigationRef: nav, onSavingChange() {} })))
+  await act(async () => root.render(createElement(Registrations, { account: customer, active: true, navigationRef: nav, go(value) { destination = value }, onSavingChange() {} })))
   const field = (name, tag = 'input') => [...host.querySelectorAll('label')].find(l => l.textContent.startsWith(name))?.querySelector(tag)
   const click = async text => {
     const button = [...host.querySelectorAll('button')].find(b => b.textContent === text)
@@ -105,6 +106,7 @@ async function render(t, fee, fail) {
     assert.match(host.textContent, /560\.000 đ/)
   } else if (fail === 'network') {
     assert.match(host.textContent, /Chưa xác định/)
+    assert.doesNotMatch(host.textContent, /Tiếp tục thanh toán|Xem hành trình/)
     await submit(); assert.equal(posted.length, 1)
     await click('Kiểm tra danh sách đăng ký'); await click('Đã kiểm tra, mở lại bản nháp')
     assert.match(host.textContent, /Liên hệ riêng/)
@@ -120,6 +122,8 @@ async function render(t, fee, fail) {
   assert.equal(customer.phoneNumber, '0900000000')
   assert.match(host.textContent, /Tên đọc từ snapshot/)
   assert.doesNotMatch(host.textContent, /0909999999|original@example.invalid/)
+  await click('Tiếp tục thanh toán')
+  assert.equal(destination, 'vaccinations/7')
 }
 
 test('registration review retains contact and date after catalog change and renders the saved snapshot', t => render(t, 50000, 'catalogChanged'))
