@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
@@ -20,16 +19,15 @@ public static partial class ProfileEndpoints
         TiemChungDbContext db, bool customer, CancellationToken ct)
     {
         context.Response.Headers.CacheControl = "no-store";
+        limits.CheckProfileClaimIp(context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
         await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-        IdentityActor? actor = null;
+        var actor = await auth.RequireAsync(context, true, ct);
         IdentityFailure? failure = null;
         object? profile = null;
         try
         {
-            actor = await auth.RequireAsync(context, true, ct);
+            limits.CheckProfileClaimAccount(actor.Account.MaTaiKhoan);
             if (!actor.IsCustomer) throw new IdentityFailure(403, "permissionDenied");
-            limits.Check("profileClaim", actor.Account.MaTaiKhoan.ToString(CultureInfo.InvariantCulture),
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
             var body = await IdentityEndpoints.Payload(context, customer
                 ? ["fullName", "dateOfBirth", "phoneNumber"]
@@ -90,11 +88,11 @@ public static partial class ProfileEndpoints
         }
 
         var resource = customer ? "Customer" : "Recipient";
-        IdentityTransactions.Audit(db, "profiles.claimAttempt", context.TraceIdentifier, actor?.Account.MaTaiKhoan,
-            session: actor?.Session.Id).ResourceType = resource;
+        IdentityTransactions.Audit(db, "profiles.claimAttempt", context.TraceIdentifier, actor.Account.MaTaiKhoan,
+            session: actor.Session.Id).ResourceType = resource;
         var outcome = failure is null ? "Success" : failure.Status == 429 ? "RateLimited" : "Denied";
-        IdentityTransactions.Audit(db, "profiles.claimOutcome", context.TraceIdentifier, actor?.Account.MaTaiKhoan,
-            session: actor?.Session.Id, outcome: outcome).ResourceType = resource;
+        IdentityTransactions.Audit(db, "profiles.claimOutcome", context.TraceIdentifier, actor.Account.MaTaiKhoan,
+            session: actor.Session.Id, outcome: outcome).ResourceType = resource;
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 

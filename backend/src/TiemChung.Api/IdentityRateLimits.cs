@@ -1,6 +1,6 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace TiemChung.Api;
 
@@ -8,20 +8,16 @@ public sealed class IdentityRateLimits
 {
     private readonly object gate=new();
     private readonly Dictionary<string,Queue<DateTimeOffset>> buckets=[];
-    // Process-local technical limits; keys are hashes, never raw identifiers in logs.
+    // Process-local limits. Email keys are hashed and bucket keys are never logged.
     public void Check(string action,string identifier,string ip)
     {
         var now=DateTimeOffset.UtcNow;
         var email=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(IdentityRegistration.Normalize(identifier))));
         lock(gate) {
-            foreach(var key in buckets.Where(x=>x.Value.Count==0 || now-x.Value.Last()>TimeSpan.FromHours(1)).Select(x=>x.Key).ToArray()) buckets.Remove(key);
+            RemoveStaleBuckets(now);
             if(action=="login") Take("login:"+email+":"+ip,10,TimeSpan.FromMinutes(15),now);
             else if(action=="changePassword") Take("password:"+ip,10,TimeSpan.FromMinutes(15),now);
             else if(action=="confirm") Take("confirm:"+ip,10,TimeSpan.FromMinutes(15),now);
-            else if(action=="profileClaim") {
-                Take("profile-claim-ip:"+ip,30,TimeSpan.FromMinutes(15),now);
-                Take("profile-claim-account:"+email,6,TimeSpan.FromMinutes(15),now);
-            }
             else {
                 Take("mail-ip:"+ip,5,TimeSpan.FromHours(1),now);
                 Take("mail-email:"+email,3,TimeSpan.FromHours(1),now);
@@ -29,6 +25,28 @@ public sealed class IdentityRateLimits
             }
         }
     }
+
+    public void CheckProfileClaimIp(string ip) => CheckClaimBucket("profile-claim-ip:" + ip, 30);
+
+    public void CheckProfileClaimAccount(int accountId) =>
+        CheckClaimBucket("profile-claim-account:" + accountId.ToString(CultureInfo.InvariantCulture), 6);
+
+    private void CheckClaimBucket(string key, int limit)
+    {
+        var now = DateTimeOffset.UtcNow;
+        lock (gate)
+        {
+            RemoveStaleBuckets(now);
+            Take(key, limit, TimeSpan.FromMinutes(15), now);
+        }
+    }
+
+    private void RemoveStaleBuckets(DateTimeOffset now)
+    {
+        foreach (var key in buckets.Where(x => x.Value.Count == 0 || now - x.Value.Last() > TimeSpan.FromHours(1)).Select(x => x.Key).ToArray())
+            buckets.Remove(key);
+    }
+
     private void Take(string key,int limit,TimeSpan window,DateTimeOffset now)
     {
         if(!buckets.TryGetValue(key,out var queue)) buckets[key]=queue=new();

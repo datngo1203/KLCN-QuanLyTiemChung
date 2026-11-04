@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using TiemChung.Api;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using Xunit;
@@ -120,6 +121,73 @@ public sealed class RF03ProfilesSqlTests
                 new CreateCustomerRequest(owner.HoTen, null, Phone, owner.Email, "Chị", younger));
             Assert.Equal(HttpStatusCode.BadRequest, changedOwner.StatusCode);
             Assert.Equal(Adult, await f.Db.Customers.Where(c => c.MaKhachHang == owner.MaKhachHang).Select(c => c.NgaySinh).SingleAsync());
+        });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task UnauthenticatedClaimsReachTheSharedIpLimitWithoutWritingClaimAudit() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var body = new { fullName = "[DEMO] No session", phoneNumber = Phone, dateOfBirth = Adult };
+            var expired = new IdentityTokens(f.Config).Issue(1, Guid.NewGuid(), DateTimeOffset.UtcNow.AddMinutes(-10));
+            for (var i = 0; i < 30; i++)
+            {
+                f.Client.DefaultRequestHeaders.Authorization = (i % 3) switch
+                {
+                    0 => null,
+                    1 => new("Bearer", "invalid"),
+                    _ => new("Bearer", expired)
+                };
+                using var denied = await f.Client.PostAsJsonAsync(CustomerClaim, body);
+                Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+                Assert.Equal("invalidSession", await Code(denied));
+            }
+
+            foreach (var route in new[] { CustomerClaim, RecipientClaim })
+            {
+                using var limited = await f.Client.PostAsJsonAsync(route, body);
+                Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+                Assert.Equal("rateLimited", await Code(limited));
+            }
+            Assert.False(await f.Db.Set<SecurityAudit>().AnyAsync(a =>
+                a.Action == "profiles.claimAttempt" || a.Action == "profiles.claimOutcome"));
+        });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task AccountLimitsAreIndependentAndEveryClaimConsumesOnlyOneIpSlot() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var first = await AddAccount(f, "claim-limit-first@example.invalid");
+            var second = await AddAccount(f, "claim-limit-second@example.invalid");
+            using var firstClient = await Login(f, first);
+            using var secondClient = await Login(f, second);
+            var body = new { fullName = "[DEMO] No match", phoneNumber = Phone, dateOfBirth = Adult };
+            foreach (var client in new[] { firstClient, secondClient })
+            {
+                for (var i = 0; i < 6; i++) await AssertUnavailable(client, CustomerClaim, body);
+                using var accountLimited = await client.PostAsJsonAsync(CustomerClaim, body);
+                Assert.Equal(HttpStatusCode.TooManyRequests, accountLimited.StatusCode);
+                Assert.Equal("rateLimited", await Code(accountLimited));
+            }
+
+            // Fourteen authenticated requests leave exactly sixteen slots for this IP.
+            for (var i = 0; i < 16; i++)
+            {
+                using var denied = await f.Client.PostAsJsonAsync(CustomerClaim, body);
+                Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+            }
+            using var ipLimited = await secondClient.PostAsJsonAsync(CustomerClaim, body);
+            Assert.Equal(HttpStatusCode.TooManyRequests, ipLimited.StatusCode);
+            Assert.Equal("rateLimited", await Code(ipLimited));
+
+            var audit = await f.Db.Set<SecurityAudit>().Where(a =>
+                a.Action == "profiles.claimAttempt" || a.Action == "profiles.claimOutcome").ToArrayAsync();
+            Assert.Equal(28, audit.Length);
+            foreach (var account in new[] { first, second })
+            {
+                Assert.Equal(7, audit.Count(a => a.ActorAccountId == account.MaTaiKhoan && a.Action == "profiles.claimAttempt"));
+                Assert.Equal(6, audit.Count(a => a.ActorAccountId == account.MaTaiKhoan && a.Outcome == "Denied"));
+                Assert.Single(audit, a => a.ActorAccountId == account.MaTaiKhoan && a.Outcome == "RateLimited");
+            }
         });
 
     [Fact, Trait("Category", "SqlIntegration")]
