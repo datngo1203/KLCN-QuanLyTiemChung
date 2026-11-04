@@ -217,7 +217,6 @@ public sealed record CatalogTaxonomyOption(int Id, string Code, string Name, boo
 {
     public string Label => $"{Code} — {Name}" + (Active ? "" : " · Ngừng sử dụng");
     public string RemoveLabel => "Bỏ " + Label;
-    public override string ToString() => Label;
 }
 
 public sealed class CatalogTaxonomySelection : ViewModelBase

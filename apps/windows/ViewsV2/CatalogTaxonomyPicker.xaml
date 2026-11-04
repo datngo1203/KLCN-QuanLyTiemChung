@@ -37,9 +37,15 @@
                      AutomationProperties.Name="{Binding (AutomationProperties.Name),ElementName=Picker,StringFormat='Tìm {0}'}"/>
             <Grid Margin="0,5,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <ComboBox x:Name="Matches" ItemsSource="{Binding Results}" DisplayMemberPath="Label"
+                <ComboBox x:Name="Matches" ItemsSource="{Binding Results}" TextSearch.TextPath="Label"
                           Style="{StaticResource CE.ComboBox}" PreviewKeyDown="MatchKeyDown" SelectionChanged="MatchChanged"
-                          AutomationProperties.Name="{Binding (AutomationProperties.Name),ElementName=Picker,StringFormat='Kết quả tìm {0}'}"/>
+                          AutomationProperties.Name="{Binding (AutomationProperties.Name),ElementName=Picker,StringFormat='Kết quả tìm {0}'}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <Button x:Name="AddButton" Grid.Column="1" Content="Thêm" Click="AddItem" Margin="8,0,0,0" IsEnabled="False"
                         Style="{StaticResource CE.Button.Secondary}" AutomationProperties.Name="{Binding (AutomationProperties.Name),ElementName=Picker,StringFormat='Thêm {0}'}"/>
             </Grid>

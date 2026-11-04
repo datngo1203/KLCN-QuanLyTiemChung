@@ -64,9 +64,7 @@ public sealed partial class CatalogClientTests
             Assert.Contains(picker.Selected, x => x.Id == active);
             Assert.False(picker.Add(forbidden));
             picker.Query = "  bo sung ";
-            var result = Assert.Single(picker.Results);
-            Assert.Equal(newId, result.Id);
-            Assert.Equal(result.Label, result.ToString());
+            Assert.Equal(newId, Assert.Single(picker.Results).Id);
             picker.Query = picker.Results[0].Code.ToLowerInvariant();
             Assert.Equal(newId, Assert.Single(picker.Results).Id);
             picker.Query = "no-match";
