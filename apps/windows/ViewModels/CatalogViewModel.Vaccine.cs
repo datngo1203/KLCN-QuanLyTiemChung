@@ -135,7 +135,7 @@ public sealed partial class CatalogViewModel
         else if (original?.Volume is not null)
             throw Invalid(nameof(Volume), "Nhập thể tích để cập nhật. Để trống sẽ giữ giá trị đã lưu.");
 
-        if (!TryPrice(out var price)) throw Invalid(nameof(Price), "Giá phải là số nguyên VND không âm, tối đa 16 chữ số và không có dấu phân nhóm.");
+        if (!TryPrice(out var price)) throw Invalid(nameof(Price), PriceValidationMessage);
         ValidateVaccineText(nameof(SourceName), "Nguồn thông tin", SourceName, 250);
         ValidateVaccineUrl(nameof(SourceUrl), "URL nguồn", SourceUrl);
         var savedDate = original?.InformationUpdatedAt;
@@ -203,8 +203,10 @@ public sealed partial class CatalogViewModel
         return new InvalidOperationException(message);
     }
 
+    private const string PriceValidationMessage = "Nhập giá VND từ 0 đến 9 999 999 999 999 999. Chỉ dùng chữ số và dấu cách, không nhập phần thập phân.";
+
     private bool TryPrice(out decimal price) =>
-        decimal.TryParse(Price.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out price) && price <= 9999999999999999m;
+        decimal.TryParse(Price.Replace(" ", ""), NumberStyles.None, CultureInfo.InvariantCulture, out price) && price <= 9999999999999999m;
 
     private static bool SameLinks(CatalogReference[]? original, int[] selected) =>
         (original ?? []).Select(x => x.Id).Order().SequenceEqual(selected);

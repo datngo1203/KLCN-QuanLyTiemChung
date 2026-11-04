@@ -61,10 +61,8 @@
     </StackPanel>
     <ScrollViewer x:Name="DetailScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,8,0" Focusable="False" KeyboardNavigation.TabIndex="0"><StackPanel>
      <local:CatalogVaccineEditor x:Name="VaccineEditor" Visibility="{Binding ShowVaccine,Converter={StaticResource Vis}}"/>
-     <StackPanel>
-      <StackPanel.Style>
-       <Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding ShowVaccine}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
-      </StackPanel.Style>
+     <local:CatalogPackageEditor Visibility="{Binding ShowPackage,Converter={StaticResource Vis}}"/>
+     <StackPanel Visibility="{Binding ShowLookup,Converter={StaticResource Vis}}">
      <TextBlock Text="Thông tin danh mục" FontWeight="SemiBold" Margin="0,0,0,12" Visibility="{Binding ShowLookup,Converter={StaticResource Vis}}"/>
      <StackPanel IsEnabled="{Binding CanEdit}">
       <TextBlock Text="Mã nghiệp vụ *"/><TextBox KeyboardNavigation.TabIndex="0" Text="{Binding Code,UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding CodeReadOnly}" MaxLength="50" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã nghiệp vụ" Margin="0,4,0,10"/>
@@ -82,9 +80,6 @@
        <TextBlock Text="Chỉ là thông tin tham khảo; không tự sinh chỉ định, cảnh báo hoặc lịch tiêm." Style="{StaticResource CE.Caption}" Margin="0,0,0,10"/>
       </StackPanel>
       <TextBlock Text="{Binding StatusLabel}" Style="{StaticResource CE.Caption}" Margin="0,0,0,10"/>
-    <StackPanel Visibility="{Binding ShowPrice,Converter={StaticResource Vis}}"><TextBlock Text="Đối tượng sử dụng tham khảo *"/><TextBox Text="{Binding TargetAudience,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Đối tượng sử dụng tham khảo" Margin="0,5,0,10"/></StackPanel>
-    <StackPanel Visibility="{Binding ShowPrice,Converter={StaticResource Vis}}"><TextBlock Text="Giá VND * (số nguyên, không dấu phân cách)"/><TextBox Text="{Binding Price,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Giá VND" Margin="0,5,0,10"/></StackPanel>
-    <StackPanel Visibility="{Binding ShowPackage,Converter={StaticResource Vis}}"><TextBlock Text="Thành phần gói * — chọn vắc xin, nhập số lượng" TextWrapping="Wrap"/><ItemsControl ItemsSource="{Binding PackageChoices}"><ItemsControl.ItemTemplate><DataTemplate><DockPanel Margin="0,5"><TextBox DockPanel.Dock="Right" Width="55" Text="{Binding Quantity}" AutomationProperties.Name="Số lượng"/><CheckBox Content="{Binding Name}" IsChecked="{Binding Included}" VerticalAlignment="Center"/></DockPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
      </StackPanel>
      </StackPanel>
     </StackPanel></ScrollViewer>

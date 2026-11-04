@@ -196,11 +196,18 @@ public sealed class CatalogSqlTests
                 vm.TargetAudience="Synthetic audience";
                 vm.DiseaseSelection.Add(vm.DiseaseSelection.Results.First().Id);
                 vm.AdministrationRoute=vm.VaccineRoutes.First().Value;
-                await Command(vm.SaveCommand); Assert.Contains("Giá phải",vm.Feedback);
+                await Command(vm.SaveCommand); Assert.Contains("Nhập giá VND",vm.Feedback);
                 Assert.Equal("Windows command "+tab,vm.Name);
             }
             if (vm.ShowPrice) vm.Price="100000";
-            if (vm.ShowPackage) { vm.PackageChoices[0].Included=true; vm.PackageChoices[1].Included=true; vm.PackageChoices[1].Quantity="2"; }
+            if (vm.ShowPackage) {
+                foreach (var candidate in vm.ComponentCandidates.Take(2).ToArray()) {
+                    vm.ComponentCandidate = candidate;
+                    await Command(vm.AddComponentCommand);
+                }
+                vm.PackageComponents.Last().Quantity = "2";
+                vm.Price = "300 000 000";
+            }
             if (vm.ShowPrice) vm.TargetAudience="Synthetic audience";
             var code=vm.Code; Assert.False(vm.CodeReadOnly); Assert.NotEmpty(code);
             await Command(vm.SaveCommand); Assert.StartsWith("Đã ",vm.Feedback);
@@ -210,7 +217,17 @@ public sealed class CatalogSqlTests
             vm.Code="VX-ILLEGAL-EDIT"; Assert.Equal(code,vm.Code);
             vm.Name="Windows updated "+tab; Assert.Equal(code,vm.Code); await Command(vm.SaveCommand); Assert.StartsWith("Đã ",vm.Feedback);
             vm.Search="Windows updated "+tab; await Command(vm.LoadCommand); vm.Selected=Assert.Single(vm.Rows); Assert.Equal(id,vm.Selected.Id);
-            if (vm.ShowPackage) Assert.Equal("2",vm.PackageChoices[1].Quantity);
+            if (vm.ShowPackage) {
+                var package = vm.Selected.Package!;
+                Assert.Equal("SQL", vm.Description);
+                Assert.Equal("Synthetic audience", vm.TargetAudience);
+                Assert.Equal(300000000m, package.Price);
+                Assert.Equal(3, package.TotalDoses);
+                Assert.NotEmpty(package.Diseases);
+                Assert.All(package.Items, item => Assert.StartsWith("VX-", item.VaccineCode));
+                Assert.Contains(vm.PackageComponents, x => x.Quantity == "2");
+                Assert.Equal(package.Price, await f.Db.Set<GoiVacXin>().Where(x => x.MaGoi == id).Select(x => x.GiaGoi).SingleAsync());
+            }
             await Command(vm.DeleteCommand); Assert.StartsWith("Đã ",vm.Feedback); Assert.Empty(vm.Rows);
             vm.Search="";
         }
@@ -263,8 +280,8 @@ public sealed class CatalogSqlTests
             await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var inactive=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==saved.MaVacXin);
             Assert.Equal("Inactive",inactive.TrangThai);Assert.Equal(saved.Code,inactive.Code);Assert.Equal("Synthetic audience",inactive.DoiTuongSuDung);
-            await Command(vm.SelectTabCommand,"Gói vắc xin");vm.Name="[DEMO] Windows package";vm.Price="100000";vm.PackageChoices[0].Included=true;
-            var packageCode=vm.Code;await Command(vm.SaveCommand);Assert.Contains("Kiểm tra",vm.Feedback);Assert.Equal(packageCode,vm.Code);
+            await Command(vm.SelectTabCommand,"Gói vắc xin");vm.Name="[DEMO] Windows package";vm.Price="100000";vm.ComponentCandidate=vm.ComponentCandidates.First(x=>x.Status=="Active");await Command(vm.AddComponentCommand);
+            var packageCode=vm.Code;await Command(vm.SaveCommand);Assert.Contains("Đối tượng tham khảo",vm.Feedback);Assert.Equal(packageCode,vm.Code);
             vm.TargetAudience="Synthetic package audience";await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var package=await f.Db.Set<GoiVacXin>().SingleAsync(x=>x.Code==packageCode);Assert.Equal("Active",package.TrangThai);Assert.Equal(vm.Rows.Single(x=>x.Id==package.MaGoi).Code,packageCode);
             await identity.LogoutAsync();
@@ -338,7 +355,7 @@ public sealed class CatalogSqlTests
             vm.SelectTabCommand.Execute("Gói vắc xin");using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15)))
                 while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
             var package=vm.Rows.Single();vm.Selected=package;vm.TargetAudience="";vm.Name="[DEMO] Must not persist";
-            await Save();Assert.Contains("Kiểm tra",vm.Feedback);var unchangedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.Id);
+            await Save();Assert.Contains("Đối tượng tham khảo",vm.Feedback);var unchangedPackage=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync(x=>x.MaGoi==package.Id);
             Assert.Equal(package.Name,unchangedPackage.TenGoi);Assert.Equal(package.Package!.TargetAudience,unchangedPackage.DoiTuongSuDung);
             await identity.LogoutAsync();
         });

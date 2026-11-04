@@ -62,7 +62,7 @@ public partial class CatalogView : UserControl
     private void ApplyResourceLayout(CatalogViewModel vm)
     {
         PriceColumn.Visibility = vm.ShowPrice ? Visibility.Visible : Visibility.Collapsed;
-        MasterColumn.Width = new GridLength(vm.ShowVaccine ? 0.8 : 1.15, GridUnitType.Star);
+        MasterColumn.Width = new GridLength(vm.ShowPrice ? 0.8 : 1.15, GridUnitType.Star);
     }
 
     private void ResetDetailScroll()
