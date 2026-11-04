@@ -70,12 +70,47 @@ public static class RegistrationEndpoints
             }
             var total = RegistrationRules.CalculateTotal(lines);
             if (total > MaxMoney) throw new IdentityFailure(400, "validation");
+
+            // --- S6.2 SNAPSHOT KHUYẾN MÃI (CHẶN TRẦN KHÔNG VƯỢT TIỀN HÀNG) ---
+            int? appliedPromoId = null;
+            string? appliedPromoName = null;
+            decimal appliedDiscount = 0m;
+
+            if (req.PromotionId.HasValue && req.PromotionId.Value > 0)
+            {
+                var now = DateTime.UtcNow;
+                var promo = await db.Set<KhuyenMai>()
+                    .FirstOrDefaultAsync(p => p.MaKhuyenMai == req.PromotionId.Value, ct);
+                if (promo is null) throw new IdentityFailure(404, "resourceNotFound");
+
+                // Kiểm tra hiệu lực
+                if (promo.ThoiGianBatDau > now || promo.ThoiGianKetThuc < now)
+                    throw new IdentityFailure(400, "validation");
+
+                appliedPromoId = promo.MaKhuyenMai;
+                appliedPromoName = promo.TenKhuyenMai;
+
+                // Quy tắc S6.2: Giảm không vượt quá tiền hàng
+                appliedDiscount = Math.Min(promo.MucUuDai, total);
+            }
+
+            // Tiền thanh toán thực tế không âm
+            var finalTotal = Math.Max(0m, total - appliedDiscount);
+
             var row = new DangKyDichVu {
-                MaKhachHang = req.CustomerId, MaNguoiDuocTiem = req.RecipientId,
-                MaNhanVien = actor.Employee?.MaNhanVien, NgayDangKy = DateTime.UtcNow, TrangThai = "DaDangKy"
+                MaKhachHang = req.CustomerId,
+                MaNguoiDuocTiem = req.RecipientId,
+                MaNhanVien = actor.Employee?.MaNhanVien,
+                NgayDangKy = DateTime.UtcNow,
+                TrangThai = "DaDangKy",
+                MaKhuyenMai = appliedPromoId,
+                TenKhuyenMaiSnapshot = appliedPromoName,
+                MucGiamSnapshot = appliedDiscount,
+                TongTienSauGiam = finalTotal
             };
             db.Registrations.Add(row);
             await db.SaveChangesAsync(ct);
+
             for (var i = 0; i < req.Items.Length; i++) {
                 var item = req.Items[i];
                 if (item.Kind == "vaccine") db.RegistrationVaccineItems.Add(new() {
@@ -112,10 +147,26 @@ public static class RegistrationEndpoints
                 .ToDictionaryAsync(x => x.MaNguoiDuocTiem, ct);
             var singles = await db.RegistrationVaccineItems.AsNoTracking().Where(x => ids.Contains(x.MaDangKy)).ToArrayAsync(ct);
             var packages = await db.RegistrationPackageItems.AsNoTracking().Where(x => ids.Contains(x.MaDangKy)).ToArrayAsync(ct);
-            var items = rows.Select(x => new RegistrationSummaryDto(x.MaDangKy, Utc(x.NgayDangKy), x.TrangThai,
-                new(x.MaKhachHang, customers[x.MaKhachHang].HoTen), new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen), x.MaNhanVien,
-                singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
-                packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND")).ToArray();
+
+            var items = rows.Select(x => {
+                var subtotal = singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
+                               packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy);
+                var finalTotal = x.TongTienSauGiam > 0 || x.MucGiamSnapshot > 0 ? x.TongTienSauGiam : subtotal;
+                return new RegistrationSummaryDto(
+                    x.MaDangKy,
+                    Utc(x.NgayDangKy),
+                    x.TrangThai,
+                    new(x.MaKhachHang, customers[x.MaKhachHang].HoTen),
+                    new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen),
+                    x.MaNhanVien,
+                    subtotal,
+                    "VND",
+                    x.MaKhuyenMai,
+                    x.TenKhuyenMaiSnapshot,
+                    x.MucGiamSnapshot,
+                    finalTotal);
+            }).ToArray();
+
             await tx.CommitAsync(ct);
             return Results.Ok(new RegistrationListResponse(items));
         }).WithName("ListRegistrations").Produces<RegistrationListResponse>();
@@ -159,7 +210,8 @@ public static class RegistrationEndpoints
         if (req.CustomerId <= 0 || req.RecipientId <= 0 || req.Items is null || req.Items.Length is < 1 or > 100 ||
             req.Items.Any(x => x is null || x.Kind is not ("vaccine" or "package") || x.ServiceId <= 0 || x.Quantity is < 1 or > 100 ||
                 x.ExpectedUnitPrice < 0 || x.ExpectedUnitPrice > MaxMoney || decimal.Truncate(x.ExpectedUnitPrice) != x.ExpectedUnitPrice) ||
-            req.Items.Select(x => (x.Kind, x.ServiceId)).Distinct().Count() != req.Items.Length)
+            req.Items.Select(x => (x.Kind, x.ServiceId)).Distinct().Count() != req.Items.Length ||
+            (req.PromotionId.HasValue && req.PromotionId.Value <= 0))
             throw new IdentityFailure(400, "validation");
         foreach (var item in req.Items) {
             if (item.Kind == "vaccine" && item.ExpectedComponents != null || item.Kind == "package" &&
@@ -193,7 +245,23 @@ public static class RegistrationEndpoints
         var items = singles.Concat(packages.Select(x => new RegistrationItemDto(x.Item.MaChiTietGoi, "package", x.Item.MaGoi, x.TenGoi,
             x.Item.SoLuongGoi, x.Item.GiaTaiThoiDiemDangKy, x.Item.SoLuongGoi * x.Item.GiaTaiThoiDiemDangKy,
             components.Where(c => c.MaGoi == x.Item.MaGoi).Select(c => c.Component).ToArray()))).ToArray();
-        return new(row.MaDangKy, Utc(row.NgayDangKy), row.TrangThai, new(customer.MaKhachHang, customer.HoTen),
-            new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND");
+
+        var subtotal = items.Sum(x => x.LineTotal);
+        var finalTotal = row.TongTienSauGiam > 0 || row.MucGiamSnapshot > 0 ? row.TongTienSauGiam : subtotal;
+
+        return new(
+            row.MaDangKy,
+            Utc(row.NgayDangKy),
+            row.TrangThai,
+            new(customer.MaKhachHang, customer.HoTen),
+            new(recipient.MaNguoiDuocTiem, recipient.HoTen),
+            row.MaNhanVien,
+            items,
+            subtotal,
+            "VND",
+            row.MaKhuyenMai,
+            row.TenKhuyenMaiSnapshot,
+            row.MucGiamSnapshot,
+            finalTotal);
     }
 }

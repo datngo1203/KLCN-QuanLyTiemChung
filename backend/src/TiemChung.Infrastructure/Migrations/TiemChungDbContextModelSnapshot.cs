@@ -396,6 +396,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int?>("MaNhanVien")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("MucGiamSnapshot")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("NgayDangKy")
                         .HasColumnType("datetime2");
 
@@ -404,8 +407,14 @@ namespace TiemChung.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("TenKhuyenMaiSnapshot")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("ThoiGianDuKien")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TongTienSauGiam")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
