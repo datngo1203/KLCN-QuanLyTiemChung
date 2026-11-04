@@ -29,7 +29,7 @@ public sealed class ProfilesSqlTests
             var token=(await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("accessToken").GetString();
             client.DefaultRequestHeaders.Authorization=new("Bearer",token);
         }
-        var customerBody=new CreateCustomerRequest("Synthetic S3",null,"0900000000","s3@example.invalid");
+        var customerBody=new CreateCustomerRequest("Synthetic S3",null,"0900000000","s3@example.invalid","Chị",new(1990,1,1));
         await Login(0);
         var created=await client.PostAsJsonAsync("/api/v1/customers",customerBody); Assert.Equal(HttpStatusCode.Created,created.StatusCode);
         var own=(await created.Content.ReadFromJsonAsync<CustomerDto>())!; Assert.Null(own.IdentityNumber);
@@ -82,13 +82,13 @@ public sealed class ProfilesSqlTests
         await f.Db.Set<NhanVien>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ChucDanh,"LeTan"));
         using var http=f.Factory.CreateClient(); var identity=new IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
-        var vm=new ProfilesViewModel(new ProfilesApiService(identity), identity.CanWriteProfiles); await vm.LoadAsync(); Assert.Empty(vm.Customers);
+        var vm=new ProfilesViewModel(new ProfilesApiService(identity), identity.CanWriteProfiles) { Confirm = _ => true }; await vm.LoadAsync(); Assert.Empty(vm.Customers);
         async Task Command(RelayCommand command) {
             Assert.True(command.CanExecute(null)); command.Execute(null);
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
             while(!vm.CanInteract) await Task.Delay(10,timeout.Token);
         }
-        vm.Name="Windows S3"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid";
+        vm.Name="Windows S3"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid"; vm.Salutation="Chị"; vm.CustomerBirthDate=new(1990,1,1);
         await Command(vm.LuuKhachHangCommand); Assert.Contains("Đã lưu",vm.Feedback);
         var id=Assert.Single(vm.Customers).Id; vm.Name="Windows updated"; await Command(vm.LuuKhachHangCommand);
         vm.RecipientName="Child"; vm.BirthDate=new(2020,1,1); vm.Gender="Nam"; vm.Relation="Con";
@@ -102,7 +102,7 @@ public sealed class ProfilesSqlTests
         foreach (var name in new[] { "[DEMO] consecutive first", "[DEMO] consecutive second" }) {
             await Command(vm.TaoHoSoMoiCommand);
             Assert.Null(vm.SelectedCustomer); Assert.Null(vm.SelectedRecipient); Assert.Equal("", vm.Name);
-            vm.Name=name; vm.Phone="0900000000"; vm.Email="next@example.invalid";
+            vm.Name=name; vm.Phone="0900000000"; vm.Email="next@example.invalid"; vm.Salutation="Anh"; vm.CustomerBirthDate=new(1990,1,1);
             await Command(vm.SaveAndNewCustomerCommand);
             Assert.Contains("Đã lưu khách hàng",vm.Feedback);
             Assert.Null(vm.SelectedCustomer); Assert.Equal("",vm.Name);
@@ -110,7 +110,7 @@ public sealed class ProfilesSqlTests
         Assert.Equal(2,await f.Db.Customers.CountAsync());
         await vm.LoadAsync(); Assert.Equal(2,vm.Customers.Count);
         vm.SelectedCustomer=vm.Customers.First(); Assert.False(vm.SaveAndNewCustomerCommand.CanExecute(null));
-        await identity.LogoutAsync(); vm.Name="Denied"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid"; await Command(vm.LuuKhachHangCommand); Assert.DoesNotContain("Đã lưu",vm.Feedback); Assert.Equal("Denied",vm.Name);
+        await identity.LogoutAsync(); vm.Name="Denied"; vm.Phone="0900000000"; vm.Email="windows-s3@example.invalid"; vm.Salutation="Chị"; vm.CustomerBirthDate=new(1990,1,1); await Command(vm.LuuKhachHangCommand); Assert.DoesNotContain("Đã lưu",vm.Feedback); Assert.Equal("Denied",vm.Name);
         });
     }
 }

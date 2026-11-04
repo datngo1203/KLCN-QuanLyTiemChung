@@ -5,12 +5,14 @@ using TiemChung.Infrastructure.Data;
 
 namespace TiemChung.Api;
 
-public static class ProfileEndpoints
+public static partial class ProfileEndpoints
 {
     public static IEndpointRouteBuilder MapProfileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1").WithTags("Profiles");
+        MapClaims(app.MapGroup("/api/v1").WithTags("Profiles"));
         group.AddEndpointFilter(async (invocation,next) => {
+            invocation.HttpContext.Response.Headers.CacheControl = "no-store";
             try { return await next(invocation); }
             catch(IdentityFailure) when(invocation.HttpContext.Request.Method is "POST" or "PUT" or "DELETE") {
                 var context=invocation.HttpContext;
@@ -45,7 +47,7 @@ public static class ProfileEndpoints
             var items = await query
                 .OrderByDescending(c => c.MaKhachHang)
                 .Skip(((page ?? 1)-1)*(pageSize ?? 25)).Take(pageSize ?? 25)
-                .Select(c => new CustomerDto(c.MaKhachHang, c.HoTen, c.CCCD, c.SoDienThoai, c.Email))
+                .Select(c => new CustomerDto(c.MaKhachHang, c.HoTen, c.CCCD, c.SoDienThoai, c.Email, c.DanhXung, c.NgaySinh))
                 .ToListAsync(ct);
 
             return Results.Ok(new CustomerListResponse(items));
@@ -57,9 +59,7 @@ public static class ProfileEndpoints
             await using var transaction = await IdentityTransactions.BeginAsync(db,ct);
             var actor = await auth.RequireAsync(context,true,ct);
             if (!actor.IsCustomer && !actor.CanCreateProfiles) throw new IdentityFailure(403,"permissionDenied");
-            var body = await IdentityEndpoints.Payload(context,["fullName","identityNumber","phoneNumber","email"],ct);
-            var req = new CreateCustomerRequest(IdentityEndpoints.Value(body,"fullName"),OptionalIdentity(body),
-                IdentityEndpoints.Value(body,"phoneNumber"),IdentityEndpoints.Value(body,"email"));
+            var req = await ReadCustomer(context, ct);
             var errors = ValidateCustomer(req);
             if (errors.Count > 0) throw new IdentityFailure(400,"validation") { Errors=errors };
 
@@ -77,7 +77,9 @@ public static class ProfileEndpoints
                 HoTen = req.FullName.Trim(),
                 CCCD = normalizedCccd,
                 SoDienThoai = req.PhoneNumber.Trim(),
-                Email = req.Email.Trim()
+                Email = req.Email.Trim(),
+                DanhXung = req.Salutation.Trim(),
+                NgaySinh = req.DateOfBirth
             };
 
             db.Customers.Add(entity);
@@ -92,7 +94,7 @@ public static class ProfileEndpoints
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            var dto = new CustomerDto(entity.MaKhachHang, entity.HoTen, entity.CCCD, entity.SoDienThoai, entity.Email);
+            var dto = ToCustomerDto(entity);
             return Results.Created($"/api/v1/customers/{dto.Id}", dto);
         }).WithName("CreateCustomer");
 
@@ -155,11 +157,9 @@ public static class ProfileEndpoints
             if (errors.Count > 0) throw new IdentityFailure(400,"validation") { Errors=errors };
 
             if (actor.IsCustomer) await RequireScope(db,actor,req.CustomerId,null,ct);
-            var customerExists = await db.Customers.AnyAsync(c => c.MaKhachHang == req.CustomerId, ct);
-            if (!customerExists)
-            {
-                throw new IdentityFailure(404,"resourceNotFound");
-            }
+            var owner = await db.Customers.SingleOrDefaultAsync(c => c.MaKhachHang == req.CustomerId, ct)
+                ?? throw new IdentityFailure(404,"resourceNotFound");
+            RequireCompatibleBirthDate(req.RelationshipToCustomer.Trim(), req.DateOfBirth, owner.NgaySinh);
 
             var entity = new NguoiDuocTiem
             {
@@ -211,6 +211,8 @@ public static class ProfileEndpoints
                 ? IdentityEndpoints.Value(body,"identityNumber") : null;
             var errors=ValidateRecipient(IdentityEndpoints.Value(body,"fullName"),identity,dob,IdentityEndpoints.Value(body,"gender"),IdentityEndpoints.Value(body,"relationshipToCustomer"));
             if(errors.Count>0) throw new IdentityFailure(400,"validation") { Errors=errors };
+            var ownerDate = await db.Customers.Where(c => c.MaKhachHang == entity.MaKhachHang).Select(c => c.NgaySinh).SingleAsync(ct);
+            RequireCompatibleBirthDate(IdentityEndpoints.Value(body,"relationshipToCustomer").Trim(), dob, ownerDate);
             entity.HoTen=IdentityEndpoints.Value(body,"fullName").Trim();
             entity.CCCD=string.IsNullOrWhiteSpace(identity) ? null : identity.Trim();
             entity.NgaySinh=dob; entity.GioiTinh=IdentityEndpoints.Value(body,"gender");
@@ -225,18 +227,25 @@ public static class ProfileEndpoints
             var actor=await auth.RequireAsync(context,true,ct);
             await RequireScope(db,actor,id,null,ct);
             var entity=await db.Customers.SingleOrDefaultAsync(x=>x.MaKhachHang==id,ct) ?? throw new IdentityFailure(404,"resourceNotFound");
-            var body=await IdentityEndpoints.Payload(context,["fullName","identityNumber","phoneNumber","email"],ct);
-            var req=new CreateCustomerRequest(IdentityEndpoints.Value(body,"fullName"),OptionalIdentity(body),IdentityEndpoints.Value(body,"phoneNumber"),IdentityEndpoints.Value(body,"email"));
+            var req = await ReadCustomer(context, ct);
             var errors=ValidateCustomer(req);
             if(errors.Count>0) throw new IdentityFailure(400,"validation") { Errors=errors };
             var number=string.IsNullOrWhiteSpace(req.IdentityNumber) ? null : req.IdentityNumber.Trim();
             if(number!=null && await db.Customers.AnyAsync(x=>x.CCCD==number && x.MaKhachHang!=id,ct)) throw new IdentityFailure(409,"duplicateIdentity");
+            if (entity.NgaySinh != req.DateOfBirth)
+            {
+                var recipients = await db.Recipients.Where(r => r.MaKhachHang == id)
+                    .Select(r => new { r.QuanHeVoiKhachHang, r.NgaySinh }).ToListAsync(ct);
+                if (recipients.Any(r => !ProfileRules.BirthDatesAgree(r.QuanHeVoiKhachHang, r.NgaySinh, req.DateOfBirth)))
+                    throw InvalidField("dateOfBirth", "Ngày sinh không phù hợp với quan hệ của người được tiêm trong hồ sơ.");
+            }
             entity.HoTen=req.FullName.Trim(); entity.CCCD=number; entity.SoDienThoai=req.PhoneNumber.Trim(); entity.Email=req.Email.Trim();
+            entity.DanhXung = req.Salutation.Trim(); entity.NgaySinh = req.DateOfBirth;
             Audit(db,context,actor,"updated","Customer",id);
             try { await db.SaveChangesAsync(ct); }
             catch(DbUpdateException e) when(e.InnerException is Microsoft.Data.SqlClient.SqlException sql && sql.Number is 2601 or 2627 && sql.Message.Contains("IX_KhachHang_CCCD",StringComparison.Ordinal)) { throw new IdentityFailure(409,"duplicateIdentity"); }
             await transaction.CommitAsync(ct);
-            return Results.Ok(new CustomerDto(id,entity.HoTen,entity.CCCD,entity.SoDienThoai,entity.Email));
+            return Results.Ok(ToCustomerDto(entity));
         }).WithName("UpdateCustomer");
 
         foreach(var resource in new[]{"customers","recipients"}) {
@@ -260,6 +269,31 @@ public static class ProfileEndpoints
     }
 
     private static string? OptionalIdentity(System.Text.Json.JsonElement body) => body.TryGetProperty("identityNumber",out var value) && value.ValueKind!=System.Text.Json.JsonValueKind.Null ? IdentityEndpoints.Value(body,"identityNumber") : null;
+
+    private static CustomerDto ToCustomerDto(KhachHang customer) => new(
+        customer.MaKhachHang, customer.HoTen, customer.CCCD, customer.SoDienThoai, customer.Email, customer.DanhXung, customer.NgaySinh);
+
+    private static async Task<CreateCustomerRequest> ReadCustomer(HttpContext context, CancellationToken ct)
+    {
+        var body = await IdentityEndpoints.Payload(context, ["fullName","identityNumber","phoneNumber","email","salutation","dateOfBirth"], ct);
+        return new(IdentityEndpoints.Value(body,"fullName"), OptionalIdentity(body), IdentityEndpoints.Value(body,"phoneNumber"),
+            IdentityEndpoints.Value(body,"email"), IdentityEndpoints.Value(body,"salutation"), ReadBirthDate(body));
+    }
+
+    private static DateOnly ReadBirthDate(System.Text.Json.JsonElement body) =>
+        body.TryGetProperty("dateOfBirth", out var date) && date.ValueKind == System.Text.Json.JsonValueKind.String &&
+        DateOnly.TryParseExact(date.GetString(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var dob)
+            ? dob : throw InvalidField("dateOfBirth", "Nhập ngày sinh hợp lệ.");
+
+    private static IdentityFailure InvalidField(string field, string message) =>
+        new(400, "validation") { Errors = new() { [field] = [message] } };
+
+    private static void RequireCompatibleBirthDate(string relation, DateOnly recipient, DateOnly? customer)
+    {
+        if (!ProfileRules.BirthDatesAgree(relation, recipient, customer))
+            throw InvalidField("dateOfBirth", "Ngày sinh không phù hợp với quan hệ của người được tiêm đối với khách hàng.");
+    }
 
     private static async Task RequireScope(TiemChungDbContext db, IdentityActor actor, int? customerId, int? recipientId, CancellationToken ct) {
         if (!actor.IsCustomer) {
@@ -299,6 +333,11 @@ public static class ProfileEndpoints
         if (email.Length > 254 || !System.Net.Mail.MailAddress.TryCreate(email,out var address) || address.Address!=email)
             errors["email"] = ["Email không hợp lệ."];
 
+        if (!ProfileRules.Salutations.Contains(req.Salutation.Trim()))
+            errors["salutation"] = ["Chọn danh xưng hợp lệ."];
+        if (req.DateOfBirth == DateOnly.MinValue || req.DateOfBirth > ProfileRules.Today(DateTimeOffset.UtcNow))
+            errors["dateOfBirth"] = ["Ngày sinh không được lớn hơn ngày hiện tại tại Việt Nam."];
+
         return errors;
     }
 
@@ -321,15 +360,15 @@ public static class ProfileEndpoints
                 errors["identityNumber"] = ["CCCD (nếu nhập) phải gồm đúng 12 chữ số."];
         }
 
-        var today = ProfileDates.Today(DateTimeOffset.UtcNow);
+        var today = ProfileRules.Today(DateTimeOffset.UtcNow);
         if (dateOfBirth == DateOnly.MinValue || dateOfBirth > today)
             errors["dateOfBirth"] = ["Ngày sinh không được lớn hơn ngày hiện tại."];
 
         if (gender is not ("Nam" or "Nữ" or "Khác"))
             errors["gender"] = ["Giới tính là bắt buộc và tối đa 20 ký tự."];
 
-        if (string.IsNullOrWhiteSpace(relationship) || relationship.Trim().Length > 50)
-            errors["relationshipToCustomer"] = ["Quan hệ với khách hàng là bắt buộc và tối đa 50 ký tự."];
+        if (!ProfileRules.Relationships.Contains(relationship.Trim()))
+            errors["relationshipToCustomer"] = ["Chọn quan hệ với khách hàng trong danh sách."];
 
         return errors;
     }

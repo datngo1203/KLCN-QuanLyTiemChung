@@ -72,6 +72,9 @@ public static class IdentityEndpoints
             var db = c.RequestServices.GetRequiredService<TiemChung.Infrastructure.Data.TiemChungDbContext>();
             var linked = a.IsCustomer && await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(
                 db.Set<TiemChung.Domain.Entities.AccountProfileLink>().Where(x => x.AccountId == a.Account.MaTaiKhoan && x.State == "Active"),ct);
+            var customerLinked = linked && await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(
+                db.Set<TiemChung.Domain.Entities.AccountProfileLink>().Where(x => x.AccountId == a.Account.MaTaiKhoan &&
+                    x.State == "Active" && x.CustomerId != null),ct);
             return Results.Ok(new {
                 accountId=a.Account.MaTaiKhoan, accountType=a.IsCustomer?"customer":"employee",
                 emailVerified=a.Account.EmailVerifiedAt is not null,
@@ -79,7 +82,7 @@ public static class IdentityEndpoints
                 employee=a.Employee is null?null:new { id=a.Employee.MaNhanVien,title=a.Employee.ChucDanh,administrativeDuty=a.Account.AdministrativeDuty },
                 permissions=a.Permissions,
                 capabilities=new { profilesRead=a.IsCustomer || a.CanReadProfiles, profilesCreate=a.IsCustomer || a.CanCreateProfiles,
-                    profilesUpdate=a.IsCustomer ? linked : a.CanCreateProfiles,selfClaim=false,representatives=false }
+                    profilesUpdate=a.IsCustomer ? linked : a.CanCreateProfiles,selfClaim=a.IsCustomer && !customerLinked,representatives=false }
             });
         });
     }

@@ -51,6 +51,8 @@ public sealed class KhachHang
     public string? CCCD { get; set; }
     public string SoDienThoai { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? DanhXung { get; set; }
+    public DateOnly? NgaySinh { get; set; }
 }
 
 public sealed class NguoiDuocTiem

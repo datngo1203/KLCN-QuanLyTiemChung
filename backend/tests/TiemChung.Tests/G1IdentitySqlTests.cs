@@ -45,7 +45,7 @@ public sealed class G1IdentitySqlTests
 
         account.TrangThai = "Active"; await f.Db.SaveChangesAsync();
         using var client = f.Factory.CreateClient();
-        var body = new CreateCustomerRequest("[DEMO] G1", null, "0900000000", "g1@example.invalid");
+        var body = new CreateCustomerRequest("[DEMO] G1", null, "0900000000", "g1@example.invalid", "Anh", new(1990, 1, 1));
         foreach (var title in new[] { "Admin", "LeTan", "BacSi", "ThuNgan", "ThuKho", "DieuDuong" }) {
             await f.Db.Set<NhanVien>().Where(e => e.MaNhanVien == account.MaNhanVien).ExecuteUpdateAsync(s => s.SetProperty(e => e.ChucDanh, title));
             var session = await Login(client, "g1.reception", password);
@@ -85,7 +85,7 @@ public sealed class G1IdentitySqlTests
         var me = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
         Assert.True(me.GetProperty("capabilities").GetProperty("profilesCreate").GetBoolean());
         Assert.False(me.GetProperty("capabilities").GetProperty("profilesUpdate").GetBoolean());
-        using var created = await client.PostAsJsonAsync("/api/v1/customers", new CreateCustomerRequest("[DEMO] Owner", null, "0900000000", account.LoginEmail));
+        using var created = await client.PostAsJsonAsync("/api/v1/customers", new CreateCustomerRequest("[DEMO] Owner", null, "0900000000", account.LoginEmail, "Anh", new(1990, 1, 1)));
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         me = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
         Assert.True(me.GetProperty("capabilities").GetProperty("profilesUpdate").GetBoolean());
