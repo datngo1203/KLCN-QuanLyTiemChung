@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Plus, RefreshCw, Search } from 'lucide-react'
 import { identity } from './api/identity'
+import { registrationCode } from './paymentView'
 import { getRegistrationCatalog } from './api/client'
 import { allProfiles, money, total, serviceKey, registrationItems, registrationPayload, refreshDraft, registrationError,
   contactFields, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel } from './registrationForm'
@@ -146,8 +147,8 @@ export default function Registrations({ account, active, recipientLink = null, n
     })
   }
 
-  async function readDetail(id) {
-    setDetailId(id); setDetail(null); setView('detail')
+  async function readDetail(id, saved = null) {
+    setDetailId(id); setDetail(saved); setView('detail')
     setDetail(await identity.registrations(`/${id}`))
   }
 
@@ -180,9 +181,9 @@ export default function Registrations({ account, active, recipientLink = null, n
         } else throw failure
         return
       } finally { onSavingChange(false) }
-      setNotice(`Đã tạo đăng ký #${saved.id}. Giá và số lượng đã được lưu; chưa phát sinh lịch hoặc thanh toán.`)
+      setNotice(`Đã tạo đăng ký ${registrationCode(saved.id)}. Bạn có thể mở hành trình để xem bước tiếp theo.`)
       setDraftOpen(false); setDraft(emptyDraft()); setChanges([])
-      await readDetail(saved.id)
+      await readDetail(saved.id, saved.items ? saved : null)
     })
   }
 
@@ -192,7 +193,7 @@ export default function Registrations({ account, active, recipientLink = null, n
   const recipient = recipients.find(item => item.id === Number(draft.recipientId) && item.customerId === Number(draft.customerId))
   const people = recipients.filter(item => customers.some(owner => owner.id === item.customerId))
   const filtered = catalog.filter(item => (!kind || item.kind === kind) && `${item.name} ${item.description || ''} ${(item.components || []).map(x => x.vaccineName).join(' ')}`.toLocaleLowerCase('vi').includes(query.trim().toLocaleLowerCase('vi')))
-  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký #${detailId}` : ['Chọn người được tiêm', 'Chọn dịch vụ', 'Thông tin liên hệ & ngày mong muốn tiêm', 'Xem lại đăng ký'][step]
+  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký ${registrationCode(detailId)}` : ['Chọn người được tiêm', 'Chọn dịch vụ', 'Thông tin liên hệ & ngày mong muốn tiêm', 'Xem lại đăng ký'][step]
 
   return <section className="registration-page wrap" aria-busy={busy}>
     <div className="page-intro"><div className="eyebrow">ĐĂNG KÝ DỊCH VỤ</div><h1 ref={heading} tabIndex={-1}>{title}</h1><p>Chọn dịch vụ và lưu đăng ký cho người được tiêm trong hồ sơ của bạn. </p></div>
@@ -209,7 +210,7 @@ export default function Registrations({ account, active, recipientLink = null, n
       <div className="registration-actions"><button className="button primary" disabled={busy || uncertain || draftOpen} onClick={() => start()}><Plus aria-hidden="true" />{busy ? 'Đang tải hồ sơ và dịch vụ…' : 'Tạo đăng ký'}</button>{draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => { setError(''); setView('form') }}>Tiếp tục bản nháp</button>}<button className="button outline" disabled={busy || listLoading} onClick={() => setReload(value => value + 1)}><RefreshCw aria-hidden="true" />Tải lại</button></div>
       {listLoading && <p role="status">Đang tải danh sách đăng ký…</p>}
       {listError && <p className="registration-message error" role="alert">{listError} <button className="button outline" onClick={() => setReload(value => value + 1)}>Thử lại</button></p>}
-      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>ĐĂNG KÝ #{row.id} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết #{row.id}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
+      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>{registrationCode(row.id)} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết {registrationCode(row.id)}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
     </>}
 
     {view === 'detail' && <>
@@ -218,11 +219,11 @@ export default function Registrations({ account, active, recipientLink = null, n
       {uncertain && detail && <button className="button primary" disabled={busy} onClick={() => {
         if (window.confirm('Bạn xác nhận đây là đăng ký vừa gửi? Bản nháp sẽ được bỏ, không gửi thêm đăng ký.')) {
           setUncertain(false); setDraftOpen(false); setDraft(emptyDraft()); setChanges([]); setNeedsCatalog(false)
-          setNotice(`Bạn đã xác nhận tìm thấy đăng ký #${detail.id}. Bản nháp được kết thúc, không gửi thêm yêu cầu tạo.`)
+          setNotice(`Bạn đã xác nhận tìm thấy đăng ký ${registrationCode(detail.id)}. Bản nháp được kết thúc, không gửi thêm yêu cầu tạo.`)
         }
       }}>Đã tìm thấy đăng ký, kết thúc bản nháp</button>}
       {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} /><Lines items={detail.items} />
-        <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} totalBeforeDiscount={detail.totalBeforeDiscount} /><p className="muted">Đăng ký đã được lưu. Chưa phát sinh lịch tiêm hoặc thanh toán trong luồng này; đăng ký không xác nhận đủ điều kiện tiêm.</p></div>}
+        <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} totalBeforeDiscount={detail.totalBeforeDiscount} />{!uncertain && <button className="button primary" disabled={busy} onClick={() => go(`vaccinations/${detailId}`)}>{BigInt(detail.totalBeforeDiscount) > 0n ? 'Tiếp tục thanh toán' : 'Xem hành trình'}</button>}</div>}
     </>}
 
     {view === 'form' && <>

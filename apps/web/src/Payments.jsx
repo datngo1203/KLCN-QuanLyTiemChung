@@ -77,8 +77,8 @@ function PaymentWorkspace({ go }) {
   </div>
 }
 
-function PaymentDetail({ id, accessDenied, go }) {
-  const [state, setState] = useState({ loading: true, detail: null, error: null })
+export function PaymentDetail({ id, accessDenied, go, initialDetail = null, loadDetail = identity.getRegistrationPayment }) {
+  const [state, setState] = useState({ loading: !initialDetail, detail: initialDetail, error: null })
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [chooseAgain, setChooseAgain] = useState(false)
@@ -90,7 +90,7 @@ function PaymentDetail({ id, accessDenied, go }) {
 
   const read = useCallback(async () => {
     try {
-      const detail = await identity.getRegistrationPayment(id)
+      const detail = await loadDetail(id)
       if (!active.current) return
       setState({ loading: false, detail, error: null })
     } catch (error) {
@@ -99,23 +99,24 @@ function PaymentDetail({ id, accessDenied, go }) {
       else setState(previous => ({ ...previous, loading: false, error }))
     }
     if (active.current) setWriteState(identity.paymentWriteState(id))
-  }, [id, accessDenied])
+  }, [id, accessDenied, loadDetail])
 
   useEffect(() => {
     active.current = true
+    if (initialDetail) return () => { active.current = false }
     heading.current?.focus({ preventScroll: true })
     heading.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
     let current = true
     Promise.resolve().then(() => { if (current) return read() })
     return () => { current = false; active.current = false }
-  }, [read])
+  }, [read, initialDetail])
 
   const { loading, detail, error } = state
   const center = detail?.expectedChannel === 'TaiTrungTam'
   const result = detail && (detail.payment || BigInt(detail.totalDue) === 0n || center && !chooseAgain)
   useEffect(() => {
-    if (result) resultHeading.current?.focus()
-  }, [result])
+    if (result && detail !== initialDetail) resultHeading.current?.focus()
+  }, [result, detail, initialDetail])
 
   function retry() {
     setState(previous => ({ ...previous, loading: true, error: null }))
@@ -152,11 +153,11 @@ function PaymentDetail({ id, accessDenied, go }) {
   const blocked = writeState === 'conflict' || error?.status === 409
   return <div className="payment-detail" aria-busy={loading || sending}>
     <h2 tabIndex={-1} ref={heading}>Thanh toán {registrationCode(id)}</h2>
-    <ol className="registration-steps" aria-label="Các bước thanh toán">
+    {!initialDetail && <ol className="registration-steps" aria-label="Các bước thanh toán">
       {['Đăng ký', 'Thanh toán', 'Xác nhận'].map((label, index) => <li key={label} aria-current={index === (result ? 2 : 1) ? 'step' : undefined}>
         {index > 0 && <ChevronRight aria-hidden="true" size={14} />}<span>{index + 1}</span>{label}
       </li>)}
-    </ol>
+    </ol>}
     <button className="button outline payment-reload" disabled={loading || sending} onClick={retry}><RefreshCw aria-hidden="true" size={16} />Tải lại kết quả</button>
     {loading && <p role="status">Đang đọc kết quả thanh toán…</p>}
     {sending && <p role="status">Đang xử lý và đối chiếu kết quả thanh toán…</p>}

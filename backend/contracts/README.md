@@ -436,3 +436,11 @@ Chỉ nhân viên `ThuKho` Active có grant `XemKho`, account/session Active the
 - `{ items: [{ id, appointmentId, registrationId, recipient:{id,fullName}, vaccine:{id,name}, lotNumber, injectionSite, administeredAt, status }] }`; administeredAt ISO UTC, status `DaTiem`. Không trả bác sĩ/điều dưỡng, khám/tiền sử, theo dõi, liên hệ, tiền, audit hoặc Identity. Danh sách chứa đủ chi tiết cho Web, không thêm endpoint chi tiết.
 - GET chỉ đọc, không audit/ghi dữ liệu. Mọi response `Cache-Control: no-store`; Problem Details 400 `validation`, 401 `invalidSession`, 403 `permissionDenied` (gồm email chưa xác minh), 503 `dependencyUnavailable`. Dùng IdentityAuthorization hiện hành, không thêm quyền/schema/migration.
 - Web chỉ giữ dữ liệu/token/lựa chọn trong bộ nhớ, credentials omit/cache no-store, dùng refresh/sessionVersion hiện hữu. Đổi phiên/sessionBusy tháo workspace và bỏ response trễ; 401/403/refresh thất bại xóa kết quả. Tải lại trang cần đăng nhập lại. Thời gian hiển thị theo thiết bị, không sửa timestamp API. Đây là lịch sử mũi đã ghi trong VAC; không xác nhận hoàn thành theo dõi/phác đồ hoặc cấp giấy chứng nhận. Nhắc lịch thuộc S5.7B.
+
+## RF-05A1 — Hành trình tiêm chủng của khách hàng
+
+- GET `/api/v1/vaccination-journeys?page=&pageSize=` trả `{ items }`, sắp xếp ngày đăng ký rồi mã đăng ký giảm dần. Mặc định trang 1, 25 mục, tối đa 100 mục/trang.
+- GET `/api/v1/vaccination-journeys/{registrationId}` trả một mục cùng cấu trúc. Cả hai yêu cầu Bearer Customer và hai liên kết hồ sơ Active theo phạm vi Registration. Chi tiết ngoài phạm vi hoặc không tồn tại trả 403. Response đặt `Cache-Control: no-store`.
+- Mỗi mục có `registrationId, createdAt, preferredDate, payment, appointments, nextAppointment, shots, shotCount`. `payment` dùng `RegistrationPaymentDto` hiện hành gồm contact, hồ sơ, dòng dịch vụ, tiền VND, kênh dự kiến và giao dịch. Lỗi bất nhất tài chính trả 409 cho response. Số tiền dùng cùng quy ước VND chính xác như Payment.
+- Bỏ lịch sai người hoặc sai dòng nguồn trong cùng đăng ký. `nextAppointment` là lịch tương lai gần nhất, thời gian bằng nhau phân định theo ID. `shots` chỉ gồm mũi thuộc chuỗi đã xác thực của S5.7A, mới nhất trước, phân định theo ID. Lịch/mũi sai nguồn không đưa vào projection.
+- Chỉ đọc SQL. Trạng thái trình bày được suy ra từ facts, không có Journey state lưu trong SQL.

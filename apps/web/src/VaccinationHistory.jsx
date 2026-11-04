@@ -17,7 +17,7 @@ export default function VaccinationHistory({ account, sessionBusy, go }) {
   </section>
 }
 
-function HistoryWorkspace({ go }) {
+export function HistoryWorkspace({ go }) {
   const [page, setPage] = useState(1)
   const [reload, setReload] = useState(0)
   const [list, setList] = useState({ loading: true, rows: [], error: null })

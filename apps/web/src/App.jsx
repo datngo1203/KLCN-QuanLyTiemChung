@@ -5,20 +5,20 @@ import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
-import Payments from './Payments'
-import Schedule from './Schedule'
-import VaccinationHistory from './VaccinationHistory'
+import VaccinationJourneys from './VaccinationJourneys'
 import Home from './Home'
 import './theme.css'
 import './Catalog.css'
 
 const pages = [
   ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ tiêm chủng'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
-  ['payment', 'Thanh toán'], ['schedule', 'Lịch hẹn'], ['history', 'Lịch sử tiêm'],
+  ['vaccinations', 'Tiêm chủng của tôi'],
 ]
 
 const pageFromHash = () => {
-  const path = window.location.hash.slice(1)
+  const raw = window.location.hash.slice(1)
+  const path = ({ payment: 'vaccinations', schedule: 'vaccinations', history: 'vaccinations/history' })[raw] ?? raw
+  if (path === 'vaccinations/history' || /^vaccinations\/[1-9]\d{0,9}$/.test(path)) return path
   return pages.some(([id]) => id === path) || (path.startsWith('catalog/vaccines/') || path.startsWith('register/recipient/')) ? path : 'home'
 }
 
@@ -47,6 +47,7 @@ function App() {
     const navigate = () => {
       const next = pageFromHash()
       if (registrationBusy || (next.startsWith('register/recipient/') && registrationNavigation.current && !registrationNavigation.current(next))) { window.history.replaceState(null, '', `#${page}`); return }
+      if (['#payment', '#schedule', '#history'].includes(window.location.hash)) window.history.replaceState(null, '', `#${next}`)
       setMobileMenuOpen(false)
       setPage(next)
     }
@@ -54,6 +55,8 @@ function App() {
     return () => window.removeEventListener('hashchange', navigate)
   }, [registrationBusy, page])
   useEffect(() => {
+    if (['#payment', '#schedule', '#history'].includes(window.location.hash))
+      window.history.replaceState(null, '', `#${page}`)
     mainRef.current?.focus({ preventScroll: true })
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [page])
@@ -63,7 +66,7 @@ function App() {
       setPage(next); window.history.replaceState(null, '', `#${next}`)
     }
   }, [account])
-  const go = (next) => { if (registrationBusy || (next.startsWith('register/recipient/') && registrationNavigation.current && !registrationNavigation.current(next))) return; if (!account && next === 'account' && page.startsWith('register/recipient/')) returnAfterLogin.current = page; setMobileMenuOpen(false); setPage(next); window.history.pushState(null, '', `#${next}`) }
+  const go = (next) => { if (registrationBusy || (next.startsWith('register/recipient/') && registrationNavigation.current && !registrationNavigation.current(next))) return; if (!account && next === 'account' && (page.startsWith('register/recipient/') || page === 'vaccinations' || page.startsWith('vaccinations/'))) returnAfterLogin.current = page; setMobileMenuOpen(false); if (next === page) return; setPage(next); window.history.pushState(null, '', `#${next}`) }
 
   return (
     <div className="app-shell">
@@ -73,7 +76,7 @@ function App() {
           <img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="64" height="64" /><span><b>TRUNG TÂM TIÊM CHỦNG VAC</b><small>VACCINE ADMINISTRATION CENTER</small></span>
         </button>
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
-          {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} className={page === id || (id === 'catalog' && page.startsWith('catalog/')) ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
+          {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} className={page === id || page.startsWith(`${id}/`) ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
         <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')} aria-label={account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}>{account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}</button>
         <button disabled={registrationBusy} className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
@@ -87,9 +90,7 @@ function App() {
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {(account || page.startsWith('register')) && <div hidden={!page.startsWith('register')}><Registrations key={account?.accountId || 'guest'} account={account} active={page.startsWith('register')} navigationRef={registrationNavigation} recipientLink={page.startsWith('register/recipient/') ? page.slice('register/recipient/'.length) : null} go={go} onSavingChange={setRegistrationBusy} /></div>}
-        {page === 'payment' && <Payments key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
-        {page === 'schedule' && <Schedule key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
-        {page === 'history' && <VaccinationHistory key={account?.accountId || 'guest'} account={account} sessionBusy={sessionBusy} go={go} />}
+        {(page === 'vaccinations' || page.startsWith('vaccinations/')) && <VaccinationJourneys key={`${account?.accountId || 'guest'}:${page}`} account={account} sessionBusy={sessionBusy} page={page} go={go} />}
       </main>
 
       <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">

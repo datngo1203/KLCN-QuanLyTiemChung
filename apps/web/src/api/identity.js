@@ -102,18 +102,19 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     }
   }
 
-  async function getRegistrationPayment(id) {
+  async function readPaymentFacts(id, load, selectPayment) {
     const version = sessionVersion
     const attempt = paymentWrites.get(id)
     if (attempt?.status === 'sending') await attempt.done.catch(() => {})
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
-    const detail = await profiles(`registrations/${id}/payment`, 'GET', undefined, true)
+    const response = await load()
+    const detail = selectPayment(response)
     if (attempt && attempt === paymentWrites.get(id)) {
       if (detail.payment || detail.totalDue === '0' || attempt.action === 'channel' && detail.expectedChannel === 'TaiTrungTam')
         paymentWrites.delete(id)
       else if (attempt.status === 'unknown') attempt.status = 'unconfirmed'
     }
-    return detail
+    return response
   }
   return {
     profiles,
@@ -121,7 +122,11 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     getAppointment: id => profiles(`appointments/${id}`),
     vaccinationHistory: (query = '') => profiles(`vaccinations/history${query}`),
     registrations: (path = '', method = 'GET', body) => profiles(`registrations${path}`, method, body, true),
-    getRegistrationPayment,
+    vaccinationJourneys: (query = '') => profiles(`vaccination-journeys${query}`, 'GET', undefined, true),
+    getVaccinationJourney: id => readPaymentFacts(id,
+      () => profiles(`vaccination-journeys/${id}`, 'GET', undefined, true), journey => journey.payment),
+    getRegistrationPayment: id => readPaymentFacts(id,
+      () => profiles(`registrations/${id}/payment`, 'GET', undefined, true), detail => detail),
     getPaymentSettings: () => profiles('payment/settings'),
     recordOnlinePayment: (id, body) => writePayment(id, 'online', body),
     selectCenterPayment: id => writePayment(id, 'channel', { channel: 'TaiTrungTam' }),

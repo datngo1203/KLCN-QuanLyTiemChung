@@ -66,6 +66,7 @@ app.UseExceptionHandler();
 app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/inventory")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/reports")) context.Response.Headers.CacheControl = "no-store";
+    if (context.Request.Path.StartsWithSegments("/api/v1/vaccination-journeys")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/clinical")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
@@ -122,6 +123,7 @@ app.MapReminderEndpoints();
 app.MapClinicalEndpoints();
 app.MapVaccinationEndpoints();
 app.MapVaccinationHistoryEndpoints();
+app.MapVaccinationJourneyEndpoints();
 app.MapAftercareEndpoints();
 app.MapInventoryEndpoints();
 app.MapInventoryReceiptEndpoints();

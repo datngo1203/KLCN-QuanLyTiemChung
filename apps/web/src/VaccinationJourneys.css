@@ -1,0 +1,18 @@
+.journey-page { overflow-wrap: anywhere; }
+.journey-tabs { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
+.journey-tabs .button[aria-current] { background: var(--blue); color: white; }
+.journey-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 1rem; }
+.journey-card { display: flex; align-items: flex-start; flex-direction: column; }
+.journey-card h3 { margin: .5rem 0 0; }
+.journey-card > p { margin-block: .5rem; }
+.journey-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; margin: 0; padding-block: .5rem; }
+.journey-card dl > div:last-child { grid-column: 1 / -1; }
+.journey-card > .button { margin-top: auto; }
+.journey-action { display: grid; gap: .25rem; margin-bottom: 1rem; }
+.journey-next { border-inline-start: 4px solid var(--blue); }
+.journey-steps { flex-wrap: wrap; }
+.journey-events { list-style: none; padding: 0; }
+.journey-events li { display: grid; gap: .25rem; padding-block: .65rem; border-bottom: 1px solid var(--line); }
+@media (max-width: 700px) {
+  .journey-grid { grid-template-columns: minmax(0, 1fr); }
+}

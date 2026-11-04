@@ -210,7 +210,7 @@ public static class PaymentEndpoints
         return row;
     }
 
-    private static async Task<IdentityActor> RequireCustomer(HttpContext context, IdentityAuthorization auth, bool write,
+    internal static async Task<IdentityActor> RequireCustomer(HttpContext context, IdentityAuthorization auth, bool write,
         CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
@@ -234,7 +234,7 @@ public static class PaymentEndpoints
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    internal static async Task<PaymentRegistrationSummaryDto[]> Summaries(TiemChungDbContext db, DangKyDichVu[] rows, CancellationToken ct)
+    internal static async Task<PaymentRegistrationSummaryDto[]> Summaries(TiemChungDbContext db, DangKyDichVu[] rows, CancellationToken ct, ThanhToan[]? paymentSnapshot = null)
     {
         var ids = rows.Select(r => r.MaDangKy).ToArray();
         var customerIds = rows.Select(r => r.MaKhachHang).ToArray();
@@ -243,7 +243,7 @@ public static class PaymentEndpoints
         var recipients = await db.Recipients.AsNoTracking().Where(p => recipientIds.Contains(p.MaNguoiDuocTiem)).ToDictionaryAsync(p => p.MaNguoiDuocTiem, ct);
         var singles = await db.RegistrationVaccineItems.AsNoTracking().Where(i => ids.Contains(i.MaDangKy)).ToArrayAsync(ct);
         var packages = await db.RegistrationPackageItems.AsNoTracking().Where(i => ids.Contains(i.MaDangKy)).ToArrayAsync(ct);
-        var payments = await db.Payments.AsNoTracking().Where(p => ids.Contains(p.MaDangKy)).ToArrayAsync(ct);
+        var payments = paymentSnapshot ?? await db.Payments.AsNoTracking().Where(p => ids.Contains(p.MaDangKy)).ToArrayAsync(ct);
         return rows.Select(row => {
             if (row.TrangThai != "DaDangKy" || row.MaKhuyenMai is not null ||
                 row.KenhThanhToanDuKien is not (null or "TaiTrungTam" or "TrucTuyen") ||
@@ -306,11 +306,12 @@ public static class PaymentEndpoints
         };
     }
 
-    private static async Task<RegistrationPaymentDto> Detail(TiemChungDbContext db, DangKyDichVu row, IdentityActor actor, CancellationToken ct)
+    internal static async Task<RegistrationPaymentDto> Detail(TiemChungDbContext db, DangKyDichVu row, IdentityActor actor, CancellationToken ct)
     {
-        var summary = (await Summaries(db, [row], ct)).Single();
+        var payments = await db.Payments.AsNoTracking().Where(p => p.MaDangKy == row.MaDangKy).ToArrayAsync(ct);
+        var summary = (await Summaries(db, [row], ct, payments)).Single();
         var registration = await RegistrationEndpoints.Detail(db, row, ct);
-        var payment = await db.Payments.AsNoTracking().SingleOrDefaultAsync(p => p.MaDangKy == row.MaDangKy, ct);
+        var payment = payments.SingleOrDefault();
         var requiresPayment = summary.RemainingAmount > 0;
         var canWrite = !actor.IsCustomer && actor.Employee?.ChucDanh == "ThuNgan" &&
             actor.Permissions.Contains("XemThanhToan") && actor.Permissions.Contains("GhiThanhToan");
