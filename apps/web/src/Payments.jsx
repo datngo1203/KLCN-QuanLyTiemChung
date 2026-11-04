@@ -23,7 +23,6 @@ export default function Payments({ account, sessionBusy, go }) {
     {sessionBusy ? <p className="registration-message" role="status">Đang cập nhật phiên. Vui lòng chờ…</p>
       : account?.accountType === 'customer' ? <PaymentWorkspace key={account.accountId} go={go} />
       : <div className="registration-panel"><h2>Đăng nhập tài khoản khách hàng</h2><p>Đăng nhập để xem đăng ký và kết quả thanh toán thuộc hồ sơ của bạn.</p><button className="button primary" onClick={() => go('account')}>Vào Tài khoản</button></div>}
-    <p className="muted">Thanh toán trong môi trường thử nghiệm, không kết nối cổng thanh toán thực tế.</p>
   </section>
 }
 

@@ -86,7 +86,6 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   assert.equal(posted[0].body.termsAccepted, true)
   await act(async () => pending.resolve())
   assert.match(host.textContent, /Chờ xác nhận/)
-  assert.doesNotMatch(host.textContent, /PRIVATE|HTTP|SQL|DTO|\[DEMO\]|KẾT QUẢ TỪ QUẦY|Biên nhận thanh toán/)
-  assert.equal((host.textContent.match(/Thanh toán trong môi trường thử nghiệm/g) ?? []).length, 1)
+  assert.doesNotMatch(host.textContent, /PRIVATE|HTTP|SQL|DTO|\[DEMO\]|KẾT QUẢ TỪ QUẦY|Biên nhận thanh toán|Thanh toán trong môi trường thử nghiệm/)
   assert.equal(window.localStorage.length, 0)
 })
