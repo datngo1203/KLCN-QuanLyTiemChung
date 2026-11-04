@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TiemChung.Api;
@@ -67,6 +68,58 @@ public sealed class PaymentSqlTests
         await Problem(await f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), new { }), 409, "paymentAlreadyRecorded");
         Assert.Equal(1, await fresh.Payments.CountAsync());
         Assert.Equal(1, await fresh.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded"));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task CashierRecordsServiceSubtotalPlusSnapshottedConsultationFee()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(consultationFee: "50000"), async f => {
+            const decimal fee = 50000m;
+            var registration = await f.Register();
+            var subtotal = registration.Items.Sum(item => item.Quantity * item.UnitPrice);
+            var totalDue = subtotal + fee;
+            Assert.Equal(subtotal, registration.Subtotal);
+            Assert.Equal(fee, registration.ConsultationFee);
+            Assert.Equal(totalDue, registration.TotalBeforeDiscount);
+
+            await using var fresh = f.NewDb();
+            Assert.Equal(fee, (await fresh.Registrations.AsNoTracking().SingleAsync()).PhiKhamTuVan);
+
+            var path = Path(registration.Id);
+            var before = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(path))!;
+            Assert.Equal(subtotal, before.Subtotal);
+            Assert.Equal(fee, before.ConsultationFee);
+            Assert.Equal(totalDue, before.TotalDue);
+            Assert.Equal(0, before.PaidAmount);
+            Assert.Equal(totalDue, before.RemainingAmount);
+            Assert.Null(before.Payment);
+
+            using var response = await f.Cashier.Client.PostAsJsonAsync(path, new { });
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var saved = (await response.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
+            Assert.Equal(totalDue, saved.TotalDue);
+            Assert.Equal(totalDue, saved.PaidAmount);
+            Assert.Equal(0, saved.RemainingAmount);
+            Assert.NotNull(saved.Payment);
+            Assert.Equal(totalDue, saved.Payment.Amount);
+
+            var payment = Assert.Single(await fresh.Payments.AsNoTracking().ToArrayAsync());
+            Assert.Equal(registration.Id, payment.MaDangKy);
+            Assert.Equal(saved.Payment.Id, payment.MaThanhToan);
+            Assert.Equal(totalDue, payment.SoTien);
+            Assert.Equal("MoPhong", payment.PhuongThuc);
+            Assert.Equal("ToanBo", payment.LoaiThanhToan);
+            Assert.Equal("ThanhCong", payment.TrangThai);
+            Assert.Equal(payment.PhuongThuc, saved.Payment.Method);
+            Assert.Equal(payment.LoaiThanhToan, saved.Payment.Type);
+            Assert.Equal(payment.TrangThai, saved.Payment.Status);
+
+            var reloaded = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(path);
+            Assert.Equal(JsonSerializer.Serialize(saved), JsonSerializer.Serialize(reloaded));
+            using var duplicate = await f.Cashier.Client.PostAsJsonAsync(path, new { });
+            await Problem(duplicate, 409, "paymentAlreadyRecorded");
+            Assert.Equal(1, await fresh.Payments.CountAsync());
         });
     }
 
@@ -505,7 +558,7 @@ public sealed class PaymentSqlTests
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public static async Task<Fixture> Create(PaymentGate? gate = null, bool historicalCatalog = false)
+        public static async Task<Fixture> Create(PaymentGate? gate = null, bool historicalCatalog = false, string? consultationFee = null)
         {
             var b = await CatalogSqlTests.Fixture.Create(historicalCatalog: historicalCatalog);
             Fixture? partial = null;
@@ -523,6 +576,10 @@ public sealed class PaymentSqlTests
                 services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();
                 services.AddDbContext<TiemChungDbContext>(o => o.UseSqlServer(b.Db.Database.GetConnectionString()).AddInterceptors(gate));
             }));
+            if (consultationFee is not null) {
+                f._factory = b.Factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
+                    config.AddInMemoryCollection(new Dictionary<string, string?> { ["Registration:ConsultationFeeVnd"] = consultationFee })));
+            }
             f.Customer = await f.Actor(null); f.Cashier = await f.Actor("ThuNgan", "XemThanhToan", "GhiThanhToan");
             b.Db.AddRange(new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, CustomerId = customer.MaKhachHang },
                 new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, RecipientId = recipient.MaNguoiDuocTiem });
