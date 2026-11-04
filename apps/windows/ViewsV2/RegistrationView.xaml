@@ -123,7 +123,7 @@
        </StackPanel>
       </UniformGrid>
       <TextBlock Text="Ngày mong muốn tiêm *" Style="{StaticResource CE.Caption}"/>
-      <DatePicker SelectedDate="{Binding PreferredDate}" DisplayDateStart="{Binding VietnamToday}" DateValidationError="InvalidPreferredDate"
+      <DatePicker x:Name="PreferredDateInput" SelectedDate="{Binding PreferredDate}" DisplayDateStart="{Binding VietnamToday, Mode=OneWay}" DateValidationError="InvalidPreferredDate"
                   Style="{StaticResource CE.DatePicker}" Width="180" HorizontalAlignment="Left" AutomationProperties.Name="Ngày mong muốn tiêm"/>
       <TextBlock Text="Cơ sở sẽ xác nhận lịch ở bước sau." Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
      </StackPanel></Border>
