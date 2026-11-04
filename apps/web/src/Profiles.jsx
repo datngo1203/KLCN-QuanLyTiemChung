@@ -27,7 +27,7 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
   const isRecipient = editor.resource === 'recipients'
   const viewing = editor.mode === 'view'
   const claiming = editor.mode === 'claim'
-  const title = claiming ? 'Tìm hồ sơ có sẵn' : viewing ? 'Thông tin người được tiêm' : `${editor.draft.id ? 'Chỉnh sửa' : 'Thêm'} ${isRecipient ? 'người được tiêm' : 'hồ sơ cá nhân'}`
+  const title = claiming ? 'Tìm hồ sơ tiêm chủng có sẵn' : viewing ? 'Thông tin người được tiêm' : `${editor.draft.id ? 'Chỉnh sửa' : 'Thêm'} ${isRecipient ? 'người được tiêm' : 'hồ sơ cá nhân'}`
   useEffect(() => {
     const element = dialog.current
     const previous = document.activeElement
@@ -80,7 +80,7 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
   </dialog>
 }
 
-export default function Profiles({ capabilities, sessionBusy = false, onBusyChange }) {
+export default function Profiles({ capabilities, sessionBusy = false, onBusyChange, go = () => {} }) {
   const [customers, setCustomers] = useState([])
   const [recipients, setRecipients] = useState([])
   const [customerId, setCustomerId] = useState('')
@@ -168,7 +168,15 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
     <div className="profiles-toolbar"><p>Thông tin của bạn và những người được tiêm đã liên kết với tài khoản.</p><button className="button text-button" disabled={locked} onClick={() => run(load)}><RefreshCw aria-hidden="true" />{busy ? 'Đang tải…' : 'Tải lại'}</button></div>
     {!editor && error && !errorResource && <p className="profile-feedback error" role="alert">{error}</p>}
     {!ready ? <div className="profile-empty" role="status">{busy ? 'Đang tải hồ sơ của bạn…' : 'Chưa tải được hồ sơ. Chọn Tải lại để thử lại.'}</div> : <div className="profiles-layout">
-      <section className="profile-panel" aria-labelledby="personal-title"><div className="profile-section-heading"><div><span className="profile-kicker">THÔNG TIN CỦA BẠN</span><h2 id="personal-title">Hồ sơ cá nhân</h2></div></div>
+      <section className="profile-panel" aria-labelledby="recipients-title"><div className="profile-section-heading"><div><span className="profile-kicker">HỒ SƠ ĐÃ LIÊN KẾT</span><h2 id="recipients-title">Người được tiêm <span className="profile-count">{recipients.length}</span></h2></div>{canCreate && <button ref={recipientAction} className="button primary" disabled={locked || !selectedCustomer} onClick={() => open('recipients', { ...emptyRecipient, customerId: selectedCustomer.id })}><Plus aria-hidden="true" />Thêm mới</button>}</div>
+        <p className="profile-help">Xem và quản lý thông tin từng người trước khi đăng ký tiêm.</p>
+        {canCreate && selectedCustomer && <div className="profile-panel-actions"><button className="button outline" disabled={locked} onClick={() => open('recipients', {}, 'claim')}>Tìm hồ sơ tiêm chủng có sẵn</button></div>}
+        {canCreate && !selectedCustomer && <p className="profile-help">{customers.length ? 'Chọn hồ sơ khách hàng ở phần Hồ sơ cá nhân để thêm người được tiêm.' : 'Cần liên kết hoặc tạo hồ sơ cá nhân trước khi thêm người được tiêm.'}</p>}
+        {!canUpdate && recipients.length > 0 && <p className="profile-help">Bạn có quyền xem thông tin. Tài khoản hiện không có quyền chỉnh sửa hồ sơ.</p>}
+        {recipients.length ? <ul className="profile-recipient-list">{recipients.map(recipient => <li key={recipient.id} className="profile-recipient-card"><div className="profile-initial" aria-hidden="true">{recipient.fullName.replace(/^\[DEMO\]\s*/, '').trim().slice(0, 1)}</div><div className="profile-recipient-info"><h3>{recipient.fullName}</h3><p>{recipient.relationshipToCustomer} · {birthDate(recipient.dateOfBirth)}</p></div><button className="button text-button" disabled={locked} aria-label={`Xem ${recipient.fullName}`} onClick={() => open('recipients', recipient, 'view')}>Xem hồ sơ<ArrowRight aria-hidden="true" /></button><button className="button primary" disabled={locked} onClick={() => go(`register/recipient/${recipient.id}`)}>Đăng ký tiêm</button></li>)}</ul> : <div className="profile-empty"><h3>Chưa có người được tiêm</h3><p>Thêm người được tiêm hoặc tìm hồ sơ tiêm chủng có sẵn để bắt đầu.</p></div>}
+        {feedback('recipients')}
+      </section>
+      <section className="profile-panel" aria-labelledby="personal-title"><div className="profile-section-heading"><div><span className="profile-kicker">THÔNG TIN CỦA BẠN</span><h2 id="personal-title">Hồ sơ khách hàng/người quản lý</h2></div></div>
         {customers.length > 1 && <label className="demo-field profile-customer-picker"><span>Chọn hồ sơ khách hàng</span><select ref={customerAction} disabled={locked} value={customerId} onChange={event => { setCustomerId(event.target.value); setError(''); setNotice(null) }}><option value="">Chọn hồ sơ…</option>{customers.map(customer => <option value={customer.id} key={customer.id}>{customer.fullName} · #{customer.id}</option>)}</select></label>}
         {selectedCustomer ? <>
           <ProfileDetails value={selectedCustomer} />
@@ -182,14 +190,6 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
           </div>}
         </div>}
         {feedback('customers')}
-      </section>
-      <section className="profile-panel" aria-labelledby="recipients-title"><div className="profile-section-heading"><div><span className="profile-kicker">HỒ SƠ ĐÃ LIÊN KẾT</span><h2 id="recipients-title">Người được tiêm <span className="profile-count">{recipients.length}</span></h2></div>{canCreate && <button ref={recipientAction} className="button primary" disabled={locked || !selectedCustomer} onClick={() => open('recipients', { ...emptyRecipient, customerId: selectedCustomer.id })}><Plus aria-hidden="true" />Thêm mới</button>}</div>
-        <p className="profile-help">Xem và quản lý thông tin từng người trước khi đăng ký tiêm.</p>
-        {canCreate && selectedCustomer && <div className="profile-panel-actions"><button className="button outline" disabled={locked} onClick={() => open('recipients', {}, 'claim')}>Tìm hồ sơ có sẵn</button></div>}
-        {canCreate && !selectedCustomer && <p className="profile-help">{customers.length ? 'Chọn hồ sơ khách hàng ở phần Hồ sơ cá nhân để thêm người được tiêm.' : 'Cần liên kết hoặc tạo hồ sơ cá nhân trước khi thêm người được tiêm.'}</p>}
-        {!canUpdate && recipients.length > 0 && <p className="profile-help">Bạn có quyền xem thông tin. Tài khoản hiện không có quyền chỉnh sửa hồ sơ.</p>}
-        {recipients.length ? <ul className="profile-recipient-list">{recipients.map(recipient => <li key={recipient.id} className="profile-recipient-card"><div className="profile-initial" aria-hidden="true">{recipient.fullName.replace(/^\[DEMO\]\s*/, '').trim().slice(0, 1)}</div><div className="profile-recipient-info"><h3>{recipient.fullName}</h3><p>{recipient.relationshipToCustomer} · {birthDate(recipient.dateOfBirth)}</p></div><button className="button text-button" disabled={locked} aria-label={`Xem ${recipient.fullName}`} onClick={() => open('recipients', recipient, 'view')}>Xem<ArrowRight aria-hidden="true" /></button></li>)}</ul> : <div className="profile-empty"><h3>Chưa có người được tiêm</h3><p>Thêm hồ sơ để quản lý thông tin người được tiêm trong cùng tài khoản.</p></div>}
-        {feedback('recipients')}
       </section>
     </div>}
     {editor && <ProfileDialog editor={editor} setEditor={setEditor} customers={customers} busy={locked} error={error} onClose={close} onSave={() => run(save)} onDelete={() => remove(editor.resource, editor.draft)} canUpdate={canUpdate} />}

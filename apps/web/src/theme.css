@@ -124,7 +124,7 @@ button:disabled { cursor: not-allowed; opacity: .6; transform: none; }
 .recipient-list { gap: 22px; }
 .recipient-card { padding: 22px; }
 .toast { background: #0b6b57; }
-@media (max-width: 1250px) {
+@media (max-width: 1500px) {
   .site-header { flex-wrap: wrap; justify-content: space-between; gap: 12px 20px; }
   .main-nav { order: 3; width: 100%; margin: 0; justify-content: center; }
   .account-button { margin-left: auto; }

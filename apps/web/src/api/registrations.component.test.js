@@ -28,6 +28,7 @@ after(async () => { globalThis.fetch = fetchOriginal; await server?.close(); awa
 async function render(t, fee, fail) {
   let price = 500000
   let posted = []
+  const nav = { current: null }
   const preferredDate = new Date(Date.now() + 24 * 3600000).toISOString().slice(0, 10)
   let changed = false
   globalThis.fetch = async url => Response.json({ source: 'database', items: url.endsWith('/vaccines')
@@ -36,6 +37,7 @@ async function render(t, fee, fail) {
   identity.registrations = async (path, method, body) => {
     if (path === '/settings') return { consultationFee: fee }
     if (method === 'POST') {
+      assert.equal(nav.current('register/recipient/99'), false)
       posted.push(body)
       if (posted.length === 1 && fail === 'catalogChanged') {
         price = 510000; changed = true
@@ -55,7 +57,7 @@ async function render(t, fee, fail) {
   const host = document.createElement('div'); document.body.append(host)
   const root = createRoot(host)
   t.after(async () => { await act(async () => root.unmount()); host.remove() })
-  await act(async () => root.render(createElement(Registrations, { account: customer, active: true, onSavingChange() {} })))
+  await act(async () => root.render(createElement(Registrations, { account: customer, active: true, navigationRef: nav, onSavingChange() {} })))
   const field = (name, tag = 'input') => [...host.querySelectorAll('label')].find(l => l.textContent.startsWith(name))?.querySelector(tag)
   const click = async text => {
     const button = [...host.querySelectorAll('button')].find(b => b.textContent === text)
@@ -71,7 +73,7 @@ async function render(t, fee, fail) {
   }
   const submit = () => act(async () => host.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })))
   await click('Tạo đăng ký')
-  await fill('Khách hàng', '10', 'select'); await fill('Người được tiêm', '20', 'select'); await submit()
+  await fill('Người được tiêm', '20', 'select'); await submit()
   await click('Chọn'); await submit()
   assert.equal(field('Họ tên').value, customer.fullName)
   assert.equal(field('Số điện thoại').value, customer.phoneNumber)
@@ -91,6 +93,7 @@ async function render(t, fee, fail) {
   assert.equal(posted.length, 0)
   await submit()
   assert.equal(posted.length, 1)
+  assert.equal(posted[0].customerId, 10); assert.equal(posted[0].recipientId, 20)
   if (changed) {
     await submit()
     assert.equal(field('Họ tên').value, 'Liên hệ riêng')
@@ -118,3 +121,64 @@ async function render(t, fee, fail) {
 
 test('registration review retains contact and date after catalog change and renders the saved snapshot', t => render(t, 50000, 'catalogChanged'))
 test('lost response blocks another POST and retains contact and date for manual reconciliation', t => render(t, 0, 'network'))
+
+
+test('recipient links validate scope and preserve or deliberately replace a draft', async t => {
+  const owners = [customer, { ...customer, id: 12, fullName: 'Người quản lý khác' }]
+  const people = [{ ...recipient, dateOfBirth: '2020-01-01', relationshipToCustomer: 'Con' }, { id: 21, customerId: 12, fullName: 'Người thứ hai', dateOfBirth: '2019-01-01', relationshipToCustomer: 'Con' }, { id: 99, customerId: 500, fullName: 'Không thuộc phạm vi' }]
+  globalThis.fetch = async url => Response.json({ source: 'database', items: url.endsWith('/vaccines') ? [{ id: 1, name: 'Vắc xin thử', price: 500000 }] : [] })
+  identity.profiles = async path => ({ items: path.startsWith('customers') ? owners : people })
+  identity.registrations = async path => path === '/settings' ? { consultationFee: 0 } : { items: [] }
+  const host = document.createElement('div'); document.body.append(host)
+  const root = createRoot(host); const nav = { current: null }; const account = { accountId: 1 }; let destination = ''
+  t.after(async () => { await act(async () => root.unmount()); host.remove() })
+  const renderLink = link => act(async () => root.render(createElement(Registrations, { account, active: true, recipientLink: link, navigationRef: nav, go(value) { destination = value }, onSavingChange() {} })))
+  await renderLink('20')
+  assert.equal(host.querySelector('select').value, '20')
+  assert.match(host.querySelector('select').textContent, /01\/01\/2020/ )
+  assert.doesNotMatch(host.textContent, /Không thuộc phạm vi/)
+  const button = text => [...host.querySelectorAll('button')].find(b => b.textContent === text)
+  await act(async () => button('Thêm người được tiêm').click()); assert.equal(destination, 'account')
+  destination = ''; await act(async () => button('Tìm hồ sơ có sẵn').click()); assert.equal(destination, 'account')
+  await act(async () => host.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })))
+  await act(async () => button('Chọn').click())
+  assert.match(host.textContent, /Vắc xin thử/)
+  await act(async () => assert.equal(nav.current('register/recipient/20'), true))
+  await renderLink(null); await renderLink('20')
+  assert.match(host.textContent, /Dịch vụ đã chọn/)
+  window.confirm = () => false
+  await act(async () => assert.equal(nav.current('register/recipient/21'), false))
+  assert.match(host.textContent, /Dịch vụ đã chọn/)
+  window.confirm = () => true
+  await act(async () => assert.equal(nav.current('register/recipient/21'), true))
+  await renderLink('21')
+  assert.equal(host.querySelector('select').value, '21')
+  await act(async () => assert.equal(nav.current('register/recipient/99'), true))
+  await renderLink('99')
+  assert.equal(host.querySelector('select').value, '')
+  assert.match(host.textContent, /Không tìm thấy người được tiêm/)
+  assert.equal(host.querySelector('button[type=submit]').disabled, true)
+  await act(async () => assert.equal(nav.current('register/recipient/999999'), true))
+  await renderLink('999999')
+  assert.equal(host.querySelector('select').value, '')
+  assert.doesNotMatch(host.textContent, /Không thuộc phạm vi/)
+})
+
+
+test('navigation is blocked during profile loading and account change removes the old selection', async t => {
+  let release
+  const wait = new Promise(resolve => { release = resolve })
+  globalThis.fetch = async () => Response.json({ source: 'database', items: [] })
+  identity.profiles = async path => { await wait; return { items: path.startsWith('customers') ? [customer] : [recipient] } }
+  identity.registrations = async path => path === '/settings' ? { consultationFee: 0 } : { items: [] }
+  const host = document.createElement('div'); document.body.append(host)
+  const root = createRoot(host); const nav = { current: null }; const account = { accountId: 1 }
+  t.after(async () => { await act(async () => root.unmount()); host.remove() })
+  await act(async () => root.render(createElement(Registrations, { key: 1, account, active: true, recipientLink: '20', navigationRef: nav, go() {}, onSavingChange() {} })))
+  assert.equal(nav.current('register/recipient/21'), false)
+  await act(async () => { release(); await wait })
+  assert.equal(host.querySelector('select').value, '20')
+  await act(async () => root.render(createElement(Registrations, { key: 'guest', account: null, active: true, navigationRef: nav, go() {}, onSavingChange() {} })))
+  assert.doesNotMatch(host.textContent, /Người tiêm thử|Hồ sơ gốc/)
+  assert.equal(host.querySelector('select'), null)
+})

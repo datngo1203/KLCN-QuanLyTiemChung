@@ -4,7 +4,7 @@ import Profiles from './Profiles'
 import { LogOut, KeyRound } from 'lucide-react'
 import './Profiles.css'
 
-export default function Account({ account, setAccount, sessionBusy = false, onSessionBusyChange = () => {} }) {
+export default function Account({ account, setAccount, sessionBusy = false, onSessionBusyChange = () => {}, go = () => {} }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -79,14 +79,14 @@ export default function Account({ account, setAccount, sessionBusy = false, onSe
   }
   const labels = { login: 'Đăng nhập', register: 'Đăng ký tài khoản', confirm: 'Xác minh email', forgot: 'Quên mật khẩu', reset: 'Đặt lại mật khẩu' }
   return <section className={`account-page wrap ${account ? '' : 'account-auth'}`}>
-    <div className="account-page-heading"><div><span className="profile-kicker">TÀI KHOẢN VAC</span><h1 ref={authHeading} tabIndex={-1}>{account ? 'Tài khoản của bạn' : labels[mode]}</h1><p>{account ? 'Quản lý hồ sơ, người được tiêm và bảo mật tài khoản.' : mode === 'forgot' ? 'Nhập email tài khoản khách hàng để yêu cầu token đặt lại mật khẩu.' : mode === 'reset' ? 'Nhập token nhận qua email và chọn mật khẩu mới.' : 'Đăng nhập để quản lý thông tin tiêm chủng của bạn.'}</p></div>
+    <div className="account-page-heading"><div><span className="profile-kicker">TÀI KHOẢN VAC</span><h1 ref={authHeading} tabIndex={-1}>{account ? 'Hồ sơ tiêm chủng' : labels[mode]}</h1><p>{account ? 'Quản lý hồ sơ, người được tiêm và bảo mật tài khoản.' : mode === 'forgot' ? 'Nhập email tài khoản khách hàng để yêu cầu token đặt lại mật khẩu.' : mode === 'reset' ? 'Nhập token nhận qua email và chọn mật khẩu mới.' : 'Đăng nhập để quản lý thông tin tiêm chủng của bạn.'}</p></div>
       {account && <button className="button outline" disabled={busy || sessionBusy || profileBusy} onClick={() => run(async () => { await identity.logout(); closePasswordForm(); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') }, 'logout')}><LogOut aria-hidden="true" />Đăng xuất</button>}
     </div>
     {account && feedbackArea === 'logout' && error && <p className="profile-feedback error" role="alert">{error}</p>}
     {account ? <>
-      <Profiles key={account.accountId} capabilities={account.capabilities} sessionBusy={busy || sessionBusy} onBusyChange={setProfileBusy} />
+      <Profiles key={account.accountId} capabilities={account.capabilities} sessionBusy={busy || sessionBusy} onBusyChange={setProfileBusy} go={go} />
       <section className="profile-panel account-security" aria-labelledby="security-title">
-        <div className="profile-section-heading"><div><span className="profile-kicker">ĐĂNG NHẬP AN TOÀN</span><h2 id="security-title">Bảo mật tài khoản</h2><p className="profile-help">Đổi mật khẩu để bảo vệ tài khoản của bạn.</p></div>
+        <div className="profile-section-heading"><div><span className="profile-kicker">ĐĂNG NHẬP AN TOÀN</span><h2 id="security-title">Cài đặt &amp; bảo mật</h2><p className="profile-help">Quản lý phương thức đăng nhập và bảo mật của bạn.</p></div>
         <button ref={passwordAction} className="button outline" type="button" aria-expanded={passwordFormOpen} aria-controls="change-password-form" disabled={busy || sessionBusy || profileBusy} onClick={openPasswordForm}><KeyRound aria-hidden="true" />{passwordFormOpen ? 'Đóng biểu mẫu' : 'Đổi mật khẩu'}</button></div>
       {passwordFormOpen && <form id="change-password-form" className="account-password-form" onSubmit={changePassword} aria-busy={busy}>
         <h2>Đổi mật khẩu</h2>

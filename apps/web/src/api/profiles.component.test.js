@@ -20,7 +20,7 @@ before(async () => {
 })
 after(async () => { await server?.close(); await window?.happyDOM.close() })
 
-async function render(t, handler, capabilities) {
+async function render(t, handler, capabilities, go = () => {}) {
   const client = api.createIdentityClient('http://localhost', async (url, options) => {
     const path = new URL(url).pathname
     if (path.endsWith('/auth/login')) return Response.json({ accessToken: 'synthetic', refreshToken: 'synthetic' })
@@ -34,7 +34,7 @@ async function render(t, handler, capabilities) {
   const host = document.createElement('div'); document.body.append(host)
   const root = createRoot(host)
   t.after(async () => { await act(async () => root.unmount()); host.remove() })
-  await act(async () => root.render(createElement(Profiles, { capabilities })))
+  await act(async () => root.render(createElement(Profiles, { capabilities, go })))
   const button = text => [...host.querySelectorAll('button')].find(b => b.textContent === text)
   const field = (name, tag = 'input') => [...host.querySelectorAll('dialog label')].find(l => l.textContent.startsWith(name))?.querySelector(tag)
   return {
@@ -64,7 +64,7 @@ test('existing customer and recipient claims preserve the draft on network failu
     return Response.json(owner)
   }, { profilesCreate: true, selfClaim: true })
 
-  assert.equal(ui.button('Tìm hồ sơ có sẵn'), undefined)
+  assert.equal(ui.button('Tìm hồ sơ tiêm chủng có sẵn'), undefined)
   await ui.click('Đã có hồ sơ')
   await ui.fill('Họ và tên', owner.fullName); await ui.fill('Ngày sinh', owner.dateOfBirth); await ui.fill('Số điện thoại', owner.phoneNumber)
   await ui.submit()
@@ -80,7 +80,7 @@ test('existing customer and recipient claims preserve the draft on network failu
   assert.match(ui.host.textContent, /Hồ sơ kiểm thử/)
   assert.equal(ui.button('Đã có hồ sơ'), undefined)
   assert.ok(ui.button('Chỉnh sửa hồ sơ'))
-  await ui.click('Tìm hồ sơ có sẵn')
+  await ui.click('Tìm hồ sơ tiêm chủng có sẵn')
   await ui.fill('Họ và tên', child.fullName); await ui.fill('Ngày sinh', child.dateOfBirth)
   await ui.submit()
   assert.match(ui.host.textContent, /Người tiêm kiểm thử/)
@@ -106,4 +106,16 @@ test('legacy fields are readable and the editors require the controlled choices'
   await ui.click('Thêm mới')
   assert.deepEqual([...ui.field('Quan hệ', 'select').options].slice(1).map(o => o.textContent),
     ['Bản thân', 'Con', 'Anh', 'Chị', 'Em', 'Cha', 'Mẹ', 'Vợ', 'Chồng', 'Ông', 'Bà', 'Cùng hộ khẩu'])
+})
+
+
+test('recipient card presents relationship and date and starts registration for that person', async t => {
+  let destination = ''
+  const ui = await render(t, path => Response.json({ items: path === 'customers' ? [owner] : [child] }),
+    { profilesCreate: true, profilesUpdate: true }, value => { destination = value })
+  const card = ui.host.querySelector('.profile-recipient-card')
+  assert.match(card.textContent, /Con · 01\/01\/2020/)
+  assert.ok([...card.querySelectorAll('button')].some(button => button.textContent.includes('Xem hồ sơ')))
+  await ui.click('Đăng ký tiêm')
+  assert.equal(destination, 'register/recipient/11')
 })
