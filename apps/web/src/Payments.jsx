@@ -18,7 +18,7 @@ function ReadError({ error, retry, go }) {
 }
 
 export default function Payments({ account, sessionBusy, go }) {
-  return <section className="registration-page payments-page wrap">
+  return <section className="registration-page payments-page checkout-page wrap">
     <div className="page-intro"><h1>Thanh toán dịch vụ</h1><p>Chọn đăng ký, thanh toán và xem lại biên nhận.</p></div>
     {sessionBusy ? <p className="registration-message" role="status">Đang cập nhật phiên. Vui lòng chờ…</p>
       : account?.accountType === 'customer' ? <PaymentWorkspace key={account.accountId} go={go} />
