@@ -43,23 +43,33 @@ public static class CounterPaymentRules
                     !Text(card.AuthorizationReference?.Trim(), 100))
                     return "Chọn loại thẻ và nhập tên chủ thẻ, mã xác thực.";
                 if (!IsCardNumber(card.CardNumber)) return "Số thẻ phải có 12–19 chữ số và đúng định dạng.";
-                var local = now.ToOffset(TimeSpan.FromHours(7));
-                if (card.ExpiryMonth is not (>= 1 and <= 12) || card.ExpiryYear is not (>= 1 and <= 9999) ||
-                    card.ExpiryYear < local.Year || card.ExpiryYear == local.Year && card.ExpiryMonth < local.Month)
+                if (!ValidExpiry(card.ExpiryMonth, card.ExpiryYear, now))
                     return "Nhập tháng và năm hết hạn hợp lệ theo giờ Việt Nam.";
                 return null;
             case "ChuyenKhoanQR" when request.CashTendered is null && request.Card is null && request.Transfer is { } transfer:
-                var source = transfer.SourceAccountOrWalletId?.Trim();
-                return Text(transfer.SourceBankOrWallet?.Trim(), 100) && Text(transfer.AccountHolderName?.Trim(), 150) &&
-                    Text(source, 100) && source.All(IsSourceCharacter) && source.Any(char.IsAsciiLetterOrDigit) &&
-                    Text(transfer.TransferReference?.Trim(), 100) ? null :
+                return ValidTransfer(transfer) ? null :
                     "Nhập ngân hàng hoặc ví, tên chủ tài khoản, định danh nguồn và mã tham chiếu hợp lệ.";
             default:
                 return "Chọn và điền đúng một phương thức thanh toán tại trung tâm.";
         }
     }
 
-    private static bool IsCardNumber(string? value)
+    internal static bool ValidTransfer(CounterTransfer transfer)
+    {
+        var source = transfer.SourceAccountOrWalletId?.Trim();
+        return Text(transfer.SourceBankOrWallet?.Trim(), 100) && Text(transfer.AccountHolderName?.Trim(), 150) &&
+            Text(source, 100) && source.All(IsSourceCharacter) && source.Any(char.IsAsciiLetterOrDigit) &&
+            Text(transfer.TransferReference?.Trim(), 100);
+    }
+
+    internal static bool ValidExpiry(int? month, int? year, DateTimeOffset now)
+    {
+        var local = now.ToOffset(TimeSpan.FromHours(7));
+        return month is >= 1 and <= 12 && year is >= 1 and <= 9999 &&
+            (year > local.Year || year == local.Year && month >= local.Month);
+    }
+
+    internal static bool IsCardNumber([NotNullWhen(true)] string? value)
     {
         if (value is not { Length: >= 12 and <= 40 } || value.Any(c => c != ' ' && !char.IsAsciiDigit(c))) return false;
         var digits = CardDigits(value);

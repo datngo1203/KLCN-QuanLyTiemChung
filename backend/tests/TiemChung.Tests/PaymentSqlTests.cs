@@ -22,7 +22,7 @@ using Xunit;
 
 namespace TiemChung.Tests;
 
-public sealed class PaymentSqlTests
+public sealed partial class PaymentSqlTests
 {
     private const string ListPath = "/api/v1/payment-registrations";
     private static string Path(int id) => $"/api/v1/registrations/{id}/payment";
@@ -33,6 +33,8 @@ public sealed class PaymentSqlTests
         MaDangKy = registration.Id, SoTien = registration.TotalBeforeDiscount, LoaiThanhToan = "ToanBo",
         PhuongThuc = "ChuyenKhoanOnline", TrangThai = "ChoXacNhan", ThoiDiem = DateTime.UtcNow.AddMinutes(-10),
         MaGiaoDich = $"TT-{Guid.NewGuid():N}", TenNguoiThanhToan = "[DEMO] Người thanh toán", SoDienThoaiThanhToan = "0900000107",
+        TinhThanhThanhToan = "Tỉnh thử nghiệm", PhuongXaThanhToan = "Phường thử nghiệm", DiaChiThanhToan = "Địa chỉ thử nghiệm",
+        DongYDieuKhoanLuc = DateTimeOffset.UtcNow.AddMinutes(-10),
         NhaCungCapThanhToan = "Synthetic Bank", TenChuTaiKhoanThe = "[DEMO] Chủ tài khoản",
         SoDinhDanhMasked = "****0107", ThamChieuThanhToan = "DEMO-PENDING-107"
     };
@@ -361,7 +363,8 @@ public sealed class PaymentSqlTests
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
         var payment = f.Payment(registration);
-        if (kind == "status") await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
+        if (kind == "status") await f.Db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai, CK_ThanhToan_NhanVien");
         Corrupt(payment, kind); f.Db.Add(payment); await f.Db.SaveChangesAsync();
         var before = JsonSerializer.Serialize(await f.Db.Payments.AsNoTracking().SingleAsync());
         await Problem(await f.Cashier.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
@@ -447,13 +450,20 @@ public sealed class PaymentSqlTests
         var detail = paths.GetProperty("/api/v1/registrations/{id}/payment");
         Assert.Equal(new[] { "get", "post" }, detail.EnumerateObject().Select(x => x.Name).Order());
         Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/registrations/{id}/payment/confirm").EnumerateObject().Select(x => x.Name));
-        Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.EndsWith("/payment/online"));
+        var online = paths.GetProperty("/api/v1/registrations/{id}/payment/online");
+        Assert.Equal(new[] { "post" }, online.EnumerateObject().Select(x => x.Name));
+        Assert.Equal(new[] { "put" }, paths.GetProperty("/api/v1/registrations/{id}/payment/channel").EnumerateObject().Select(x => x.Name));
+        Assert.Equal(new[] { "get" }, paths.GetProperty("/api/v1/payment/settings").EnumerateObject().Select(x => x.Name));
         Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.StartsWith("/api/v1/payments"));
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("RecordPaymentRequest");
         Assert.Equal(new[] { "card", "cashTendered", "method", "payer", "transfer" },
             request.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
         Assert.False(request.GetProperty("additionalProperties").GetBoolean());
+        var onlineRequest = schemas.GetProperty("OnlinePaymentRequest");
+        Assert.Equal(new[] { "domestic", "internationalCard", "method", "payer", "termsAccepted", "transfer" },
+            onlineRequest.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
+        Assert.False(onlineRequest.GetProperty("additionalProperties").GetBoolean());
         var props = schemas.GetProperty("RegistrationPaymentDto").GetProperty("properties");
         foreach (var field in new[] { "registrationId", "registrationStatus", "customer", "recipient", "items", "subtotal", "totalDue", "paidAmount", "remainingAmount", "requiresPayment", "canRecordPayment", "isSimulation", "payment", "paymentState", "expectedChannel", "canConfirmPendingPayment" })
             Assert.True(props.TryGetProperty(field, out _), field);

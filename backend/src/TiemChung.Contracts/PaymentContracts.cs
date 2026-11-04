@@ -18,6 +18,22 @@ public sealed record CounterCard(string? CardBrand, string? CardholderName, stri
 public sealed record CounterTransfer(string? SourceBankOrWallet, string? AccountHolderName,
     string? SourceAccountOrWalletId, string? TransferReference);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record OnlinePaymentRequest(PaymentPayer? Payer, string? Method, bool TermsAccepted,
+    InternationalCard? InternationalCard = null, DomesticPayment? Domestic = null, CounterTransfer? Transfer = null);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record InternationalCard(string? CardBrand, string? CardholderName, string? CardNumber,
+    int? ExpiryMonth, int? ExpiryYear, string? Cvv);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record DomesticPayment(string? BankName, string? AccountHolderName, string? CardOrAccountNumber, string? Otp);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record PaymentChannelRequest(string? Channel);
+
+public sealed record PaymentSettingsDto(string ReceiverBankName, string ReceiverAccountName, string ReceiverAccountNumber);
+
 public sealed record PaymentDto(int Id, int RegistrationId, decimal Amount, int? EmployeeId,
     DateTimeOffset OccurredAt, string Type, string Method, string Status, bool IsSimulation,
     string? TransactionCode, PaymentPayer? Payer, string? Provider, string? HolderName,

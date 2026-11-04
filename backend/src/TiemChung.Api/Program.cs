@@ -71,7 +71,9 @@ app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/payment-registrations") ||
-        context.Request.Path.StartsWithSegments("/api/v1/registrations") && context.Request.Path.Value!.EndsWith("/payment", StringComparison.OrdinalIgnoreCase))
+        context.Request.Path.StartsWithSegments("/api/v1/registrations") &&
+        (context.Request.Path.Value!.EndsWith("/payment", StringComparison.OrdinalIgnoreCase) ||
+         context.Request.Path.Value.Contains("/payment/", StringComparison.OrdinalIgnoreCase)))
         context.Response.Headers.CacheControl = "no-store";
     try { await next(context); }
     catch (IdentityFailure failure) {

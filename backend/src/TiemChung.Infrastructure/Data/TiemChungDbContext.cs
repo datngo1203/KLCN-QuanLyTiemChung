@@ -196,9 +196,10 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
             t.HasCheckConstraint("CK_ThanhToan_TrangThai", "[TrangThai] IN ('ChoXacNhan','ThanhCong')");
             t.HasCheckConstraint("CK_ThanhToan_SoTienKhachDua", "[SoTienKhachDua] IS NULL OR [SoTienKhachDua] >= [SoTien]");
             t.HasCheckConstraint("CK_ThanhToan_NhanVien",
-                "([PhuongThuc] NOT IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') OR [MaNhanVien] IS NOT NULL) AND " +
-                "([TrangThai] <> 'ChoXacNhan' OR ([PhuongThuc] = 'ChuyenKhoanOnline' AND [MaNhanVien] IS NULL)) AND " +
-                "([PhuongThuc] <> 'ChuyenKhoanOnline' OR [TrangThai] <> 'ThanhCong' OR [MaNhanVien] IS NOT NULL)");
+                "([PhuongThuc] IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') AND [MaNhanVien] IS NOT NULL AND [TrangThai] = 'ThanhCong') OR " +
+                "([PhuongThuc] IN ('TheQuocTe','TheNoiDia') AND [MaNhanVien] IS NULL AND [TrangThai] = 'ThanhCong' AND [DongYDieuKhoanLuc] IS NOT NULL) OR " +
+                "([PhuongThuc] = 'ChuyenKhoanOnline' AND [DongYDieuKhoanLuc] IS NOT NULL AND " +
+                "(([TrangThai] = 'ChoXacNhan' AND [MaNhanVien] IS NULL) OR ([TrangThai] = 'ThanhCong' AND [MaNhanVien] IS NOT NULL)))");
         });
 
         var khuyenmai = model.Entity<KhuyenMai>();

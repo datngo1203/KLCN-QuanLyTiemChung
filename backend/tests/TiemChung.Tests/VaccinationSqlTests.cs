@@ -141,19 +141,30 @@ public sealed class VaccinationSqlTests
         });
     }
 
-    [Fact, Trait("Category", "SqlIntegration")]
-    public async Task PendingTransferBlocksVaccinationUntilCashierConfirms()
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("TheQuocTe")]
+    [InlineData("TheNoiDia")]
+    [InlineData("ChuyenKhoanOnline")]
+    public async Task OnlinePaymentGateAllowsCardsAndBlocksTransferUntilCashierConfirms(string method)
     {
         await Run(async f => {
             var source = await f.Source(recordPayment: false);
-            var payment = PaymentSqlTests.Pending(source.Registration);
-            f.Db.Add(payment); await f.Db.SaveChangesAsync();
+            using var customer = await f.Base.Actor(null, false);
+            var owner = f.Base.LastAccountId;
+            f.Db.AddRange(new AccountProfileLink { AccountId = owner, CustomerId = f.Base.CustomerId, State = "Active" },
+                new AccountProfileLink { AccountId = owner, RecipientId = f.Base.RecipientId, State = "Active" });
+            await f.Db.SaveChangesAsync();
+            var paymentPath = $"/api/v1/registrations/{source.Registration.Id}/payment";
+            using var paid = await customer.PostAsJsonAsync(paymentPath + "/online", PaymentSqlTests.Online(method));
+            Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
             var id = source.Assessment.Indications.Single().Id;
-            var before = await f.Snapshot();
-            await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(id)), 409, "vaccinationPaymentRequired");
-            Assert.Equal(before, await f.Snapshot());
-            using var confirmation = await f.Cashier.PostAsync($"/api/v1/registrations/{source.Registration.Id}/payment/confirm", null);
-            Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+            if (method == "ChuyenKhoanOnline") {
+                var before = await f.Snapshot();
+                await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(id)), 409, "vaccinationPaymentRequired");
+                Assert.Equal(before, await f.Snapshot());
+                using var confirmation = await f.Cashier.PostAsync(paymentPath + "/confirm", null);
+                Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+            }
             using var shot = await f.Nurse.PostAsJsonAsync(Route, Request(id));
             Assert.Equal(HttpStatusCode.Created, shot.StatusCode);
         });
@@ -174,10 +185,13 @@ public sealed class VaccinationSqlTests
             if(scenario=="otherRegistration")payment.MaDangKy=(await f.Register()).Id;
             if(scenario=="amount")payment.SoTien--;
             if(scenario=="status") {
-                await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
+                await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai, CK_ThanhToan_NhanVien");
                 payment.TrangThai="Legacy";
             }
-            if(scenario=="method")payment.PhuongThuc="Legacy";
+            if(scenario=="method") {
+                await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_NhanVien");
+                payment.PhuongThuc="Legacy";
+            }
             if(scenario=="type")payment.LoaiThanhToan="Legacy";
             if(scenario=="discount") {
                 var discount=new KhuyenMai {TenKhuyenMai="[DEMO] unsnapshotted",ThoiGianBatDau=DateTime.UtcNow.AddDays(-1),ThoiGianKetThuc=DateTime.UtcNow.AddDays(1),MucUuDai=1};

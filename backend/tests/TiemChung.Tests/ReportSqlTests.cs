@@ -188,8 +188,9 @@ public sealed class ReportSqlTests
             await f.Db.SaveChangesAsync();
 
             var date = new DateTime(2026, 10, 15, 3, 0, 0, DateTimeKind.Utc);
-            // Keep the legacy corrupted-status regression even though B1 forbids these inserts in normal SQL.
-            await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai");
+            // Exercise the report filter with corrupted historical rows on this disposable database.
+            await f.Db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE dbo.ThanhToan NOCHECK CONSTRAINT CK_ThanhToan_TrangThai, CK_ThanhToan_NhanVien");
             f.Db.Add(new ThanhToan { MaDangKy = reg1.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 500_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = date });
             f.Db.Add(new ThanhToan { MaDangKy = reg2.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 999_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "DangXuLy", ThoiDiem = date });
             f.Db.Add(new ThanhToan { MaDangKy = reg3.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 888_000m, PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "DaHuy", ThoiDiem = date });
