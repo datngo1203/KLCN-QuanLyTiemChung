@@ -9,7 +9,7 @@ namespace TiemChung.Api;
 
 public static class PaymentEndpoints
 {
-    private const decimal MaxMoney = 9999999999999999m;
+    private const decimal MaxMoney = RegistrationEndpoints.MaxMoney;
 
     public static void MapPaymentEndpoints(this IEndpointRouteBuilder app)
     {
@@ -119,16 +119,18 @@ public static class PaymentEndpoints
             if (lines.Length is < 1 or > 100 || lines.Any(i => i.Quantity is < 1 or > 100 ||
                 i.UnitPrice < 0 || i.UnitPrice > MaxMoney || decimal.Truncate(i.UnitPrice) != i.UnitPrice))
                 throw new IdentityFailure(409, "paymentDataConflict");
-            var total = RegistrationRules.CalculateTotal(lines);
-            if (total > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
+            var subtotal = RegistrationRules.CalculateTotal(lines);
+            var fee = row.PhiKhamTuVan ?? 0;
+            var total = subtotal + fee;
+            if (fee < 0 || decimal.Truncate(fee) != fee || total > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
             var existing = payments.Where(p => p.MaDangKy == row.MaDangKy).ToArray();
             if (existing.Length > 1 || existing.Any(p => p.LoaiThanhToan != "ToanBo" || p.PhuongThuc != "MoPhong" ||
                 p.TrangThai != "ThanhCong" || p.SoTien <= 0 || p.SoTien != total))
                 throw new IdentityFailure(409, "paymentDataConflict");
             var paid = existing.Sum(p => p.SoTien);
             return new PaymentRegistrationSummaryDto(row.MaDangKy, Utc(row.NgayDangKy), new(customer.MaKhachHang, customer.HoTen),
-                new(recipient.MaNguoiDuocTiem, recipient.HoTen), total, total, paid,
-                RegistrationRules.RemainingAmount(total, existing.Select(p => p.SoTien)), existing.SingleOrDefault()?.MaThanhToan, "VND");
+                new(recipient.MaNguoiDuocTiem, recipient.HoTen), subtotal, total, paid,
+                RegistrationRules.RemainingAmount(total, existing.Select(p => p.SoTien)), existing.SingleOrDefault()?.MaThanhToan, "VND", row.PhiKhamTuVan);
         }).ToArray();
     }
 
@@ -145,6 +147,6 @@ public static class PaymentEndpoints
             payment is not null ? "Đã ghi nhận thanh toán mô phỏng toàn bộ; không xử lý tiền thật."
                 : summary.TotalDue == 0 ? "Không phát sinh khoản thu." : "Chưa ghi nhận thanh toán mô phỏng; không xử lý tiền thật.",
             payment is null ? null : new(payment.MaThanhToan, payment.MaDangKy, payment.SoTien, payment.MaNhanVien,
-                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true));
+                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true), summary.ConsultationFee);
     }
 }

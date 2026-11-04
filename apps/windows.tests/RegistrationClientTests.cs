@@ -41,16 +41,22 @@ public sealed class RegistrationClientTests
         var recipients = await api.GetRecipientsAsync(10);
         Assert.Equal(101, recipients.Length);
         Assert.Contains(handler.Paths, x => x.Contains("recipients?customerId=10&page=2&pageSize=100"));
-        var request = new RegistrationRequest(10, 20, [new("vaccine", 1, 2, 1234567890123456m, null), new("package", 2, 1, 350000m, [new(1, 2)])]);
+        var request = new RegistrationRequest(10, 20, [new("vaccine", 1, 2, 1234567890123456m, null), new("package", 2, 1, 350000m, [new(1, 2)])], PreferredDate, SyntheticContact);
         Assert.Equal(7, await api.CreateAsync(request));
         using var body = JsonDocument.Parse(handler.PostBody!);
-        Assert.Equal(new[] { "customerId", "recipientId", "items" }, body.RootElement.EnumerateObject().Select(x => x.Name));
+        Assert.Equal(new[] { "customerId", "recipientId", "items", "preferredDate", "contact" }, body.RootElement.EnumerateObject().Select(x => x.Name));
+        Assert.Equal(PreferredDate.ToString("yyyy-MM-dd"), body.RootElement.GetProperty("preferredDate").GetString());
+        Assert.Equal(SyntheticContact.Email, body.RootElement.GetProperty("contact").GetProperty("email").GetString());
+        Assert.Equal(50000m, (await api.GetSettingsAsync()).ConsultationFee);
         var lines = body.RootElement.GetProperty("items");
         Assert.Equal(1234567890123456m, lines[0].GetProperty("expectedUnitPrice").GetDecimal());
         Assert.Equal(new[] { "vaccineId", "quantity" }, lines[1].GetProperty("expectedComponents")[0].EnumerateObject().Select(x => x.Name));
         await api.GetRegistrationsAsync(3);
         Assert.Contains(handler.Paths, x => x.Contains("registrations?page=3&pageSize=25"));
         var detail = await api.GetDetailAsync(7);
+        Assert.Equal(PreferredDate, detail.PreferredDate);
+        Assert.Equal(SyntheticContact, detail.Contact);
+        Assert.Equal(650000m, detail.TotalBeforeDiscount);
         Assert.Equal(600000m, detail.Subtotal);
         Assert.Equal(300000m, detail.Items[0].LineTotal);
         handler.Source = "demo";
@@ -118,6 +124,33 @@ public sealed class RegistrationClientTests
     }
 
     [Fact]
+    public async Task ContactDraftValidatesAndSavesIndependentlyOfCustomer()
+    {
+        var fake = new Fake { Fee = 50000 };
+        var vm = await Draft(fake);
+        Assert.Equal(700000m, vm.TotalBeforeDiscount);
+        vm.ContactFullName = " Liên hệ thử ";
+        vm.ContactPhone = "０９１２３４５６７８";
+        Assert.False(vm.CanSubmit);
+        vm.ContactPhone = SyntheticContact.PhoneNumber!;
+        vm.ContactEmail = "invalid";
+        Assert.False(vm.CanSubmit);
+        vm.ContactEmail = SyntheticContact.Email!;
+        vm.AddressLine = " ";
+        Assert.False(vm.CanSubmit);
+        vm.AddressLine = SyntheticContact.AddressLine!;
+        vm.PreferredDate = vm.VietnamToday.AddDays(-1);
+        Assert.False(vm.CanSubmit);
+        vm.PreferredDate = vm.VietnamToday;
+        Assert.True(vm.CanSubmit);
+        await vm.SaveAsync();
+        Assert.Equal("Customer", vm.Customer!.Name);
+        Assert.Equal("test@example.invalid", vm.Customer.Email);
+        Assert.Equal(SyntheticContact, fake.LastRequest!.Contact);
+        Assert.Equal(SyntheticContact, vm.Detail!.Contact);
+    }
+
+    [Fact]
     public async Task SaveBlocksDoubleSendAndDetailFailureRetriesOnlyGet()
     {
         var fake = new Fake { CreateGate = new(), FailDetail = true }; var vm = await Draft(fake);
@@ -137,7 +170,11 @@ public sealed class RegistrationClientTests
     {
         var fake = new Fake { Error = "validation" }; var vm = await Draft(fake);
         await vm.SaveAsync(); Assert.Equal(2, vm.Lines.Count); Assert.NotNull(vm.Customer); Assert.True(vm.CanSubmit);
+        vm.ContactEmail = "draft@example.invalid";
+        var preferredDate = vm.PreferredDate;
         fake.Error = "outcomeUnknown"; await vm.SaveAsync();
+        Assert.Equal("draft@example.invalid", vm.ContactEmail);
+        Assert.Equal(preferredDate, vm.PreferredDate);
         Assert.True(vm.UnknownOutcome); Assert.False(vm.CanSubmit); Assert.False(vm.NewCommand.CanExecute(null));
         await vm.SaveAsync(); Assert.Equal(2, fake.PostCount);
         await vm.NewAsync(); Assert.Equal(2, vm.Lines.Count);
@@ -155,9 +192,13 @@ public sealed class RegistrationClientTests
     {
         var fake = new Fake { Error = "catalogChanged" }; var vm = await Draft(fake);
         fake.Catalog = [new(1, "Vaccine", "vaccine", 310000, null), new(2, "Package", "package", 360000, [new(1, 3, "Vaccine")])];
+        vm.ContactEmail = "retained@example.invalid";
+        var preferredDate = vm.PreferredDate;
         fake.FailCatalog = true; await vm.SaveAsync();
         Assert.Equal(2, vm.Lines.Count); Assert.False(vm.CanSubmit); Assert.False(vm.NeedsCatalogConfirmation);
         fake.FailCatalog = false; vm.ReloadCatalogCommand.Execute(null); await Idle(vm);
+        Assert.Equal("retained@example.invalid", vm.ContactEmail);
+        Assert.Equal(preferredDate, vm.PreferredDate);
         Assert.Contains("300", vm.CatalogNotice); Assert.Contains("310", vm.CatalogNotice); Assert.Contains("× 3", vm.CatalogNotice);
         Assert.True(vm.NeedsCatalogConfirmation); Assert.False(vm.CanSubmit);
         Assert.Equal(310000m, vm.Lines[0].UnitPrice); Assert.Equal(3, vm.Lines[1].Components![0].Quantity);
@@ -193,9 +234,12 @@ public sealed class RegistrationClientTests
         await vm.SaveAsync(); Assert.False(vm.HasAccess); Assert.False(vm.ShowDraft); Assert.Empty(vm.Lines); Assert.Empty(vm.Customers);
     }
 
-    private static readonly RegistrationRequest Request = new(10, 20, [new("vaccine", 1, 1, 300000m, null)]);
-    private static readonly RegistrationSummary Summary = new(7, DateTimeOffset.UtcNow, "DaDangKy", new(10, "Customer"), new(20, "Recipient"), null, 600000m, "VND");
-    private static readonly RegistrationDetail Detail = new(7, DateTimeOffset.UtcNow, "DaDangKy", new(10, "Customer"), new(20, "Recipient"), 1, [new(1, "Vaccine", "vaccine", 2, 150000m, null)], 600000m, "VND");
+    internal static DateOnly PreferredDate => DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date.AddDays(1));
+    internal static readonly RegistrationContact SyntheticContact = new("Liên hệ thử", "09123456789",
+        "snapshot@example.invalid", "Tỉnh thử", "Phường thử", "Địa chỉ thử");
+    private static RegistrationRequest Request => new(10, 20, [new("vaccine", 1, 1, 300000m, null)], PreferredDate, SyntheticContact);
+    private static readonly RegistrationSummary Summary = new(7, DateTimeOffset.UtcNow, "DaDangKy", new(10, "Customer"), new(20, "Recipient"), null, 600000m, "VND", null, null);
+    private static readonly RegistrationDetail Detail = new(7, DateTimeOffset.UtcNow, "DaDangKy", new(10, "Customer"), new(20, "Recipient"), 1, [new(1, "Vaccine", "vaccine", 2, 150000m, null)], 600000m, "VND", PreferredDate, SyntheticContact, 50000m);
     private static async Task<IdentityApiService> Login(Handler handler)
     {
         var identity = new IdentityApiService(new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") });
@@ -205,6 +249,11 @@ public sealed class RegistrationClientTests
     {
         var vm = new RegistrationViewModel(fake, identity ?? await Login(new Handler())); await vm.NewAsync();
         vm.Customer = vm.Customers[0]; await vm.LoadRecipientsAsync(); vm.Recipient = vm.Recipients[0];
+        Assert.Equal("Customer", vm.ContactFullName);
+        Assert.Equal("0900000000", vm.ContactPhone);
+        Assert.Equal("test@example.invalid", vm.ContactEmail);
+        vm.ProvinceCity = "Tỉnh thử"; vm.WardCommune = "Phường thử"; vm.AddressLine = "Địa chỉ thử";
+        vm.PreferredDate = vm.VietnamToday.AddDays(1);
         foreach (var item in vm.Catalog) { vm.CatalogItem = item; vm.AddLineCommand.Execute(null); }
         return vm;
     }
@@ -226,9 +275,13 @@ public sealed class RegistrationClientTests
         }
         public Task<RecipientRecord[]> GetRecipientsAsync(int id) => Task.FromResult<RecipientRecord[]>([new(20, id, "Recipient", null, new(2000, 1, 1), "Nam", "Con")]);
         public Task<RegistrationCatalogItem[]> GetCatalogAsync() => FailCatalog ? throw new HttpRequestException() : Task.FromResult(Catalog);
+        public Task<RegistrationSettings> GetSettingsAsync() => Task.FromResult(new RegistrationSettings(Fee));
+        public decimal Fee { get; init; }
+        public RegistrationRequest? LastRequest { get; private set; }
         public Task<RegistrationSummary[]> GetRegistrationsAsync(int page) => FailList ? throw new HttpRequestException() : ListGate?.Task ?? Task.FromResult(page == 1 ? Enumerable.Repeat(Summary, 25).ToArray() : []);
         public Task<RegistrationDetail> GetDetailAsync(int id) { DetailCount++; if (FailDetail) throw new HttpRequestException(); return Task.FromResult(Detail); }
         public Task<int> CreateAsync(RegistrationRequest request) {
+            LastRequest = request;
             PostCount++; if (Error is not null) throw new RegistrationApiException(Error, "Safe error");
             return CreateGate?.Task ?? Task.FromResult(7);
         }
@@ -261,6 +314,7 @@ public sealed class RegistrationClientTests
             if (path.Contains("/recipients?")) return Json(new { items = Enumerable.Range(0, path.Contains("page=1&") ? 100 : 1).Select(i => new { id = i + 1, customerId = 10, fullName = "Recipient", dateOfBirth = "2000-01-01", gender = "Nam", relationshipToCustomer = "Con" }) });
             if (path.EndsWith("/catalog/vaccines")) return Json(new { source = Source, items = new[] { new { id = 1, name = "Vaccine", price = 300000m } } });
             if (path.EndsWith("/catalog/packages")) return Json(new { source = Source, items = new[] { new { id = 2, name = "Package", price = 350000m, items = new[] { new { vaccineId = 1, quantity = 2 } } } } });
+            if (path.EndsWith("/registrations/settings")) return Json(new { consultationFee = 50000 });
             if (path.Contains("/registrations?")) return Json(new { items = new[] { Summary } });
             if (path.EndsWith("/registrations/7")) return Json(Detail);
             throw new InvalidOperationException(path);

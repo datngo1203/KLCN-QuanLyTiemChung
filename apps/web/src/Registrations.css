@@ -50,6 +50,7 @@
 .registration-review-profiles { display: flex; flex-wrap: wrap; gap: 24px; padding-block: 16px; }
 .registration-review-profiles dt { color: var(--muted); font-size: 13px; }
 .registration-review-profiles dd { margin: 6px 0; font-weight: 600; }
+.registration-contact-summary > div { min-width: 0; overflow-wrap: anywhere; }
 .registration-form-actions { justify-content: flex-end; }
 @media (max-width: 850px) { .registration-workspace { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) {

@@ -81,7 +81,7 @@ public sealed class ClinicalSqlTests
             VacXin Vaccine(string name)=>new(){Code="VX-"+name.ToUpperInvariant().Replace("[DEMO] ","DEMO-").Replace(" ","-"),TenVacXin=name,TrangThai="Active",Gia=200};
             var second=Vaccine("[DEMO] component 2");var outside=Vaccine("[DEMO] other registration vaccine");f.Db.AddRange(second,outside);await f.Db.SaveChangesAsync();
             f.Db.Add(new GoiVacXin_VacXin {MaGoi=package.MaGoi,MaVacXin=second.MaVacXin,SoLuong=3});await f.Db.SaveChangesAsync();
-            async Task<RegistrationDto> Register(RegistrationItemRequest[] items){using var response=await f.Reception.PostAsJsonAsync("/api/v1/registrations",new CreateRegistrationRequest(f.CustomerId,f.RecipientId,items));Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;}
+            async Task<RegistrationDto> Register(RegistrationItemRequest[] items){using var response=await f.Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(f.CustomerId,f.RecipientId,items));Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;}
             var other=await Register([new("vaccine",outside.MaVacXin,1,outside.Gia)]);
             var registration=await Register([new("package",package.MaGoi,4,package.GiaGoi,[new(first.MaVacXin,2),new(second.MaVacXin,3)])]);
             var appointment=await Appointment(f,registration,"package");using var doctor=await f.Actor("BacSi",false);

@@ -13,9 +13,10 @@ public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, i
 }
 public sealed record PaymentRegistration(int Id, DateTimeOffset CreatedAt, RegistrationPerson Customer,
     RegistrationPerson Recipient, decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount,
-    int? PaymentId, string Currency)
+    int? PaymentId, string Currency, decimal? ConsultationFee = null)
 {
     public string Code => $"DK-{Id:0000}";
+    public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
     public string State => PaymentId is not null ? "Đã ghi nhận mô phỏng" : TotalDue == 0 ? "Không phát sinh khoản thu" : "Chưa ghi nhận thanh toán";
 }
 public sealed record PaymentLine(int Id, string Kind, int ServiceId, string Name, int Quantity, decimal UnitPrice,
@@ -29,9 +30,10 @@ public sealed record RegistrationPayment(int RegistrationId, string Registration
     [property: JsonRequired] decimal TotalDue, [property: JsonRequired] decimal PaidAmount,
     [property: JsonRequired] decimal RemainingAmount, string Currency,
     [property: JsonRequired] bool RequiresPayment, [property: JsonRequired] bool CanRecordPayment,
-    [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment)
+    [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment, decimal? ConsultationFee = null)
 {
     public string Code => $"DK-{RegistrationId:0000}";
+    public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
     public string State => Payment is not null ? "Đã ghi nhận thanh toán mô phỏng" : !RequiresPayment && TotalDue == 0
         ? "Không phát sinh khoản thu (tổng 0)" : "Chưa ghi nhận thanh toán";
     public string RecordedLabel => Payment?.RecordedLabel ?? "Chưa có giao dịch.";

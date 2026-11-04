@@ -118,6 +118,13 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dangkydichvu.Property(x => x.HinhThucTiem).HasColumnType("nvarchar(50)");
         dangkydichvu.Property(x => x.HinhThucTiem).IsRequired(false);
         dangkydichvu.Property(x => x.ThoiGianDuKien).HasColumnType("datetime2");
+        dangkydichvu.Property(x => x.TenNguoiLienHe).HasColumnType("nvarchar(150)");
+        dangkydichvu.Property(x => x.SoDienThoaiLienHe).HasColumnType("varchar(11)");
+        dangkydichvu.Property(x => x.EmailLienHe).HasColumnType("nvarchar(254)");
+        dangkydichvu.Property(x => x.TinhThanhLienHe).HasColumnType("nvarchar(100)");
+        dangkydichvu.Property(x => x.PhuongXaLienHe).HasColumnType("nvarchar(100)");
+        dangkydichvu.Property(x => x.DiaChiLienHe).HasColumnType("nvarchar(250)");
+        dangkydichvu.Property(x => x.PhiKhamTuVan).HasColumnType("decimal(18,0)");
         dangkydichvu.Property(x => x.TrangThai).HasColumnType("nvarchar(30)");
         dangkydichvu.Property(x => x.TrangThai).IsRequired();
         dangkydichvu.Property<byte[]>("RowVersion").IsRowVersion();

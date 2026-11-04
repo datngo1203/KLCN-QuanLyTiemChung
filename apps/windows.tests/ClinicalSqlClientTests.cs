@@ -44,7 +44,7 @@ public sealed class ClinicalSqlClientTests
         }));
         using var receptionClient=factory.CreateClient();var reception=new IdentityApiService(receptionClient);Assert.True((await reception.LoginAsync("LeTan",password)).Succeeded);
         var registrationApi=new RegistrationApiService(reception);var catalog=await registrationApi.GetCatalogAsync();var single=catalog.First(x=>x.Kind=="vaccine");var package=catalog.First(x=>x.Kind=="package");
-        var registrationId=await registrationApi.CreateAsync(new(customer.MaKhachHang,recipient.MaNguoiDuocTiem,[new("vaccine",single.Id,2,single.Price,null),new("package",package.Id,2,package.Price,package.Components!.Select(c=>new RegistrationComponentRequest(c.VaccineId,c.Quantity)).ToArray())]));
+        var registrationId=await registrationApi.CreateAsync(new(customer.MaKhachHang,recipient.MaNguoiDuocTiem,[new("vaccine",single.Id,2,single.Price,null),new("package",package.Id,2,package.Price,package.Components!.Select(c=>new RegistrationComponentRequest(c.VaccineId,c.Quantity)).ToArray())], RegistrationClientTests.PreferredDate, RegistrationClientTests.SyntheticContact));
         var appointmentApi=new AppointmentApiService(reception);var source=await appointmentApi.GetSourceAsync(registrationId);
         foreach(var item in source.Items)await appointmentApi.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1),"[DEMO] clinical room"));
         await reception.LogoutAsync();

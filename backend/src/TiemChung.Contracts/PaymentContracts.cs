@@ -10,11 +10,11 @@ public sealed record PaymentDto(int Id, int RegistrationId, decimal Amount, int 
 
 public sealed record PaymentRegistrationSummaryDto(int Id, DateTimeOffset CreatedAt,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, decimal Subtotal, decimal TotalDue,
-    decimal PaidAmount, decimal RemainingAmount, int? PaymentId, string Currency);
+    decimal PaidAmount, decimal RemainingAmount, int? PaymentId, string Currency, decimal? ConsultationFee);
 
 public sealed record PaymentRegistrationListResponse(PaymentRegistrationSummaryDto[] Items);
 
 public sealed record RegistrationPaymentDto(int RegistrationId, string RegistrationStatus,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, RegistrationItemDto[] Items,
     decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount, string Currency,
-    bool RequiresPayment, bool CanRecordPayment, bool IsSimulation, string Message, PaymentDto? Payment);
+    bool RequiresPayment, bool CanRecordPayment, bool IsSimulation, string Message, PaymentDto? Payment, decimal? ConsultationFee);

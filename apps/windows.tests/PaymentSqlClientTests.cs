@@ -22,17 +22,21 @@ namespace TiemChung.Windows.Tests;
 public sealed class PaymentSqlClientTests
 {
     [SqlTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WindowsClientRecordsViaRealG2G3SqlAndReconcilesLostCommitResponse(bool loseResponse)
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 50000)]
+    [InlineData(true, 50000)]
+    public async Task WindowsClientRecordsViaRealG2G3SqlAndReconcilesLostCommitResponse(bool loseResponse, int fee)
     {
-        await using var f = await PaymentSqlFixture.Create();
+        await using var f = await PaymentSqlFixture.Create(fee: fee);
         var transport = new LoseResponseHandler(f.Factory.Server.CreateHandler(), loseResponse);
         var identity = new IdentityApiService(new HttpClient(transport) { BaseAddress = f.Client.BaseAddress });
         Assert.True((await identity.LoginAsync("g3c.cashier", f.Password)).Succeeded);
         var api = new PaymentApiService(identity); var vm = new PaymentViewModel(api, identity);
         await vm.LoadPageAsync(1); vm.SelectedRegistration = Assert.Single(vm.Registrations); await vm.LoadDetailAsync();
-        Assert.Equal(f.RegistrationId, vm.Detail!.RegistrationId); Assert.Equal(650000m, vm.Detail.TotalDue);
+        Assert.Equal(f.RegistrationId, vm.Detail!.RegistrationId); Assert.Equal(650000m + fee, vm.Detail.TotalDue);
+        Assert.Equal(650000m, vm.Detail.Subtotal); Assert.Equal(fee, vm.Detail.ConsultationFee);
+        Assert.Equal(fee, vm.SelectedRegistration!.ConsultationFee);
         Assert.Equal(2, vm.Detail.Items.Length); Assert.True(vm.CanRecord);
         vm.BeginConfirmation(); await vm.ConfirmAsync(true);
         Assert.Equal(1, transport.PostCount); Assert.False(vm.CanRecord);
@@ -42,7 +46,7 @@ public sealed class PaymentSqlClientTests
         using var fresh = f.NewDb();
         var row = Assert.Single(await fresh.Payments.AsNoTracking().ToArrayAsync());
         Assert.Equal(f.RegistrationId, row.MaDangKy); Assert.Equal(saved.Id, row.MaThanhToan);
-        Assert.Equal(650000m, saved.Amount); Assert.Equal(row.SoTien, saved.Amount);
+        Assert.Equal(650000m + fee, saved.Amount); Assert.Equal(row.SoTien, saved.Amount);
         Assert.Equal(row.MaNhanVien, saved.EmployeeId); Assert.Equal(row.ThoiDiem, saved.OccurredAt.UtcDateTime);
         var audit = Assert.Single(await fresh.Set<SecurityAudit>().Where(a => a.Action == "payments.recorded" && a.Outcome == "Success").ToArrayAsync());
         Assert.Equal(saved.Id.ToString(), audit.ResourceId);
@@ -95,13 +99,14 @@ public sealed class PaymentSqlFixture : IAsyncDisposable
     public int RegistrationId { get; private set; }
     public HttpClient CreateClient() => Factory.CreateClient();
     public TiemChungDbContext NewDb() => new(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(Db.Database.GetConnectionString()).Options);
-    public static async Task<PaymentSqlFixture> Create(bool useKestrel = false)
+    public static async Task<PaymentSqlFixture> Create(bool useKestrel = false, int fee = 0)
     {
         var connection = new SqlConnectionStringBuilder(Environment.GetEnvironmentVariable("M1_SQL_TEST_CONNECTION") ?? throw new InvalidOperationException("SQL test required.")) {
             InitialCatalog = "KLCN_G3C_Test_" + Guid.NewGuid().ToString("N")
         }.ConnectionString;
         var password = "G3C-" + Guid.NewGuid().ToString("N") + "!Aa1";
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Registration:ConsultationFeeVnd"] = fee.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["ConnectionStrings:TiemChung"] = connection, ["Catalog:UseDemoData"] = "false", ["Identity:MailMode"] = "Disabled",
             ["Identity:SigningKey"] = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
             ["DevelopmentSeed:Username"] = "g3c.admin", ["DevelopmentSeed:Password"] = password,
@@ -143,7 +148,10 @@ public sealed class PaymentSqlFixture : IAsyncDisposable
         f.RegistrationId = await registrationApi.CreateAsync(new(customer.MaKhachHang, recipient.MaNguoiDuocTiem, [
             new("vaccine", vaccine.Id, 2, vaccine.Price, null),
             new("package", package.Id, 1, package.Price, package.Components!.Select(c => new RegistrationComponentRequest(c.VaccineId, c.Quantity)).ToArray())
-        ]));
+        ], RegistrationClientTests.PreferredDate, RegistrationClientTests.SyntheticContact));
+        var detail = await registrationApi.GetDetailAsync(f.RegistrationId);
+        Assert.Equal(RegistrationClientTests.PreferredDate, detail.PreferredDate);
+        Assert.Equal(RegistrationClientTests.SyntheticContact, detail.Contact);
         await reception.LogoutAsync(); return f;
     }
     public async ValueTask DisposeAsync() { Client.Dispose(); await Factory.DisposeAsync(); await Db.DisposeAsync(); }

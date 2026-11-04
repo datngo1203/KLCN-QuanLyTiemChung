@@ -54,6 +54,7 @@ Base URL phát triển: `http://localhost:5080`. JSON camelCase, tiền decimal 
 | GET `/api/v1/appointments` | Danh sách lịch SQL đã liên kết nguồn; phân trang/bộ lọc theo S5.1 | Bearer; cùng quyền tạo lịch |
 | GET `/api/v1/appointments/{id}` | Chi tiết buổi hẹn, thời gian UTC | Bearer; cùng quyền tạo lịch |
 | POST `/api/v1/registrations` | Tạo đầu đăng ký và toàn bộ chi tiết lẻ/gói trong một transaction; 201 + Location | Bearer; Customer có cả hai liên kết Active hoặc nhân viên Active LeTan |
+| GET `/api/v1/registrations/settings` | Đọc phí khám/tư vấn để xem lại trước khi đăng ký | Bearer; cùng quyền G2 |
 | GET `/api/v1/registrations?customerId=&recipientId=&page=&pageSize=` | Danh sách đăng ký SQL trong phạm vi hiện hành | Bearer; cùng quyền G2 |
 | GET `/api/v1/registrations/{id}` | Chi tiết đăng ký, đơn giá đã chốt và thành phần gói | Bearer; cùng quyền G2 |
 | GET `/api/v1/payment-registrations?search=&customerId=&recipientId=&page=&pageSize=` | Tra cứu đăng ký SQL và tiền phải thu | Bearer; ThuNgan Active + XemThanhToan |
@@ -156,7 +157,17 @@ Tái sử dụng Profiles M1 và AccountProfileLink. Nhân viên Active đọc �
 
 Web: Tài khoản → Hồ sơ của tôi, tạo/sửa hồ sơ và người được tiêm. Windows: Hồ sơ → tải/tìm, tạo/sửa/xóa khách hàng và bé qua API thật. Nullable CustomerDto.IdentityNumber là thay đổi contract cần review chéo trước merge.
 
-## G2B — Registration (backend, chưa nối Web/Windows)
+## RF-04A — Thông tin liên hệ, ngày mong muốn và phí khám/tư vấn
+
+Contract dưới đây bổ sung G2/G3 và áp dụng cho Web và Windows.
+
+- `GET /api/v1/registrations/settings` yêu cầu cùng phiên/quyền đọc đăng ký, trả `{ consultationFee }` cho bước xem lại. API đọc `Registration:ConsultationFeeVnd` lúc khởi động (biến môi trường `Registration__ConsultationFeeVnd`). Thiếu key dùng 0. Chỉ nhận chuỗi chữ số biểu diễn VND nguyên trong giới hạn 0–9 999 999 999 999 999. Cấu hình sai trả 503 `dependencyUnavailable` ở GET settings và POST đăng ký.
+- POST bắt buộc `preferredDate` dạng `yyyy-MM-dd`, từ hôm nay tại UTC+07:00. Lưu 00:00:00 của ngày đã chọn vào `ThoiGianDuKien` và đọc phần ngày trực tiếp. Đây là ngày mong muốn, luồng này chưa tạo lịch.
+- POST bắt buộc `contact: { fullName, phoneNumber, email, provinceCity, wardCommune, addressLine }`. Tên/tỉnh hoặc thành phố/phường hoặc xã/địa chỉ được trim, độ dài lần lượt 1–150/1–100/1–100/1–250. Điện thoại 10–11 chữ số ASCII, email hợp lệ tối đa 254 ký tự. Contact được lưu riêng trên đăng ký; Customer master giữ dữ liệu hồ sơ.
+- API chốt phí cấu hình tại POST; request chỉ gửi hồ sơ, contact, ngày và items. `subtotal` vẫn là tổng dòng dịch vụ. API giới hạn `totalBeforeDiscount = subtotal + consultationFee` theo giới hạn VND. Detail trả `preferredDate`, `contact`, `consultationFee` và `totalBeforeDiscount`; list trả các trường mới trừ contact. Trường lịch sử chưa có dữ liệu trả null và tổng coi phí null bằng 0.
+- Payment list/detail thêm `consultationFee`. `subtotal` vẫn là tiền dịch vụ và `totalDue` gồm phí đã chốt. Cashier chỉ ghi đúng toàn bộ `totalDue`. S5 dùng cùng số tiền để kiểm đủ thanh toán. Đăng ký có mã ưu đãi tiếp tục bị từ chối theo quy tắc G3 hiện hành.
+
+## G2B — Registration
 
 Một đăng ký gồm một khách hàng, một người được tiêm và 1–100 dòng vắc xin lẻ/gói. Không mở sửa/xóa/hủy/chuyển trạng thái hoặc `POST registrations/{id}/items`. Không có giỏ hàng SQL, giữ tồn, hàng đợi, lịch, thanh toán, khám, ghi tiêm hoặc ưu đãi trong G2. Thành công chỉ có nghĩa đã lưu đăng ký, không có nghĩa đủ điều kiện tiêm.
 
@@ -168,6 +179,15 @@ Một đăng ký gồm một khách hàng, một người được tiêm và 1�
 {
   "customerId": 12,
   "recipientId": 34,
+  "preferredDate": "2026-11-05",
+  "contact": {
+    "fullName": "Liên hệ thử",
+    "phoneNumber": "09123456789",
+    "email": "contact@example.invalid",
+    "provinceCity": "Tỉnh thử",
+    "wardCommune": "Phường thử",
+    "addressLine": "Địa chỉ thử"
+  },
   "items": [
     { "kind": "vaccine", "serviceId": 5, "quantity": 2, "expectedUnitPrice": 150000 },
     { "kind": "package", "serviceId": 3, "quantity": 1, "expectedUnitPrice": 350000,
@@ -181,7 +201,7 @@ Một đăng ký gồm một khách hàng, một người được tiêm và 1�
 - Dòng gói bắt buộc `expectedComponents`: 1–100 vaccine ID khác nhau, quantity 1–100; so sánh tập ID/số lượng không phụ thuộc thứ tự. Dòng lẻ bỏ trường này hoặc gửi null. Thuộc tính JSON không được định nghĩa bị từ chối ở cả request, dòng và thành phần.
 - Các trường expected chỉ kiểm nội dung người dùng đã xem. API đọc giá/trạng thái/thành phần SQL trong transaction; giá gói lấy `GiaGoi`, không cộng giá thành phần. Giá/thành phần khác expected trả 409 `catalogChanged`; không tạo đăng ký. Client tải lại danh mục, giữ bản nháp và cho người dùng xem/xác nhận lại; không tự retry POST khi timeout.
 - Dịch vụ và vắc xin thành phần phải tồn tại, có trạng thái `Active`; gói không rỗng, số lượng thành phần hợp lệ. Không kiểm tồn/tuổi/phác đồ/chỉ định trong G2. Catalog runtime chỉ có nguồn SQL; POST đăng ký luôn đối chiếu SQL, không fallback.
-- Server tự gán `id`, `createdAt` UTC, `status="DaDangKy"`, `employeeId` từ phiên nhân viên hoặc null với Customer. `HinhThucTiem`, `ThoiGianDuKien`, `MaKhuyenMai` để NULL. Không nhận nhân viên, quyền, trạng thái, tổng tiền, thời điểm, hồ sơ mới hoặc ưu đãi từ request.
+- Server tự gán `id`, `createdAt` UTC, `status="DaDangKy"`, `employeeId` từ phiên nhân viên hoặc null với Customer. `HinhThucTiem` và `MaKhuyenMai` để NULL. `ThoiGianDuKien` lưu ngày mong muốn theo RF-04A. Không nhận nhân viên, quyền, trạng thái, tổng tiền, thời điểm, hồ sơ mới hoặc ưu đãi từ request.
 - Đầu đăng ký, hai loại chi tiết có `GiaTaiThoiDiemDangKy` và `SecurityAudit` (`registrations.created`, ActorAccountId, SessionId, OccurredAt, ResourceType/ResourceId) commit cùng nhau. Lỗi xác thực/validation/danh mục/ghi/audit rollback toàn bộ. Dùng transaction Serializable hiện có; gói được khóa theo thứ tự ID và Catalog PUT dùng cùng khóa gói, giá vắc xin được giữ ổn định tới commit. Chưa có idempotency tổng quát.
 
 201 trả `Location: /api/v1/registrations/{id}` và `RegistrationDto`:
@@ -191,7 +211,7 @@ Một đăng ký gồm một khách hàng, một người được tiêm và 1�
   customer: { id, fullName }, recipient: { id, fullName }, employeeId: int|null,
   items: [{ id, kind, serviceId, name, quantity, unitPrice, lineTotal,
             components: null | [{ vaccineId, quantity, vaccineName }] }],
-  subtotal, currency: "VND" }
+  preferredDate, contact, subtotal, consultationFee, totalBeforeDiscount, currency: "VND" }
 ```
 
 `id` của dòng là khóa chi tiết tương ứng; cần đi cùng `kind` vì hai bảng có thể trùng ID số. Các dòng trả lẻ trước, gói sau, mỗi loại theo ID tăng dần. `unitPrice` đọc giá đã lưu; `lineTotal=quantity*unitPrice`; `subtotal` cộng các dòng, không lấy giá Catalog mới. `components.quantity` là số lượng trong **một** gói. Tên khách hàng/người tiêm/dịch vụ vẫn là tên hiện hành, không có snapshot tên. Thành phần gói được bảo toàn bằng chặn sửa gói đã tham chiếu, không thêm bảng snapshot.
@@ -201,7 +221,7 @@ Một đăng ký gồm một khách hàng, một người được tiêm và 1�
 - Customer: tài khoản Active, email đã xác minh, phiên hợp lệ; cần liên kết `AccountProfileLink` Active trực tiếp với **cả** Customer và Recipient, và `NguoiDuocTiem.MaKhachHang` đúng khách hàng đăng ký. Không tự nhận hồ sơ bằng CCCD/email, không suy quyền từ liên kết Customer sang mọi Recipient.
 - Nhân viên Active chức danh `LeTan` được tạo/xem mọi đăng ký phục vụ tiếp nhận; các chức danh khác, kể cả Admin, bị 403. Không thêm mã quyền/capabilities Identity. Client dùng `accountType`/`employee.title` hiện có để thể hiện UI; API vẫn kiểm hiện hành.
 - Quyền xem theo liên kết hiện tại, không theo tài khoản từng tạo: khách hàng đủ liên kết xem được đăng ký do Lễ tân tạo; mất một liên kết thì đăng ký biến mất khỏi danh sách, detail bị từ chối.
-- GET danh sách trả `{ items: [{ id, createdAt, status, customer, recipient, employeeId, subtotal, currency }] }`. Bộ lọc customerId/recipientId chỉ thu hẹp phạm vi. Mặc định page=1/pageSize=25, pageSize tối đa 100, thứ tự ID giảm dần; trang rỗng trả `items: []`. Không trả count tổng hoặc chi tiết dịch vụ trong danh sách.
+- GET danh sách trả `{ items: [{ id, createdAt, status, customer, recipient, employeeId, preferredDate, subtotal, consultationFee, totalBeforeDiscount, currency }] }`. Bộ lọc customerId/recipientId chỉ thu hẹp phạm vi. Mặc định page=1/pageSize=25, pageSize tối đa 100, thứ tự ID giảm dần; trang rỗng trả `items: []`. Không trả count tổng hoặc chi tiết dịch vụ trong danh sách.
 - GET detail trả cùng `RegistrationDto` như POST. Customer gặp ID không tồn tại hoặc ngoài phạm vi đều nhận 403 `permissionDenied` để không phân biệt sự tồn tại. Lễ tân gặp ID không tồn tại nhận 404. ID/query không hợp lệ trả 400. Response Registration đặt `Cache-Control: no-store`.
 
 Lỗi dùng `{ type, title, status, code, traceId, errors? }`: 400 `validation` (kể cả JSON sai/trường lạ), 401 `invalidSession`, 403 `permissionDenied`/`emailVerificationRequired`, 404 `resourceNotFound` (hồ sơ/dịch vụ thiếu trong phạm vi được phép), 409 `catalogChanged`; lỗi phụ thuộc SQL/ghi dữ liệu trả 503 `dependencyUnavailable` không chứa SQL/PII/credential. Không tạo audit thành công ngoài transaction đã rollback.
@@ -214,7 +234,7 @@ G3 dùng giá chi tiết đã chốt cho thanh toán một lần có nhãn mô p
 
 ## G3B — Thanh toán toàn bộ một lần (mô phỏng)
 
-Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác nhận tiền thật. Không có đặt cọc, trả góp, thu một phần, hoàn tiền, cổng ngân hàng, hóa đơn thật, SMS hoặc hàng đợi. G3B chỉ nối backend; Web/Windows Payment vẫn là màn mẫu cho tới gói client tương ứng. Không có alias `/payments` hoặc đường dẫn `registrations/{id}/payments`.
+Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác nhận tiền thật. Không có đặt cọc, trả góp, thu một phần, hoàn tiền, cổng ngân hàng, hóa đơn thật, SMS hoặc hàng đợi. Windows Thu ngân ghi thanh toán; Website khách hàng đọc kết quả. Không có alias `/payments` hoặc đường dẫn `registrations/{id}/payments`.
 
 ### Quyền và ownership
 
@@ -231,7 +251,7 @@ Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác 
 PaymentRegistrationListResponse = { items: PaymentRegistrationSummaryDto[] }
 PaymentRegistrationSummaryDto = {
   id, createdAt, customer: { id, fullName }, recipient: { id, fullName },
-  subtotal, totalDue, paidAmount, remainingAmount, paymentId: int|null, currency: "VND"
+  subtotal, consultationFee, totalDue, paidAmount, remainingAmount, paymentId: int|null, currency: "VND"
 }
 ```
 
@@ -241,7 +261,7 @@ PaymentRegistrationSummaryDto = {
 RegistrationPaymentDto = {
   registrationId, registrationStatus, customer, recipient,
   items: [{ id, kind, serviceId, name, quantity, unitPrice, lineTotal, components }],
-  subtotal, totalDue, paidAmount, remainingAmount, currency: "VND",
+  subtotal, consultationFee, totalDue, paidAmount, remainingAmount, currency: "VND",
   requiresPayment, canRecordPayment, isSimulation: true, message,
   payment: null | PaymentDto
 }
@@ -253,7 +273,7 @@ PaymentDto = {
 
 `customer`/`recipient` và `items` dùng DTO G2, cùng quy tắc ID dòng phải đi với kind, giá snapshot và thành phần gói. Tên là tên hiện hành, không tạo snapshot tên mới. `createdAt`/`occurredAt` là ISO UTC. Tiền là JSON decimal VND nguyên, từ 0 đến `9999999999999999` như G2; client Web phải giữ chính xác các trường tiền lớn hơn Number.MAX_SAFE_INTEGER.
 
-Server tính `subtotal = Σ(SoLuong*GiaTaiThoiDiemDangKy) + Σ(SoLuongGoi*GiaTaiThoiDiemDangKy)`, không cộng lại giá thành phần gói, không đọc giá Catalog hiện hành. G3 có `totalDue=subtotal`; `paidAmount` là số tiền của một giao dịch G3 hợp lệ hoặc 0, `remainingAmount=totalDue-paidAmount`. `requiresPayment` chỉ true khi còn phải thu; `canRecordPayment` còn yêu cầu đúng quyền ghi. Hai cờ đều false sau thanh toán hoặc khi tổng 0.
+Server tính `subtotal = Σ(SoLuong*GiaTaiThoiDiemDangKy) + Σ(SoLuongGoi*GiaTaiThoiDiemDangKy)`, không cộng lại giá thành phần gói, không đọc giá Catalog hiện hành. `totalDue=subtotal+(consultationFee ?? 0)`; `paidAmount` là số tiền của một giao dịch G3 hợp lệ hoặc 0, `remainingAmount=totalDue-paidAmount`. `requiresPayment` chỉ true khi còn phải thu; `canRecordPayment` còn yêu cầu đúng quyền ghi. Hai cờ đều false sau thanh toán hoặc khi tổng 0.
 
 Tổng 0: subtotal/totalDue/paidAmount/remainingAmount đều 0, payment=null, requiresPayment=false, canRecordPayment=false, message="Không phát sinh khoản thu."; không gọi đây là đã thanh toán. Nhãn mô phỏng có ở isSimulation, giao dịch và message. Không có trạng thái giao dịch Đặt cọc/Trả góp/Đang xử lý/Thất bại.
 

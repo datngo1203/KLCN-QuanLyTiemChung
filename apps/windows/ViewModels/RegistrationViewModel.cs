@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Net.Mail;
 using TiemChung.Desktop.Services;
 
 namespace TiemChung.Desktop.ViewModels;
@@ -18,6 +19,10 @@ public sealed class RegistrationViewModel : ViewModelBase
     private bool _isBusy, _isCreating, _denied, _unknownOutcome, _reviewedList, _catalogReady, _catalogReviewRequired, _catalogConfirmed, _draftSaved;
     private int _page = 1, _customerPage = 1;
     private int? _detailId;
+    private DateTime? _preferredDate;
+    private decimal? _consultationFee;
+    private string _contactFullName = "", _contactPhone = "", _contactEmail = "";
+    private string _provinceCity = "", _wardCommune = "", _addressLine = "";
     private string _appliedCustomerSearch = "";
 
     public RegistrationViewModel(IRegistrationService? service = null, IdentityApiService? identity = null)
@@ -85,7 +90,53 @@ public sealed class RegistrationViewModel : ViewModelBase
     public bool CatalogConfirmed { get => _catalogConfirmed; set { Set(ref _catalogConfirmed, value); Refresh(); } }
     public bool UnknownOutcome => _unknownOutcome;
     public string NewLabel => _unknownOutcome ? "Đã tra cứu, tạo lại từ đầu" : "Tạo đăng ký / Tạo tiếp";
-    public CustomerRecord? Customer { get => _customer; set { if (Set(ref _customer, value)) { Recipient = null; Recipients.Clear(); Refresh(); } } }
+    public CustomerRecord? Customer
+    {
+        get => _customer;
+        set {
+            var ownerChanged = value?.Id != _customer?.Id;
+            if (!Set(ref _customer, value)) return;
+            Recipient = null;
+            Recipients.Clear();
+            if (ownerChanged) {
+                ContactFullName = value?.Name ?? "";
+                ContactPhone = value?.Phone ?? "";
+                ContactEmail = value?.Email ?? "";
+                ProvinceCity = WardCommune = AddressLine = "";
+            }
+            Refresh();
+        }
+    }
+
+    public string ContactFullName { get => _contactFullName; set { if (Set(ref _contactFullName, value)) Refresh(); } }
+    public string ContactPhone { get => _contactPhone; set { if (Set(ref _contactPhone, value)) Refresh(); } }
+    public string ContactEmail { get => _contactEmail; set { if (Set(ref _contactEmail, value)) Refresh(); } }
+    public string ProvinceCity { get => _provinceCity; set { if (Set(ref _provinceCity, value)) Refresh(); } }
+    public string WardCommune { get => _wardCommune; set { if (Set(ref _wardCommune, value)) Refresh(); } }
+    public string AddressLine { get => _addressLine; set { if (Set(ref _addressLine, value)) Refresh(); } }
+    public DateTime? PreferredDate { get => _preferredDate; set { if (Set(ref _preferredDate, value)) Refresh(); } }
+    public DateTime VietnamToday => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;
+    public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(_consultationFee);
+    public decimal? TotalBeforeDiscount => Subtotal + _consultationFee;
+
+    private RegistrationContact DraftContact => new(ContactFullName.Trim(), ContactPhone, ContactEmail.Trim(),
+        ProvinceCity.Trim(), WardCommune.Trim(), AddressLine.Trim());
+
+    private string ContactError()
+    {
+        var contact = DraftContact;
+        if (contact.FullName is not { Length: >= 1 and <= 150 }) return "Nhập họ tên liên hệ (tối đa 150 ký tự).";
+        if (contact.PhoneNumber is not { Length: 10 or 11 } || contact.PhoneNumber.Any(c => c is < '0' or > '9'))
+            return "Số điện thoại phải có 10–11 chữ số từ 0 đến 9.";
+        if (contact.Email is not { Length: >= 1 and <= 254 } ||
+            !MailAddress.TryCreate(contact.Email, out var email) || email.Address != contact.Email)
+            return "Nhập email liên hệ hợp lệ (tối đa 254 ký tự).";
+        if (contact.ProvinceCity is not { Length: >= 1 and <= 100 }) return "Nhập tỉnh / thành phố (tối đa 100 ký tự).";
+        if (contact.WardCommune is not { Length: >= 1 and <= 100 }) return "Nhập phường / xã (tối đa 100 ký tự).";
+        if (contact.AddressLine is not { Length: >= 1 and <= 250 }) return "Nhập địa chỉ (tối đa 250 ký tự).";
+        return PreferredDate is null || PreferredDate.Value.Date < VietnamToday
+            ? "Chọn ngày mong muốn tiêm từ hôm nay theo giờ Việt Nam." : "";
+    }
     public RecipientRecord? Recipient { get => _recipient; set { Set(ref _recipient, value); Refresh(); } }
     public RegistrationCatalogItem? CatalogItem { get => _catalogItem; set { Set(ref _catalogItem, value); OnPropertyChanged(nameof(SelectedComponents)); Refresh(); } }
     public string SelectedComponents => CatalogItem?.ComponentLabel ?? "";
@@ -97,12 +148,13 @@ public sealed class RegistrationViewModel : ViewModelBase
     public string QuantityText { get => _quantityText; set { Set(ref _quantityText, value); Refresh(); } }
     public bool QuantityValid => int.TryParse(QuantityText, NumberStyles.None, CultureInfo.InvariantCulture, out var q) && q is >= 1 and <= 100;
     public decimal Subtotal => Lines.Sum(x => x.LineTotal);
-    public string FormError => Customer is null ? "Chọn khách hàng." : Recipient is null || Recipient.CustomerId != Customer.Id ? "Chọn người được tiêm thuộc khách hàng." : Lines.Count == 0 ? "Thêm ít nhất một dịch vụ." : Lines.Count > 100 ? "Tối đa 100 dòng dịch vụ." : Lines.Any(x => !x.Available) ? "Xóa dịch vụ không còn trong Catalog." : Subtotal > 9999999999999999m ? "Tổng tiền vượt giới hạn VND." : "";
+    public string FormError => Customer is null ? "Chọn khách hàng." : Recipient is null || Recipient.CustomerId != Customer.Id ? "Chọn người được tiêm thuộc khách hàng." : Lines.Count == 0 ? "Thêm ít nhất một dịch vụ." : Lines.Count > 100 ? "Tối đa 100 dòng dịch vụ." : Lines.Any(x => !x.Available) ? "Xóa dịch vụ không còn trong Catalog." : _consultationFee is null ? "Chưa tải được phí khám/tư vấn." :
+        TotalBeforeDiscount > 9999999999999999m ? "Tổng tiền vượt giới hạn VND." : ContactError();
     public bool CanSubmit => CanEditDraft && IsCreating && _catalogReady && (!_catalogReviewRequired || CatalogConfirmed) && FormError.Length == 0;
 
     private void Refresh()
     {
-        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(CanInteract), nameof(CanEditDraft), nameof(ShowList), nameof(ShowDraft), nameof(ShowDetail), nameof(HasDetailId), nameof(Page), nameof(CustomerPageLabel), nameof(NeedsCatalogConfirmation), nameof(UnknownOutcome), nameof(NewLabel), nameof(QuantityValid), nameof(Subtotal), nameof(FormError), nameof(CanSubmit) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(CanInteract), nameof(CanEditDraft), nameof(ShowList), nameof(ShowDraft), nameof(ShowDetail), nameof(HasDetailId), nameof(Page), nameof(CustomerPageLabel), nameof(NeedsCatalogConfirmation), nameof(UnknownOutcome), nameof(NewLabel), nameof(QuantityValid), nameof(Subtotal), nameof(ConsultationFeeLabel), nameof(TotalBeforeDiscount), nameof(VietnamToday), nameof(FormError), nameof(CanSubmit) }) OnPropertyChanged(name);
         foreach (var command in new[] { ReloadCommand, PreviousCommand, NextCommand, NewCommand, ListCommand, ResumeDraftCommand, SearchCustomersCommand, PreviousCustomersCommand, NextCustomersCommand, LoadRecipientsCommand, ReloadCatalogCommand, AddLineCommand, RemoveLineCommand, SaveCommand, OpenDetailCommand, RetryDetailCommand }) command?.NotifyCanExecuteChanged();
     }
 
@@ -110,6 +162,8 @@ public sealed class RegistrationViewModel : ViewModelBase
     {
         Customer = null; Recipient = null; Customers.Clear(); Recipients.Clear(); CatalogItem = null;
         CustomerSearch = ""; _appliedCustomerSearch = ""; CatalogSearch = ""; QuantityText = "1";
+        ContactFullName = ContactPhone = ContactEmail = ProvinceCity = WardCommune = AddressLine = "";
+        PreferredDate = null; _consultationFee = null;
         Lines.Clear(); _detailId = null; Detail = null; _customerPage = 1; _draftSaved = false;
         _unknownOutcome = false; _reviewedList = false; _catalogReviewRequired = false; CatalogConfirmed = false; CatalogNotice = "";
         Refresh();
@@ -180,7 +234,9 @@ public sealed class RegistrationViewModel : ViewModelBase
     {
         _catalogReady = false;
         var rows = await _service.GetCatalogAsync();
+        var settings = await _service.GetSettingsAsync();
         if (!IsCurrent) return;
+        _consultationFee = settings.ConsultationFee;
         CatalogItem = null; Catalog.Clear(); foreach (var row in rows) Catalog.Add(row);
         var changes = new List<string>();
         for (var i = 0; i < Lines.Count; i++) {
@@ -225,7 +281,8 @@ public sealed class RegistrationViewModel : ViewModelBase
         if (!CanSubmit) return Task.CompletedTask;
         var request = new RegistrationRequest(Customer!.Id, Recipient!.Id, Lines.Select(x =>
             new RegistrationRequestItem(x.Kind, x.ServiceId, x.Quantity, x.UnitPrice,
-                x.Components?.Select(c => new RegistrationComponentRequest(c.VaccineId, c.Quantity)).ToArray())).ToArray());
+                x.Components?.Select(c => new RegistrationComponentRequest(c.VaccineId, c.Quantity)).ToArray())).ToArray(),
+            DateOnly.FromDateTime(PreferredDate!.Value), DraftContact);
         return RunAsync(async () => {
             int id;
             try { id = await _service.CreateAsync(request); }

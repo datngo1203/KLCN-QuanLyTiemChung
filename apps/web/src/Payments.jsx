@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { identity } from './api/identity'
-import { money } from './registrationForm'
+import { consultationFeeLabel, money } from './registrationForm'
 import { paymentError, paymentOutcome } from './paymentView'
 import './Registrations.css'
 import './Payments.css'
@@ -63,7 +63,7 @@ function PaymentWorkspace({ go }) {
         {list.rows.length === 0 && <p role="status">Không có đăng ký ở trang này.</p>}
         <ul className="payment-registration-list">{list.rows.map(row => <li key={row.id}>
           <button className="payment-select" aria-pressed={selectedId === row.id} aria-controls="payment-detail" onClick={() => setSelectedId(row.id)}>
-            <strong>{registrationCode(row.id)}</strong><span>Khách hàng: {row.customer.fullName}</span><span>Người được tiêm: {row.recipient.fullName}</span><small>{dateTime(row.createdAt)}</small><b>Tổng đăng ký: {money(row.subtotal)}</b><span className="payment-select-hint">Xem thanh toán</span>
+            <strong>{registrationCode(row.id)}</strong><span>Khách hàng: {row.customer.fullName}</span><span>Người được tiêm: {row.recipient.fullName}</span><small>{dateTime(row.createdAt)}</small><b>Tổng đăng ký: {money(row.totalBeforeDiscount)}</b><span className="payment-select-hint">Xem thanh toán</span>
           </button>
         </li>)}</ul>
         <nav className="registration-actions" aria-label="Trang đăng ký thanh toán"><button className="button outline" disabled={page === 1} onClick={() => loadList(page - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={list.rows.length < 25} onClick={() => loadList(page + 1)}>Trang sau</button></nav>
@@ -106,6 +106,10 @@ function PaymentDetail({ id, retry, accessDenied, go }) {
           {item.components?.length > 0 && <details className="registration-components"><summary>Thành phần trong một gói</summary><ul>{item.components.map(part => <li key={part.vaccineId}>{part.vaccineName} × {part.quantity}</li>)}</ul></details>}
         </div><div className="registration-line-amount"><span>Số lượng: {item.quantity}</span><strong>{money(item.lineTotal)}</strong></div>
       </li>)}</ul>
+      <dl className="registration-review-profiles">
+        <div><dt>Tạm tính dịch vụ</dt><dd>{money(detail.subtotal)}</dd></div>
+        <div><dt>Phí khám/tư vấn</dt><dd>{consultationFeeLabel(detail.consultationFee)}</dd></div>
+      </dl>
       <div className="registration-total"><span>Tổng phải thu (VND)</span><strong>{money(detail.totalDue)}</strong></div>
       <div className="registration-message" role="status"><strong>{paymentOutcome(detail)}</strong>
         {detail.payment ? <p>Giao dịch do Thu ngân ghi nhận để mô phỏng, không xác nhận tiền thật.</p>
