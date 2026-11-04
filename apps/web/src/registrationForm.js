@@ -1,5 +1,5 @@
 export const maxMoney = 9999999999999999n
-const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal', 'totalDue', 'paidAmount', 'remainingAmount', 'amount'])
+const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal', 'consultationFee', 'totalBeforeDiscount', 'totalDue', 'paidAmount', 'remainingAmount', 'amount'])
 
 // VND exceeds Number.MAX_SAFE_INTEGER in the contract; preserve the JSON number text.
 export function parseRegistrationJson(text) {
@@ -18,7 +18,26 @@ export const serviceKey = item => `${item.kind}-${item.serviceId}`
 export const total = items => items.reduce((sum, item) => sum + BigInt(item.price) * BigInt(item.quantity || 0), 0n)
 const positiveId = value => Number.isSafeInteger(value) && value > 0
 
-export function registrationPayload(draft, customers, recipients) {
+export const vietnamToday = (now = new Date()) => new Date(now.getTime() + 7 * 3600000).toISOString().slice(0, 10)
+export const preferredDateLabel = value => value ? value.split('-').reverse().join('/') : 'Chưa cập nhật'
+export const consultationFeeLabel = fee => fee == null ? 'Chưa cập nhật'
+  : BigInt(fee) === 0n ? 'Đã bao gồm / không thu riêng' : money(fee)
+
+export const contactFields = [
+  ['fullName', 'Họ tên liên hệ', 150],
+  ['phoneNumber', 'Số điện thoại', 11, 'tel'],
+  ['email', 'Email', 254, 'email'],
+  ['provinceCity', 'Tỉnh / Thành phố', 100],
+  ['wardCommune', 'Phường / Xã', 100],
+  ['addressLine', 'Địa chỉ', 250],
+]
+
+export function prefillContact(customer) {
+  return { fullName: customer?.fullName ?? '', phoneNumber: customer?.phoneNumber ?? '',
+    email: customer?.email ?? '', provinceCity: '', wardCommune: '', addressLine: '' }
+}
+
+export function registrationItems(draft, customers, recipients) {
   const customer = customers.find(item => item.id === Number(draft.customerId))
   const recipient = recipients.find(item => item.id === Number(draft.recipientId) && item.customerId === customer?.id)
   if (!customer || !recipient) throw new Error('Chọn khách hàng và người được tiêm thuộc khách hàng đó.')
@@ -43,6 +62,24 @@ export function registrationPayload(draft, customers, recipients) {
   })
   if (total(draft.items) > maxMoney) throw new Error('Tổng tiền vượt giới hạn đăng ký. Hãy giảm số lượng dịch vụ.')
   return { customerId: customer.id, recipientId: recipient.id, items }
+}
+
+export function registrationPayload(draft, customers, recipients, fee, today = vietnamToday()) {
+  const services = registrationItems(draft, customers, recipients)
+  const contact = {}
+  for (const [field, label, max] of contactFields) {
+    const value = (draft.contact?.[field] ?? '')
+    contact[field] = field === 'phoneNumber' ? value : value.trim()
+    if (!contact[field] || contact[field].length > max) throw new Error(`${label} là bắt buộc và tối đa ${max} ký tự.`)
+  }
+  if (!/^[0-9]{10,11}$/.test(contact.phoneNumber)) throw new Error('Số điện thoại phải có 10–11 chữ số từ 0 đến 9.')
+  if (!/^[^\s@<>]+@[^\s@<>]+$/.test(contact.email)) throw new Error('Email liên hệ không hợp lệ.')
+  const preferredDate = draft.preferredDate
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(preferredDate || '') || preferredDate < today)
+    throw new Error('Chọn ngày mong muốn tiêm từ hôm nay theo giờ Việt Nam.')
+  if (fee == null) throw new Error('Chưa tải được phí khám/tư vấn.')
+  if (total(draft.items) + BigInt(fee) > maxMoney) throw new Error('Tổng tiền vượt giới hạn đăng ký. Hãy giảm số lượng dịch vụ.')
+  return { ...services, contact, preferredDate }
 }
 
 export function registrationBody(payload) {

@@ -107,7 +107,7 @@ public sealed class VaccinationSqlFixture : IAsyncDisposable
             f.Client=f.Factory.CreateClient();
             using var receptionHttp=f.Factory.CreateClient();var reception=new IdentityApiService(receptionHttp);Assert.True((await reception.LoginAsync("s55.reception",f.Password)).Succeeded);
             var registrations=new RegistrationApiService(reception);var catalog=await registrations.GetCatalogAsync();var vaccine=catalog.First(x=>x.Kind=="vaccine");var package=catalog.First(x=>x.Kind=="package");
-            var registrationId=await registrations.CreateAsync(new(customer.MaKhachHang,recipient.MaNguoiDuocTiem,[new("vaccine",vaccine.Id,2,vaccine.Price,null),new("package",package.Id,1,package.Price,package.Components!.Select(c=>new RegistrationComponentRequest(c.VaccineId,c.Quantity)).ToArray())]));
+            var registrationId=await registrations.CreateAsync(new(customer.MaKhachHang,recipient.MaNguoiDuocTiem,[new("vaccine",vaccine.Id,2,vaccine.Price,null),new("package",package.Id,1,package.Price,package.Components!.Select(c=>new RegistrationComponentRequest(c.VaccineId,c.Quantity)).ToArray())], RegistrationClientTests.PreferredDate, RegistrationClientTests.SyntheticContact));
             var appointments=new AppointmentApiService(reception);var source=await appointments.GetSourceAsync(registrationId);
             var created=new List<AppointmentRecord>();foreach(var item in source.Items)created.Add(await appointments.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1),"[DEMO] S55 cơ sở")));
             await reception.LogoutAsync();

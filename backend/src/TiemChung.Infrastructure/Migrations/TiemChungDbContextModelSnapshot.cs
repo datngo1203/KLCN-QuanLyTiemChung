@@ -381,6 +381,12 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDangKy"));
 
+                    b.Property<string>("DiaChiLienHe")
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("EmailLienHe")
+                        .HasColumnType("nvarchar(254)");
+
                     b.Property<string>("HinhThucTiem")
                         .HasColumnType("nvarchar(50)");
 
@@ -399,13 +405,28 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<DateTime>("NgayDangKy")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("PhiKhamTuVan")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("PhuongXaLienHe")
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("SoDienThoaiLienHe")
+                        .HasColumnType("varchar(11)");
+
+                    b.Property<string>("TenNguoiLienHe")
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<DateTime?>("ThoiGianDuKien")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("TinhThanhLienHe")
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()

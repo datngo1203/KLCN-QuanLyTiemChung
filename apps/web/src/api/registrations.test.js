@@ -1,37 +1,41 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIdentityClient } from './identity.js'
-import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney } from '../registrationForm.js'
+import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel } from '../registrationForm.js'
 
 const customers = [{ id: 12 }, { id: 13 }]
 const recipients = [{ id: 34, customerId: 12 }, { id: 35, customerId: 13 }]
 const vaccine = { kind: 'vaccine', serviceId: 5, name: 'Vaccine', quantity: 2, price: '150000' }
 const pack = { kind: 'package', serviceId: 5, name: 'Package', quantity: 1, price: '350000', components: [{ vaccineId: 5, quantity: 2, vaccineName: 'Vaccine' }] }
-const draft = items => ({ customerId: '12', recipientId: '34', items })
+const contact = { fullName: 'Liên hệ thử', phoneNumber: '09123456789', email: 'snapshot@example.invalid',
+  provinceCity: 'Tỉnh thử', wardCommune: 'Phường thử', addressLine: 'Địa chỉ thử' }
+const today = '2026-11-05'
+const draft = items => ({ customerId: '12', recipientId: '34', items, contact, preferredDate: today })
+const payloadOf = (draft, owners, people, fee = '0') => registrationPayload(draft, owners, people, fee, today)
 
 test('vaccine/package/mixed payloads carry only contract fields, package price and components', () => {
   for (const items of [[vaccine], [pack], [vaccine, pack]]) {
-    const payload = registrationPayload({ ...draft(items), status: 'fake', employeeId: 100 }, customers, recipients)
-    assert.deepEqual(Object.keys(payload), ['customerId', 'recipientId', 'items'])
+    const payload = payloadOf({ ...draft(items), status: 'fake', employeeId: 100 }, customers, recipients)
+    assert.deepEqual(Object.keys(payload), ['customerId', 'recipientId', 'items', 'contact', 'preferredDate'])
     assert.deepEqual(Object.keys(payload.items[0]), items[0].kind === 'vaccine'
       ? ['kind', 'serviceId', 'quantity', 'expectedUnitPrice'] : ['kind', 'serviceId', 'quantity', 'expectedUnitPrice', 'expectedComponents'])
     assert.equal(payload.customerId, 12)
     assert.equal(payload.recipientId, 34)
     assert.equal(typeof JSON.parse(registrationBody(payload)).items[0].expectedUnitPrice, 'number')
   }
-  const payload = registrationPayload(draft([vaccine, pack]), customers, recipients)
+  const payload = payloadOf(draft([vaccine, pack]), customers, recipients)
   assert.deepEqual(payload.items[1].expectedComponents, [{ vaccineId: 5, quantity: 2 }])
   assert.equal(total([vaccine, pack]), 650000n)
 })
 
 test('rejects mismatched recipients, duplicate services, invalid quantities/components and money overflow', () => {
-  assert.throws(() => registrationPayload({ ...draft([vaccine]), recipientId: '35' }, customers, recipients), /thuộc/)
-  assert.throws(() => registrationPayload({ ...draft([vaccine]), customerId: '99' }, customers, recipients), /thuộc/)
+  assert.throws(() => payloadOf({ ...draft([vaccine]), recipientId: '35' }, customers, recipients), /thuộc/)
+  assert.throws(() => payloadOf({ ...draft([vaccine]), customerId: '99' }, customers, recipients), /thuộc/)
   for (const items of [[], Array(101).fill(vaccine), [vaccine, vaccine], [{ ...vaccine, kind: 'other' }], [{ ...vaccine, serviceId: 'not-sql' }],
     ...[0, 101, -1, 1.5, '', 'NaN'].map(quantity => [{ ...vaccine, quantity }]), [{ ...vaccine, price: '-1' }], [{ ...vaccine, unavailable: true }],
     [{ ...vaccine, price: maxMoney.toString(), quantity: 2 }], [{ ...pack, components: [] }], [{ ...pack, components: [pack.components[0], pack.components[0]] }], [{ ...pack, components: [{ vaccineId: 5, quantity: 0 }] }]])
-    assert.throws(() => registrationPayload(draft(items), customers, recipients))
-  assert.equal(registrationPayload(draft([{ ...vaccine, price: '0' }]), customers, recipients).items[0].expectedUnitPrice, '0')
+    assert.throws(() => payloadOf(draft(items), customers, recipients))
+  assert.equal(payloadOf(draft([{ ...vaccine, price: '0' }]), customers, recipients).items[0].expectedUnitPrice, '0')
 })
 
 test('VND parse/display/calculation/serialization stays exact at SQL decimal limits', () => {
@@ -41,8 +45,35 @@ test('VND parse/display/calculation/serialization stays exact at SQL decimal lim
   assert.equal(parsed.lineTotal, '9007199254740993')
   assert.equal(money(parsed.price), '9.999.999.999.999.999 đ')
   assert.throws(() => parseRegistrationJson('{"price":1.5}'), /không hợp lệ/)
-  const payload = registrationPayload(draft([{ ...vaccine, price: parsed.price, quantity: 1 }]), customers, recipients)
+  const payload = payloadOf(draft([{ ...vaccine, price: parsed.price, quantity: 1 }]), customers, recipients)
   assert.match(registrationBody(payload), /"expectedUnitPrice":9999999999999999/)
+})
+
+test('prefill is independent, and contact, preferred date and money are validated before review', () => {
+  const customer = { id: 12, fullName: 'Hồ sơ gốc', phoneNumber: '0900000000', email: 'original@example.invalid' }
+  const prefilled = prefillContact(customer)
+  assert.equal(prefilled.fullName, customer.fullName)
+  assert.equal(prefilled.phoneNumber, customer.phoneNumber)
+  assert.equal(prefilled.email, customer.email)
+  const edited = { ...draft([vaccine]), contact: { ...prefilled, ...contact, fullName: '  Liên hệ thử  ' } }
+  assert.deepEqual(payloadOf(edited, [customer], recipients, '50000').contact, contact)
+  assert.equal(customer.fullName, 'Hồ sơ gốc')
+  assert.equal(prefilled.fullName, 'Hồ sơ gốc')
+  for (const [field, value] of Object.entries({ fullName: ' ', phoneNumber: '０９１２３４５６７８', email: 'invalid',
+    provinceCity: '', wardCommune: 'a'.repeat(101), addressLine: '' }))
+    assert.throws(() => payloadOf({ ...edited, contact: { ...edited.contact, [field]: value } }, [customer], recipients))
+  for (const preferredDate of ['', '2026-11-04'])
+    assert.throws(() => payloadOf({ ...edited, preferredDate }, [customer], recipients), /ngày mong muốn/)
+  assert.equal(vietnamToday(new Date('2026-11-04T16:59:59.999Z')), '2026-11-04')
+  assert.equal(vietnamToday(new Date('2026-11-04T17:00:00.000Z')), today)
+  assert.equal(preferredDateLabel(today), '05/11/2026')
+  assert.match(consultationFeeLabel('0'), /không thu riêng/)
+  assert.equal(consultationFeeLabel(null), 'Chưa cập nhật')
+  assert.equal(consultationFeeLabel('50000'), '50.000 đ')
+  assert.throws(() => payloadOf(draft([{ ...vaccine, price: maxMoney.toString(), quantity: 1 }]),
+    [customer], recipients, '1'), /vượt giới hạn/)
+  const amounts = parseRegistrationJson('{"consultationFee":9007199254740993,"totalBeforeDiscount":9007199254740994}')
+  assert.deepEqual(amounts, { consultationFee: '9007199254740993', totalBeforeDiscount: '9007199254740994' })
 })
 
 test('catalog changes retain quantities, report exact changes/removal, ignore component order', () => {
@@ -87,7 +118,7 @@ test('registrations use in-memory bearer refresh, strict 201, safe structured 40
   })
   await assert.rejects(client.registrations(), error => error.status === 401)
   await client.login('synthetic@example.invalid', 'synthetic-password')
-  const payload = registrationPayload(draft([vaccine, pack]), customers, recipients)
+  const payload = payloadOf(draft([vaccine, pack]), customers, recipients)
   assert.deepEqual(await client.registrations('', 'POST', payload), { id: 7, subtotal: '650000' })
   assert.equal(refreshes, 1)
   await client.registrations('?page=2&pageSize=25')

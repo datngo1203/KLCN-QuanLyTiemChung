@@ -119,6 +119,27 @@ public sealed class VaccinationSqlTests
         });
     }
 
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task ConsultationFeeIsRequiredForVaccinationPaymentGate()
+    {
+        await Run(async f => {
+            var source = await f.Source();
+            var id = source.Assessment.Indications.Single().Id;
+            var registrationId = source.Registration.Id;
+            await f.Db.Registrations.Where(r => r.MaDangKy == registrationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.PhiKhamTuVan, 50000m));
+            var before = await f.Snapshot();
+            await Problem(await f.Nurse.GetAsync(Route + $"/indications/{id}"), 409, "paymentDataConflict");
+            await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(id)), 409, "paymentDataConflict");
+            Assert.Equal(before, await f.Snapshot());
+
+            await f.Db.Payments.Where(p => p.MaDangKy == registrationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.SoTien, source.Registration.Subtotal + 50000m));
+            using var response = await f.Nurse.PostAsJsonAsync(Route, Request(id));
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        });
+    }
+
     [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("missing","vaccinationPaymentRequired")][InlineData("otherRegistration","vaccinationPaymentRequired")]
     [InlineData("amount","paymentDataConflict")][InlineData("status","paymentDataConflict")]
@@ -321,7 +342,7 @@ public sealed class VaccinationSqlTests
         }
         public async Task<RegistrationDto> Register()
         {
-            using var response=await Base.Reception.PostAsJsonAsync("/api/v1/registrations",new CreateRegistrationRequest(Base.CustomerId,Base.RecipientId,
+            using var response=await Base.Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(Base.CustomerId,Base.RecipientId,
                 [new("vaccine",A,2,150000),new("package",PackageId,1,350000,[new(A,1),new(B,1)])]));
             Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }

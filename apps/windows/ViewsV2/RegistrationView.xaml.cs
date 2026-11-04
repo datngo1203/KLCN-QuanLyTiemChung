@@ -15,6 +15,12 @@ public partial class RegistrationView : UserControl
         };
         Unloaded += (_, _) => { if (DataContext is RegistrationViewModel vm) vm.PropertyChanged -= ViewModelChanged; };
     }
+    private void InvalidPreferredDate(object sender, DatePickerDateValidationErrorEventArgs e)
+    {
+        e.ThrowException = false;
+        if (DataContext is RegistrationViewModel vm) vm.PreferredDate = null;
+    }
+
     private void ViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(RegistrationViewModel.Detail) && sender is RegistrationViewModel { Detail: not null })

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
@@ -8,9 +10,9 @@ namespace TiemChung.Api;
 
 public static class RegistrationEndpoints
 {
-    private const decimal MaxMoney = 9999999999999999m;
+    internal const decimal MaxMoney = 9999999999999999m;
 
-    public static void MapRegistrationEndpoints(this IEndpointRouteBuilder app)
+    public static void MapRegistrationEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/registrations").WithTags("Registration");
         group.AddEndpointFilter(async (invocation, next) => {
@@ -19,11 +21,25 @@ public static class RegistrationEndpoints
             catch (DbUpdateException) { throw new IdentityFailure(503, "dependencyUnavailable"); }
         });
 
+        var configuredFee = app.Configuration["Registration:ConsultationFeeVnd"];
+        group.MapGet("/settings", async (HttpContext context, IdentityAuthorization auth, TiemChungDbContext db,
+            CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            await RequireActor(context, auth, false, ct);
+            var fee = ReadConsultationFee(configuredFee);
+            await tx.CommitAsync(ct);
+            return Results.Ok(new RegistrationSettingsDto(fee));
+        }).WithName("GetRegistrationSettings").Produces<RegistrationSettingsDto>();
+
         group.MapPost("", async (CreateRegistrationRequest req, HttpContext context, IdentityAuthorization auth,
             TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
             var actor = await RequireActor(context, auth, true, ct);
             Validate(req);
+            var now = DateTimeOffset.UtcNow;
+            if (!IsPreferredDateValid(req.PreferredDate, now)) throw new IdentityFailure(400, "validation");
+            var contact = ValidateContact(req.Contact);
+            var fee = ReadConsultationFee(configuredFee);
             if (actor.IsCustomer && (!await HasLink(db, actor, req.CustomerId, null, ct) ||
                 !await HasLink(db, actor, null, req.RecipientId, ct)))
                 throw new IdentityFailure(403, "permissionDenied");
@@ -69,10 +85,15 @@ public static class RegistrationEndpoints
                 lines.Add(new(item.Quantity, price, item.Kind == "package"));
             }
             var total = RegistrationRules.CalculateTotal(lines);
-            if (total > MaxMoney) throw new IdentityFailure(400, "validation");
+            if (total + fee > MaxMoney) throw new IdentityFailure(400, "validation");
             var row = new DangKyDichVu {
                 MaKhachHang = req.CustomerId, MaNguoiDuocTiem = req.RecipientId,
-                MaNhanVien = actor.Employee?.MaNhanVien, NgayDangKy = DateTime.UtcNow, TrangThai = "DaDangKy"
+                MaNhanVien = actor.Employee?.MaNhanVien, NgayDangKy = now.UtcDateTime, TrangThai = "DaDangKy",
+                // Store Vietnam's calendar date at midnight, without a timezone conversion.
+                ThoiGianDuKien = req.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue),
+                TenNguoiLienHe = contact.FullName, SoDienThoaiLienHe = contact.PhoneNumber, EmailLienHe = contact.Email,
+                TinhThanhLienHe = contact.ProvinceCity, PhuongXaLienHe = contact.WardCommune,
+                DiaChiLienHe = contact.AddressLine, PhiKhamTuVan = fee
             };
             db.Registrations.Add(row);
             await db.SaveChangesAsync(ct);
@@ -115,7 +136,7 @@ public static class RegistrationEndpoints
             var items = rows.Select(x => new RegistrationSummaryDto(x.MaDangKy, Utc(x.NgayDangKy), x.TrangThai,
                 new(x.MaKhachHang, customers[x.MaKhachHang].HoTen), new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen), x.MaNhanVien,
                 singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
-                packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND")).ToArray();
+                packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND", PreferredDate(x), x.PhiKhamTuVan)).ToArray();
             await tx.CommitAsync(ct);
             return Results.Ok(new RegistrationListResponse(items));
         }).WithName("ListRegistrations").Produces<RegistrationListResponse>();
@@ -170,6 +191,37 @@ public static class RegistrationEndpoints
         }
     }
 
+    public static bool IsPreferredDateValid(DateOnly? preferredDate, DateTimeOffset now) =>
+        preferredDate >= VaccinationEndpoints.FacilityDate(now);
+
+    private static decimal ReadConsultationFee(string? configured)
+    {
+        if (configured is null) return 0;
+        if (!decimal.TryParse(configured, NumberStyles.None, CultureInfo.InvariantCulture, out var fee) || fee > MaxMoney)
+            throw new IdentityFailure(503, "dependencyUnavailable");
+        return fee;
+    }
+
+    private static RegistrationContactDto ValidateContact(RegistrationContactRequest? input)
+    {
+        var name = input?.FullName?.Trim();
+        var phone = input?.PhoneNumber;
+        var email = input?.Email?.Trim();
+        var province = input?.ProvinceCity?.Trim();
+        var ward = input?.WardCommune?.Trim();
+        var address = input?.AddressLine?.Trim();
+        if (name is not { Length: >= 1 and <= 150 } || phone is not { Length: 10 or 11 } ||
+            phone.Any(c => c is < '0' or > '9') || email is not { Length: >= 1 and <= 254 } ||
+            !MailAddress.TryCreate(email, out var parsed) || parsed.Address != email ||
+            province is not { Length: >= 1 and <= 100 } || ward is not { Length: >= 1 and <= 100 } ||
+            address is not { Length: >= 1 and <= 250 })
+            throw new IdentityFailure(400, "validation");
+        return new(name, phone, email, province, ward, address);
+    }
+
+    private static DateOnly? PreferredDate(DangKyDichVu row) =>
+        row.ThoiGianDuKien is { } value ? DateOnly.FromDateTime(value) : null;
+
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
     internal static async Task<RegistrationDto> Detail(TiemChungDbContext db, DangKyDichVu row, CancellationToken ct)
@@ -193,7 +245,12 @@ public static class RegistrationEndpoints
         var items = singles.Concat(packages.Select(x => new RegistrationItemDto(x.Item.MaChiTietGoi, "package", x.Item.MaGoi, x.TenGoi,
             x.Item.SoLuongGoi, x.Item.GiaTaiThoiDiemDangKy, x.Item.SoLuongGoi * x.Item.GiaTaiThoiDiemDangKy,
             components.Where(c => c.MaGoi == x.Item.MaGoi).Select(c => c.Component).ToArray()))).ToArray();
+        var contact = row.TenNguoiLienHe is null && row.SoDienThoaiLienHe is null && row.EmailLienHe is null &&
+            row.TinhThanhLienHe is null && row.PhuongXaLienHe is null && row.DiaChiLienHe is null ? null :
+            new RegistrationContactDto(row.TenNguoiLienHe, row.SoDienThoaiLienHe, row.EmailLienHe,
+                row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe);
         return new(row.MaDangKy, Utc(row.NgayDangKy), row.TrangThai, new(customer.MaKhachHang, customer.HoTen),
-            new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND");
+            new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND",
+            PreferredDate(row), contact, row.PhiKhamTuVan);
     }
 }

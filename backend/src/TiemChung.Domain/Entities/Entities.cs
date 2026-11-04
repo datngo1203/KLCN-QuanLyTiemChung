@@ -76,6 +76,13 @@ public sealed class DangKyDichVu
     public DateTime NgayDangKy { get; set; }
     public string? HinhThucTiem { get; set; }
     public DateTime? ThoiGianDuKien { get; set; }
+    public string? TenNguoiLienHe { get; set; }
+    public string? SoDienThoaiLienHe { get; set; }
+    public string? EmailLienHe { get; set; }
+    public string? TinhThanhLienHe { get; set; }
+    public string? PhuongXaLienHe { get; set; }
+    public string? DiaChiLienHe { get; set; }
+    public decimal? PhiKhamTuVan { get; set; }
     public string TrangThai { get; set; } = string.Empty;
 }
 

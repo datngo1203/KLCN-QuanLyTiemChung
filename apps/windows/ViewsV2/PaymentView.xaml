@@ -22,7 +22,9 @@
       <TextBlock Text="{Binding Code}" Style="{StaticResource CE.Body}" FontWeight="SemiBold"/>
       <TextBlock Text="{Binding Customer.FullName, StringFormat=Khách hàng: {0}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
       <TextBlock Text="{Binding Recipient.FullName, StringFormat=Người tiêm: {0}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
-      <TextBlock Text="{Binding TotalDue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.Body}"/>
+      <TextBlock Text="{Binding Subtotal, StringFormat=Dịch vụ: {0:N0} đ}" Style="{StaticResource CE.Caption}"/>
+      <TextBlock Text="{Binding ConsultationFeeLabel, StringFormat=Phí khám/tư vấn: {0}}" Style="{StaticResource CE.Caption}"/>
+      <TextBlock Text="{Binding TotalDue, StringFormat=Tổng phải thu: {0:N0} đ}" Style="{StaticResource CE.Body}"/>
       <TextBlock Text="{Binding State}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
      </StackPanel></DataTemplate></ListBox.ItemTemplate>
     </ListBox>
@@ -48,6 +50,8 @@
        <TextBlock Text="{Binding ComponentLabel}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
       </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
       <WrapPanel Margin="0,4,0,12">
+       <StackPanel Margin="0,0,20,8"><TextBlock Text="Tạm tính dịch vụ" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding Subtotal, StringFormat={}{0:N0} đ}"/></StackPanel>
+       <StackPanel Margin="0,0,20,8"><TextBlock Text="Phí khám/tư vấn" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding ConsultationFeeLabel}"/></StackPanel>
        <StackPanel Margin="0,0,20,8"><TextBlock Text="Tổng phải thu" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding TotalDue, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
        <StackPanel Margin="0,0,20,8"><TextBlock Text="Đã ghi nhận" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding PaidAmount, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>
        <StackPanel Margin="0,0,0,8"><TextBlock Text="Còn lại" Style="{StaticResource CE.Caption}"/><TextBlock Text="{Binding RemainingAmount, StringFormat={}{0:N0} đ}" Style="{StaticResource CE.SectionHeading}"/></StackPanel>

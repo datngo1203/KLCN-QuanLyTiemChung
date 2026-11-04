@@ -31,7 +31,8 @@
         <DataGridTextColumn Header="Khách hàng" Binding="{Binding Customer.FullName}" Width="190"/>
         <DataGridTextColumn Header="Người được tiêm" Binding="{Binding Recipient.FullName}" Width="190"/>
         <DataGridTextColumn Header="Tạo lúc" Binding="{Binding CreatedLabel}" Width="145"/>
-        <DataGridTextColumn Header="Tổng (VND)" Binding="{Binding Subtotal, StringFormat=N0}" Width="130"/>
+        <DataGridTextColumn Header="Tổng (VND)" Binding="{Binding TotalBeforeDiscount, StringFormat=N0}" Width="130"/>
+        <DataGridTextColumn Header="Ngày mong muốn tiêm" Binding="{Binding PreferredDateLabel}" Width="150"/>
         <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="120"/>
        </DataGrid.Columns>
       </DataGrid>
@@ -49,12 +50,16 @@
       <TextBlock Text="{Binding Detail.Customer.FullName, StringFormat=Khách hàng: {0}}" Margin="0,8,0,4"/>
       <TextBlock Text="{Binding Detail.Recipient.FullName, StringFormat=Người được tiêm: {0}}"/>
       <TextBlock Text="{Binding Detail.StatusLabel, StringFormat=Trạng thái: {0}}" Margin="0,4,0,12"/>
+      <TextBlock Text="{Binding Detail.ContactLabel}" Margin="0,0,0,6"/>
+      <TextBlock Text="{Binding Detail.PreferredDateLabel, StringFormat=Ngày mong muốn tiêm: {0}}" Margin="0,0,0,8"/>
       <ItemsControl ItemsSource="{Binding Detail.Items}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,0,0,1" Padding="0,8"><StackPanel>
        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
        <WrapPanel><TextBlock Text="{Binding KindLabel}"/><TextBlock Text="{Binding Quantity, StringFormat= · Số lượng: {0}}"/><TextBlock Text="{Binding UnitPrice, StringFormat= · Đơn giá: {0:N0} đ}"/><TextBlock Text="{Binding LineTotal, StringFormat= · Thành tiền: {0:N0} đ}"/></WrapPanel>
        <Expander Header="Thành phần trong một gói"><TextBlock Text="{Binding ComponentLabel}"/></Expander>
       </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-      <TextBlock Text="{Binding Detail.Subtotal, StringFormat=Tổng đã chốt: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,6"/>
+      <TextBlock Text="{Binding Detail.Subtotal, StringFormat=Tạm tính dịch vụ: {0:N0} đ}" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding Detail.ConsultationFeeLabel, StringFormat=Phí khám/tư vấn: {0}}"/>
+      <TextBlock Text="{Binding Detail.TotalBeforeDiscount, StringFormat=Tổng trước ưu đãi: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,6"/>
       <TextBlock Text="Đã lưu đăng ký; chưa có thanh toán hoặc lịch tiêm trong luồng này." Style="{StaticResource CE.Caption}"/>
      </StackPanel></Border>
     </StackPanel>
@@ -88,8 +93,42 @@
       <WrapPanel><TextBlock Text="Số lượng 1–100" Margin="0,8,12,0"/><TextBox Text="{Binding QuantityText, UpdateSourceTrigger=PropertyChanged}" Width="75" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Số lượng"/><Button Content="Thêm / cập nhật số lượng" Command="{Binding AddLineCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="12,0,0,0"/></WrapPanel>
       <TextBlock Text="Chọn lại cùng dịch vụ để thay số lượng bằng giá trị vừa nhập. Vắc xin lẻ và gói là hai dòng riêng." Style="{StaticResource CE.Caption}" Margin="0,8,0,0"/>
      </StackPanel></Border>
+     <Border Style="{StaticResource CE.Card}" Margin="0,0,0,12"><StackPanel>
+      <TextBlock Text="3. Thông tin liên hệ và ngày mong muốn tiêm" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
+      <TextBlock Text="Thông tin dưới đây được lưu cùng lần đăng ký." Style="{StaticResource CE.Caption}" Margin="0,0,0,8"/>
+      <UniformGrid Columns="2">
+       <StackPanel Margin="0,0,8,8">
+        <TextBlock Text="Họ tên liên hệ *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding ContactFullName, UpdateSourceTrigger=PropertyChanged}" MaxLength="150" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Họ tên liên hệ"/>
+       </StackPanel>
+       <StackPanel Margin="0,0,0,8">
+        <TextBlock Text="Số điện thoại *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding ContactPhone, UpdateSourceTrigger=PropertyChanged}" MaxLength="11" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Số điện thoại liên hệ"/>
+       </StackPanel>
+       <StackPanel Margin="0,0,8,8">
+        <TextBlock Text="Email *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding ContactEmail, UpdateSourceTrigger=PropertyChanged}" MaxLength="254" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Email liên hệ"/>
+       </StackPanel>
+       <StackPanel Margin="0,0,0,8">
+        <TextBlock Text="Tỉnh / Thành phố *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding ProvinceCity, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tỉnh / Thành phố"/>
+       </StackPanel>
+       <StackPanel Margin="0,0,8,8">
+        <TextBlock Text="Phường / Xã *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding WardCommune, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Phường / Xã"/>
+       </StackPanel>
+       <StackPanel Margin="0,0,0,8">
+        <TextBlock Text="Địa chỉ *" Style="{StaticResource CE.Caption}"/>
+        <TextBox Text="{Binding AddressLine, UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Địa chỉ liên hệ"/>
+       </StackPanel>
+      </UniformGrid>
+      <TextBlock Text="Ngày mong muốn tiêm *" Style="{StaticResource CE.Caption}"/>
+      <DatePicker SelectedDate="{Binding PreferredDate}" DisplayDateStart="{Binding VietnamToday}" DateValidationError="InvalidPreferredDate"
+                  Style="{StaticResource CE.DatePicker}" Width="180" HorizontalAlignment="Left" AutomationProperties.Name="Ngày mong muốn tiêm"/>
+      <TextBlock Text="Cơ sở sẽ xác nhận lịch ở bước sau." Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
+     </StackPanel></Border>
      <Border Style="{StaticResource CE.Card}"><StackPanel>
-      <TextBlock Text="3. Kiểm tra và xác nhận đăng ký" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
+      <TextBlock Text="4. Kiểm tra và xác nhận đăng ký" Style="{StaticResource CE.SectionHeading}" Margin="0,0,0,8"/>
       <TextBlock Text="{Binding Customer.Name, StringFormat=Khách hàng: {0}}"/><TextBlock Text="{Binding Recipient.Name, StringFormat=Người được tiêm: {0}}" Margin="0,2,0,8"/>
       <ItemsControl ItemsSource="{Binding Lines}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource CE.CardBorder}" BorderThickness="0,0,0,1" Padding="0,8"><StackPanel>
        <DockPanel><Button DockPanel.Dock="Right" Content="Xóa dòng" Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource CE.Button.Ghost}"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/></DockPanel>
@@ -99,7 +138,9 @@
       </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
       <TextBlock Text="{Binding CatalogNotice}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,8" Visibility="{Binding HasCatalogNotice, Converter={StaticResource Visible}}"/>
       <CheckBox Content="Tôi đã kiểm tra lại giá và thành phần mới" IsChecked="{Binding CatalogConfirmed}" Visibility="{Binding NeedsCatalogConfirmation, Converter={StaticResource Visible}}" Margin="0,8"/>
-      <TextBlock Text="{Binding Subtotal, StringFormat=Tổng dự kiến: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,4"/>
+      <TextBlock Text="{Binding Subtotal, StringFormat=Tạm tính dịch vụ: {0:N0} đ}" Margin="0,8,0,0"/>
+      <TextBlock Text="{Binding ConsultationFeeLabel, StringFormat=Phí khám/tư vấn: {0}}"/>
+      <TextBlock Text="{Binding TotalBeforeDiscount, StringFormat=Tổng trước ưu đãi: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,4"/>
       <TextBlock Text="Giá do API quyết định và lưu tại thời điểm đăng ký." Style="{StaticResource CE.Caption}"/>
       <TextBlock Text="{Binding FormError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,8"/>
       <Button Content="Xác nhận tạo đăng ký" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,4"/>

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TiemChung.Api;
@@ -23,6 +24,10 @@ namespace TiemChung.Tests;
 public sealed class RegistrationSqlTests
 {
     private const string Route = "/api/v1/registrations";
+
+    internal static CreateRegistrationRequest SyntheticRequest(int customerId, int recipientId, RegistrationItemRequest[] items) =>
+        new(customerId, recipientId, items, VaccinationEndpoints.FacilityDate(DateTimeOffset.UtcNow).AddDays(1),
+            new("[DEMO] Liên hệ đăng ký", "09123456789", "contact@example.invalid", "Tỉnh thử", "Phường thử", "01 Đường thử"));
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SinglesPackagesAndMixedPersistSnapshotsAndAuditAndAllowPriceUpdates()
@@ -39,7 +44,9 @@ public sealed class RegistrationSqlTests
             Assert.Equal(request.Items.Sum(x => x.Quantity * x.ExpectedUnitPrice), saved.Subtotal);
             Assert.All(saved.Items, x => Assert.Equal(x.Quantity * x.UnitPrice, x.LineTotal));
             var row = await f.Db.Registrations.AsNoTracking().SingleAsync(x => x.MaDangKy == saved.Id);
-            Assert.Null(row.HinhThucTiem); Assert.Null(row.ThoiGianDuKien); Assert.Null(row.MaKhuyenMai);
+            Assert.Null(row.HinhThucTiem); Assert.Null(row.MaKhuyenMai);
+            Assert.Equal(request.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue), row.ThoiGianDuKien);
+            Assert.Equal(0, row.PhiKhamTuVan);
             var audit = await f.Db.Set<SecurityAudit>().AsNoTracking().SingleAsync(x => x.Action == "registrations.created" && x.ResourceId == saved.Id.ToString());
             Assert.Equal(f.CustomerAccount.MaTaiKhoan, audit.ActorAccountId);
             Assert.NotNull(audit.SessionId); Assert.Equal("Success", audit.Outcome);
@@ -345,18 +352,170 @@ public sealed class RegistrationSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task OpenApiDescribesActualRegistrationDtoAndOnlyThreeOperations()
+    public async Task OpenApiDescribesActualRegistrationDtoAndSettings()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         using var json = JsonDocument.Parse(await f.Customer.GetStringAsync("/openapi/v1.json"));
         var paths = json.RootElement.GetProperty("paths");
         Assert.Equal(new[] { "get", "post" }, paths.GetProperty(Route).EnumerateObject().Select(x => x.Name).Order().ToArray());
         Assert.Single(paths.GetProperty(Route + "/{id}").EnumerateObject());
+        Assert.Equal("get", Assert.Single(paths.GetProperty(Route + "/settings").EnumerateObject()).Name);
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("CreateRegistrationRequest").GetProperty("properties");
-        Assert.Equal(new[] { "customerId", "items", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
+        Assert.Equal(new[] { "contact", "customerId", "items", "preferredDate", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
         Assert.Contains("expectedUnitPrice", schemas.GetProperty("RegistrationItemRequest").GetProperty("required").EnumerateArray().Select(x => x.GetString()));
         Assert.True(schemas.GetProperty("RegistrationDto").GetProperty("properties").TryGetProperty("subtotal", out _));
+        });
+    }
+
+    [Fact]
+    public void PreferredDateUsesVietnamMidnight()
+    {
+        var date = new DateOnly(2026, 11, 5);
+        var midnight = new DateTimeOffset(2026, 11, 4, 17, 0, 0, TimeSpan.Zero);
+        Assert.True(RegistrationEndpoints.IsPreferredDateValid(date.AddDays(-1), midnight.AddTicks(-1)));
+        Assert.False(RegistrationEndpoints.IsPreferredDateValid(date.AddDays(-1), midnight));
+        Assert.True(RegistrationEndpoints.IsPreferredDateValid(date, midnight));
+        Assert.False(RegistrationEndpoints.IsPreferredDateValid(null, midnight));
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData(null, 0)]
+    [InlineData("0", 0)]
+    [InlineData("50000", 50000)]
+    public async Task FeeAndContactAreSnapshottedAndReadAfterCustomerEdits(string? configuredFee, int fee)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(fee: configuredFee), async f => {
+        var settings = await f.Customer.GetFromJsonAsync<RegistrationSettingsDto>(Route + "/settings");
+        Assert.Equal(fee, settings!.ConsultationFee);
+        using var denied = await f.Admin.GetAsync(Route + "/settings");
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+
+        var req = f.Request("single");
+        var date = VaccinationEndpoints.FacilityDate(DateTimeOffset.UtcNow);
+        var contact = req.Contact!;
+        req = req with { PreferredDate = date, Contact = contact with {
+            FullName = " " + contact.FullName + " ", ProvinceCity = " " + contact.ProvinceCity + " ",
+            WardCommune = " " + contact.WardCommune + " ", AddressLine = " " + contact.AddressLine + " "
+        }};
+        using var response = await f.Customer.PostAsJsonAsync(Route, req);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var dto = (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
+        var snapshot = new RegistrationContactDto(contact.FullName, contact.PhoneNumber, contact.Email,
+            contact.ProvinceCity, contact.WardCommune, contact.AddressLine);
+        Assert.Equal(snapshot, dto.Contact);
+        Assert.Equal(date, dto.PreferredDate);
+        Assert.Equal(300000m, dto.Subtotal);
+        Assert.Equal(fee, dto.ConsultationFee);
+        Assert.Equal(300000m + fee, dto.TotalBeforeDiscount);
+
+        var row = await f.Db.Registrations.AsNoTracking().SingleAsync();
+        Assert.Equal(date.ToDateTime(TimeOnly.MinValue), row.ThoiGianDuKien);
+        Assert.Equal(snapshot, new(row.TenNguoiLienHe, row.SoDienThoaiLienHe, row.EmailLienHe,
+            row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe));
+        Assert.Equal(fee, row.PhiKhamTuVan);
+        Assert.Empty(await f.Db.Set<LichHenTiem>().ToArrayAsync());
+        var customer = await f.Db.Customers.AsNoTracking().SingleAsync();
+        Assert.Equal(f.CustomerProfile.HoTen, customer.HoTen);
+        Assert.Equal(f.CustomerProfile.SoDienThoai, customer.SoDienThoai);
+        Assert.Equal(f.CustomerProfile.Email, customer.Email);
+
+        await f.Db.Customers.ExecuteUpdateAsync(setters => setters
+            .SetProperty(x => x.SoDienThoai, "0901111222").SetProperty(x => x.Email, "edited@example.invalid"));
+        var saved = await f.Reception.GetFromJsonAsync<RegistrationDto>(Route + "/" + dto.Id);
+        Assert.Equal(snapshot, saved!.Contact);
+        Assert.Equal(date, saved.PreferredDate);
+        Assert.Equal(fee, saved.ConsultationFee);
+        var summary = Assert.Single((await f.Customer.GetFromJsonAsync<RegistrationListResponse>(Route))!.Items);
+        Assert.Equal(date, summary.PreferredDate);
+        Assert.Equal(fee, summary.ConsultationFee);
+        Assert.Equal(dto.TotalBeforeDiscount, summary.TotalBeforeDiscount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task ContactAndDateValidationAndOverflowLeaveNoRegistration()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(fee: "50000"), async f => {
+        var req = f.Request("single");
+        var contact = req.Contact!;
+        var invalid = new[] {
+            contact with { FullName = " " }, contact with { FullName = new string('a', 151) },
+            contact with { PhoneNumber = null }, contact with { PhoneNumber = "012345678" },
+            contact with { PhoneNumber = "012345678901" }, contact with { PhoneNumber = "０９１２３４５６７８" },
+            contact with { Email = "invalid" }, contact with { Email = new string('a', 251) + "@b.co" },
+            contact with { ProvinceCity = null }, contact with { ProvinceCity = new string('a', 101) },
+            contact with { WardCommune = " " }, contact with { WardCommune = new string('a', 101) },
+            contact with { AddressLine = "" }, contact with { AddressLine = new string('a', 251) },
+        };
+        var yesterday = VaccinationEndpoints.FacilityDate(DateTimeOffset.UtcNow).AddDays(-1);
+        foreach (var bad in invalid.Select(c => req with { Contact = c })
+            .Concat([req with { Contact = null }, req with { PreferredDate = null }, req with { PreferredDate = yesterday }])) {
+            using var response = await f.Customer.PostAsJsonAsync(Route, bad);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("validation", await Code(response));
+        }
+        using var injected = await f.Customer.PostAsync(Route, new StringContent(
+            JsonSerializer.Serialize(req, JsonOptions).TrimEnd('}') + ",\"consultationFee\":0}", Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, injected.StatusCode);
+
+        const decimal max = 9999999999999999m;
+        await f.Db.Vaccines.Where(x => x.MaVacXin == req.Items[0].ServiceId).ExecuteUpdateAsync(s => s.SetProperty(x => x.Gia, max));
+        using var overflow = await f.Customer.PostAsJsonAsync(Route, req with {
+            Items = [req.Items[0] with { ExpectedUnitPrice = max, Quantity = 1 }]
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, overflow.StatusCode);
+        Assert.Empty(await f.Db.Registrations.ToArrayAsync());
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("-1")]
+    [InlineData("1.5")]
+    [InlineData("10000000000000000")]
+    [InlineData("99999999999999999999999999999999999999")]
+    public async Task InvalidFeeFailsClosed(string fee)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(fee: fee), async f => {
+        using var settings = await f.Customer.GetAsync(Route + "/settings");
+        using var response = await f.Customer.PostAsJsonAsync(Route, f.Request());
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, settings.StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("dependencyUnavailable", await Code(response));
+        Assert.Empty(await f.Db.Registrations.ToArrayAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task Rf04aMigrationRollsBackAndLeavesLegacySnapshotNullOnUpgradeAndRead()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(fee: "50000"), async f => {
+        var migrator = f.Db.GetService<IMigrator>();
+        await migrator.MigrateAsync("20261104071354_RF03ProfileIntegrity");
+        var vaccine = f.Vaccines[0].MaVacXin;
+        var customer = f.CustomerProfile.MaKhachHang;
+        var recipient = f.Recipient.MaNguoiDuocTiem;
+        await f.Db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO DangKyDichVu (MaKhachHang, MaNguoiDuocTiem, NgayDangKy, TrangThai)
+            VALUES ({customer}, {recipient}, SYSUTCDATETIME(), 'DaDangKy');
+            INSERT INTO ChiTietVacXinLe (MaDangKy, MaVacXin, SoLuong, GiaTaiThoiDiemDangKy)
+            VALUES (CONVERT(int, SCOPE_IDENTITY()), {vaccine}, 1, 150000);
+            """);
+        await migrator.MigrateAsync();
+        Assert.False(f.Db.Database.HasPendingModelChanges());
+        var row = await f.Db.Registrations.AsNoTracking().SingleAsync();
+        var detail = await f.Customer.GetFromJsonAsync<RegistrationDto>(Route + "/" + row.MaDangKy);
+        Assert.Null(detail!.Contact);
+        Assert.Null(detail.PreferredDate);
+        Assert.Null(detail.ConsultationFee);
+        Assert.Equal(150000m, detail.TotalBeforeDiscount);
+        var summary = Assert.Single((await f.Customer.GetFromJsonAsync<RegistrationListResponse>(Route))!.Items);
+        Assert.Null(summary.ConsultationFee);
+        Assert.Equal(detail.TotalBeforeDiscount, summary.TotalBeforeDiscount);
+        var payment = await f.Customer.GetFromJsonAsync<RegistrationPaymentDto>(Route + "/" + row.MaDangKy + "/payment");
+        Assert.Equal(150000m, payment!.TotalDue);
+        Assert.Null(payment.ConsultationFee);
+        Assert.Equal(JsonSerializer.Serialize(row), JsonSerializer.Serialize(await f.Db.Registrations.AsNoTracking().SingleAsync()));
         });
     }
 
@@ -415,7 +574,7 @@ public sealed class RegistrationSqlTests
         public CreateRegistrationRequest Request(string kind = "mixed") {
             var single = new RegistrationItemRequest("vaccine", Vaccines[0].MaVacXin, 2, Vaccines[0].Gia);
             var package = new RegistrationItemRequest("package", Package.MaGoi, 2, Package.GiaGoi, Components.Reverse().ToArray());
-            return new(CustomerProfile.MaKhachHang, Recipient.MaNguoiDuocTiem, kind == "single" ? [single] : kind == "package" ? [package] : [single, package]);
+            return SyntheticRequest(CustomerProfile.MaKhachHang, Recipient.MaNguoiDuocTiem, kind == "single" ? [single] : kind == "package" ? [package] : [single, package]);
         }
         public async Task<HttpClient> Actor(string? title = null) {
             var suffix = Guid.NewGuid().ToString("N");
@@ -439,7 +598,7 @@ public sealed class RegistrationSqlTests
             if (CustomerAccount is null) CustomerAccount = account;
             return client;
         }
-        public static async Task<Fixture> Create(PackageGate? gate = null) {
+        public static async Task<Fixture> Create(PackageGate? gate = null, string? fee = null) {
             var b = await CatalogSqlTests.Fixture.Create();
             Fixture? partial = null;
             try {
@@ -462,6 +621,10 @@ public sealed class RegistrationSqlTests
                 // Use the intercepted factory for both competing HTTP requests, with distinct accounts.
                 f._admin = f._factory.CreateClient();
                 f._admin.DefaultRequestHeaders.Authorization = b.Client.DefaultRequestHeaders.Authorization;
+            }
+            if (fee is not null) {
+                f._factory = b.Factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
+                    config.AddInMemoryCollection(new Dictionary<string, string?> { ["Registration:ConsultationFeeVnd"] = fee })));
             }
             f.Customer = await f.Actor(); f.Reception = await f.Actor("LeTan");
             b.Db.AddRange(new AccountProfileLink { AccountId = f.CustomerAccount.MaTaiKhoan, CustomerId = customer.MaKhachHang, CreatedAt = DateTimeOffset.UtcNow },

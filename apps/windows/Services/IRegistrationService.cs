@@ -22,22 +22,46 @@ public sealed record RegistrationLine(int ServiceId, string Name, string Kind, i
     public string AvailabilityLabel => Available ? "" : "Dịch vụ không còn trong Catalog SQL. Hãy xóa dòng này.";
 }
 public sealed record RegistrationSummary(int Id, DateTimeOffset CreatedAt, string Status, RegistrationPerson Customer,
-    RegistrationPerson Recipient, int? EmployeeId, decimal Subtotal, string Currency)
+    RegistrationPerson Recipient, int? EmployeeId, decimal Subtotal, string Currency, DateOnly? PreferredDate, decimal? ConsultationFee)
 {
+    public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+    public string PreferredDateLabel => PreferredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật";
     public string Code => $"DK-{Id:0000}";
     public string StatusLabel => Status == "DaDangKy" ? "Đã đăng ký" : Status;
-    public string Display => $"{Code} · {Recipient.FullName} · {Subtotal:N0} đ";
+    public string Display => $"{Code} · {Recipient.FullName} · {TotalBeforeDiscount:N0} đ";
     public string CreatedLabel => CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 }
 public sealed record RegistrationDetail(int Id, DateTimeOffset CreatedAt, string Status, RegistrationPerson Customer,
-    RegistrationPerson Recipient, int? EmployeeId, RegistrationLine[] Items, decimal Subtotal, string Currency)
+    RegistrationPerson Recipient, int? EmployeeId, RegistrationLine[] Items, decimal Subtotal, string Currency,
+    DateOnly? PreferredDate, RegistrationContact? Contact, decimal? ConsultationFee)
 {
+    public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+    public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
+    public string PreferredDateLabel => PreferredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật";
+    public string ContactLabel => string.Join(Environment.NewLine,
+        $"Họ tên liên hệ: {Contact?.FullName ?? "Chưa cập nhật"}",
+        $"Số điện thoại: {Contact?.PhoneNumber ?? "Chưa cập nhật"}",
+        $"Email: {Contact?.Email ?? "Chưa cập nhật"}",
+        $"Tỉnh / Thành phố: {Contact?.ProvinceCity ?? "Chưa cập nhật"}",
+        $"Phường / Xã: {Contact?.WardCommune ?? "Chưa cập nhật"}",
+        $"Địa chỉ: {Contact?.AddressLine ?? "Chưa cập nhật"}");
     public string StatusLabel => Status == "DaDangKy" ? "Đã đăng ký" : Status;
 }
 public sealed record RegistrationRequestItem(string Kind, int ServiceId, int Quantity, decimal ExpectedUnitPrice,
     RegistrationComponentRequest[]? ExpectedComponents);
 public sealed record RegistrationComponentRequest(int VaccineId, int Quantity);
-public sealed record RegistrationRequest(int CustomerId, int RecipientId, RegistrationRequestItem[] Items);
+public sealed record RegistrationRequest(int CustomerId, int RecipientId, RegistrationRequestItem[] Items,
+    DateOnly PreferredDate, RegistrationContact Contact);
+public sealed record RegistrationContact(string? FullName, string? PhoneNumber, string? Email,
+    string? ProvinceCity, string? WardCommune, string? AddressLine);
+public sealed record RegistrationSettings([property: System.Text.Json.Serialization.JsonRequired] decimal ConsultationFee)
+{
+    public static string FeeLabel(decimal? fee) => fee switch {
+        null => "Chưa cập nhật",
+        0 => "Đã bao gồm / không thu riêng",
+        _ => $"{fee:N0} đ"
+    };
+}
 
 public sealed class RegistrationApiException(string code, string message) : Exception(message)
 {
@@ -49,6 +73,7 @@ public interface IRegistrationService
     Task<CustomerRecord[]> GetCustomersAsync(string search, int page);
     Task<RecipientRecord[]> GetRecipientsAsync(int customerId);
     Task<RegistrationCatalogItem[]> GetCatalogAsync();
+    Task<RegistrationSettings> GetSettingsAsync();
     Task<RegistrationSummary[]> GetRegistrationsAsync(int page);
     Task<RegistrationDetail> GetDetailAsync(int id);
     Task<int> CreateAsync(RegistrationRequest request);
@@ -81,7 +106,7 @@ public sealed class RegistrationApiService(IdentityApiService? identity = null) 
             throw new RegistrationApiException(code ?? "requestFailed", code switch {
                 "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại.",
                 "permissionDenied" => "Chỉ nhân viên Active chức danh Lễ tân được tạo và xem đăng ký.",
-                "validation" => "Kiểm tra hồ sơ, số lượng 1–100 và tổng tiền hợp lệ. Bản nháp được giữ lại.",
+                "validation" => "Kiểm tra hồ sơ, liên hệ, ngày mong muốn tiêm, số lượng và tổng tiền. Bản nháp được giữ lại.",
                 "catalogChanged" => "Giá hoặc thành phần gói đã thay đổi. Cần xem và xác nhận lại.",
                 "resourceNotFound" => "Hồ sơ hoặc dịch vụ không còn tồn tại. Hãy tra cứu lại.",
                 _ => "Máy chủ chưa xử lý được yêu cầu. Hãy thử lại sau."
@@ -124,6 +149,12 @@ public sealed class RegistrationApiService(IdentityApiService? identity = null) 
             .Concat(packages.Select(x => new RegistrationCatalogItem(x.Id, x.Name, "package", x.Price,
                 x.Items.Select(c => new RegistrationComponent(c.VaccineId, c.Quantity, vaccines.FirstOrDefault(v => v.Id == c.VaccineId)?.Name)).ToArray())))
             .ToArray();
+    }
+
+    public async Task<RegistrationSettings> GetSettingsAsync()
+    {
+        using var response = await SendAsync(HttpMethod.Get, "registrations/settings");
+        return await response.Content.ReadFromJsonAsync<RegistrationSettings>() ?? throw new JsonException();
     }
 
     public Task<RegistrationSummary[]> GetRegistrationsAsync(int page) =>

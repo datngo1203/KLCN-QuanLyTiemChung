@@ -201,7 +201,7 @@ public sealed class PaymentSqlTests
         const decimal limit = 9999999999999999m;
         await f.Db.Vaccines.ExecuteUpdateAsync(s => s.SetProperty(v => v.Gia, limit));
         var vaccine = await f.Db.Vaccines.AsNoTracking().FirstAsync();
-        var request = new CreateRegistrationRequest(f.CustomerProfile.MaKhachHang, f.Recipient.MaNguoiDuocTiem,
+        var request = RegistrationSqlTests.SyntheticRequest(f.CustomerProfile.MaKhachHang, f.Recipient.MaNguoiDuocTiem,
             [new("vaccine", vaccine.MaVacXin, 1, limit)]);
         using var created = await f.Customer.Client.PostAsJsonAsync("/api/v1/registrations", request);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
@@ -499,7 +499,7 @@ public sealed class PaymentSqlTests
             var components = await Db.Set<GoiVacXin_VacXin>().Select(x => new RegistrationComponentRequest(x.MaVacXin, x.SoLuong)).ToArrayAsync();
             var single = new RegistrationItemRequest("vaccine", vaccine.MaVacXin, 2, vaccine.Gia);
             var bundled = new RegistrationItemRequest("package", package.MaGoi, 2, package.GiaGoi, components);
-            var request = new CreateRegistrationRequest(CustomerProfile.MaKhachHang, Recipient.MaNguoiDuocTiem,
+            var request = RegistrationSqlTests.SyntheticRequest(CustomerProfile.MaKhachHang, Recipient.MaNguoiDuocTiem,
                 kind == "single" ? [single] : kind == "package" ? [bundled] : [single, bundled]);
             using var response = await Customer.Client.PostAsJsonAsync("/api/v1/registrations", request);
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
