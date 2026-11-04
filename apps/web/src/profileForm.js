@@ -8,7 +8,7 @@ export const vietnamToday = () => new Intl.DateTimeFormat('en-CA', {
 }).format(new Date())
 
 export function profileBody(resource, draft, customers) {
-  const { id, customerId, ...body } = draft
+  const { id, customerId, profileCode: _profileCode, ...body } = draft
   body.identityNumber = body.identityNumber?.trim() || null
   if (!body.dateOfBirth || body.dateOfBirth > vietnamToday())
     throw new Error('Ngày sinh không được lớn hơn ngày hiện tại tại Việt Nam.')

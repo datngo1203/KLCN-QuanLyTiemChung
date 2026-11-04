@@ -130,7 +130,8 @@ public static partial class ProfileEndpoints
                     r.CCCD,
                     r.NgaySinh,
                     r.GioiTinh,
-                    r.QuanHeVoiKhachHang))
+                    r.QuanHeVoiKhachHang,
+                    r.MaHoSo))
                 .ToListAsync(ct);
 
             return Results.Ok(new RecipientListResponse(items));
@@ -185,7 +186,8 @@ public static partial class ProfileEndpoints
                 entity.CCCD,
                 entity.NgaySinh,
                 entity.GioiTinh,
-                entity.QuanHeVoiKhachHang);
+                entity.QuanHeVoiKhachHang,
+                entity.MaHoSo);
 
             return Results.Created($"/api/v1/recipients/{dto.Id}", dto);
         }).WithName("CreateRecipient");
@@ -219,7 +221,7 @@ public static partial class ProfileEndpoints
             entity.QuanHeVoiKhachHang=IdentityEndpoints.Value(body,"relationshipToCustomer").Trim();
             Audit(db,context,actor,"updated","Recipient",id);
             await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
-            return Results.Ok(new RecipientDto(id,entity.MaKhachHang,entity.HoTen,entity.CCCD,entity.NgaySinh,entity.GioiTinh,entity.QuanHeVoiKhachHang));
+            return Results.Ok(new RecipientDto(id,entity.MaKhachHang,entity.HoTen,entity.CCCD,entity.NgaySinh,entity.GioiTinh,entity.QuanHeVoiKhachHang,entity.MaHoSo));
         }).WithName("UpdateRecipient");
 
         group.MapPut("/customers/{id:int}", async (HttpContext context, IdentityAuthorization auth, int id, TiemChungDbContext db, CancellationToken ct) => {

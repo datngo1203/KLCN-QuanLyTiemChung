@@ -17,7 +17,7 @@ const birthDate = value => value ? value.split('-').reverse().join('/') : 'Chưa
 
 function ProfileDetails({ value, recipient = false }) {
   const details = recipient
-    ? [['Họ và tên', value.fullName], ['Ngày sinh', birthDate(value.dateOfBirth)], ['Giới tính', value.gender], ['Quan hệ với khách hàng', value.relationshipToCustomer], ['CCCD', value.identityNumber]]
+    ? [['Họ và tên', value.fullName], ['Ngày sinh', birthDate(value.dateOfBirth)], ['Giới tính', value.gender], ['Quan hệ với khách hàng', value.relationshipToCustomer], ['CCCD', value.identityNumber], ['Mã hồ sơ', value.profileCode]]
     : [['Họ và tên', value.fullName], ['Danh xưng', value.salutation], ['Ngày sinh', birthDate(value.dateOfBirth)], ['Số điện thoại', value.phoneNumber], ['Email', value.email], ['CCCD', value.identityNumber]]
   return <dl className="profile-details">{details.map(([label, text]) => <div key={label}><dt>{label}</dt><dd>{text || 'Chưa cập nhật'}</dd></div>)}</dl>
 }
@@ -27,6 +27,8 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
   const isRecipient = editor.resource === 'recipients'
   const viewing = editor.mode === 'view'
   const claiming = editor.mode === 'claim'
+  const findingRecipient = claiming && isRecipient
+  const byCode = editor.claimMode === 'profileCode'
   const title = claiming ? 'Tìm hồ sơ tiêm chủng có sẵn' : viewing ? 'Thông tin người được tiêm' : `${editor.draft.id ? 'Chỉnh sửa' : 'Thêm'} ${isRecipient ? 'người được tiêm' : 'hồ sơ cá nhân'}`
   useEffect(() => {
     const element = dialog.current
@@ -34,7 +36,7 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
     element.showModal()
     return () => { element.close(); requestAnimationFrame(() => { if (previous?.isConnected) previous.focus() }) }
   }, [])
-  useEffect(() => { dialog.current.querySelector(viewing ? 'h2' : 'input')?.focus() }, [viewing])
+  useEffect(() => { dialog.current.querySelector(viewing ? 'h2' : '.profile-fields input')?.focus() }, [viewing])
   const setDraft = draft => setEditor(current => ({ ...current, draft }))
   const input = (name, label, options = {}) => <label className="demo-field" key={name}>
     <span>{label}{options.required !== false && ' *'}</span>
@@ -58,21 +60,30 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
       </div>
     </> : <form onSubmit={event => { event.preventDefault(); onSave() }} aria-busy={busy}>
       <p className="profile-help">{claiming
-        ? isRecipient ? 'Nhập đúng thông tin người được tiêm trong hồ sơ khách hàng đã liên kết.' : 'Nhập đúng thông tin đã cung cấp cho nhân viên. Email đã xác minh của tài khoản phải trùng email trong hồ sơ.'
+        ? isRecipient ? 'Nhập số điện thoại trong hồ sơ và thông tin người được tiêm.' : 'Nhập đúng thông tin đã cung cấp cho nhân viên. Email đã xác minh của tài khoản phải trùng email trong hồ sơ.'
         : 'Các trường có dấu * là bắt buộc. CCCD có thể để trống.'}</p>
       {isRecipient && !claiming && <p className="profile-owner">Hồ sơ liên kết: <strong>{customers.find(customer => customer.id === Number(editor.draft.customerId))?.fullName || 'Không có hồ sơ khách hàng trong phạm vi xem'}</strong>{editor.draft.id && <span>Không thể chuyển sang khách hàng khác.</span>}</p>}
+      {findingRecipient && <fieldset disabled={busy} className="profile-claim-method">
+        <legend>Cách tìm hồ sơ</legend>
+        {[['profileCode', 'Mã hồ sơ'], ['personalInfo', 'Thông tin cá nhân']].map(([value, label]) =>
+          <label key={value}><input type="radio" name="claimMode" value={value} checked={editor.claimMode === value}
+            onChange={() => setEditor(current => ({ ...current, claimMode: value }))} /> {label}</label>)}
+      </fieldset>}
       <fieldset disabled={busy} className="profile-fields">
-        {input('fullName', 'Họ và tên', { maxLength: 150, autoComplete: 'off' })}
-        {input('dateOfBirth', 'Ngày sinh', { type: 'date', max: vietnamToday() })}
-        {(!claiming || isRecipient) && input('identityNumber', 'CCCD (12 chữ số)', { required: false, maxLength: 12, pattern: '[0-9]{12}', inputMode: 'numeric', title: 'Nhập đúng 12 chữ số hoặc để trống.' })}
-        {isRecipient ? <>
-          {!claiming && select('gender', 'Giới tính', ['Nam', 'Nữ', 'Khác'])}
-          {!claiming && select('relationshipToCustomer', 'Quan hệ với khách hàng', relationships)}
-        </> : <>
-          {input('phoneNumber', 'Số điện thoại', { type: 'tel', maxLength: 11, pattern: '[0-9]{10,11}', inputMode: 'numeric', title: 'Nhập số điện thoại gồm 10–11 chữ số.', autoComplete: 'tel' })}
-          {!claiming && select('salutation', 'Danh xưng', salutations)}
-          {!claiming && input('email', 'Email', { type: 'email', maxLength: 254, autoComplete: 'email' })}
+        {findingRecipient && byCode && input('profileCode', 'Mã hồ sơ', { pattern: '[Vv][Aa][Cc]-[0-9a-fA-F]{12}', placeholder: 'VAC-XXXXXXXXXXXX', title: 'Nhập VAC- và 12 ký tự từ 0–9 hoặc A–F.' })}
+        {(!findingRecipient || !byCode) && <>
+          {input('fullName', 'Họ và tên', { maxLength: 150, autoComplete: 'off' })}
+          {input('dateOfBirth', 'Ngày sinh', { type: 'date', max: vietnamToday() })}
         </>}
+        {!claiming && input('identityNumber', 'CCCD (12 chữ số)', { required: false, maxLength: 12, pattern: '[0-9]{12}', inputMode: 'numeric', title: 'Nhập đúng 12 chữ số hoặc để trống.' })}
+        {(!isRecipient || findingRecipient) && input('phoneNumber', 'Số điện thoại', { type: 'tel', maxLength: 11, pattern: '[0-9]{10,11}', inputMode: 'numeric', title: 'Nhập số điện thoại gồm 10–11 chữ số.', autoComplete: 'tel' })}
+        {!claiming && (isRecipient ? <>
+          {select('gender', 'Giới tính', ['Nam', 'Nữ', 'Khác'])}
+          {select('relationshipToCustomer', 'Quan hệ với khách hàng', relationships)}
+        </> : <>
+          {select('salutation', 'Danh xưng', salutations)}
+          {input('email', 'Email', { type: 'email', maxLength: 254, autoComplete: 'email' })}
+        </>)}
       </fieldset>
       {error && <p className="profile-feedback error" role="alert">{error}</p>}
       <div className="profile-form-actions"><button className="button outline" type="button" disabled={busy} onClick={onClose}>Hủy</button><button className="button primary" type="submit" disabled={busy}>{claiming ? busy ? 'Đang xác minh…' : 'Tìm và liên kết' : busy ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
@@ -122,22 +133,28 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
   async function run(action, resource = null) {
     if (pending.current || locked) return
     pending.current = true; setBusy(true); setError(''); setErrorResource(resource); setNotice(null)
-    try { await action() } catch (error) { setError(profileError(error)) }
+    try { await action() } catch (error) { setError(editor?.mode === 'claim' && editor.resource === 'recipients' && error.code === 'profileClaimUnavailable' ? 'Không tìm thấy hồ sơ phù hợp. Vui lòng kiểm tra lại thông tin.' : profileError(error)) }
     finally { pending.current = false; setBusy(false) }
   }
   function open(resource, draft, mode = 'edit') {
-    setError(''); setErrorResource(null); setNotice(null); setEditor({ resource, draft: { ...draft }, mode })
+    setError(''); setErrorResource(null); setNotice(null); setEditor({ resource, draft: { ...draft }, mode, claimMode: 'profileCode' })
   }
   function close() { setEditor(null); setError('') }
   async function save() {
     const { resource, draft, mode } = editor
     if (mode === 'claim') {
-      const { fullName, dateOfBirth, phoneNumber, identityNumber } = draft
-      const body = resource === 'customers' ? { fullName, dateOfBirth, phoneNumber } : { fullName, dateOfBirth, identityNumber }
+      const { fullName, dateOfBirth, phoneNumber, profileCode } = draft
+      const claimMode = editor.claimMode
+      const body = resource === 'customers' ? { fullName, dateOfBirth, phoneNumber }
+        : claimMode === 'profileCode' ? { mode: claimMode, profileCode, phoneNumber }
+        : { mode: claimMode, fullName, dateOfBirth, phoneNumber }
       const linked = await identity.profiles(`${resource}/claim`, 'POST', body)
-      const add = items => items.some(item => item.id === linked.id) ? items : [...items, linked]
-      if (resource === 'customers') { setCustomers(add); setCustomerId(linked.id) }
-      else setRecipients(add)
+      const add = (items, item) => items.some(current => current.id === item.id)
+        ? items.map(current => current.id === item.id ? item : current) : [...items, item]
+      const customer = resource === 'customers' ? linked : linked.customer
+      setCustomers(items => add(items, customer))
+      setCustomerId(customer.id)
+      if (resource === 'recipients') setRecipients(items => add(items, linked.recipient))
       setEditor(null); setNotice({ resource, text: 'Đã liên kết hồ sơ với tài khoản của bạn.' })
       return
     }
@@ -170,14 +187,14 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
     {!ready ? <div className="profile-empty" role="status">{busy ? 'Đang tải hồ sơ của bạn…' : 'Chưa tải được hồ sơ. Chọn Tải lại để thử lại.'}</div> : <div className="profiles-layout">
       <section className="profile-panel" aria-labelledby="recipients-title"><div className="profile-section-heading"><div><span className="profile-kicker">HỒ SƠ ĐÃ LIÊN KẾT</span><h2 id="recipients-title">Người được tiêm <span className="profile-count">{recipients.length}</span></h2></div>{canCreate && <button ref={recipientAction} className="button primary" disabled={locked || !selectedCustomer} onClick={() => open('recipients', { ...emptyRecipient, customerId: selectedCustomer.id })}><Plus aria-hidden="true" />Thêm mới</button>}</div>
         <p className="profile-help">Xem và quản lý thông tin từng người trước khi đăng ký tiêm.</p>
-        {canCreate && selectedCustomer && <div className="profile-panel-actions"><button className="button outline" disabled={locked} onClick={() => open('recipients', {}, 'claim')}>Tìm hồ sơ tiêm chủng có sẵn</button></div>}
+        {canCreate && <div className="profile-panel-actions"><button className="button outline" disabled={locked} onClick={() => open('recipients', {}, 'claim')}>Tìm hồ sơ tiêm chủng có sẵn</button></div>}
         {canCreate && !selectedCustomer && <p className="profile-help">{customers.length ? 'Chọn hồ sơ khách hàng ở phần Hồ sơ cá nhân để thêm người được tiêm.' : 'Cần liên kết hoặc tạo hồ sơ cá nhân trước khi thêm người được tiêm.'}</p>}
         {!canUpdate && recipients.length > 0 && <p className="profile-help">Bạn có quyền xem thông tin. Tài khoản hiện không có quyền chỉnh sửa hồ sơ.</p>}
-        {recipients.length ? <ul className="profile-recipient-list">{recipients.map(recipient => <li key={recipient.id} className="profile-recipient-card"><div className="profile-initial" aria-hidden="true">{recipient.fullName.replace(/^\[DEMO\]\s*/, '').trim().slice(0, 1)}</div><div className="profile-recipient-info"><h3>{recipient.fullName}</h3><p>{recipient.relationshipToCustomer} · {birthDate(recipient.dateOfBirth)}</p></div><button className="button text-button" disabled={locked} aria-label={`Xem ${recipient.fullName}`} onClick={() => open('recipients', recipient, 'view')}>Xem hồ sơ<ArrowRight aria-hidden="true" /></button><button className="button primary" disabled={locked} onClick={() => go(`register/recipient/${recipient.id}`)}>Đăng ký tiêm</button></li>)}</ul> : <div className="profile-empty"><h3>Chưa có người được tiêm</h3><p>Thêm người được tiêm hoặc tìm hồ sơ tiêm chủng có sẵn để bắt đầu.</p></div>}
+        {recipients.length ? <ul className="profile-recipient-list">{recipients.map(recipient => <li key={recipient.id} className="profile-recipient-card"><div className="profile-initial" aria-hidden="true">{recipient.fullName.replace(/^\[DEMO\]\s*/, '').trim().slice(0, 1)}</div><div className="profile-recipient-info"><h3>{recipient.fullName}</h3><p>{recipient.relationshipToCustomer} · {birthDate(recipient.dateOfBirth)}</p>{recipient.profileCode && <p>Mã hồ sơ {recipient.profileCode}</p>}</div><button className="button text-button" disabled={locked} aria-label={`Xem ${recipient.fullName}`} onClick={() => open('recipients', recipient, 'view')}>Xem hồ sơ<ArrowRight aria-hidden="true" /></button><button className="button primary" disabled={locked} onClick={() => go(`register/recipient/${recipient.id}`)}>Đăng ký tiêm</button></li>)}</ul> : <div className="profile-empty"><h3>Chưa có người được tiêm</h3><p>Thêm người được tiêm hoặc tìm hồ sơ tiêm chủng có sẵn để bắt đầu.</p></div>}
         {feedback('recipients')}
       </section>
       <section className="profile-panel" aria-labelledby="personal-title"><div className="profile-section-heading"><div><span className="profile-kicker">THÔNG TIN CỦA BẠN</span><h2 id="personal-title">Hồ sơ khách hàng/người quản lý</h2></div></div>
-        {customers.length > 1 && <label className="demo-field profile-customer-picker"><span>Chọn hồ sơ khách hàng</span><select ref={customerAction} disabled={locked} value={customerId} onChange={event => { setCustomerId(event.target.value); setError(''); setNotice(null) }}><option value="">Chọn hồ sơ…</option>{customers.map(customer => <option value={customer.id} key={customer.id}>{customer.fullName} · #{customer.id}</option>)}</select></label>}
+        {customers.length > 1 && <label className="demo-field profile-customer-picker"><span>Chọn hồ sơ khách hàng</span><select ref={customerAction} disabled={locked} value={customerId} onChange={event => { setCustomerId(event.target.value); setError(''); setNotice(null) }}><option value="">Chọn hồ sơ…</option>{customers.map(customer => <option value={customer.id} key={customer.id}>{customer.fullName}</option>)}</select></label>}
         {selectedCustomer ? <>
           <ProfileDetails value={selectedCustomer} />
           {!canUpdate && <p className="profile-help">Bạn có quyền xem thông tin. Tài khoản hiện không có quyền chỉnh sửa hồ sơ.</p>}

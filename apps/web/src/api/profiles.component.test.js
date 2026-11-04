@@ -7,7 +7,7 @@ import { createElement, act } from 'react'
 
 let server, Profiles, api, createRoot, window
 const owner = { id: 10, fullName: 'Hồ sơ kiểm thử', phoneNumber: '0900000000', email: 'rf03@example.invalid', dateOfBirth: '1990-01-01', salutation: 'Chị', identityNumber: null }
-const child = { id: 11, customerId: 10, fullName: 'Người tiêm kiểm thử', dateOfBirth: '2020-01-01', relationshipToCustomer: 'Con', gender: 'Nam', identityNumber: null }
+const child = { id: 11, profileCode: "VAC-ABCDEF123456", customerId: 10, fullName: 'Người tiêm kiểm thử', dateOfBirth: '2020-01-01', relationshipToCustomer: 'Con', gender: 'Nam', identityNumber: null }
 
 before(async () => {
   window = new Window()
@@ -36,7 +36,7 @@ async function render(t, handler, capabilities, go = () => {}) {
   t.after(async () => { await act(async () => root.unmount()); host.remove() })
   await act(async () => root.render(createElement(Profiles, { capabilities, go })))
   const button = text => [...host.querySelectorAll('button')].find(b => b.textContent === text)
-  const field = (name, tag = 'input') => [...host.querySelectorAll('dialog label')].find(l => l.textContent.startsWith(name))?.querySelector(tag)
+  const field = (name, tag = 'input') => [...host.querySelectorAll('dialog .profile-fields label')].find(l => l.textContent.startsWith(name))?.querySelector(tag)
   return {
     host, field, button,
     click: async text => { assert.ok(button(text), text); await act(async () => button(text).click()) },
@@ -57,14 +57,14 @@ test('existing customer and recipient claims preserve the draft on network failu
   const ui = await render(t, (path, body) => {
     if (!body) return Response.json({ items: [] })
     calls.push({ path, body })
-    if (path === 'recipients/claim') return Response.json(child)
+    if (path === 'recipients/claim') return Response.json({ customer: owner, recipient: child })
     attempt++
     if (attempt === 1) throw new TypeError('offline')
     if (attempt === 2) return Response.json({ code: 'profileClaimUnavailable', errors: { email: ['PRIVATE CANDIDATE'] } }, { status: 409 })
     return Response.json(owner)
   }, { profilesCreate: true, selfClaim: true })
 
-  assert.equal(ui.button('Tìm hồ sơ tiêm chủng có sẵn'), undefined)
+  assert.ok(ui.button('Tìm hồ sơ tiêm chủng có sẵn'))
   await ui.click('Đã có hồ sơ')
   await ui.fill('Họ và tên', owner.fullName); await ui.fill('Ngày sinh', owner.dateOfBirth); await ui.fill('Số điện thoại', owner.phoneNumber)
   await ui.submit()
@@ -81,11 +81,44 @@ test('existing customer and recipient claims preserve the draft on network failu
   assert.equal(ui.button('Đã có hồ sơ'), undefined)
   assert.ok(ui.button('Chỉnh sửa hồ sơ'))
   await ui.click('Tìm hồ sơ tiêm chủng có sẵn')
-  await ui.fill('Họ và tên', child.fullName); await ui.fill('Ngày sinh', child.dateOfBirth)
+  await ui.fill('Mã hồ sơ', child.profileCode); await ui.fill('Số điện thoại', owner.phoneNumber)
   await ui.submit()
   assert.match(ui.host.textContent, /Người tiêm kiểm thử/)
-  assert.deepEqual(calls.at(-1), { path: 'recipients/claim', body: { fullName: child.fullName, dateOfBirth: child.dateOfBirth } })
+  assert.deepEqual(calls.at(-1), { path: 'recipients/claim', body: { mode: 'profileCode', profileCode: child.profileCode, phoneNumber: owner.phoneNumber } })
   assert.deepEqual(calls[0], { path: 'customers/claim', body: { fullName: owner.fullName, dateOfBirth: owner.dateOfBirth, phoneNumber: owner.phoneNumber } })
+})
+
+test('recipient claim can link both profiles from an empty account and posts only the selected mode', async t => {
+  const calls = []
+  const navigations = []
+  const ui = await render(t, (path, body) => {
+    if (!body) return Response.json({ items: [] })
+    calls.push({ path, body })
+    if (calls.length === 1) throw new TypeError('offline')
+    return Response.json({ customer: owner, recipient: child })
+  }, { profilesCreate: true }, route => navigations.push(route))
+
+  await ui.click('Tìm hồ sơ tiêm chủng có sẵn')
+  assert.equal(ui.field('Mã hồ sơ').required, true)
+  await ui.fill('Mã hồ sơ', child.profileCode)
+  await act(async () => ui.host.querySelector('input[value=personalInfo]').click())
+  assert.ok(ui.field('Họ và tên').required)
+  assert.ok(ui.field('Ngày sinh').required)
+  assert.ok(ui.field('Số điện thoại').required)
+  await ui.fill('Họ và tên', child.fullName)
+  await ui.fill('Ngày sinh', child.dateOfBirth)
+  await ui.fill('Số điện thoại', owner.phoneNumber)
+  await ui.submit()
+  assert.equal(ui.field('Họ và tên').value, child.fullName)
+  assert.match(ui.host.querySelector('[role=alert]').textContent, /thử lại/)
+  await ui.submit()
+  assert.equal(ui.host.querySelector('dialog'), null)
+  const payload = { path: 'recipients/claim', body: { mode: 'personalInfo', fullName: child.fullName, dateOfBirth: child.dateOfBirth, phoneNumber: owner.phoneNumber } }
+  assert.deepEqual(calls, [payload, payload])
+  assert.match(ui.host.textContent, /Hồ sơ kiểm thử/)
+  assert.match(ui.host.textContent, /VAC-ABCDEF123456/)
+  await ui.click('Đăng ký tiêm')
+  assert.deepEqual(navigations, ['register/recipient/11'])
 })
 
 test('legacy fields are readable and the editors require the controlled choices', async t => {

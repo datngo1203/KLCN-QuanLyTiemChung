@@ -1010,6 +1010,12 @@ namespace TiemChung.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("MaHoSo")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
                     b.Property<int>("MaKhachHang")
                         .HasColumnType("int");
 
@@ -1021,6 +1027,9 @@ namespace TiemChung.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("MaNguoiDuocTiem");
+
+                    b.HasIndex("MaHoSo")
+                        .IsUnique();
 
                     b.HasIndex("MaKhachHang");
 
