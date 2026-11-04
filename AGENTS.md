@@ -146,6 +146,16 @@ Kiểm tra bình thường/lỗi/rỗng, bàn phím và nút vô hiệu; giữ v
 12. Áp dụng các quy tắc UX trên ngay trong quá trình phát triển từng gói G2–G8. Mỗi gói vẫn tuân thủ phạm vi, tiêu chí nghiệm thu và điểm dừng đã giao; các quy tắc này không tự cấp phép triển khai gói tiếp theo.
 13. Với **ô nhập tiền VND editable** trên Web/Windows, hiển thị phân nhóm hàng nghìn bằng **dấu cách ngay trong ô khi người dùng nhập** (ví dụ `300000000` → `300 000 000`). Không dùng dấu `.` hoặc `,` làm dấu phân nhóm trong input. Dấu cách chỉ là presentation; ViewModel/request/API/SQL vẫn dùng giá trị số nguyên VND chính xác. Implementation phải xử lý caret/backspace/delete/paste hợp lý, không âm thầm diễn giải decimal hoặc dấu phân nhóm khác, và phải tái sử dụng formatter/behavior thay vì copy logic từng ô.
 
+14. **Không để chi tiết kỹ thuật/debug lọt ra giao diện nghiệp vụ.** Text người dùng nhìn thấy phải dùng ngôn ngữ nghiệp vụ, không hiển thị tên class/record/DTO/ViewModel, enum/code nội bộ, object `ToString()`, stack trace, raw JSON, hoặc các cụm kỹ thuật như HTTP/SQL/API trong nút, trạng thái, dialog hay biên nhận, trừ màn quản trị kỹ thuật được giao rõ. Chi tiết kỹ thuật để ở log/test/handoff.
+
+15. **Mô phỏng là giới hạn tích hợp, không phải nhãn nghiệp vụ lặp lại.** Với chức năng mô phỏng như thanh toán/email/SMS, UI vẫn trình bày như quy trình nghiệp vụ hoàn chỉnh. Chỉ dùng tối đa một thông báo môi trường thử nghiệm ở vị trí phụ phù hợp; không gắn “mô phỏng”, “demo”, “phục vụ khóa luận” vào mọi nút, trạng thái, dialog và receipt. Dữ liệu test phải synthetic; trên màn chức năng thật không prepend `[DEMO]` vào từng tên chỉ để chứng minh dữ liệu giả. Màn mock/Sample chưa nối nghiệp vụ thật vẫn giữ nhãn Dữ liệu mẫu theo quy tắc hiện có.
+
+16. **Control bind object phải có presentation contract rõ.** ComboBox/ListBox/DataGrid khi bind object phải chỉ định `DisplayMemberPath`, `ItemTemplate`, converter hoặc property hiển thị phù hợp; không dựa vào `ToString()` mặc định của record/class. Trước handoff phải kiểm không có chuỗi kiểu `TypeName { Property = ... }`, enum/code nội bộ hoặc object representation xuất hiện trên UI.
+
+17. **Lỗi UI đã phát hiện phải trở thành regression guard khi khả thi.** Nếu một lỗi có thể kiểm tự động bằng component/UI/XAML test (ví dụ ComboBox hiển thị object thay vì Label, wording kỹ thuật bị lộ, nút không disable khi submit), PR sửa lỗi phải thêm assertion phù hợp thay vì chỉ sửa bằng mắt. Không tạo test snapshot khổng lồ; test đúng invariant đã từng hỏng.
+
+18. **Visual handoff gate bắt buộc cho mọi PR có UI.** Trước khi báo DONE, mở màn thật/full shell và kiểm ít nhất normal state + form/action chính + confirmation/result/receipt nếu có. Soát: text bị cắt/tràn, object/debug text, dữ liệu test gây hiểu nhầm, binding sai, label/code nội bộ, focus/keyboard, scroll, disable/loading/error. Có screenshot/runtime evidence cho màn đã sửa; build/CI không thay thế bước này. Nếu chưa chạy visual smoke thì phải ghi `UNVERIFIED` và không được claim UX hoàn tất.
+
 ## Bí mật và môi trường
 
 Không lưu secret/JWT trong Git hoặc biến VITE_*. Dùng user-secrets, biến môi trường hoặc `.env` local; không ghi CCCD/thông tin y tế vào log. Khi triển khai cần HTTPS và CORS đúng origin. Khi lộ secret, thu hồi/đổi secret trước; không tự xóa lịch sử Git hoặc dữ liệu để che sự cố.
