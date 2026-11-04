@@ -166,7 +166,8 @@
      </StackPanel></Border>
     </StackPanel>
 
-    <Border Style="{StaticResource SectionCard}" Visibility="{Binding Detail.IsPending, Converter={StaticResource Visible}}"><StackPanel>
+    <Border x:Name="PendingPanel" Style="{StaticResource SectionCard}"
+     Visibility="{Binding Detail.IsPending, Converter={StaticResource Visible}, FallbackValue=Collapsed}"><StackPanel>
      <TextBlock Text="Chuyển khoản đang chờ xác nhận" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
      <TextBlock Text="{Binding Detail.Payment.Code, StringFormat=Mã giao dịch: {0}}" TextWrapping="Wrap" Margin="0,4,0,0"/>
      <TextBlock Text="{Binding Detail.Payment.Provider, StringFormat=Nguồn: {0}}" TextWrapping="Wrap"/>
@@ -175,7 +176,8 @@
       IsEnabled="{Binding CanConfirmPending}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
     </StackPanel></Border>
 
-    <Border x:Name="Receipt" Style="{StaticResource SectionCard}" Visibility="{Binding Detail.HasReceipt, Converter={StaticResource Visible}}"
+    <Border x:Name="Receipt" Style="{StaticResource SectionCard}"
+     Visibility="{Binding Detail.HasReceipt, Converter={StaticResource Visible}, FallbackValue=Collapsed}"
      Focusable="True" KeyboardNavigation.IsTabStop="False"><StackPanel DataContext="{Binding Detail}">
      <TextBlock Text="Biên nhận thanh toán mô phỏng" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
      <TextBlock Text="{Binding Payment.Code, StringFormat=Mã giao dịch: {0}}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"/>

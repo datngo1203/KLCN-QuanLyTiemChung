@@ -30,13 +30,18 @@ public sealed partial class ComboBoxTemplateTests
             var service = new CashierDetails();
             var model = new PaymentViewModel(service, identity);
             model.LoadPageAsync(1).GetAwaiter().GetResult();
-            model.SelectedRegistration = Assert.Single(model.Registrations);
-            model.LoadDetailAsync().GetAwaiter().GetResult();
             var view = new PaymentView { DataContext = model };
             using var source = new HwndSource(new HwndSourceParameters("A08 regression") {
                 Width = width, Height = height, WindowStyle = 0
             }) { RootVisual = view };
             view.Measure(new Size(width, height)); view.Arrange(new Rect(0, 0, width, height));
+            view.UpdateLayout();
+            var pendingPanel = Assert.IsType<Border>(view.FindName("PendingPanel"));
+            var receipt = Assert.IsType<Border>(view.FindName("Receipt"));
+            Assert.Equal(Visibility.Collapsed, pendingPanel.Visibility);
+            Assert.Equal(Visibility.Collapsed, receipt.Visibility);
+            model.SelectedRegistration = Assert.Single(model.Registrations);
+            model.LoadDetailAsync().GetAwaiter().GetResult();
             view.UpdateLayout();
             T Field<T>(string name) where T : UIElement =>
                 Assert.Single(VisualChildren<T>(view), child => AutomationProperties.GetName(child) == name);
@@ -76,6 +81,8 @@ public sealed partial class ComboBoxTemplateTests
             model.LoadDetailAsync().GetAwaiter().GetResult();
             view.UpdateLayout();
             Assert.False(review.IsVisible);
+            Assert.True(pendingPanel.IsVisible);
+            Assert.False(receipt.IsVisible);
             Assert.Contains(VisualChildren<Button>(view), button => button.IsVisible && button.IsEnabled &&
                 Equals(button.Content, "_Xác nhận đã nhận tiền"));
         });
