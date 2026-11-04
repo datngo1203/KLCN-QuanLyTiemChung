@@ -8,6 +8,7 @@ const messages = {
   invalidPasswordResetToken: 'Token đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu token mới.',
   validation: 'Kiểm tra email và mật khẩu (12–128 ký tự). Demo dùng email @example.invalid.',
   rateLimited: 'Thao tác quá nhiều lần. Vui lòng thử lại sau.',
+  profileClaimUnavailable: 'Chưa thể liên kết hồ sơ. Hãy kiểm tra thông tin hoặc liên hệ nhân viên để được hỗ trợ.',
   dependencyUnavailable: 'Dịch vụ chưa sẵn sàng. Vui lòng thử lại sau.',
 }
 
@@ -65,7 +66,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}))
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
-      const details = Object.values(problem.errors || {}).flat().join(' ')
+      const details = problem.code === 'profileClaimUnavailable' ? '' : Object.values(problem.errors || {}).flat().join(' ')
       throw Object.assign(new Error(details || (registration ? { validation: 'Kiểm tra hồ sơ, dịch vụ và số lượng đăng ký.', permissionDenied: 'Bạn không có quyền truy cập đăng ký này.', catalogChanged: 'Giá hoặc thành phần dịch vụ đã thay đổi.', resourceNotFound: 'Hồ sơ hoặc dịch vụ không còn tồn tại.' } : { validation: 'Kiểm tra thông tin hồ sơ.', permissionDenied: 'Bạn không có quyền thao tác hồ sơ này.', duplicateIdentity: 'CCCD đã tồn tại.', profileAlreadyExists: 'Bạn đã có hồ sơ. Hãy tải lại.', profileReferenced: 'Hồ sơ đang được sử dụng, không thể xóa.' })[problem.code] || messages[problem.code] || `API trả HTTP ${response.status}`), { status: response.status, code: problem.code })
     }
     if (registration && method === 'POST' && response.status !== 201)

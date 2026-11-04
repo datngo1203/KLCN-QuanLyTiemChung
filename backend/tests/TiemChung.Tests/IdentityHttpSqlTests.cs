@@ -112,15 +112,15 @@ public sealed class IdentityHttpSqlTests
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",new {fullName=new string('a',151),identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"})).StatusCode);
                 Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/v1/customers",new {fullName="   ",identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"})).StatusCode);
                 await db.Database.ExecuteSqlRawAsync("CREATE TRIGGER RejectProfileAudit ON SecurityAudit AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE Action='profiles.created') THROW 51009, 'Synthetic audit failure', 1; END;");
-                var failed=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Rollback",identityNumber="000000000099",phoneNumber="0900000000",email="rollback@example.invalid"});
+                var failed=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Rollback",identityNumber="000000000099",phoneNumber="0900000000",email="rollback@example.invalid",salutation="Anh",dateOfBirth="1990-01-01"});
                 Assert.Equal(HttpStatusCode.InternalServerError,failed.StatusCode);
                 Assert.False(await db.Customers.AnyAsync(x=>x.CCCD=="000000000099"));
                 await db.Database.ExecuteSqlRawAsync("DROP TRIGGER RejectProfileAudit;");
             }
-            var create=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Created",identityNumber="000000000010",phoneNumber="0900000000",email="created@example.invalid"});
+            var create=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Created",identityNumber="000000000010",phoneNumber="0900000000",email="created@example.invalid",salutation="Anh",dateOfBirth="1990-01-01"});
             Assert.Equal(title=="LeTan"?HttpStatusCode.Created:HttpStatusCode.Forbidden,create.StatusCode);
             if(title=="LeTan") {
-                var duplicate=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Duplicate",identityNumber="000000000010",phoneNumber="0900000000",email="duplicate@example.invalid"});
+                var duplicate=await client.PostAsJsonAsync("/api/v1/customers",new {fullName="Synthetic Duplicate",identityNumber="000000000010",phoneNumber="0900000000",email="duplicate@example.invalid",salutation="Anh",dateOfBirth="1990-01-01"});
                 Assert.Equal(HttpStatusCode.Conflict,duplicate.StatusCode);
                 using var problem=JsonDocument.Parse(await duplicate.Content.ReadAsStringAsync());
                 Assert.Equal("duplicateIdentity",problem.RootElement.GetProperty("code").GetString());

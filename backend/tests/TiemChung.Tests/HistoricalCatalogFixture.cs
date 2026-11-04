@@ -10,6 +10,8 @@ internal static class HistoricalCatalogFixture
     internal const string Latest = "20261103192651_RF02AActivePackagePreflight";
 
     internal static Task ConfigureAsync(TiemChungDbContext db) => db.Database.ExecuteSqlRawAsync("""
+        -- Historical suites keep the catalog migration pinned but write customers with the current EF model.
+        ALTER TABLE KhachHang ADD DanhXung nvarchar(10) NULL, NgaySinh date NULL;
         INSERT LoaiTiemChung(Code,TenLoaiTiemChung,MoTa) VALUES ('LTC-SYNTHETIC-HISTORY','[DEMO] Historical classification','Synthetic fixture only');
         DECLARE @injection int=SCOPE_IDENTITY();
         INSERT LoaiVacXin(Code,TenLoaiVacXin,MoTa) VALUES ('LVX-SYNTHETIC-HISTORY','[DEMO] Historical classification','Synthetic fixture only');

@@ -754,6 +754,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<string>("CCCD")
                         .HasColumnType("varchar(12)");
 
+                    b.Property<string>("DanhXung")
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(254)");
@@ -761,6 +764,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<string>("HoTen")
                         .IsRequired()
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateOnly?>("NgaySinh")
+                        .HasColumnType("date");
 
                     b.Property<string>("SoDienThoai")
                         .IsRequired()

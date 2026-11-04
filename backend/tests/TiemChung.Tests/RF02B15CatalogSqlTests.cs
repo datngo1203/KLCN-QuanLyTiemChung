@@ -206,9 +206,11 @@ public sealed class RF02B15CatalogSqlTests
                 INSERT GoiVacXin_VacXin (MaGoi,MaVacXin,SoLuong) VALUES (1,1,2);
                 """);
             var employee = new NhanVien { HoTen = "[DEMO] Staff", CCCD = "000000088015", TrangThai = "Active", ChucDanh = "DieuDuong" };
-            var customer = new KhachHang { HoTen = "[DEMO] Customer" }; db.AddRange(employee, customer); await db.SaveChangesAsync();
-            var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "[DEMO] Recipient", NgaySinh = new(2020,1,1) }; db.Add(recipient); await db.SaveChangesAsync();
-            var registration = new DangKyDichVu { MaKhachHang = customer.MaKhachHang, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" }; db.Add(registration); await db.SaveChangesAsync();
+            db.Add(employee); await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlRawAsync("INSERT KhachHang(HoTen, SoDienThoai, Email) VALUES(N'[DEMO] Customer', '', '')");
+            var customerId = await db.Database.SqlQueryRaw<int>("SELECT MaKhachHang AS [Value] FROM KhachHang").SingleAsync();
+            var recipient = new NguoiDuocTiem { MaKhachHang = customerId, HoTen = "[DEMO] Recipient", NgaySinh = new(2020,1,1) }; db.Add(recipient); await db.SaveChangesAsync();
+            var registration = new DangKyDichVu { MaKhachHang = customerId, MaNguoiDuocTiem = recipient.MaNguoiDuocTiem, NgayDangKy = DateTime.UtcNow, TrangThai = "DaThanhToan" }; db.Add(registration); await db.SaveChangesAsync();
             var item = new ChiTietVacXinLe { MaDangKy = registration.MaDangKy, MaVacXin = 1, SoLuong = 1, GiaTaiThoiDiemDangKy = 100 };
             db.AddRange(item, new ChiTietGoiVacXin { MaDangKy = registration.MaDangKy, MaGoi = 1, SoLuongGoi = 1, GiaTaiThoiDiemDangKy = 200 },
                 new ThanhToan { MaDangKy = registration.MaDangKy, MaNhanVien = employee.MaNhanVien, SoTien = 300, ThoiDiem = DateTime.UtcNow, TrangThai = "ThanhCong", PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo" },

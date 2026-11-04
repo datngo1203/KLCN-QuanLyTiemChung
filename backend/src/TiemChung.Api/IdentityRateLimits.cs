@@ -18,6 +18,10 @@ public sealed class IdentityRateLimits
             if(action=="login") Take("login:"+email+":"+ip,10,TimeSpan.FromMinutes(15),now);
             else if(action=="changePassword") Take("password:"+ip,10,TimeSpan.FromMinutes(15),now);
             else if(action=="confirm") Take("confirm:"+ip,10,TimeSpan.FromMinutes(15),now);
+            else if(action=="profileClaim") {
+                Take("profile-claim-ip:"+ip,30,TimeSpan.FromMinutes(15),now);
+                Take("profile-claim-account:"+email,6,TimeSpan.FromMinutes(15),now);
+            }
             else {
                 Take("mail-ip:"+ip,5,TimeSpan.FromHours(1),now);
                 Take("mail-email:"+email,3,TimeSpan.FromHours(1),now);

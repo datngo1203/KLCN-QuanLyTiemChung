@@ -6,13 +6,17 @@ public sealed record CustomerDto(
     string FullName,
     string? IdentityNumber,
     string PhoneNumber,
-    string Email);
+    string Email,
+    string? Salutation = null,
+    DateOnly? DateOfBirth = null);
 
 public sealed record CreateCustomerRequest(
     string FullName,
     string? IdentityNumber,
     string PhoneNumber,
-    string Email);
+    string Email,
+    string Salutation,
+    DateOnly DateOfBirth);
 
 public sealed record CustomerListResponse(
     IReadOnlyList<CustomerDto> Items);
