@@ -42,7 +42,7 @@ public partial class CatalogVaccineEditor : UserControl
 
     private void AddRegimen(object sender, RoutedEventArgs e)
     {
-        if (DataContext is CatalogViewModel vm && vm.AddRegimen() is { } regimen) FocusNewItem(RegimenList, regimen);
+        if (DataContext is CatalogViewModel vm && vm.AddRegimen() is { } regimen) FocusItemField(RegimenList, regimen, "RegimenNameInput");
     }
 
     private void RemoveRegimen(object sender, RoutedEventArgs e)
@@ -56,23 +56,24 @@ public partial class CatalogVaccineEditor : UserControl
     private void AddDose(object sender, RoutedEventArgs e)
     {
         if (DataContext is CatalogViewModel vm && sender is Button { DataContext: CatalogRegimenDraft regimen, Tag: ItemsControl list } &&
-            vm.AddDose(regimen) is { } dose) FocusNewItem(list, dose);
+            vm.AddDose(regimen) is { } dose) FocusItemField(list, dose, "DoseTimingInput");
     }
 
     private void RemoveDose(object sender, RoutedEventArgs e)
     {
         if (DataContext is CatalogViewModel vm && sender is Button { DataContext: CatalogDoseDraft dose, Tag: CatalogRegimenDraft regimen }) {
             vm.RemoveDose(regimen, dose);
-            if (!regimen.Doses.Contains(dose)) FocusNewItem(RegimenList, regimen);
+            if (!regimen.Doses.Contains(dose)) FocusItemField(RegimenList, regimen, "RegimenNameInput");
         }
     }
 
-    private static void FocusNewItem(ItemsControl list, object item)
+    private static void FocusItemField(ItemsControl list, object item, string name)
     {
         list.UpdateLayout();
-        if (list.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container) {
-            container.BringIntoView();
-            container.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+        if (list.ItemContainerGenerator.ContainerFromItem(item) is ContentPresenter container &&
+            container.ContentTemplate?.FindName(name, container) is FrameworkElement input) {
+            input.BringIntoView();
+            input.Focus();
         }
     }
 }

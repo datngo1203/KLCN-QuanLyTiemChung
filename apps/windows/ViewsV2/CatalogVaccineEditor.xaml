@@ -163,7 +163,7 @@
                                             <TextBlock Text="{Binding Doses.Count,StringFormat='{}{0} mũi'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </DockPanel>
                                         <TextBlock Text="Tên phác đồ *"/>
-                                        <TextBox Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" MaxLength="150" Style="{StaticResource Field}" AutomationProperties.Name="Tên phác đồ"/>
+                                        <TextBox x:Name="RegimenNameInput" Text="{Binding Name,UpdateSourceTrigger=PropertyChanged}" MaxLength="150" Style="{StaticResource Field}" AutomationProperties.Name="Tên phác đồ"/>
                                         <TextBlock Text="Đối tượng tham khảo *"/>
                                         <TextBox Text="{Binding TargetAudience,UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" Style="{StaticResource Multiline}" AutomationProperties.Name="Đối tượng phác đồ"/>
                                         <TextBlock Text="Tóm tắt"/>
@@ -185,7 +185,7 @@
                                                                 <TextBlock Text="{Binding Order,StringFormat='Mũi {0}'}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                                             </DockPanel>
                                                             <TextBlock Text="Thời điểm *"/>
-                                                            <TextBox Text="{Binding TimingLabel,UpdateSourceTrigger=PropertyChanged}" MaxLength="250"
+                                                            <TextBox x:Name="DoseTimingInput" Text="{Binding TimingLabel,UpdateSourceTrigger=PropertyChanged}" MaxLength="250"
                                                                      Style="{StaticResource Field}" AutomationProperties.Name="Thời điểm mũi"/>
                                                             <Grid>
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
