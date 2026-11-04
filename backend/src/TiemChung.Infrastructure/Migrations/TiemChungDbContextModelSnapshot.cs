@@ -390,6 +390,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<string>("HinhThucTiem")
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("KenhThanhToanDuKien")
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<int>("MaKhachHang")
                         .HasColumnType("int");
 
@@ -442,7 +445,10 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasIndex("MaNhanVien");
 
-                    b.ToTable("DangKyDichVu", (string)null);
+                    b.ToTable("DangKyDichVu", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DangKyDichVu_KenhThanhToanDuKien", "[KenhThanhToanDuKien] IS NULL OR [KenhThanhToanDuKien] IN ('TaiTrungTam','TrucTuyen')");
+                        });
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.EmailVerification", b =>
@@ -1404,6 +1410,15 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThanhToan"));
 
+                    b.Property<string>("DiaChiThanhToan")
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTimeOffset?>("DongYDieuKhoanLuc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("EmailThanhToan")
+                        .HasColumnType("nvarchar(254)");
+
                     b.Property<string>("LoaiThanhToan")
                         .IsRequired()
                         .HasColumnType("nvarchar(30)");
@@ -1411,18 +1426,48 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int>("MaDangKy")
                         .HasColumnType("int");
 
-                    b.Property<int>("MaNhanVien")
+                    b.Property<string>("MaGiaoDich")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("MaNhanVien")
                         .HasColumnType("int");
+
+                    b.Property<string>("NhaCungCapThanhToan")
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhuongThuc")
                         .IsRequired()
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("PhuongXaThanhToan")
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SoDienThoaiThanhToan")
+                        .HasColumnType("varchar(11)");
+
+                    b.Property<string>("SoDinhDanhMasked")
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<decimal>("SoTien")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("SoTienKhachDua")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("TenChuTaiKhoanThe")
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("TenNguoiThanhToan")
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ThamChieuThanhToan")
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("ThoiDiem")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("TinhThanhThanhToan")
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
@@ -1433,11 +1478,21 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasIndex("MaDangKy")
                         .IsUnique();
 
+                    b.HasIndex("MaGiaoDich")
+                        .IsUnique()
+                        .HasFilter("[MaGiaoDich] IS NOT NULL");
+
                     b.HasIndex("MaNhanVien");
 
                     b.ToTable("ThanhToan", null, t =>
                         {
+                            t.HasCheckConstraint("CK_ThanhToan_NhanVien", "([PhuongThuc] NOT IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') OR [MaNhanVien] IS NOT NULL) AND ([TrangThai] <> 'ChoXacNhan' OR ([PhuongThuc] = 'ChuyenKhoanOnline' AND [MaNhanVien] IS NULL)) AND ([PhuongThuc] <> 'ChuyenKhoanOnline' OR [TrangThai] <> 'ThanhCong' OR [MaNhanVien] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_ThanhToan_SoTien", "[SoTien] > 0");
+
+                            t.HasCheckConstraint("CK_ThanhToan_SoTienKhachDua", "[SoTienKhachDua] IS NULL OR [SoTienKhachDua] >= [SoTien]");
+
+                            t.HasCheckConstraint("CK_ThanhToan_TrangThai", "[TrangThai] IN ('ChoXacNhan','ThanhCong')");
                         });
                 });
 
@@ -2050,8 +2105,7 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasOne("TiemChung.Domain.Entities.NhanVien", null)
                         .WithMany()
                         .HasForeignKey("MaNhanVien")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("TiemChung.Domain.Entities.TheoDoiSauTiem", b =>

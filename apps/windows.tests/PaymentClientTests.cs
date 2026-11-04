@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using TiemChung.Contracts;
 using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
 using Xunit;
@@ -31,16 +32,24 @@ public sealed class PaymentClientTests
     }
 
     [Fact]
-    public async Task ApiSearchAndDetailsPreserveDecimalAndPostSendsOnlyEmptyObject()
+    public async Task ApiSearchAndDetailsPreserveDecimalAndPostSendsOnlyCashierInput()
     {
         var handler = new Handler(); var api = new PaymentApiService(await Login(handler));
         await api.SearchAsync("  DK-0007 & tên  ", 3);
         Assert.Contains(handler.Paths, x => x.Contains("search=DK-0007%20%26%20t%C3%AAn&page=3&pageSize=25"));
         var detail = await api.GetAsync(7);
         Assert.Equal(9999999999999999m, detail.TotalDue); Assert.Equal(9999999999999999m, detail.Items[0].UnitPrice);
-        var saved = await api.RecordAsync(7);
+        var saved = await api.RecordAsync(7, Cash);
         Assert.NotNull(saved.Payment); Assert.Equal(9999999999999999m, saved.Payment.Amount);
-        Assert.Equal("{}", handler.PostBody); Assert.Equal(1, handler.PostCount);
+        using var body = JsonDocument.Parse(handler.PostBody!);
+        Assert.Equal("TienMat", body.RootElement.GetProperty("method").GetString());
+        Assert.Equal(Unpaid.TotalDue, body.RootElement.GetProperty("cashTendered").GetDecimal());
+        Assert.False(body.RootElement.TryGetProperty("amount", out _));
+        Assert.False(body.RootElement.TryGetProperty("employeeId", out _));
+        Assert.False(body.RootElement.TryGetProperty("status", out _));
+        Assert.False(body.RootElement.TryGetProperty("type", out _));
+        Assert.False(body.RootElement.TryGetProperty("transactionCode", out _));
+        Assert.Equal(1, handler.PostCount);
         Assert.Equal(0, handler.RefreshCount);
     }
 
@@ -56,7 +65,7 @@ public sealed class PaymentClientTests
     {
         var handler = new Handler { PostStatus = (HttpStatusCode)status, Code = code };
         var api = new PaymentApiService(await Login(handler));
-        var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7));
+        var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7, Cash));
         Assert.Equal(expectedCode, error.Code); Assert.DoesNotContain("SQL token", error.Message);
         Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
     }
@@ -68,7 +77,7 @@ public sealed class PaymentClientTests
     {
         var handler = new Handler { PostStatus = HttpStatusCode.ServiceUnavailable, PostErrorBody = body };
         var api = new PaymentApiService(await Login(handler));
-        var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7));
+        var error = await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7, Cash));
         Assert.Equal("outcomeUnknown", error.Code); Assert.DoesNotContain("SQL token", error.Message);
         Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
     }
@@ -97,6 +106,7 @@ public sealed class PaymentClientTests
         var handler = new Handler { PostStatus = HttpStatusCode.ServiceUnavailable, Code = "dependencyUnavailable" };
         var identity = await Login(handler); var api = new PaymentApiService(identity); var vm = new PaymentViewModel(api, identity);
         await vm.LoadPageAsync(1); vm.SelectedRegistration = Assert.Single(vm.Registrations); await vm.LoadDetailAsync();
+        vm.Draft!.Cash = "9999999999999999";
         Assert.NotNull(vm.BeginConfirmation()); await vm.ConfirmAsync(true);
         Assert.Equal(7, vm.SelectedRegistration!.Id); Assert.Equal(7, vm.Detail!.RegistrationId);
         Assert.True(vm.UnknownOutcome); Assert.False(vm.CanRecord); Assert.False(vm.CanAcknowledgeRisk);
@@ -121,7 +131,7 @@ public sealed class PaymentClientTests
     public async Task ApiNeverReplaysTransportOrReadFailures(string failure, string code)
     {
         var handler = new Handler { Failure = failure }; var api = new PaymentApiService(await Login(handler));
-        Assert.Equal(code, (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7))).Code);
+        Assert.Equal(code, (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7, Cash))).Code);
         Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
     }
 
@@ -133,7 +143,7 @@ public sealed class PaymentClientTests
     {
         var handler = new Handler { PostStatus = (HttpStatusCode)status };
         var api = new PaymentApiService(await Login(handler));
-        Assert.Equal("outcomeUnknown", (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7))).Code);
+        Assert.Equal("outcomeUnknown", (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7, Cash))).Code);
         Assert.Equal(1, handler.PostCount);
     }
 
@@ -167,12 +177,12 @@ public sealed class PaymentClientTests
     }
 
     [Fact]
-    public async Task Successful201KeepsReceiptWhenGetFailsAndNeverReopensRecord()
+    public async Task Successful201WaitsForGetReceiptAndNeverReopensRecord()
     {
         var fake = new Fake { FailAfterPost = true }; var vm = await Ready(fake);
         vm.BeginConfirmation(); await vm.ConfirmAsync(true);
-        Assert.Contains("HTTP 201", vm.Feedback); Assert.NotNull(vm.Detail!.Payment); Assert.False(vm.CanRecord);
-        await vm.LoadDetailAsync(); Assert.Equal(1, fake.PostCount); Assert.NotNull(vm.Detail!.Payment); Assert.Contains("đã xác nhận", vm.Feedback);
+        Assert.Contains("biên nhận", vm.Feedback); Assert.Null(vm.Detail); Assert.False(vm.CanRecord);
+        await vm.LoadDetailAsync(); Assert.Equal(1, fake.PostCount); Assert.Null(vm.Detail); Assert.Contains("đã xác nhận", vm.Feedback);
         fake.FailGet = false; fake.Paid = true; await vm.LoadDetailAsync(); Assert.NotNull(vm.Detail!.Payment);
         Assert.False(vm.CanRecord); Assert.Equal(1, fake.PostCount);
     }
@@ -188,6 +198,7 @@ public sealed class PaymentClientTests
         fake.FailGet = true; await vm.LoadDetailAsync(); Assert.False(vm.CanAcknowledgeRisk);
         fake.FailGet = false; await vm.LoadDetailAsync(); Assert.True(vm.CanAcknowledgeRisk); Assert.False(vm.CanRecord);
         vm.AcknowledgeRisk(); Assert.True(vm.CanRecord); Assert.Equal(1, fake.PostCount);
+        vm.Draft!.Cash = "9999999999999999";
         fake.Error = "outcomeUnknown"; vm.BeginConfirmation(); await vm.ConfirmAsync(true);
         fake.Paid = true; await vm.LoadDetailAsync(); Assert.False(vm.UnknownOutcome); Assert.False(vm.CanRecord);
     }
@@ -233,6 +244,85 @@ public sealed class PaymentClientTests
     }
 
     [Fact]
+    public async Task DirtyDraftCancelsSearchReloadAndSelectionWithoutCallsThenDiscards()
+    {
+        var fake = new Fake();
+        var vm = await Ready(fake);
+        Assert.Equal(Unpaid.RegistrationContact!.FullName, vm.Draft!.FullName);
+        Assert.NotEqual(Unpaid.Customer.FullName, vm.Draft.FullName);
+        vm.Draft.FullName = "[DEMO] Edited payer";
+        Assert.Equal("[DEMO] Registration contact", vm.Detail!.RegistrationContact!.FullName);
+        vm.ConfirmDiscard = _ => false;
+        vm.SelectedRegistration = Row with { Id = 8 };
+        vm.Search = "next";
+        await vm.SearchAsync(); await vm.LoadPageAsync(2); await vm.LoadDetailAsync();
+        Assert.Equal(7, vm.SelectedRegistration!.Id); Assert.Equal("[DEMO] Edited payer", vm.Draft.FullName);
+        Assert.Equal(1, fake.ListCount); Assert.Equal(1, fake.GetCount); Assert.Equal(0, fake.PostCount);
+        vm.ConfirmDiscard = _ => true;
+        await vm.SearchAsync();
+        Assert.Null(vm.Draft); Assert.Null(vm.SelectedRegistration);
+        Assert.Equal(2, fake.ListCount); Assert.Equal("next", fake.Search);
+    }
+
+    [Theory]
+    [InlineData("TienMat", null)]
+    [InlineData("TheTaiQuay", "****4242")]
+    [InlineData("ChuyenKhoanQR", "****1234")]
+    public async Task MethodDraftValidationAndReviewSubmitOnlyActiveMethod(string method, string? masked)
+    {
+        var fake = new Fake();
+        var vm = await Ready(fake);
+        var draft = vm.Draft!;
+        draft.Cash = "9999999999999998";
+        draft.Method = method;
+        Assert.Null(vm.BeginConfirmation()); Assert.NotNull(draft.Error); Assert.Equal(0, fake.PostCount);
+        draft.Cash = "9999999999999999";
+        draft.Brand = "VISA"; draft.Cardholder = "[DEMO] Card"; draft.CardNumber = "4242 4242 4242 4241";
+        draft.Month = "12"; draft.Year = "2099"; draft.Authorization = "AUTH-107";
+        draft.Provider = "Synthetic Bank"; draft.Holder = "[DEMO] Transfer"; draft.Source = "SYNTHETIC-1234";
+        draft.TransferReference = "QR-107";
+        if (method == "TheTaiQuay") { Assert.Null(vm.BeginConfirmation()); draft.CardNumber = "4242 4242 4242 4242"; }
+        Assert.NotNull(vm.BeginConfirmation());
+        if (masked is not null) Assert.Contains(masked, vm.ReviewText);
+        Assert.DoesNotContain("4242 4242", vm.ReviewText);
+        Assert.DoesNotContain("SYNTHETIC-1234", vm.ReviewText);
+        await vm.ConfirmAsync(true);
+        Assert.Equal(method, fake.LastRequest!.Method);
+        Assert.Equal(method == "TienMat", fake.LastRequest.CashTendered is not null);
+        Assert.Equal(method == "TheTaiQuay", fake.LastRequest.Card is not null);
+        Assert.Equal(method == "ChuyenKhoanQR", fake.LastRequest.Transfer is not null);
+        Assert.Equal(2, fake.GetCount); Assert.True(vm.Detail!.HasReceipt);
+        Assert.Null(vm.Draft);
+    }
+
+    [Fact]
+    public async Task PendingShowsOnlyConfirmAndRequiresGetAndAcknowledgementAfterUnknownOutcome()
+    {
+        var fake = new Fake { Pending = true, Error = "outcomeUnknown" };
+        var vm = await Ready(fake);
+        Assert.False(vm.ShowEditor); Assert.Null(vm.Draft); Assert.True(vm.CanConfirmPending);
+        Assert.NotNull(vm.BeginConfirmation()); Assert.Contains("PENDING-107", vm.ReviewText);
+        await vm.ConfirmAsync(false); Assert.Equal(0, fake.ConfirmCount);
+        vm.BeginConfirmation(); await vm.ConfirmAsync(true);
+        Assert.True(vm.UnknownOutcome); Assert.False(vm.CanConfirmPending);
+        await vm.LoadDetailAsync(); Assert.True(vm.CanAcknowledgeRisk); Assert.False(vm.CanConfirmPending);
+        vm.AcknowledgeRisk(); Assert.True(vm.CanConfirmPending);
+        fake.Error = null; vm.BeginConfirmation(); await vm.ConfirmAsync(true);
+        Assert.True(vm.Detail!.HasReceipt); Assert.False(vm.CanConfirmPending);
+        Assert.Equal(2, fake.ConfirmCount); Assert.Equal(0, fake.PostCount);
+    }
+
+    [Fact]
+    public async Task PendingTransportUsesOnlyConfirmRouteWithoutCreateBody()
+    {
+        var handler = new Handler { PostStatus = HttpStatusCode.OK, Failure = "200" };
+        var api = new PaymentApiService(await Login(handler));
+        Assert.True((await api.ConfirmPendingAsync(7)).HasReceipt);
+        Assert.EndsWith("/registrations/7/payment/confirm", handler.Paths.Last());
+        Assert.Null(handler.PostBody); Assert.Equal(1, handler.PostCount);
+    }
+
+    [Fact]
     public async Task SessionSwitchClearsAllDataAndDropsPendingReadsPostsAndConfirmations()
     {
         var handler = new Handler(); var identity = await Login(handler); var fake = new Fake(); var vm = await Ready(fake, identity);
@@ -249,12 +339,14 @@ public sealed class PaymentClientTests
         await identity.LoginAsync("other", "synthetic"); var api = new PaymentApiService(identity);
         await identity.LogoutAsync(); await identity.LoginAsync("other", "synthetic");
         var count = handler.PostCount;
-        await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7)); Assert.Equal(count, handler.PostCount);
+        await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(7, Cash)); Assert.Equal(count, handler.PostCount);
     }
 
     public static readonly RegistrationPayment Unpaid = new(7, "DaDangKy", new(10, "[DEMO] Customer"), new(20, "[DEMO] Recipient"),
         [new(1, "vaccine", 1, "[DEMO] Vaccine", 1, 9999999999999999m, 9999999999999999m, null)], 9999999999999999m,
-        9999999999999999m, 0, 9999999999999999m, "VND", true, true, true, "Mô phỏng", null);
+        9999999999999999m, 0, 9999999999999999m, "VND", true, true, true, "Mô phỏng", null,
+        PaymentState: "ChuaThanhToan", RegistrationContact: new("[DEMO] Registration contact", "0900000107", null, null, null, null));
+    internal static RecordPaymentRequest Cash => new(new("[DEMO] Registration contact", "0900000107"), "TienMat", Unpaid.TotalDue);
     public static readonly RegistrationPayment Paid = Unpaid with { PaidAmount = Unpaid.TotalDue, RemainingAmount = 0, RequiresPayment = false, CanRecordPayment = false,
         Payment = new(1, 7, Unpaid.TotalDue, 9, DateTimeOffset.UtcNow, "ToanBo", "MoPhong", "ThanhCong", true) };
     private static readonly PaymentRegistration Row = new(7, DateTimeOffset.UtcNow, Unpaid.Customer, Unpaid.Recipient, Unpaid.Subtotal, Unpaid.TotalDue, 0, Unpaid.TotalDue, null, "VND");
@@ -265,25 +357,36 @@ public sealed class PaymentClientTests
     }
     private static async Task<PaymentViewModel> Ready(Fake fake, IdentityApiService? identity = null)
     {
-        var vm = new PaymentViewModel(fake, identity ?? await Login(new Handler()));
-        await vm.LoadPageAsync(1); vm.SelectedRegistration = Row; await vm.LoadDetailAsync(); return vm;
+        var vm = new PaymentViewModel(fake, identity ?? await Login(new Handler())) { ConfirmDiscard = _ => true };
+        await vm.LoadPageAsync(1); vm.SelectedRegistration = Row; await vm.LoadDetailAsync();
+        if (vm.Draft is not null) vm.Draft.Cash = "9999999999999999";
+        return vm;
     }
     private sealed class Fake : IPaymentService
     {
-        public int ListCount, GetCount, PostCount; public string Search = ""; public string? Error;
-        public bool Paid, Zero, FailGet, FailAfterPost;
+        public int ListCount, GetCount, PostCount, ConfirmCount; public string Search = ""; public string? Error;
+        public bool Paid, Zero, Pending, FailGet, FailAfterPost;
+        public RecordPaymentRequest? LastRequest;
         public TaskCompletionSource<RegistrationPayment>? GetGate, OldGate, PostGate;
         public Task<PaymentRegistration[]> SearchAsync(string search, int page) { ListCount++; Search = search; return Task.FromResult(page == 1 ? Enumerable.Repeat(Row, 25).ToArray() : []); }
         public Task<RegistrationPayment> GetAsync(int id) {
             GetCount++; if (FailGet) throw new HttpRequestException("SQL token");
             if (GetGate is not null) { OldGate = GetGate; return GetGate.Task; }
             var detail = Paid ? PaymentClientTests.Paid : Zero ? Unpaid with { Subtotal = 0, TotalDue = 0, RemainingAmount = 0, RequiresPayment = false, CanRecordPayment = false } : Unpaid;
+            if (Pending && !Paid) detail = detail with { PaymentState = "ChoXacNhan", CanRecordPayment = false, CanConfirmPendingPayment = true,
+                Payment = new(1, id, detail.TotalDue, null, DateTimeOffset.UtcNow, "ToanBo", "ChuyenKhoanOnline", "ChoXacNhan", true,
+                    "TT-PENDING", Provider: "Synthetic Bank", MaskedIdentifier: "****0107", Reference: "PENDING-107") };
             return Task.FromResult(detail with { RegistrationId = id });
         }
-        public Task<RegistrationPayment> RecordAsync(int id) {
-            PostCount++; if (FailAfterPost) FailGet = true;
+        public Task<RegistrationPayment> RecordAsync(int id, RecordPaymentRequest request) {
+            LastRequest = request; PostCount++; if (FailAfterPost) FailGet = true;
             if (Error is not null) throw new PaymentApiException(Error, "Safe message");
             if (PostGate is not null) return PostGate.Task;
+            Paid = true; return Task.FromResult(PaymentClientTests.Paid);
+        }
+        public Task<RegistrationPayment> ConfirmPendingAsync(int id) {
+            ConfirmCount++;
+            if (Error is not null) throw new PaymentApiException(Error, "Safe message");
             Paid = true; return Task.FromResult(PaymentClientTests.Paid);
         }
     }
@@ -301,7 +404,7 @@ public sealed class PaymentClientTests
             if (path.EndsWith("/logout")) return new(HttpStatusCode.NoContent);
             if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = Title }, permissions = Grants });
             if (request.Method == HttpMethod.Post) {
-                PostCount++; PostBody = await request.Content!.ReadAsStringAsync(ct);
+                PostCount++; PostBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(ct);
                 if (Failure == "network") throw new HttpRequestException("SQL token");
                 if (Failure == "timeout") throw new TaskCanceledException();
                 if (Failure == "invalid201") return Json(new { unknown = true }, HttpStatusCode.Created);

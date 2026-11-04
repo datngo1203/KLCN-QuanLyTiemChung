@@ -1,4 +1,5 @@
 export const paymentOutcome = detail => BigInt(detail.totalDue) === 0n ? 'Không phát sinh khoản thu'
+  : detail.paymentState === 'ChoXacNhan' ? 'Chờ Thu ngân xác nhận chuyển khoản'
   : detail.payment ? 'Đã ghi nhận thanh toán mô phỏng' : 'Chưa ghi nhận thanh toán'
 
 // Financial errors use fixed messages; never display arbitrary backend details or profile data.

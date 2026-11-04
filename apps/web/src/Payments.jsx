@@ -112,11 +112,12 @@ function PaymentDetail({ id, retry, accessDenied, go }) {
       </dl>
       <div className="registration-total"><span>Tổng phải thu (VND)</span><strong>{money(detail.totalDue)}</strong></div>
       <div className="registration-message" role="status"><strong>{paymentOutcome(detail)}</strong>
-        {detail.payment ? <p>Giao dịch do Thu ngân ghi nhận để mô phỏng, không xác nhận tiền thật.</p>
+        {detail.paymentState === 'ChoXacNhan' ? <p>Khoản chuyển mô phỏng đang chờ đối chiếu tại quầy.</p>
+          : detail.payment ? <p>Giao dịch do Thu ngân ghi nhận để mô phỏng, không xác nhận tiền thật.</p>
           : BigInt(detail.totalDue) > 0n && <p>Vui lòng liên hệ quầy Thu ngân để ghi nhận thanh toán. Bạn có thể tải lại kết quả sau khi Thu ngân hoàn tất.</p>}
       </div>
-      {detail.payment && <dl className="payment-transaction">
-        <div><dt>Mã giao dịch</dt><dd>TT-{String(detail.payment.id).padStart(4, '0')}</dd></div>
+      {detail.payment && detail.paymentState !== 'ChoXacNhan' && <dl className="payment-transaction">
+        <div><dt>Mã giao dịch</dt><dd>{detail.payment.transactionCode ?? `TT-${String(detail.payment.id).padStart(4, '0')}`}</dd></div>
         <div><dt>Số tiền đã ghi nhận</dt><dd>{money(detail.payment.amount)}</dd></div>
         <div><dt>Thời điểm ghi nhận (giờ địa phương)</dt><dd><time dateTime={detail.payment.occurredAt}>{dateTime(detail.payment.occurredAt)}</time></dd></div>
         <div><dt>Phương thức</dt><dd>Mô phỏng — Không xác nhận tiền thật</dd></div>

@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using TiemChung.Api;
+using RecordPaymentRequest = TiemChung.Contracts.RecordPaymentRequest;
 using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
 using TiemChung.Domain.Entities;
@@ -38,6 +39,8 @@ public sealed class PaymentSqlClientTests
         Assert.Equal(650000m, vm.Detail.Subtotal); Assert.Equal(fee, vm.Detail.ConsultationFee);
         Assert.Equal(fee, vm.SelectedRegistration!.ConsultationFee);
         Assert.Equal(2, vm.Detail.Items.Length); Assert.True(vm.CanRecord);
+        var request = new RecordPaymentRequest(new("[DEMO] Cashier payer", "0900000107"), "TienMat", vm.Detail.TotalDue);
+        vm.Draft!.Cash = vm.Detail.TotalDue.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
         vm.BeginConfirmation(); await vm.ConfirmAsync(true);
         Assert.Equal(1, transport.PostCount); Assert.False(vm.CanRecord);
         if (loseResponse) { Assert.True(vm.UnknownOutcome); Assert.Null(vm.Detail!.Payment); await vm.LoadDetailAsync(); }
@@ -51,7 +54,7 @@ public sealed class PaymentSqlClientTests
         var audit = Assert.Single(await fresh.Set<SecurityAudit>().Where(a => a.Action == "payments.recorded" && a.Outcome == "Success").ToArrayAsync());
         Assert.Equal(saved.Id.ToString(), audit.ResourceId);
         var again = await api.GetAsync(f.RegistrationId); Assert.Equal(saved, again.Payment);
-        Assert.Equal("paymentAlreadyRecorded", (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(f.RegistrationId))).Code);
+        Assert.Equal("paymentAlreadyRecorded", (await Assert.ThrowsAsync<PaymentApiException>(() => api.RecordAsync(f.RegistrationId, request))).Code);
         Assert.Equal(1, await fresh.Payments.CountAsync());
         Assert.Equal(1, await fresh.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.recorded" && a.Outcome == "Success"));
 
@@ -62,7 +65,7 @@ public sealed class PaymentSqlClientTests
             var otherApi = new PaymentApiService(other);
             if (read) { otherVm.SelectedRegistration = Assert.Single(otherVm.Registrations); await otherVm.LoadDetailAsync(); Assert.NotNull(otherVm.Detail); Assert.True(otherVm.IsReadOnly); }
             else Assert.Equal("permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.SearchAsync("", 1))).Code);
-            Assert.Equal("permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.RecordAsync(f.RegistrationId))).Code);
+            Assert.Equal("permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.RecordAsync(f.RegistrationId, request))).Code);
             await other.LogoutAsync();
         }
         await identity.LogoutAsync(); Assert.Null(vm.Detail); Assert.Empty(vm.Registrations);

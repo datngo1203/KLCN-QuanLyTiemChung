@@ -22,6 +22,7 @@ test('payment outcomes distinguish no charge, unrecorded and recorded simulation
   assert.equal(paymentOutcome({ totalDue: '0', payment: null }), 'Không phát sinh khoản thu')
   assert.equal(paymentOutcome({ totalDue: '250000', payment: null }), 'Chưa ghi nhận thanh toán')
   assert.equal(paymentOutcome({ totalDue: '9999999999999999', payment: { id: 1 } }), 'Đã ghi nhận thanh toán mô phỏng')
+  assert.equal(paymentOutcome({ totalDue: '250000', paymentState: 'ChoXacNhan', payment: { id: 1 } }), 'Chờ Thu ngân xác nhận chuyển khoản')
 })
 
 test('payment GET uses authenticated no-store transport, refresh and exact parsing; never POSTs payment', async () => {
@@ -35,12 +36,14 @@ test('payment GET uses authenticated no-store transport, refresh and exact parsi
     calls.push({ path, options })
     if (options.headers.Authorization === 'Bearer old') return Response.json({ code: 'invalidSession' }, { status: 401 })
     assert.equal(options.headers.Authorization, 'Bearer new')
-    return new Response('{"registrationId":7,"totalDue":9999999999999999.00,"payment":{"amount":9999999999999999.00}}')
+    return new Response('{"registrationId":7,"totalDue":9999999999999999.00,"paymentState":"ThanhCong","payment":{"amount":9999999999999999.00,"method":"TheTaiQuay","transactionCode":"TT-DEMO","maskedIdentifier":"****4242"}}')
   })
   await assert.rejects(client.getRegistrationPayment(7), error => error.status === 401)
   await client.login('customer@example.invalid', 'synthetic-password')
   const detail = await client.getRegistrationPayment(7)
   assert.equal(detail.payment.amount, '9999999999999999')
+  assert.equal(detail.payment.transactionCode, 'TT-DEMO')
+  assert.equal(paymentOutcome(detail), 'Đã ghi nhận thanh toán mô phỏng')
   assert.equal(refreshes, 1)
   assert.equal(calls.length, 2)
   for (const { path, options } of calls) {

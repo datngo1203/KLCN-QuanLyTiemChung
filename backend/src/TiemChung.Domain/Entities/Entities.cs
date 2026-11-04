@@ -83,6 +83,7 @@ public sealed class DangKyDichVu
     public string? PhuongXaLienHe { get; set; }
     public string? DiaChiLienHe { get; set; }
     public decimal? PhiKhamTuVan { get; set; }
+    public string? KenhThanhToanDuKien { get; set; }
     public string TrangThai { get; set; } = string.Empty;
 }
 
@@ -108,12 +109,25 @@ public sealed class ThanhToan
 {
     public int MaThanhToan { get; set; }
     public int MaDangKy { get; set; }
-    public int MaNhanVien { get; set; }
+    public int? MaNhanVien { get; set; }
     public decimal SoTien { get; set; }
     public string PhuongThuc { get; set; } = string.Empty;
     public DateTime ThoiDiem { get; set; }
     public string LoaiThanhToan { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
+    public string? MaGiaoDich { get; set; }
+    public string? TenNguoiThanhToan { get; set; }
+    public string? SoDienThoaiThanhToan { get; set; }
+    public string? EmailThanhToan { get; set; }
+    public string? TinhThanhThanhToan { get; set; }
+    public string? PhuongXaThanhToan { get; set; }
+    public string? DiaChiThanhToan { get; set; }
+    public string? NhaCungCapThanhToan { get; set; }
+    public string? TenChuTaiKhoanThe { get; set; }
+    public string? SoDinhDanhMasked { get; set; }
+    public string? ThamChieuThanhToan { get; set; }
+    public decimal? SoTienKhachDua { get; set; }
+    public DateTimeOffset? DongYDieuKhoanLuc { get; set; }
 }
 
 public sealed class KhuyenMai

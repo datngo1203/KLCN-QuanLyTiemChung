@@ -48,6 +48,8 @@ jobs:
         run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --filter "FullyQualifiedName~InventoryReceiptHistory"
       - name: RF-02B1 Catalog client state regression
         run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~CatalogClientTests"
+      - name: RF-04B1 cashier client and SQL reconciliation
+        run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Payment"
       - name: Repeat migration without resetting data
         run: docker compose -p klcn-s0 -f infra/compose.yaml run --rm migrate
       - name: Build SQL-principal acceptance (not executed without approved provisioning)
@@ -84,5 +86,5 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC.SelfTest.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release
-      - name: WPF ComboBox template hit targets and DPI rendering
+      - name: WPF interaction and rendering regressions
         run: dotnet test apps/windows.ui.tests/TiemChung.Windows.Ui.Tests.csproj --configuration Release

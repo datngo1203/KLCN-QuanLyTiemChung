@@ -3,21 +3,34 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TiemChung.Contracts;
 
 namespace TiemChung.Desktop.Services;
 
-public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, int EmployeeId,
-    DateTimeOffset OccurredAt, string Type, string Method, string Status, bool IsSimulation)
+public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, int? EmployeeId,
+    DateTimeOffset OccurredAt, string Type, string Method, string Status, bool IsSimulation,
+    string? TransactionCode = null, PaymentPayer? Payer = null, string? Provider = null, string? HolderName = null,
+    string? MaskedIdentifier = null, string? Reference = null, decimal? CashTendered = null, decimal? ChangeAmount = null)
 {
-    public string RecordedLabel => $"TT-{Id:0000} · Nhân viên #{EmployeeId} · {OccurredAt.ToLocalTime():dd/MM/yyyy HH:mm:ss}";
+    public string Code => TransactionCode ?? $"TT-{Id:0000}";
+    public string MethodLabel => Method switch {
+        "TienMat" => "Tiền mặt", "TheTaiQuay" => "Thẻ tại quầy", "ChuyenKhoanQR" => "Chuyển khoản / QR",
+        "ChuyenKhoanOnline" => "Chuyển khoản trực tuyến", _ => "Mô phỏng (giao dịch cũ)"
+    };
+    public string OccurredLabel => OccurredAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm:ss");
+    public string PayerAddress => string.Join(", ", new[] { Payer?.AddressLine, Payer?.WardCommune, Payer?.ProvinceCity }
+        .Where(s => !string.IsNullOrWhiteSpace(s)));
+    public bool HasCash => CashTendered is not null;
+    public bool HasProvider => Provider is not null;
+    public bool HasPayer => Payer is not null;
 }
 public sealed record PaymentRegistration(int Id, DateTimeOffset CreatedAt, RegistrationPerson Customer,
     RegistrationPerson Recipient, decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount,
-    int? PaymentId, string Currency, decimal? ConsultationFee = null)
+    int? PaymentId, string Currency, decimal? ConsultationFee = null, string? PaymentState = null)
 {
     public string Code => $"DK-{Id:0000}";
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
-    public string State => PaymentId is not null ? "Đã ghi nhận mô phỏng" : TotalDue == 0 ? "Không phát sinh khoản thu" : "Chưa ghi nhận thanh toán";
+    public string State => RegistrationPayment.StateLabel(PaymentState, TotalDue, PaymentId is not null);
 }
 public sealed record PaymentLine(int Id, string Kind, int ServiceId, string Name, int Quantity, decimal UnitPrice,
     decimal LineTotal, RegistrationComponent[]? Components)
@@ -30,13 +43,21 @@ public sealed record RegistrationPayment(int RegistrationId, string Registration
     [property: JsonRequired] decimal TotalDue, [property: JsonRequired] decimal PaidAmount,
     [property: JsonRequired] decimal RemainingAmount, string Currency,
     [property: JsonRequired] bool RequiresPayment, [property: JsonRequired] bool CanRecordPayment,
-    [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment, decimal? ConsultationFee = null)
+    [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment, decimal? ConsultationFee = null,
+    string? PaymentState = null, string? ExpectedChannel = null, bool CanConfirmPendingPayment = false,
+    RegistrationContact? RegistrationContact = null)
 {
     public string Code => $"DK-{RegistrationId:0000}";
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
-    public string State => Payment is not null ? "Đã ghi nhận thanh toán mô phỏng" : !RequiresPayment && TotalDue == 0
-        ? "Không phát sinh khoản thu (tổng 0)" : "Chưa ghi nhận thanh toán";
-    public string RecordedLabel => Payment?.RecordedLabel ?? "Chưa có giao dịch.";
+    public string State => StateLabel(PaymentState, TotalDue, Payment is not null);
+    public bool IsPending => PaymentState == "ChoXacNhan";
+    public bool HasReceipt => Payment is { Status: "ThanhCong" };
+    public string ExpectedChannelLabel => ExpectedChannel switch {
+        "TaiTrungTam" => "Tại trung tâm", "TrucTuyen" => "Trực tuyến", _ => "Chưa chọn"
+    };
+    internal static string StateLabel(string? state, decimal total, bool hasPayment) =>
+        state == "ChoXacNhan" ? "Chờ xác nhận chuyển khoản" : hasPayment ? "Đã ghi nhận thanh toán mô phỏng"
+        : total == 0 ? "Không phát sinh khoản thu" : "Chưa ghi nhận thanh toán";
 }
 
 public sealed class PaymentApiException(string code, string message) : Exception(message)
@@ -47,7 +68,8 @@ public interface IPaymentService
 {
     Task<PaymentRegistration[]> SearchAsync(string search, int page);
     Task<RegistrationPayment> GetAsync(int registrationId);
-    Task<RegistrationPayment> RecordAsync(int registrationId);
+    Task<RegistrationPayment> RecordAsync(int registrationId, RecordPaymentRequest request);
+    Task<RegistrationPayment> ConfirmPendingAsync(int registrationId);
 }
 
 public sealed class PaymentApiService(IdentityApiService? identity = null) : IPaymentService
@@ -57,10 +79,10 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
     private readonly int _revision = (identity ?? IdentityApiService.Current).SessionRevision;
     private sealed record ListResponse(PaymentRegistration[] Items);
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body = null)
     {
         var response = await _identity.SendCatalogAsync(method, "api/v1/" + path,
-            method == HttpMethod.Post ? new { } : null, retryUnauthorized: method != HttpMethod.Post, expectedSessionRevision: _revision);
+            body, retryUnauthorized: method != HttpMethod.Post, expectedSessionRevision: _revision);
         if (response.IsSuccessStatusCode) return response;
         using (response) {
             // A POST server error, including 503, does not prove rollback.
@@ -84,6 +106,7 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
                 "validation" => "Yêu cầu không hợp lệ. Kiểm tra lại từ khóa hoặc tra cứu lại đăng ký.",
                 "paymentAlreadyRecorded" => "Đăng ký đã có giao dịch. Đang đọc lại kết quả từ API.",
                 "paymentNotRequired" => "Không phát sinh khoản thu. Đang đọc lại chi tiết.",
+                "paymentNotPending" => "Giao dịch không còn chờ xác nhận. Đang đọc lại chi tiết.",
                 "paymentDataConflict" => "Dữ liệu thanh toán mâu thuẫn. Đã khóa ghi; cần người phụ trách kiểm tra dữ liệu.",
                 "resourceNotFound" => "Không tìm thấy đăng ký. Hãy tra cứu lại.",
                 _ => "Máy chủ chưa xử lý được yêu cầu. Hãy thử lại thao tác tải / đối chiếu."
@@ -107,19 +130,25 @@ public sealed class PaymentApiService(IdentityApiService? identity = null) : IPa
         using var response = await SendAsync(HttpMethod.Get, $"registrations/{registrationId}/payment");
         return await ReadAsync(response, registrationId);
     }
-    public async Task<RegistrationPayment> RecordAsync(int registrationId)
+    public Task<RegistrationPayment> RecordAsync(int registrationId, RecordPaymentRequest request) =>
+        WriteAsync(registrationId, "", HttpStatusCode.Created, request);
+
+    public Task<RegistrationPayment> ConfirmPendingAsync(int registrationId) =>
+        WriteAsync(registrationId, "/confirm", HttpStatusCode.OK, null);
+
+    private async Task<RegistrationPayment> WriteAsync(int registrationId, string suffix, HttpStatusCode expected, object? body)
     {
-        var created = false;
+        var committed = false;
         try {
-            using var response = await SendAsync(HttpMethod.Post, $"registrations/{registrationId}/payment");
-            if (response.StatusCode != HttpStatusCode.Created) throw new JsonException();
-            created = true;
+            using var response = await SendAsync(HttpMethod.Post, $"registrations/{registrationId}/payment{suffix}", body);
+            if (response.StatusCode != expected) throw new JsonException();
+            committed = true;
             var saved = await ReadAsync(response, registrationId);
-            if (saved.Payment is null) throw new JsonException();
+            if (!saved.HasReceipt) throw new JsonException();
             return saved;
         }
         catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException) {
-            if (created) throw new PaymentApiException("recordedUnreadable", "Đã nhận HTTP 201 nhưng không đọc được kết quả. Chỉ đối chiếu bằng GET, không ghi lại.");
+            if (committed) throw new PaymentApiException("recordedUnreadable", "API đã xác nhận lưu nhưng không đọc được kết quả. Chỉ đối chiếu bằng GET.");
             throw new PaymentApiException("outcomeUnknown", "Kết quả POST chưa xác định. Không gửi lại. Dùng Đối chiếu bằng GET để kiểm tra giao dịch đã lưu.");
         }
     }

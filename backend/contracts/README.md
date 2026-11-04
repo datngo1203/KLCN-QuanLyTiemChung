@@ -232,7 +232,7 @@ Migration mới `20261028172727_G2RegistrationNullableFields` chỉ cho phép NU
 
 G3 dùng giá chi tiết đã chốt cho thanh toán một lần có nhãn mô phỏng; tổng 0 được phép ở G2 nhưng không tạo thanh toán 0. G4 dùng ID đăng ký/chi tiết và thời gian nhân viên nhập; chưa sửa `LichHenTiem` trong G2. G5 tự kiểm chỉ định/thanh toán/lô/tồn/quyền khi ghi tiêm. G6 sẽ thêm chọn ưu đãi và snapshot giảm VND lúc tạo; không hồi tố giá/ưu đãi cho đăng ký G2 cũ. G2B chưa thay UI hoặc đánh dấu S4 hoàn tất; contract/schema vẫn cần review chéo trước merge.
 
-## G3B — Thanh toán toàn bộ một lần (mô phỏng)
+## G3B / RF-04B1 — Thanh toán toàn bộ một lần (mô phỏng)
 
 Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác nhận tiền thật. Không có đặt cọc, trả góp, thu một phần, hoàn tiền, cổng ngân hàng, hóa đơn thật, SMS hoặc hàng đợi. Windows Thu ngân ghi thanh toán; Website khách hàng đọc kết quả. Không có alias `/payments` hoặc đường dẫn `registrations/{id}/payments`.
 
@@ -251,7 +251,8 @@ Chỉ ghi nhận trên SQL để demo khóa luận, không xử lý hoặc xác 
 PaymentRegistrationListResponse = { items: PaymentRegistrationSummaryDto[] }
 PaymentRegistrationSummaryDto = {
   id, createdAt, customer: { id, fullName }, recipient: { id, fullName },
-  subtotal, consultationFee, totalDue, paidAmount, remainingAmount, paymentId: int|null, currency: "VND"
+  subtotal, consultationFee, totalDue, paidAmount, remainingAmount, paymentId: int|null,
+  currency: "VND", paymentState, expectedChannel
 }
 ```
 
@@ -262,38 +263,51 @@ RegistrationPaymentDto = {
   registrationId, registrationStatus, customer, recipient,
   items: [{ id, kind, serviceId, name, quantity, unitPrice, lineTotal, components }],
   subtotal, consultationFee, totalDue, paidAmount, remainingAmount, currency: "VND",
-  requiresPayment, canRecordPayment, isSimulation: true, message,
+  requiresPayment, canRecordPayment, canConfirmPendingPayment, isSimulation: true, message,
+  paymentState, expectedChannel, registrationContact: null | RegistrationContactDto,
   payment: null | PaymentDto
 }
 PaymentDto = {
-  id, registrationId, amount, employeeId, occurredAt,
-  type: "ToanBo", method: "MoPhong", status: "ThanhCong", isSimulation: true
+  id, registrationId, amount, employeeId: int|null, occurredAt,
+  type: "ToanBo", method, status, isSimulation: true,
+  transactionCode, payer, provider, holderName, maskedIdentifier, reference, cashTendered, changeAmount
 }
 ```
 
 `customer`/`recipient` và `items` dùng DTO G2, cùng quy tắc ID dòng phải đi với kind, giá snapshot và thành phần gói. Tên là tên hiện hành, không tạo snapshot tên mới. `createdAt`/`occurredAt` là ISO UTC. Tiền là JSON decimal VND nguyên, từ 0 đến `9999999999999999` như G2; client Web phải giữ chính xác các trường tiền lớn hơn Number.MAX_SAFE_INTEGER.
 
-Server tính `subtotal = Σ(SoLuong*GiaTaiThoiDiemDangKy) + Σ(SoLuongGoi*GiaTaiThoiDiemDangKy)`, không cộng lại giá thành phần gói, không đọc giá Catalog hiện hành. `totalDue=subtotal+(consultationFee ?? 0)`; `paidAmount` là số tiền của một giao dịch G3 hợp lệ hoặc 0, `remainingAmount=totalDue-paidAmount`. `requiresPayment` chỉ true khi còn phải thu; `canRecordPayment` còn yêu cầu đúng quyền ghi. Hai cờ đều false sau thanh toán hoặc khi tổng 0.
+Server tính `subtotal = Σ(SoLuong*GiaTaiThoiDiemDangKy) + Σ(SoLuongGoi*GiaTaiThoiDiemDangKy)` từ giá snapshot. `totalDue=subtotal+(consultationFee ?? 0)`. Chỉ `ThanhCong` hợp lệ mới được tính vào `paidAmount`. `ChoXacNhan` có `paidAmount=0` và `remainingAmount=totalDue`. `ChuaThanhToan` biểu thị đăng ký chưa có giao dịch. `requiresPayment` cho biết còn phải thu. `canRecordPayment` yêu cầu quyền ghi, tổng dương và vị trí giao dịch còn trống.
+
+`expectedChannel` nhận `TaiTrungTam`, `TrucTuyen` hoặc null trong DTO đăng ký và DTO thanh toán. Đây là kênh dự kiến. B1 chỉ đọc.
 
 Tổng 0: subtotal/totalDue/paidAmount/remainingAmount đều 0, payment=null, requiresPayment=false, canRecordPayment=false, message="Không phát sinh khoản thu."; không gọi đây là đã thanh toán. Nhãn mô phỏng có ở isSimulation, giao dịch và message. Không có trạng thái giao dịch Đặt cọc/Trả góp/Đang xử lý/Thất bại.
 
 ### Ghi nhận, cạnh tranh và lỗi
 
-`POST /api/v1/registrations/{id}/payment` bắt buộc JSON object `{}`; không nhận thuộc tính khác (bao gồm amount, employeeId, status, method, type, discount, paidAt). Thành công trả 201, Location `/api/v1/registrations/{id}/payment` và `RegistrationPaymentDto` sau ghi. ID số phải dương; route `{id:int}` không khớp chuỗi không phải int.
+`POST /api/v1/registrations/{id}/payment` nhận `{ payer, method, cashTendered?, card?, transfer? }` với đúng dữ liệu của phương thức được chọn. Server gán số tiền, nhân viên, mã giao dịch, thời điểm, trạng thái và loại `ToanBo`. JSON có trường lạ bị từ chối. Thành công trả 201, Location `/api/v1/registrations/{id}/payment` và `RegistrationPaymentDto`. ID phải là số nguyên dương.
+
+- `payer` gồm `fullName` (1–150), `phoneNumber` (10–11 chữ số ASCII) và các trường tùy chọn `email` (địa chỉ hợp lệ, tối đa 254), `provinceCity` (100), `wardCommune` (100), `addressLine` (250). A08 điền từ snapshot liên hệ của đăng ký và lưu snapshot riêng của giao dịch.
+- `TienMat` yêu cầu `cashTendered` nguyên VND trong đoạn từ tổng phải thu đến MaxMoney. `amount=totalDue`, `changeAmount=cashTendered-totalDue`.
+- `TheTaiQuay` yêu cầu `card: { cardBrand, cardholderName, cardNumber, expiryMonth, expiryYear, authorizationReference }`. Loại thẻ VISA, MASTER, JCB, ATM hoặc Khác. Số thẻ mô phỏng có 12–19 chữ số ASCII sau khi bỏ dấu cách, qua Luhn. Tháng/năm hết hạn tính theo Việt Nam (UTC+7). Mã xác thực 1–100 ký tự. Chỉ lưu loại thẻ, tên chủ thẻ, dạng `****` và bốn số cuối, mã xác thực.
+- `ChuyenKhoanQR` yêu cầu `transfer: { sourceBankOrWallet, accountHolderName, sourceAccountOrWalletId, transferReference }`. Nguồn và mã tham chiếu dài 1–100, tên chủ dài 1–150. Định danh nguồn dài 1–100, dùng chữ cái/chữ số ASCII và ký tự `+-_.@`. Chỉ lưu nguồn, tên chủ, định danh đã che và mã tham chiếu.
+
+`POST /api/v1/registrations/{id}/payment/confirm` dùng cùng quyền Thu ngân và khóa đăng ký. Nhận giao dịch `ChuyenKhoanOnline` hợp lệ đang `ChoXacNhan` với `employeeId=null`. Cập nhật chính bản ghi sang `ThanhCong`, gán nhân viên xác nhận và thời điểm UTC, ghi audit `payments.confirmed` cùng transaction. Trả 200 với chi tiết, 409 `paymentNotPending` khi thiếu giao dịch chờ hoặc đã được xác nhận. `canConfirmPendingPayment` chỉ true cho Thu ngân đủ quyền với giao dịch chờ hợp lệ.
 
 Transaction Serializable dùng lại `IdentityTransactions`: kiểm/khóa account → session, quyền/nhân viên hiện hành → `DangKyDichVu WITH (UPDLOCK,HOLDLOCK)` → kiểm đúng cặp hồ sơ, trạng thái `DaDangKy`, chưa có ưu đãi chưa snapshot, 1–100 dòng, số lượng 1–100 và giá VND hợp lệ → kiểm giao dịch cũ → ghi ThanhToan → ghi SecurityAudit → commit. Không cập nhật trạng thái đăng ký hoặc tạo lịch/chỉ định/mũi tiêm. SecurityAudit có action `payments.recorded`, outcome `Success`, ResourceType `Payment`, ResourceId là payment ID, ActorAccountId/SessionId từ phiên. Lỗi thanh toán hoặc audit trước commit rollback cả hai.
 
-Giao dịch cũ phải đúng chính xác loại/phương thức/trạng thái G3 và SoTien dương bằng toàn bộ tổng snapshot. Giao dịch cũ không tương thích, tổng vượt giới hạn/không nguyên, đăng ký thiếu dòng/sai cặp/trạng thái ngoài G2 hoặc có MaKhuyenMai chưa snapshot: từ chối 409 `paymentDataConflict`, không coi đã thanh toán, không ghi tiếp hoặc sửa dữ liệu. Danh sách có dòng mâu thuẫn trong trang cũng trả 409, không trả số tiền suy đoán hoặc bỏ qua dòng lỗi.
+Legacy `MoPhong` được đọc với nhân viên hợp lệ, trạng thái `ThanhCong` và số tiền khớp tổng snapshot. Giao dịch B1 cần mã, payer và metadata hợp lệ theo phương thức. Các tổ hợp sai, tổng vượt giới hạn/không nguyên, đăng ký thiếu dòng/sai cặp/trạng thái hoặc ưu đãi chưa snapshot trả 409 `paymentDataConflict`. Danh sách có dòng mâu thuẫn trong trang cũng trả 409.
 
 Đã có giao dịch hợp lệ trả 409 `paymentAlreadyRecorded`; tổng 0 trả 409 `paymentNotRequired`. Hai Thu ngân cùng ghi được tuần tự hóa theo khóa đăng ký; unique `IX_ThanhToan_MaDangKy` bảo vệ cuối cùng. Chỉ SqlException 2601/2627 xác định đúng index này được ánh xạ lỗi trùng; lỗi DbUpdateException khác trả 503 `dependencyUnavailable`.
 
 Lỗi có `{ type, title, status, code, traceId, errors? }`: 400 `validation` cho query/ID/body sai; 401 `invalidSession`; 403 `permissionDenied`/`emailVerificationRequired`; 404 `resourceNotFound` theo quyền trên; 409 các mã tiền vừa nêu; 503 `dependencyUnavailable` cho phụ thuộc SQL/ghi/audit. Không trả SQL, credential/token hoặc thông tin hồ sơ qua lỗi.
 
-Không retry POST tự động. Mất phản hồi/timeout sau commit là kết quả chưa xác định; G3C/G3D phải dùng GET theo registration ID để đối chiếu, giữ nguyên lựa chọn và chặn gửi trùng. Nếu đã nhận 201 thì giao dịch đã commit; GET tải mới lỗi không có nghĩa thanh toán thất bại. Không thêm idempotency tổng quát hoặc bảng theo dõi retry.
+A08 đọc biên nhận bằng GET sau khi nhận 201 (thu tại quầy), 200 (xác nhận) hoặc gặp 409 nghiệp vụ. Nếu mất phản hồi, timeout hoặc lỗi 5xx, A08 khóa gửi lại. Nếu GET chưa thấy kết quả thành công, người dùng phải xác nhận đã đối chiếu trước khi mở lại thao tác.
 
 ### Migration và ranh giới
 
 `20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.
+
+`20261104112618_RF04B1CashierPayment` giữ khóa duy nhất của đăng ký, cho phép nhân viên null đối với giao dịch chờ, thêm metadata và kênh dự kiến nullable. Mã giao dịch mới có unique index lọc khác null. Down từ chối khi dữ liệu nhân viên null, kênh dự kiến hoặc lịch sử B1 sẽ bị mất. B1 chỉ xác nhận giao dịch chờ đã có trong SQL. API tạo giao dịch trực tuyến thuộc B2.
 
 G5 với tổng dương phải kiểm giao dịch G3 hợp lệ, toàn bộ số tiền và đúng đăng ký; `DaDangKy` hay remainingAmount=0 không đủ làm bằng chứng. Điều kiện tiền khi tổng 0 chờ quyết định ở G5, không tự coi đủ điều kiện tiêm. G6 sẽ snapshot khoản giảm lúc đăng ký; G3 không đọc MucUuDai hiện hành, áp ưu đãi hoặc hồi tố giá/khoản giảm.
 

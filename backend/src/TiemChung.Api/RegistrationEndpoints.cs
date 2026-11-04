@@ -10,7 +10,7 @@ namespace TiemChung.Api;
 
 public static class RegistrationEndpoints
 {
-    internal const decimal MaxMoney = 9999999999999999m;
+    internal const decimal MaxMoney = CounterPaymentRules.MaxMoney;
 
     public static void MapRegistrationEndpoints(this WebApplication app)
     {
@@ -136,7 +136,8 @@ public static class RegistrationEndpoints
             var items = rows.Select(x => new RegistrationSummaryDto(x.MaDangKy, Utc(x.NgayDangKy), x.TrangThai,
                 new(x.MaKhachHang, customers[x.MaKhachHang].HoTen), new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen), x.MaNhanVien,
                 singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
-                packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND", PreferredDate(x), x.PhiKhamTuVan)).ToArray();
+                packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND",
+                PreferredDate(x), x.PhiKhamTuVan, x.KenhThanhToanDuKien)).ToArray();
             await tx.CommitAsync(ct);
             return Results.Ok(new RegistrationListResponse(items));
         }).WithName("ListRegistrations").Produces<RegistrationListResponse>();
@@ -251,6 +252,6 @@ public static class RegistrationEndpoints
                 row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe);
         return new(row.MaDangKy, Utc(row.NgayDangKy), row.TrangThai, new(customer.MaKhachHang, customer.HoTen),
             new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND",
-            PreferredDate(row), contact, row.PhiKhamTuVan);
+            PreferredDate(row), contact, row.PhiKhamTuVan, row.KenhThanhToanDuKien);
     }
 }
