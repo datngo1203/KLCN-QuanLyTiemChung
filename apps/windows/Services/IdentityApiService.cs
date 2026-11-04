@@ -37,6 +37,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
     public bool CanUseAppointments => CanUseRegistrations && Permissions.Contains("QuanLyLichHen");
     public bool CanReadPayments => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuNgan" } && Permissions.Contains("XemThanhToan");
     public bool CanWritePayments => CanReadPayments && Permissions.Contains("GhiThanhToan");
+    public bool CanManagePromotions => IsSignedIn && _account is { AccountType: "employee" } && Permissions.Contains("QuanLyKhuyenMai");
     public IReadOnlyCollection<string> Permissions => IsSignedIn ? _account?.Permissions ?? [] : [];
     public bool UseSampleData { get; set; } = false;
     public bool IsSignedIn => _tokens is not null;

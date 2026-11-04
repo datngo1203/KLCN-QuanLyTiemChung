@@ -126,6 +126,7 @@ app.MapAftercareEndpoints();
 app.MapInventoryEndpoints();
 app.MapInventoryReceiptEndpoints();
 app.MapReportEndpoints();
+app.MapPromotionEndpoints();
 
 app.Run();
 

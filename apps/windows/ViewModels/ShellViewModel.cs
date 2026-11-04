@@ -26,7 +26,7 @@ public sealed class ShellViewModel : ViewModelBase
         Payment = new PaymentViewModel();
         Catalog = new CatalogViewModel(permissions: IdentityApiService.Current.Permissions);
         Inventory = new InventoryViewModel();
-        Promotion = new PromotionViewModel();
+        Promotion = new PromotionViewModel(useApi: !IdentityApiService.Current.UseSampleData);
         Vaccination = new VaccinationViewModel();
         Aftercare = new AftercareViewModel();
         Appointments = new AppointmentViewModel();
@@ -104,6 +104,7 @@ public sealed class ShellViewModel : ViewModelBase
         var item = group.Screens.First(s => s.Id == id);
         SelectedScreen = item;
         if (id == "A11") _ = Reports.GenerateAsync();
+        if (id == "A10") _ = Promotion.LoadAsync();
         CurrentView = NavigationRegistry.CreatePage(id, this);
         FeedbackMessage = "";
     }
