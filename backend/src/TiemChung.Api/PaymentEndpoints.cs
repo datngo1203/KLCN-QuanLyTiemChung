@@ -69,24 +69,35 @@ public static class PaymentEndpoints
             var actor = await auth.RequireAsync(context, true, ct);
             RequireCashier(actor, true);
             if (id <= 0) throw new IdentityFailure(400, "validation");
-            // All collectors lock the same registration after Identity account/session locks.
+
+         
             var row = await db.Registrations.FromSqlInterpolated(
                 $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={id}")
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
+
             var before = await Detail(db, row, actor, ct);
             if (before.Payment is not null) throw new IdentityFailure(409, "paymentAlreadyRecorded");
             if (before.TotalDue == 0) throw new IdentityFailure(409, "paymentNotRequired");
+
+          
             var payment = new ThanhToan {
-                MaDangKy = id, MaNhanVien = actor.Employee!.MaNhanVien, SoTien = before.TotalDue,
-                LoaiThanhToan = "ToanBo", PhuongThuc = "MoPhong", TrangThai = "ThanhCong", ThoiDiem = DateTime.UtcNow
+                MaDangKy = id,
+                MaNhanVien = actor.Employee!.MaNhanVien,
+                SoTien = before.TotalDue,
+                LoaiThanhToan = "ToanBo",
+                PhuongThuc = "MoPhong",
+                TrangThai = "ThanhCong",
+                ThoiDiem = DateTime.UtcNow
             };
             db.Payments.Add(payment);
             await db.SaveChangesAsync(ct);
+
             var audit = IdentityTransactions.Audit(db, "payments.recorded", context.TraceIdentifier,
                 actor.Account.MaTaiKhoan, session: actor.Session.Id);
             audit.ResourceType = "Payment";
             audit.ResourceId = payment.MaThanhToan.ToString(System.Globalization.CultureInfo.InvariantCulture);
             await db.SaveChangesAsync(ct);
+
             var dto = await Detail(db, row, actor, ct);
             await tx.CommitAsync(ct);
             return Results.Created($"/api/v1/registrations/{id}/payment", dto);
@@ -111,26 +122,48 @@ public static class PaymentEndpoints
         var singles = await db.RegistrationVaccineItems.AsNoTracking().Where(i => ids.Contains(i.MaDangKy)).ToArrayAsync(ct);
         var packages = await db.RegistrationPackageItems.AsNoTracking().Where(i => ids.Contains(i.MaDangKy)).ToArrayAsync(ct);
         var payments = await db.Payments.AsNoTracking().Where(p => ids.Contains(p.MaDangKy)).ToArrayAsync(ct);
+
         return rows.Select(row => {
-            if (row.TrangThai != "DaDangKy" || row.MaKhuyenMai is not null ||
+            
+            if (row.TrangThai != "DaDangKy" ||
                 !customers.TryGetValue(row.MaKhachHang, out var customer) ||
                 !recipients.TryGetValue(row.MaNguoiDuocTiem, out var recipient) || recipient.MaKhachHang != row.MaKhachHang)
                 throw new IdentityFailure(409, "paymentDataConflict");
+
             var lines = singles.Where(i => i.MaDangKy == row.MaDangKy).Select(i => new RegistrationLine(i.SoLuong, i.GiaTaiThoiDiemDangKy, false))
                 .Concat(packages.Where(i => i.MaDangKy == row.MaDangKy).Select(i => new RegistrationLine(i.SoLuongGoi, i.GiaTaiThoiDiemDangKy, true))).ToArray();
+            
             if (lines.Length is < 1 or > 100 || lines.Any(i => i.Quantity is < 1 or > 100 ||
                 i.UnitPrice < 0 || i.UnitPrice > MaxMoney || decimal.Truncate(i.UnitPrice) != i.UnitPrice))
                 throw new IdentityFailure(409, "paymentDataConflict");
-            var total = RegistrationRules.CalculateTotal(lines);
-            if (total > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
+
+            var subtotal = RegistrationRules.CalculateTotal(lines);
+            if (subtotal > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
+
+            
+            var discount = row.MucGiamSnapshot;
+            var totalDue = row.TongTienSauGiam > 0 || row.MucGiamSnapshot > 0 
+                ? row.TongTienSauGiam 
+                : Math.Max(0m, subtotal - discount);
+
             var existing = payments.Where(p => p.MaDangKy == row.MaDangKy).ToArray();
+           
             if (existing.Length > 1 || existing.Any(p => p.LoaiThanhToan != "ToanBo" || p.PhuongThuc != "MoPhong" ||
-                p.TrangThai != "ThanhCong" || p.SoTien <= 0 || p.SoTien != total))
+                p.TrangThai != "ThanhCong" || p.SoTien <= 0 || p.SoTien != totalDue))
                 throw new IdentityFailure(409, "paymentDataConflict");
+
             var paid = existing.Sum(p => p.SoTien);
-            return new PaymentRegistrationSummaryDto(row.MaDangKy, Utc(row.NgayDangKy), new(customer.MaKhachHang, customer.HoTen),
-                new(recipient.MaNguoiDuocTiem, recipient.HoTen), total, total, paid,
-                RegistrationRules.RemainingAmount(total, existing.Select(p => p.SoTien)), existing.SingleOrDefault()?.MaThanhToan, "VND");
+            return new PaymentRegistrationSummaryDto(
+                row.MaDangKy,
+                Utc(row.NgayDangKy),
+                new(customer.MaKhachHang, customer.HoTen),
+                new(recipient.MaNguoiDuocTiem, recipient.HoTen),
+                subtotal,   
+                totalDue,   
+                paid,
+                RegistrationRules.RemainingAmount(totalDue, existing.Select(p => p.SoTien)),
+                existing.SingleOrDefault()?.MaThanhToan,
+                "VND");
         }).ToArray();
     }
 

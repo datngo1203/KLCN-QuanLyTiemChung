@@ -71,7 +71,7 @@ public static class RegistrationEndpoints
             var total = RegistrationRules.CalculateTotal(lines);
             if (total > MaxMoney) throw new IdentityFailure(400, "validation");
 
-            // --- S6.2 SNAPSHOT KHUYẾN MÃI (CHẶN TRẦN KHÔNG VƯỢT TIỀN HÀNG) ---
+            
             int? appliedPromoId = null;
             string? appliedPromoName = null;
             decimal appliedDiscount = 0m;
@@ -83,18 +83,18 @@ public static class RegistrationEndpoints
                     .FirstOrDefaultAsync(p => p.MaKhuyenMai == req.PromotionId.Value, ct);
                 if (promo is null) throw new IdentityFailure(404, "resourceNotFound");
 
-                // Kiểm tra hiệu lực
+                
                 if (promo.ThoiGianBatDau > now || promo.ThoiGianKetThuc < now)
                     throw new IdentityFailure(400, "validation");
 
                 appliedPromoId = promo.MaKhuyenMai;
                 appliedPromoName = promo.TenKhuyenMai;
 
-                // Quy tắc S6.2: Giảm không vượt quá tiền hàng
+                
                 appliedDiscount = Math.Min(promo.MucUuDai, total);
             }
 
-            // Tiền thanh toán thực tế không âm
+            
             var finalTotal = Math.Max(0m, total - appliedDiscount);
 
             var row = new DangKyDichVu {
