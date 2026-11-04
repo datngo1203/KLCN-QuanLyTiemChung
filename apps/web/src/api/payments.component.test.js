@@ -61,7 +61,14 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   await act(async () => host.querySelector('.payment-select').click())
   assert.equal(field('fullName').value, 'Liên hệ đã chốt')
   assert.equal(host.querySelectorAll('[name=method]').length, 4)
+  await act(async () => host.querySelector('[value=TheQuocTe]').click())
+  field('cardNumber').value = '4111 1111 1111 1111'
+  field('cvv').value = '683'
+  field('terms').checked = true
   await act(async () => host.querySelector('[value=ChuyenKhoanOnline]').click())
+  assert.equal(field('cardNumber'), null)
+  assert.equal(field('cvv'), null)
+  assert.equal(field('terms').checked, false)
   assert.match(host.querySelector('img').getAttribute('src'), /^data:image\/gif/)
   assert.equal(posted.length, 0)
   field('fullName').value = 'Người trả tiền'

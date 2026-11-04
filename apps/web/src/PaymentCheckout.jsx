@@ -199,7 +199,7 @@ export default function PaymentCheckout({ detail, summary, disabled, sending, on
       {isTransfer && <TransferGateway detail={detail} onReady={setTransferReady} />}
       {errors.sourceAccountOrWalletId && isTransfer && <p role="alert" className="payment-field-error">{errors.sourceAccountOrWalletId}</p>}
       {atCenter && <p>Đến quầy Thu ngân và cung cấp mã đăng ký để thanh toán.</p>}
-      {method && !atCenter && (!isDomestic || otpStep) && <label className="payment-terms">
+      {method && !atCenter && (!isDomestic || otpStep) && <label key={method} className="payment-terms">
         <input name="terms" type="checkbox" required /> Tôi xác nhận thông tin thanh toán và đồng ý thực hiện giao dịch.
       </label>}
     </fieldset>
