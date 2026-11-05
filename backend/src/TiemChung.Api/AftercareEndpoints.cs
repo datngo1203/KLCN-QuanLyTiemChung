@@ -9,6 +9,16 @@ namespace TiemChung.Api;
 
 public static class AftercareEndpoints
 {
+    private static DateTimeOffset Now(HttpContext context) =>
+        (context.RequestServices.GetService<TimeProvider>() ?? TimeProvider.System).GetUtcNow();
+    private static FollowUpObservationDto Observation(VaccinationDto shot, DateTimeOffset now)
+    {
+        var until = shot.AdministeredAt > DateTimeOffset.MaxValue.AddMinutes(-30)
+            ? DateTimeOffset.MaxValue : shot.AdministeredAt.AddMinutes(30);
+        if (shot.AdministeredAt > now || shot.AdministeredAt == default)
+            return new(shot.Id, until, false, "followUpSourceConflict");
+        return new(shot.Id, until, now >= until, now < until ? "observationPeriodNotCompleted" : null);
+    }
     private static async Task<IdentityActor> RequireNurse(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor=await auth.RequireAsync(context,write,ct);
@@ -70,13 +80,15 @@ public static class AftercareEndpoints
             var rows=Sources(db).Where(m=>!db.Set<TheoDoiSauTiem>().Any(f=>f.MaMuiTiem==m.MaMuiTiem));
             if(!string.IsNullOrEmpty(search))rows=rows.Where(m=>m.MaMuiTiem==id || db.Recipients.Any(r=>r.MaNguoiDuocTiem==m.MaNguoiDuocTiem && r.HoTen.Contains(search)));
             var items=await Query(db,rows.OrderByDescending(m=>m.MaMuiTiem).Skip(((page??1)-1)*(pageSize??25)).Take(pageSize??25)).ToArrayAsync(ct);
-            await tx.CommitAsync(ct);return Results.Ok(new FollowUpPendingResponse(items));
+            var now=Now(context);
+            await tx.CommitAsync(ct);return Results.Ok(new FollowUpPendingResponse(items,items.Select(x=>Observation(x,now)).ToArray()));
         });
         group.MapGet("/{id:int}/follow-ups",async(int id,HttpContext context,IdentityAuthorization auth,TiemChungDbContext db,CancellationToken ct)=>{
             await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted,ct);
             await RequireNurse(context,auth,false,ct);
             var source=await Source(db,id,ct);var result=await Result(db,id,ct);
-            await tx.CommitAsync(ct);return Results.Ok(new FollowUpDetailDto(source,result));
+            var observation=Observation(source,Now(context));
+            await tx.CommitAsync(ct);return Results.Ok(new FollowUpDetailDto(source,result,observation));
         });
         group.MapPost("/{id:int}/follow-ups",async(int id,CreateFollowUpRequest req,HttpContext context,IdentityAuthorization auth,TiemChungDbContext db,CancellationToken ct)=>{
             await using var tx=await IdentityTransactions.BeginAsync(db,ct);
@@ -86,11 +98,12 @@ public static class AftercareEndpoints
                 string.IsNullOrWhiteSpace(req.Treatment) || req.Treatment.Trim().Length>500)throw new IdentityFailure(400,"validation");
             var shot=await db.Set<MuiTiem>().FromSqlInterpolated($"SELECT * FROM MuiTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaMuiTiem={id}").SingleOrDefaultAsync(ct)
                 ??throw new IdentityFailure(404,"resourceNotFound");
-            await Source(db,id,ct);
+            var source=await Source(db,id,ct);
             if(await db.Set<TheoDoiSauTiem>().FromSqlInterpolated($"SELECT * FROM TheoDoiSauTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaMuiTiem={id}").AnyAsync(ct))
                 throw new IdentityFailure(409,"followUpAlreadyRecorded");
-            var now=DateTimeOffset.UtcNow;
-            if(now.UtcDateTime<shot.ThoiDiemTiem)throw new IdentityFailure(409,"followUpSourceConflict");
+            var now=Now(context);
+            var observation=Observation(source,now);
+            if(!observation.CanComplete)throw new IdentityFailure(409,observation.BlockReason!);
             var row=new TheoDoiSauTiem{MaMuiTiem=id,MaNhanVien=actor.Employee!.MaNhanVien,ThoiDiem=now.UtcDateTime,
                 TinhTrang=req.Condition.Trim(),MucDoPhanUng=req.Severity.Trim(),HuongXuTri=req.Treatment.Trim()};
             db.Add(row);await db.SaveChangesAsync(ct);

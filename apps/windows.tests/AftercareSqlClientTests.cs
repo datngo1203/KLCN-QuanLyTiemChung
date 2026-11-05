@@ -21,8 +21,9 @@ public sealed class AftercareSqlClientTests
             var transport=new LostResponse(f.Factory.Server.CreateHandler());using var http=new HttpClient(transport){BaseAddress=f.Client.BaseAddress};
             var identity=new IdentityApiService(http);Assert.True((await identity.LoginAsync("s55.nurse",f.Password)).Succeeded);
             var service=new AftercareApiService(identity);var vm=new AftercareViewModel(service,identity);await vm.LoadAsync();Assert.Equal(3,vm.Queue.Count);var before=await f.Snapshot();
-            foreach(var shot in vm.Queue.ToArray()){
-                vm.Selected=shot;await vm.LoadDetailAsync();Assert.Equal(shot,vm.Detail!.Vaccination);Assert.Null(vm.Result);Assert.Equal("",vm.Condition);
+            foreach(var item in vm.Queue.ToArray()){
+                var shot=item.Vaccination;
+                vm.Selected=item;await vm.LoadDetailAsync();Assert.Equal(shot,vm.Detail!.Vaccination);Assert.Null(vm.Result);Assert.Equal("",vm.Condition);
                 vm.Condition=" [DEMO] Theo dõi thực tế ";vm.Severity=" [DEMO] Mức độ thực tế ";vm.Treatment=" [DEMO] Thông tin xử trí đã nhập ";Assert.NotNull(vm.BeginConfirmation());transport.Armed=lost;await vm.ConfirmAsync(true);
                 if(lost){Assert.True(vm.HasPending);Assert.False(vm.CanEdit);await vm.RetryAsync();await vm.ReconcileAsync();}
                 Assert.True(vm.IsRecorded);Assert.False(vm.CanSave);Assert.False(vm.HasPending);var result=vm.Result!;
@@ -33,6 +34,27 @@ public sealed class AftercareSqlClientTests
             Assert.Equal(3,transport.PostCount);Assert.Equal(before,await f.Snapshot());await vm.LoadAsync();Assert.True(vm.NoResults);
             await identity.LogoutAsync();Assert.Empty(vm.Queue);Assert.Null(vm.Detail);Assert.True((await identity.LoginAsync("s55.nurse2",f.Password)).Succeeded);
             var reopen=new AftercareViewModel(new AftercareApiService(identity),identity){ResultVaccinationId="MT-0001"};await reopen.ReadResultAsync();Assert.True(reopen.IsRecorded);Assert.False(reopen.CanEdit);Assert.Equal(1,reopen.Result!.VaccinationId);Assert.Equal(before,await f.Snapshot());
+        });
+    }
+    [SqlTheory]
+    [InlineData(30)]
+    public async Task FreshShotCannotSaveUntilServerRefreshAndDraftSurvives(int elapsedMinutes)
+    {
+        await SqlFixtureLifecycle.RunAsync(()=>AftercareSqlFixture.Create(),async f=>{
+            var id=await f.Db.Set<MuiTiem>().MinAsync(m=>m.MaMuiTiem);
+            await f.Db.Set<MuiTiem>().Where(m=>m.MaMuiTiem==id).ExecuteUpdateAsync(s=>s.SetProperty(m=>m.ThoiDiemTiem,DateTime.UtcNow));
+            var identity=new IdentityApiService(f.Client);Assert.True((await identity.LoginAsync("s55.nurse",f.Password)).Succeeded);
+            var service=new AftercareApiService(identity);var vm=new AftercareViewModel(service,identity);await vm.LoadAsync();
+            vm.Selected=vm.Queue.Single(x=>x.Vaccination.Id==id);await vm.LoadDetailAsync();
+            vm.Condition="Đang theo dõi";vm.Severity="Chưa hoàn tất đánh giá";vm.Treatment="Tiếp tục theo dõi tại cơ sở";
+            Assert.False(vm.CanSave);Assert.Null(vm.BeginConfirmation());
+            var error=await Assert.ThrowsAsync<AftercareApiException>(()=>service.RecordAsync(id,new(vm.Condition,vm.Severity,vm.Treatment)));
+            Assert.Equal("observationPeriodNotCompleted",error.Code);Assert.Contains("30 phút",error.Message);
+            Assert.Empty(await f.Db.Set<TheoDoiSauTiem>().ToArrayAsync());Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a=>a.Action=="aftercare.recorded").ToArrayAsync());
+            await f.Db.Set<MuiTiem>().Where(m=>m.MaMuiTiem==id).ExecuteUpdateAsync(s=>s.SetProperty(m=>m.ThoiDiemTiem,DateTime.UtcNow.AddMinutes(-elapsedMinutes)));
+            await vm.RefreshDetailAsync();Assert.Equal("Tiếp tục theo dõi tại cơ sở",vm.Treatment);Assert.True(vm.CanSave);
+            Assert.NotNull(vm.BeginConfirmation());await vm.ConfirmAsync(true);Assert.True(vm.IsRecorded);
+            Assert.Single(await f.Db.Set<TheoDoiSauTiem>().ToArrayAsync());
         });
     }
     private sealed class LostResponse(HttpMessageHandler inner):DelegatingHandler(inner)
@@ -56,7 +78,7 @@ public sealed class AftercareSqlFixture:IAsyncDisposable
         try{f._base=await VaccinationSqlFixture.Create(useKestrel);using var client=useKestrel?new HttpClient{BaseAddress=f.Client.BaseAddress}:f.Factory.CreateClient();
             var identity=new IdentityApiService(client);Assert.True((await identity.LoginAsync("s55.nurse",f.Password)).Succeeded);var vaccinations=new VaccinationApiService(identity);
             foreach(var indication in await vaccinations.ListAsync(1,"")){var detail=await vaccinations.GetAsync(indication.Id);await vaccinations.RecordAsync(new(indication.Id,Assert.Single(detail.Lots).Number,"[DEMO] S56 source site"));}
-            await identity.LogoutAsync();f.Db.ChangeTracker.Clear();return f;
+            await identity.LogoutAsync();await f.Db.Set<MuiTiem>().ExecuteUpdateAsync(s=>s.SetProperty(m=>m.ThoiDiemTiem,DateTime.UtcNow.AddMinutes(-31)));f.Db.ChangeTracker.Clear();return f;
         }catch(Exception error){await SqlFixtureLifecycle.CleanupAfterFailureAsync(error,f.DisposeAsync);throw;}
     }
     public async Task<string> Snapshot()
