@@ -28,6 +28,8 @@ public sealed class ClinicalSqlTests
     private static async Task<AppointmentDto> Appointment(Fixture f,RegistrationDto? registration=null,string kind="vaccine")
     {
         registration??=await f.Register();
+        await f.Db.Registrations.Where(r => r.MaDangKy == registration.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
         using var response=await f.Reception.PostAsJsonAsync("/api/v1/appointments",f.Request(registration,registration.Items.Single(x=>x.Kind==kind)));
         Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
     }

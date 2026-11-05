@@ -220,7 +220,7 @@ public static class RegistrationEndpoints
         return new(name, phone, email, province, ward, address);
     }
 
-    private static DateOnly? PreferredDate(DangKyDichVu row) =>
+    internal static DateOnly? PreferredDate(DangKyDichVu row) =>
         row.ThoiGianDuKien is { } value ? DateOnly.FromDateTime(value) : null;
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

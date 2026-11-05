@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TiemChung.Api;
@@ -24,6 +25,110 @@ namespace TiemChung.Tests;
 public sealed class AppointmentSqlTests
 {
     private const string Route = "/api/v1/appointments";
+    private const string Facility = "Trung tâm tiêm chủng VAC · 140 Lê Trọng Tấn, Phường Tây Thạnh, Thành phố Hồ Chí Minh";
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("unpaid", "ChuaThanhToan", null, false)]
+    [InlineData("unpaid", "ChuaThanhToan", "TrucTuyen", false)]
+    [InlineData("pending", "ChoXacNhan", "TaiTrungTam", false)]
+    [InlineData("paid", "ThanhCong", "TrucTuyen", true)]
+    [InlineData("center", "ChuaThanhToan", "TaiTrungTam", true)]
+    [InlineData("zero", "ChuaThanhToan", null, true)]
+    [InlineData("conflict", "ChoXacNhan", "TaiTrungTam", false)]
+    public async Task SourceReadsAndCreateUseSamePaymentReadiness(string readiness, string state, string? channel, bool ready)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register(payAtCenter: false);
+            var id = registration.Id;
+            if (readiness is "pending" or "paid" or "conflict") {
+                using var owner = await f.Actor(null, false);
+                f.Db.AddRange(new AccountProfileLink { AccountId = f.LastAccountId, CustomerId = f.CustomerId, State = "Active" },
+                    new AccountProfileLink { AccountId = f.LastAccountId, RecipientId = f.RecipientId, State = "Active" });
+                await f.Db.SaveChangesAsync();
+                var method = readiness == "paid" ? "TheNoiDia" : "ChuyenKhoanOnline";
+                using var paid = await owner.PostAsJsonAsync($"/api/v1/registrations/{id}/payment/online", PaymentSqlTests.Online(method));
+                Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
+            }
+            if (readiness == "zero") {
+                await f.Db.RegistrationVaccineItems.Where(i => i.MaDangKy == id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(i => i.GiaTaiThoiDiemDangKy, 0));
+                await f.Db.RegistrationPackageItems.Where(i => i.MaDangKy == id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(i => i.GiaTaiThoiDiemDangKy, 0));
+            }
+            await f.Db.Registrations.Where(r => r.MaDangKy == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, channel));
+            var sourcesPath = Route + "/sources";
+            if (readiness == "conflict") {
+                await f.Db.Payments.Where(p => p.MaDangKy == id).ExecuteUpdateAsync(s => s.SetProperty(p => p.SoTien, 1));
+                await Problem(await f.Reception.GetAsync(sourcesPath), 409, "paymentDataConflict");
+                await Problem(await f.Reception.GetAsync(sourcesPath + "/" + id), 409, "paymentDataConflict");
+            } else {
+                var summary = Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentSourceListResponse>(sourcesPath + "?page=1&pageSize=1"))!.Items);
+                Assert.Equal(new AppointmentSourceDto(id, registration.Status, registration.Customer, registration.Recipient,
+                    registration.PreferredDate, state, channel, ready, readiness, Facility), summary);
+                var detail = (await f.Reception.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcesPath + "/" + id))!;
+                Assert.Equal(summary, detail.Source);
+                Assert.Equal(registration.Items.Select(i => new AppointmentSourceItemDto(i.Id, i.Kind, i.ServiceId, i.Name, i.Quantity)), detail.Items);
+            }
+            var response = await f.Reception.PostAsJsonAsync(Route, f.Request(registration, registration.Items[0]));
+            if (ready) {
+                using (response) Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            } else await Problem(response, 409, readiness == "conflict" ? "paymentDataConflict" : "appointmentPaymentRequired");
+            Assert.Equal(ready ? 1 : 0, await f.Db.Set<LichHenTiem>().CountAsync());
+            Assert.Equal(ready ? 1 : 0, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "appointments.created"));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task CreationWaitsForPaymentWriterAndUsesCommittedChannel()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            await using var tx = await f.Db.Database.BeginTransactionAsync();
+            await f.Db.Registrations.FromSqlInterpolated(
+                $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={registration.Id}").AsNoTracking().SingleAsync();
+
+            // Hold the same lock used by the payment channel write, while the old channel is still readable.
+            var create = f.Reception.PostAsJsonAsync(Route, f.Request(registration, registration.Items[0]));
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            while (!create.IsCompleted && await f.Db.Database.SqlQueryRaw<int>(
+                "SELECT COUNT(*) AS Value FROM sys.dm_exec_requests WHERE blocking_session_id = @@SPID").SingleAsync(deadline.Token) == 0)
+                await Task.Delay(25, deadline.Token);
+            Assert.False(create.IsCompleted);
+            await f.Db.Registrations.Where(r => r.MaDangKy == registration.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TrucTuyen"));
+            await tx.CommitAsync();
+
+            await Problem(await create, 409, "appointmentPaymentRequired");
+            Assert.Empty(await f.Db.Set<LichHenTiem>().ToArrayAsync());
+            Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a => a.Action == "appointments.created").ToArrayAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task FacilityConfigurationAppliesToNewAppointmentsAndLinkedLegacyReadsKeepLocation()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            var item = registration.Items[0];
+            var old = new LichHenTiem { MaDangKy = registration.Id, MaNguoiDuocTiem = registration.Recipient.Id,
+                MaChiTietVacXin = item.Id, ThoiGianHen = DateTime.UtcNow.AddDays(-1), DiemTiem = "Địa điểm trước đây", TrangThai = "DaXepLich" };
+            f.Db.Add(old); await f.Db.SaveChangesAsync();
+            await using var factory = f.Base.Factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, config) =>
+                config.AddInMemoryCollection(new Dictionary<string, string?> {
+                    ["Appointments:FacilityName"] = "  Cơ sở thử nghiệm  ", ["Appointments:FacilityAddress"] = "Địa chỉ thử nghiệm"
+                })));
+            using var client = factory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = f.Reception.DefaultRequestHeaders.Authorization;
+            using var response = await client.PostAsJsonAsync(Route, f.Request(registration, item));
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var saved = (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
+            Assert.Equal("Cơ sở thử nghiệm · Địa chỉ thử nghiệm", saved.Location);
+            Assert.Equal(saved.Location, await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == saved.Id).Select(a => a.DiemTiem).SingleAsync());
+            Assert.Equal("Địa điểm trước đây", (await client.GetFromJsonAsync<AppointmentDto>(Route + "/" + old.MaLichHen))!.Location);
+            Assert.Equal("Địa điểm trước đây", await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == old.MaLichHen).Select(a => a.DiemTiem).SingleAsync());
+        });
+    }
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SinglesPackagesUtcReadbackFiltersAndAuditPersistWithoutPaymentOrDoseExpansion()
@@ -40,10 +145,11 @@ public sealed class AppointmentSqlTests
                 Assert.Equal("DaXepLich", saved.Status); Assert.Equal(TimeSpan.Zero, saved.ScheduledAt.Offset);
                 Assert.Equal(DateTimeOffset.Parse(request.ScheduledAt), saved.ScheduledAt);
                 Assert.Equal(line.Id, saved.RegistrationItemId); Assert.Equal(line.Kind, saved.ItemKind);
-                Assert.Equal(registration.Recipient.Id, saved.Recipient.Id); Assert.Equal("[DEMO] S5 room", saved.Location);
+                Assert.Equal(registration.Recipient.Id, saved.Recipient.Id); Assert.Equal(Facility, saved.Location);
                 var row = await f.Db.Set<LichHenTiem>().AsNoTracking().SingleAsync(x => x.MaLichHen == saved.Id);
                 Assert.Equal(saved.ScheduledAt.UtcDateTime, row.ThoiGianHen);
                 Assert.Equal(registration.Id, row.MaDangKy);
+                Assert.Equal(Facility, row.DiemTiem);
                 Assert.Equal(JsonSerializer.Serialize(saved), JsonSerializer.Serialize(await f.Reception.GetFromJsonAsync<AppointmentDto>(Route + "/" + saved.Id)));
                 var query = $"?registrationId={registration.Id}&itemKind={line.Kind}&registrationItemId={line.Id}&scheduledAt={Uri.EscapeDataString(saved.ScheduledAt.ToString("O"))}";
                 Assert.Equal(saved.Id, Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentListResponse>(Route + query))!.Items).Id);
@@ -71,13 +177,14 @@ public sealed class AppointmentSqlTests
             var first = await f.Register(); var other = await f.Register(); var valid = f.Request(first, first.Items[0]);
             foreach (var request in new[] {
                 valid with { RegistrationId=0 }, valid with { RegistrationItemId=0 }, valid with { ItemKind="other" },
-                valid with { Location=" " }, valid with { Location=new string('x',201) }, valid with { Location=null! },
                 valid with { ScheduledAt="2026-11-02T09:00:00" }, valid with { ScheduledAt="bad" }, valid with { ScheduledAt=null! },
                 valid with { ScheduledAt=DateTimeOffset.UtcNow.AddMinutes(-1).ToString("O") },
                 valid with { RegistrationItemId=other.Items[0].Id }, valid with { RegistrationItemId=int.MaxValue }
             }) await Problem(await f.Reception.PostAsJsonAsync(Route, request), 400, "validation");
             await Problem(await f.Reception.PostAsJsonAsync(Route, valid with { RegistrationId=int.MaxValue }), 404, "resourceNotFound");
-            foreach (var json in new[] { "{", "{}", "null", JsonSerializer.Serialize(valid, new JsonSerializerOptions(JsonSerializerDefaults.Web)).Replace("\"location\":", "\"recipientId\":1,\"location\":") })
+            var jsonBody = JsonSerializer.Serialize(valid, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            foreach (var json in new[] { "{", "{}", "null", jsonBody.Insert(1, "\"location\":\"Địa điểm tự nhập\","),
+                jsonBody.Insert(1, "\"recipientId\":1,") })
                 await Problem(await f.Reception.PostAsync(Route, new StringContent(json, Encoding.UTF8, "application/json")), 400, "validation");
             foreach (var query in new[] { "page=0", "pageSize=101", "registrationId=-1", "recipientId=0", "itemKind=vaccine", "registrationItemId=1", "itemKind=x&registrationItemId=1", "scheduledAt=bad", "page=2147483647&pageSize=100" })
                 await Problem(await f.Reception.GetAsync(Route + "?" + query), 400, "validation");
@@ -85,6 +192,11 @@ public sealed class AppointmentSqlTests
             await Problem(await f.Reception.GetAsync(Route + "/2147483647"), 404, "resourceNotFound");
             await f.Db.Registrations.Where(x => x.MaDangKy == first.Id).ExecuteUpdateAsync(x => x.SetProperty(r => r.TrangThai,"Legacy"));
             await Problem(await f.Reception.PostAsJsonAsync(Route, valid), 409, "appointmentSourceConflict");
+            var unrelated = new KhachHang { HoTen = "Khách hàng khác" };
+            f.Db.Add(unrelated); await f.Db.SaveChangesAsync();
+            await f.Db.Recipients.Where(p => p.MaNguoiDuocTiem == other.Recipient.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.MaKhachHang, unrelated.MaKhachHang));
+            await Problem(await f.Reception.PostAsJsonAsync(Route, f.Request(other, other.Items[0])), 409, "appointmentSourceConflict");
             Assert.Empty(await f.Db.Set<LichHenTiem>().ToArrayAsync());
             Assert.Empty(await f.Db.Set<SecurityAudit>().Where(x => x.Action == "appointments.created").ToArrayAsync());
         });
@@ -98,6 +210,8 @@ public sealed class AppointmentSqlTests
             async Task Denied(HttpClient client, int status) {
                 await Problem(await client.GetAsync(Route), status);
                 await Problem(await client.GetAsync(Route + "/1"), status);
+                await Problem(await client.GetAsync(Route + "/sources"), status);
+                await Problem(await client.GetAsync(Route + "/sources/" + registration.Id), status);
                 await Problem(await client.PostAsJsonAsync(Route,request), status);
             }
             using var anonymous = f.Base.Factory.CreateClient(); await Denied(anonymous,401);
@@ -108,6 +222,10 @@ public sealed class AppointmentSqlTests
             Assert.Empty((await customer.GetFromJsonAsync<AppointmentListResponse>(Route))!.Items);
             await Problem(await customer.GetAsync(Route + "/1"),403,"permissionDenied");
             await Problem(await customer.PostAsJsonAsync(Route,request),403,"permissionDenied");
+            await Problem(await customer.GetAsync(Route + "/sources"),403,"permissionDenied");
+            await Problem(await customer.GetAsync(Route + "/sources/" + registration.Id),403,"permissionDenied");
+            using var payment = await f.Reception.GetAsync($"/api/v1/registrations/{registration.Id}/payment");
+            Assert.Equal(HttpStatusCode.Forbidden, payment.StatusCode);
             await f.Db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==f.AccountId).ExecuteDeleteAsync();
             await Denied(f.Reception,403);
             await f.Db.Set<NhanVien>().Where(x=>x.MaNhanVien==f.EmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
@@ -323,7 +441,7 @@ public sealed class AppointmentSqlTests
         public TiemChungDbContext Db=>Base.Db;
         public HttpClient Reception=null!;public int AccountId,EmployeeId,CustomerId,RecipientId,LastAccountId;
         private readonly List<HttpClient> _clients=[];
-        public CreateAppointmentRequest Request(RegistrationDto r,RegistrationItemDto i)=>new(r.Id,i.Kind,i.Id,DateTimeOffset.UtcNow.AddDays(2).ToOffset(TimeSpan.FromHours(7)).ToString("O"),"  [DEMO] S5 room  ");
+        public CreateAppointmentRequest Request(RegistrationDto r,RegistrationItemDto i)=>new(r.Id,i.Kind,i.Id,DateTimeOffset.UtcNow.AddDays(2).ToOffset(TimeSpan.FromHours(7)).ToString("O"));
         public async Task<HttpClient> Actor(string? title,bool grant)
         {
             NhanVien? employee=null;
@@ -338,11 +456,15 @@ public sealed class AppointmentSqlTests
             if(Reception==null && title=="LeTan" && grant){AccountId=account.MaTaiKhoan;EmployeeId=employee!.MaNhanVien;}
             return client;
         }
-        public async Task<RegistrationDto> Register()
+        public async Task<RegistrationDto> Register(bool payAtCenter = true)
         {
             var v=await Db.Vaccines.AsNoTracking().FirstAsync();var p=await Db.Set<GoiVacXin>().AsNoTracking().FirstAsync();
             using var response=await Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(CustomerId,RecipientId,[new("vaccine",v.MaVacXin,2,v.Gia),new("package",p.MaGoi,2,p.GiaGoi,[new(v.MaVacXin,2)])]));
-            Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
+            Assert.Equal(HttpStatusCode.Created,response.StatusCode);
+            var registration = (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
+            if (payAtCenter) await Db.Registrations.Where(r => r.MaDangKy == registration.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
+            return registration;
         }
         public static Task<Fixture> Create() => Create(false);
         public static async Task<Fixture> Create(bool historicalCatalog)

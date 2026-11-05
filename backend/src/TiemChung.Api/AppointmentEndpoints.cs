@@ -45,8 +45,14 @@ public static partial class AppointmentEndpoints
         return rows.Where(a => registrations.Any(r => r.MaDangKy == a.MaDangKy && r.MaNguoiDuocTiem == a.MaNguoiDuocTiem));
     }
 
-    public static void MapAppointmentEndpoints(this IEndpointRouteBuilder app)
+    public static void MapAppointmentEndpoints(this WebApplication app)
     {
+        var name = app.Configuration["Appointments:FacilityName"]?.Trim();
+        var address = app.Configuration["Appointments:FacilityAddress"]?.Trim();
+        var facility = $"{name} · {address}";
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(address) || facility.Length > 200)
+            throw new InvalidOperationException("Configure a VAC appointment facility name and address (200 characters combined).");
+
         var group = app.MapGroup("/api/v1/appointments").WithTags("Appointments");
         group.AddEndpointFilter(async (invocation, next) => {
             try { return await next(invocation); }
@@ -64,9 +70,9 @@ public static partial class AppointmentEndpoints
             var actor = await RequireReception(context, auth, true, ct);
             var time = Utc(req.ScheduledAt);
             if (req.RegistrationId <= 0 || req.RegistrationItemId <= 0 || req.ItemKind is not ("vaccine" or "package") ||
-                time <= DateTime.UtcNow || string.IsNullOrWhiteSpace(req.Location) || req.Location.Trim().Length > 200)
+                time <= DateTime.UtcNow)
                 throw new IdentityFailure(400, "validation");
-            // Serialize appointments for the same source; the unique indexes also protect direct writes.
+            // Payment writes take this same registration lock after authorization.
             var registration = await db.Registrations.FromSqlInterpolated(
                 $"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={req.RegistrationId}")
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
@@ -77,14 +83,18 @@ public static partial class AppointmentEndpoints
                 ? await db.RegistrationVaccineItems.AnyAsync(x => x.MaDangKy == req.RegistrationId && x.MaChiTietVacXin == req.RegistrationItemId, ct)
                 : await db.RegistrationPackageItems.AnyAsync(x => x.MaDangKy == req.RegistrationId && x.MaChiTietGoi == req.RegistrationItemId, ct);
             if (!lineExists) throw new IdentityFailure(400, "validation");
+            var payment = (await PaymentEndpoints.Summaries(db, [registration], ct)).Single();
+            if (!SchedulingSource(registration, payment, facility).CanSchedule)
+                throw new IdentityFailure(409, "appointmentPaymentRequired");
             if (await db.Set<LichHenTiem>().AnyAsync(x => x.MaDangKy == req.RegistrationId && x.ThoiGianHen == time &&
                 (req.ItemKind == "vaccine" ? x.MaChiTietVacXin == req.RegistrationItemId : x.MaChiTietGoi == req.RegistrationItemId), ct))
                 throw new IdentityFailure(409, "appointmentAlreadyExists");
+            if (time <= DateTime.UtcNow) throw new IdentityFailure(400, "validation");
             var row = new LichHenTiem {
                 MaDangKy = registration.MaDangKy, MaNguoiDuocTiem = registration.MaNguoiDuocTiem,
                 MaChiTietVacXin = req.ItemKind == "vaccine" ? req.RegistrationItemId : null,
                 MaChiTietGoi = req.ItemKind == "package" ? req.RegistrationItemId : null,
-                ThoiGianHen = time, DiemTiem = req.Location.Trim(), TrangThai = "DaXepLich"
+                ThoiGianHen = time, DiemTiem = facility, TrangThai = "DaXepLich"
             };
             db.Add(row); await db.SaveChangesAsync(ct);
             var audit = IdentityTransactions.Audit(db, "appointments.created", context.TraceIdentifier,
@@ -95,6 +105,48 @@ public static partial class AppointmentEndpoints
             await tx.CommitAsync(ct);
             return Results.Created($"/api/v1/appointments/{row.MaLichHen}", dto);
         }).WithName("CreateAppointment").Produces<AppointmentDto>(201);
+
+        group.MapGet("/sources", async (HttpContext context, IdentityAuthorization auth, TiemChungDbContext db,
+            int? page, int? pageSize, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            await RequireReception(context, auth, false, ct);
+            if (page is <= 0 || pageSize is <= 0 or > 100 ||
+                (long)((page ?? 1) - 1) * (pageSize ?? 25) > int.MaxValue)
+                throw new IdentityFailure(400, "validation");
+            var rows = await db.Registrations.AsNoTracking().Where(r => r.TrangThai == "DaDangKy")
+                .OrderByDescending(r => r.MaDangKy).Skip(((page ?? 1) - 1) * (pageSize ?? 25))
+                .Take(pageSize ?? 25).ToArrayAsync(ct);
+            var payments = await PaymentEndpoints.Summaries(db, rows, ct);
+            var sources = rows.Zip(payments, (row, payment) => SchedulingSource(row, payment, facility)).ToArray();
+            await tx.CommitAsync(ct);
+            return Results.Ok(new AppointmentSourceListResponse(sources));
+        }).WithName("ListAppointmentSources").Produces<AppointmentSourceListResponse>();
+
+        group.MapGet("/sources/{id:int}", async (int id, HttpContext context, IdentityAuthorization auth,
+            TiemChungDbContext db, CancellationToken ct) => {
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            await RequireReception(context, auth, false, ct);
+            if (id <= 0) throw new IdentityFailure(400, "validation");
+            var row = await db.Registrations.AsNoTracking().SingleOrDefaultAsync(r => r.MaDangKy == id, ct)
+                ?? throw new IdentityFailure(404, "resourceNotFound");
+            if (row.TrangThai != "DaDangKy" || !await db.Recipients.AnyAsync(p =>
+                p.MaNguoiDuocTiem == row.MaNguoiDuocTiem && p.MaKhachHang == row.MaKhachHang, ct))
+                throw new IdentityFailure(409, "appointmentSourceConflict");
+            var payment = (await PaymentEndpoints.Summaries(db, [row], ct)).Single();
+            var singles = from i in db.RegistrationVaccineItems.AsNoTracking()
+                join v in db.Vaccines on i.MaVacXin equals v.MaVacXin
+                where i.MaDangKy == id
+                orderby i.MaChiTietVacXin
+                select new AppointmentSourceItemDto(i.MaChiTietVacXin, "vaccine", i.MaVacXin, v.TenVacXin, i.SoLuong);
+            var packages = from i in db.RegistrationPackageItems.AsNoTracking()
+                join p in db.Set<GoiVacXin>() on i.MaGoi equals p.MaGoi
+                where i.MaDangKy == id
+                orderby i.MaChiTietGoi
+                select new AppointmentSourceItemDto(i.MaChiTietGoi, "package", i.MaGoi, p.TenGoi, i.SoLuongGoi);
+            var items = (await singles.ToArrayAsync(ct)).Concat(await packages.ToArrayAsync(ct)).ToArray();
+            await tx.CommitAsync(ct);
+            return Results.Ok(new AppointmentSourceDetailDto(SchedulingSource(row, payment, facility), items));
+        }).WithName("GetAppointmentSource").Produces<AppointmentSourceDetailDto>();
 
         group.MapGet("", async (HttpContext context, IdentityAuthorization auth, TiemChungDbContext db,
             int? registrationId, int? recipientId, string? itemKind, int? registrationItemId, string? scheduledAt,
@@ -126,6 +178,20 @@ public static partial class AppointmentEndpoints
             await tx.CommitAsync(ct);
             return Results.Ok(row);
         }).WithName("GetAppointment").Produces<AppointmentDto>();
+    }
+
+    private static AppointmentSourceDto SchedulingSource(DangKyDichVu row, PaymentRegistrationSummaryDto payment, string facility)
+    {
+        var readiness = payment switch {
+            { PaymentState: "ChoXacNhan" } => "pending",
+            { TotalDue: 0 } => "zero",
+            { PaymentState: "ThanhCong" } => "paid",
+            { ExpectedChannel: "TaiTrungTam" } => "center",
+            _ => "unpaid"
+        };
+        return new(row.MaDangKy, row.TrangThai, payment.Customer, payment.Recipient,
+            RegistrationEndpoints.PreferredDate(row), payment.PaymentState, payment.ExpectedChannel,
+            readiness is "zero" or "paid" or "center", readiness, facility);
     }
 
     internal static IQueryable<AppointmentDto> Query(TiemChungDbContext db, IQueryable<LichHenTiem> rows) =>

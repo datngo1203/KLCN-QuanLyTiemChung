@@ -9,9 +9,10 @@ public sealed class AppointmentViewModel : ViewModelBase
     private readonly IAppointmentService _service;
     private readonly IdentityApiService _identity;
     private readonly int _revision;
-    private bool _busy, _denied, _creating, _committed, _reconciled;
+    private bool _busy, _denied, _creating, _committed, _reconciled, _defaultDatePending;
     private int _page = 1, _sourcePage = 1;
-    private string _feedback = "", _sourceCode = "", _time = "09:00", _location = "";
+    private int? _draftSourceId;
+    private string _feedback = "", _sourceCode = "", _time = "09:00";
     private DateTime? _date = DateTime.Today.AddDays(1);
     private AppointmentSourceOption? _sourceRow;
     private AppointmentSource? _source;
@@ -32,6 +33,7 @@ public sealed class AppointmentViewModel : ViewModelBase
         NewCommand = new(async _ => await NewAsync(), _ => CanBrowse);
         CancelCommand = new(_ => { _creating = false; ClearDraft(); Refresh(); }, _ => CanEdit);
         FindSourceCommand = new(async _ => await FindSourceAsync(), _ => CanEdit);
+        RefreshSourceCommand = new(async _ => await ReadSourceAsync(_draftSourceId!.Value), _ => CanEdit && _draftSourceId.HasValue);
         PreviousSourceCommand = new(async _ => await LoadSourcesAsync(_sourcePage - 1), _ => CanEdit && _sourcePage > 1);
         NextSourceCommand = new(async _ => await LoadSourcesAsync(_sourcePage + 1), _ => CanEdit && Sources.Count == AppointmentApiService.PageSize);
         SaveCommand = new(async _ => await SaveAsync(), _ => CanSave);
@@ -47,6 +49,7 @@ public sealed class AppointmentViewModel : ViewModelBase
     public RelayCommand NewCommand { get; }
     public RelayCommand CancelCommand { get; }
     public RelayCommand FindSourceCommand { get; }
+    public RelayCommand RefreshSourceCommand { get; }
     public RelayCommand PreviousSourceCommand { get; }
     public RelayCommand NextSourceCommand { get; }
     public RelayCommand SaveCommand { get; }
@@ -62,8 +65,8 @@ public sealed class AppointmentViewModel : ViewModelBase
     public ReminderViewModel Reminder { get; }
     public bool CanEdit => HasAccess && _creating && !_busy && _pending is null;
     public bool HasPending => HasAccess && _pending is not null;
-    public bool CanSave => CanEdit && _source is { Status: "DaDangKy" } && _item is not null &&
-        _source.Items.Contains(_item) && TryTime(out _) && Location.Trim().Length is >= 1 and <= 200;
+    public bool CanSave => CanEdit && _source?.Source.CanSchedule == true && _item is not null &&
+        _source.Items.Contains(_item) && TryTime(out _);
     public int Page => _page;
     public int SourcePage => _sourcePage;
     public bool NoResults => HasAccess && !_busy && Appointments.Count == 0;
@@ -71,9 +74,13 @@ public sealed class AppointmentViewModel : ViewModelBase
     public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
     public string SourceCode { get => _sourceCode; set { if (CanEdit) Set(ref _sourceCode, value); } }
     public string Time { get => _time; set { if (CanEdit) { Set(ref _time, value); Refresh(); } } }
-    public DateTime? AppointmentDate { get => _date; set { if (CanEdit) { Set(ref _date, value); Refresh(); } } }
-    public string Location { get => _location; set { if (CanEdit) { Set(ref _location, value); Refresh(); } } }
-    public AppointmentSource? Source => _source;
+    public DateTime? AppointmentDate
+    {
+        get => _date;
+        set { if (CanEdit && Set(ref _date, value)) { _defaultDatePending = false; Refresh(); } }
+    }
+    public AppointmentSourceOption? Source => _source?.Source;
+    public bool HasSource => _source is not null;
     public AppointmentSourceOption? SelectedSource
     {
         get => _sourceRow;
@@ -97,14 +104,20 @@ public sealed class AppointmentViewModel : ViewModelBase
     }
     private void Refresh()
     {
-        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(IsCreating), nameof(IsViewing), nameof(CanBrowse), nameof(CanEdit), nameof(HasPending), nameof(CanSave), nameof(Page), nameof(SourcePage), nameof(NoResults), nameof(NoDetail) }) OnPropertyChanged(name);
-        foreach (var command in new[] { ReloadCommand, PreviousCommand, NextCommand, NewCommand, CancelCommand, FindSourceCommand, PreviousSourceCommand, NextSourceCommand, SaveCommand, ReconcileCommand, RetryCommand }) command?.NotifyCanExecuteChanged();
+        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(IsCreating), nameof(IsViewing), nameof(CanBrowse), nameof(CanEdit), nameof(HasPending), nameof(HasSource), nameof(CanSave), nameof(Page), nameof(SourcePage), nameof(NoResults), nameof(NoDetail) }) OnPropertyChanged(name);
+        foreach (var command in new[] { ReloadCommand, PreviousCommand, NextCommand, NewCommand, CancelCommand, FindSourceCommand, RefreshSourceCommand, PreviousSourceCommand, NextSourceCommand, SaveCommand, ReconcileCommand, RetryCommand }) command?.NotifyCanExecuteChanged();
     }
     private void ClearDraft()
     {
-        _sourceRow = null; _source = null; _item = null; _sourceCode = ""; _time = "09:00"; _date = DateTime.Today.AddDays(1); _location = "";
+        _sourceRow = null; _source = null; _item = null; _sourceCode = ""; _draftSourceId = null;
+        ResetDateTime();
         Items.Clear(); Sources.Clear(); _sourcePage = 1;
-        foreach (var name in new[] { nameof(SelectedSource), nameof(Source), nameof(SelectedItem), nameof(SourceCode), nameof(Time), nameof(AppointmentDate), nameof(Location) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(SelectedSource), nameof(Source), nameof(SelectedItem), nameof(SourceCode) }) OnPropertyChanged(name);
+    }
+    private void ResetDateTime()
+    {
+        _defaultDatePending = true; _time = "09:00"; _date = DateTime.Today.AddDays(1);
+        OnPropertyChanged(nameof(Time)); OnPropertyChanged(nameof(AppointmentDate));
     }
     private void ClearSessionData()
     {
@@ -116,18 +129,18 @@ public sealed class AppointmentViewModel : ViewModelBase
     {
         if (!IsCurrent) return;
         if (e is AppointmentApiException { Code: "invalidSession" or "permissionDenied" }) { _denied = true; ClearSessionData(); }
-        Feedback = e is AppointmentApiException ? e.Message : "Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+        Feedback = e is AppointmentApiException ? e.Message : "Không tải được thông tin. Bản nháp được giữ lại. Hãy thử lại.";
     }
     public async Task LoadAsync(int page = 1)
     {
         if (!CanBrowse || page < 1) return;
-        _busy = true; Feedback = "Đang tải lịch từ API / SQL…"; Refresh();
+        _busy = true; Feedback = "Đang tải danh sách lịch hẹn…"; Refresh();
         try {
             var rows = await _service.ListAsync(page);
             if (!IsCurrent || _denied) return;
             Appointments.Clear(); foreach (var row in rows) Appointments.Add(row);
             _page = page; _selected = null; OnPropertyChanged(nameof(Selected)); Detail = null;
-            Feedback = rows.Length == 0 ? "Chưa có lịch trong trang này." : "Lịch hẹn được đọc từ SQL; chưa phải kết luận đủ điều kiện tiêm.";
+            Feedback = rows.Length == 0 ? "Chưa có lịch trong trang này." : "Chọn một lịch để xem chi tiết.";
         } catch (Exception e) { Error(e); }
         finally { _busy = false; Refresh(); }
     }
@@ -153,7 +166,7 @@ public sealed class AppointmentViewModel : ViewModelBase
             var rows = await _service.GetSourcesAsync(page);
             if (!IsCurrent || _denied) return;
             Sources.Clear(); foreach (var row in rows) Sources.Add(row);
-            _sourcePage = page; _sourceRow = null; _source = null; _item = null; Items.Clear();
+            _sourcePage = page; _sourceRow = null; _source = null; _item = null; _draftSourceId = null; Items.Clear();
             OnPropertyChanged(nameof(SelectedSource)); OnPropertyChanged(nameof(Source)); OnPropertyChanged(nameof(SelectedItem));
             Feedback = rows.Length == 0 ? "Không có đăng ký trong trang này." : "Chọn đăng ký rồi chọn dòng dịch vụ. Ngày giờ theo máy đang sử dụng.";
         } catch (Exception e) { Error(e); }
@@ -169,29 +182,48 @@ public sealed class AppointmentViewModel : ViewModelBase
     }
     public async Task LoadSourceDetailAsync()
     {
-        if (CanEdit && SelectedSource is { } row) await ReadSourceAsync(row.Id);
+        if (CanEdit && SelectedSource is { } row) await ReadSourceAsync(row.RegistrationId);
     }
     private async Task ReadSourceAsync(int id)
     {
-        _busy = true; _source = null; _item = null; Items.Clear();
-        OnPropertyChanged(nameof(Source)); OnPropertyChanged(nameof(SelectedItem)); Feedback = "Đang đọc dịch vụ đã chốt…"; Refresh();
+        _busy = true;
+        if (_draftSourceId != id) {
+            _draftSourceId = id; _source = null; _item = null; Items.Clear();
+            ResetDateTime();
+            OnPropertyChanged(nameof(Source)); OnPropertyChanged(nameof(SelectedItem));
+        }
+        Feedback = "Đang tải chi tiết đăng ký…"; Refresh();
         try {
             var source = await _service.GetSourceAsync(id);
             if (!IsCurrent || _denied) return;
             _source = source;
-            _sourceRow = Sources.FirstOrDefault(x => x.Id == source.Id) ?? new(source.Id, source.Customer, source.Recipient);
-            if (!Sources.Contains(_sourceRow)) Sources.Insert(0, _sourceRow);
-            _sourceCode = $"DK-{source.Id:0000}";
+            var oldRow = Sources.FirstOrDefault(x => x.RegistrationId == id);
+            _sourceRow = source.Source;
+            if (oldRow is null) Sources.Insert(0, _sourceRow);
+            else Sources[Sources.IndexOf(oldRow)] = _sourceRow;
+            _sourceCode = $"DK-{id:0000}";
+            var previousItem = _item;
+            Items.Clear();
             foreach (var item in source.Items) Items.Add(item);
-            OnPropertyChanged(nameof(Source)); OnPropertyChanged(nameof(SelectedSource)); OnPropertyChanged(nameof(SourceCode));
-            Feedback = "Chọn dòng dịch vụ và nhập thời gian tương lai, địa điểm. Không tự tạo các mũi của gói.";
-        } catch (Exception e) { Error(e); }
+            _item = source.Items.FirstOrDefault(i => i.Id == previousItem?.Id && i.Kind == previousItem.Kind);
+            if (_defaultDatePending && source.Source.PreferredDate is { } preferred && preferred >= DateOnly.FromDateTime(DateTime.Today)) {
+                var fallback = _date;
+                _date = preferred.ToDateTime(TimeOnly.MinValue);
+                if (!TryTime(out _)) _date = fallback;
+                OnPropertyChanged(nameof(AppointmentDate));
+            }
+            _defaultDatePending = false;
+            OnPropertyChanged(nameof(Source)); OnPropertyChanged(nameof(SelectedSource)); OnPropertyChanged(nameof(SourceCode)); OnPropertyChanged(nameof(SelectedItem));
+            Feedback = source.Source.CanSchedule ? "Chọn dòng dịch vụ và thời gian hẹn." : source.Source.ReadinessLabel + ". Tải lại đăng ký khi có cập nhật.";
+        } catch (Exception e) {
+            _source = null; OnPropertyChanged(nameof(Source)); Error(e);
+        }
         finally { _busy = false; Refresh(); }
     }
     public async Task SaveAsync()
     {
         if (!CanSave || !TryTime(out var time)) return;
-        await PostAsync(new(_source!.Id, _item!.Kind, _item.Id, time, Location.Trim()));
+        await PostAsync(new(_source!.Source.RegistrationId, _item!.Kind, _item.Id, time));
     }
     public async Task RetryAsync()
     {
@@ -204,11 +236,14 @@ public sealed class AppointmentViewModel : ViewModelBase
         try {
             var saved = await _service.CreateAsync(request);
             if (!IsCurrent || _denied) return;
-            _committed = true; Accept(saved); Feedback = "Đã lưu lịch (HTTP 201). Có thể tải lại để xem từ SQL.";
+            _committed = true; Accept(saved); Feedback = "Đã lưu lịch hẹn.";
         } catch (Exception e) {
             if (!IsCurrent) return;
             if (e is AppointmentApiException { Code: "recordedUnreadable" }) _committed = true;
             else if (e is AppointmentApiException { Code: not ("outcomeUnknown" or "appointmentAlreadyExists") }) _pending = null;
+            if (e is AppointmentApiException { Code: "appointmentPaymentRequired" or "paymentDataConflict" or "appointmentSourceConflict" }) {
+                _source = null; OnPropertyChanged(nameof(Source));
+            }
             Error(e);
         } finally { _busy = false; Refresh(); }
     }
@@ -221,13 +256,13 @@ public sealed class AppointmentViewModel : ViewModelBase
     public async Task ReconcileAsync()
     {
         if (_busy || !HasAccess || _pending is not { } request) return;
-        _busy = true; _reconciled = false; Feedback = "Đang GET đối chiếu nguồn và thời điểm…"; Refresh();
+        _busy = true; _reconciled = false; Feedback = "Đang đối chiếu lịch theo đăng ký và thời điểm…"; Refresh();
         try {
             var rows = await _service.ListAsync(1, request);
             if (!IsCurrent || _denied) return;
             var saved = rows.SingleOrDefault(x => AppointmentApiService.Matches(x, request));
-            if (saved is not null) { Accept(saved); Feedback = "Đã tìm thấy lịch trong SQL. Không gửi lại POST."; }
-            else { _reconciled = true; Feedback = _committed ? "Đã nhận 201, GET chưa thấy lịch. Tiếp tục GET, không gửi lại." : "GET chưa thấy lịch. Có thể thử lại đúng yêu cầu cũ; API vẫn chặn lịch trùng."; }
+            if (saved is not null) { Accept(saved); Feedback = "Đã tìm thấy lịch đã lưu."; }
+            else { _reconciled = true; Feedback = _committed ? "Chưa mở được chi tiết lịch đã lưu. Hãy đối chiếu lại." : "Chưa tìm thấy lịch. Có thể thử lưu lại đúng yêu cầu cũ."; }
         } catch (Exception e) { Error(e); }
         finally { _busy = false; Refresh(); }
     }
