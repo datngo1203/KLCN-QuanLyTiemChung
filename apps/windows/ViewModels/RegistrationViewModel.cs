@@ -116,6 +116,15 @@ public sealed class RegistrationViewModel : ViewModelBase
     public string AddressLine { get => _addressLine; set { if (Set(ref _addressLine, value)) Refresh(); } }
     public DateTime? PreferredDate { get => _preferredDate; set { if (Set(ref _preferredDate, value)) Refresh(); } }
     public DateTime VietnamToday => DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).Date;
+    private RegistrationPromotion? _selectedPromotion;
+    public ObservableCollection<RegistrationPromotion> Promotions { get; } = [new(null, "Không áp dụng ưu đãi", 0)];
+    public RegistrationPromotion? SelectedPromotion {
+        get => _selectedPromotion;
+        set { if (Set(ref _selectedPromotion, value)) Refresh(); }
+    }
+    public decimal DiscountPreview => Math.Min(Subtotal, SelectedPromotion?.DiscountAmount ?? 0);
+    public decimal? TotalDuePreview => TotalBeforeDiscount - DiscountPreview;
+    public string PromotionNotice { get; private set; } = "";
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(_consultationFee);
     public decimal? TotalBeforeDiscount => Subtotal + _consultationFee;
 
@@ -154,7 +163,7 @@ public sealed class RegistrationViewModel : ViewModelBase
 
     private void Refresh()
     {
-        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(CanInteract), nameof(CanEditDraft), nameof(ShowList), nameof(ShowDraft), nameof(ShowDetail), nameof(HasDetailId), nameof(Page), nameof(CustomerPageLabel), nameof(NeedsCatalogConfirmation), nameof(UnknownOutcome), nameof(NewLabel), nameof(QuantityValid), nameof(Subtotal), nameof(ConsultationFeeLabel), nameof(TotalBeforeDiscount), nameof(VietnamToday), nameof(FormError), nameof(CanSubmit) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(CanInteract), nameof(CanEditDraft), nameof(ShowList), nameof(ShowDraft), nameof(ShowDetail), nameof(HasDetailId), nameof(Page), nameof(CustomerPageLabel), nameof(NeedsCatalogConfirmation), nameof(UnknownOutcome), nameof(NewLabel), nameof(QuantityValid), nameof(Subtotal), nameof(ConsultationFeeLabel), nameof(TotalBeforeDiscount), nameof(TotalDuePreview), nameof(DiscountPreview), nameof(PromotionNotice), nameof(VietnamToday), nameof(FormError), nameof(CanSubmit) }) OnPropertyChanged(name);
         foreach (var command in new[] { ReloadCommand, PreviousCommand, NextCommand, NewCommand, ListCommand, ResumeDraftCommand, SearchCustomersCommand, PreviousCustomersCommand, NextCustomersCommand, LoadRecipientsCommand, ReloadCatalogCommand, AddLineCommand, RemoveLineCommand, SaveCommand, OpenDetailCommand, RetryDetailCommand }) command?.NotifyCanExecuteChanged();
     }
 
@@ -164,6 +173,9 @@ public sealed class RegistrationViewModel : ViewModelBase
         CustomerSearch = ""; _appliedCustomerSearch = ""; CatalogSearch = ""; QuantityText = "1";
         ContactFullName = ContactPhone = ContactEmail = ProvinceCity = WardCommune = AddressLine = "";
         PreferredDate = null; _consultationFee = null;
+        SelectedPromotion = Promotions[0];
+        while (Promotions.Count > 1) Promotions.RemoveAt(Promotions.Count - 1);
+        PromotionNotice = "";
         Lines.Clear(); _detailId = null; Detail = null; _customerPage = 1; _draftSaved = false;
         _unknownOutcome = false; _reviewedList = false; _catalogReviewRequired = false; CatalogConfirmed = false; CatalogNotice = "";
         Refresh();
@@ -203,6 +215,7 @@ public sealed class RegistrationViewModel : ViewModelBase
         if (_unknownOutcome && !_reviewedList) return;
         ResetDraft(); IsCreating = true; _catalogReady = false;
         await ReloadCatalogCoreAsync();
+        await ReloadPromotionsAsync();
         var customers = await _service.GetCustomersAsync("", 1);
         if (!IsCurrent) return;
         foreach (var c in customers) Customers.Add(c);
@@ -229,6 +242,21 @@ public sealed class RegistrationViewModel : ViewModelBase
         foreach (var row in rows.Where(x => x.CustomerId == customer.Id)) Recipients.Add(row);
         Feedback = rows.Length == 0 ? "Khách hàng chưa có người được tiêm. Tạo hồ sơ tại màn Hồ sơ trước." : "Chọn người được tiêm cho đăng ký này.";
     });
+
+    private async Task ReloadPromotionsAsync()
+    {
+        PromotionNotice = "";
+        SelectedPromotion = null;
+        while (Promotions.Count > 1) Promotions.RemoveAt(Promotions.Count - 1);
+        SelectedPromotion = Promotions[0];
+        try {
+            var rows = await _service.GetPromotionsAsync();
+            if (IsCurrent) foreach (var row in rows) Promotions.Add(row);
+        }
+        catch (Exception error) when (error is RegistrationApiException or System.Net.Http.HttpRequestException or System.Text.Json.JsonException or OperationCanceledException) {
+            if (IsCurrent) PromotionNotice = "Chưa tải được ưu đãi. Bạn vẫn có thể đăng ký với giá thông thường.";
+        }
+    }
 
     private async Task ReloadCatalogCoreAsync()
     {
@@ -282,7 +310,7 @@ public sealed class RegistrationViewModel : ViewModelBase
         var request = new RegistrationRequest(Customer!.Id, Recipient!.Id, Lines.Select(x =>
             new RegistrationRequestItem(x.Kind, x.ServiceId, x.Quantity, x.UnitPrice,
                 x.Components?.Select(c => new RegistrationComponentRequest(c.VaccineId, c.Quantity)).ToArray())).ToArray(),
-            DateOnly.FromDateTime(PreferredDate!.Value), DraftContact);
+            DateOnly.FromDateTime(PreferredDate!.Value), DraftContact, SelectedPromotion?.Id);
         return RunAsync(async () => {
             int id;
             try { id = await _service.CreateAsync(request); }
@@ -292,6 +320,12 @@ public sealed class RegistrationViewModel : ViewModelBase
                 CatalogNotice = "Danh mục đã thay đổi. Tải lại Catalog, xem thay đổi và xác nhận trước khi lưu.";
                 await ReloadCatalogCoreAsync();
                 Feedback = "Chưa tạo đăng ký. Danh mục đã đổi; cần xác nhận lại giá và thành phần.";
+                return;
+            }
+            catch (RegistrationApiException e) when (e.Code == "promotionUnavailable") {
+                if (!IsCurrent) return;
+                await ReloadPromotionsAsync();
+                if (IsCurrent) Feedback = "Ưu đãi vừa hết hiệu lực. Vui lòng chọn lại và xác nhận đăng ký.";
                 return;
             }
             catch (RegistrationApiException e) when (e.Code == "outcomeUnknown") {

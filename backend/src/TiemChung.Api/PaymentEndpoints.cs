@@ -245,7 +245,7 @@ public static class PaymentEndpoints
         var packages = await db.RegistrationPackageItems.AsNoTracking().Where(i => ids.Contains(i.MaDangKy)).ToArrayAsync(ct);
         var payments = paymentSnapshot ?? await db.Payments.AsNoTracking().Where(p => ids.Contains(p.MaDangKy)).ToArrayAsync(ct);
         return rows.Select(row => {
-            if (row.TrangThai != "DaDangKy" || row.MaKhuyenMai is not null ||
+            if (row.TrangThai != "DaDangKy" ||
                 row.KenhThanhToanDuKien is not (null or "TaiTrungTam" or "TrucTuyen") ||
                 !customers.TryGetValue(row.MaKhachHang, out var customer) ||
                 !recipients.TryGetValue(row.MaNguoiDuocTiem, out var recipient) || recipient.MaKhachHang != row.MaKhachHang)
@@ -257,8 +257,13 @@ public static class PaymentEndpoints
                 throw new IdentityFailure(409, "paymentDataConflict");
             var subtotal = RegistrationRules.CalculateTotal(lines);
             var fee = row.PhiKhamTuVan ?? 0;
-            var total = subtotal + fee;
-            if (fee < 0 || decimal.Truncate(fee) != fee || total > MaxMoney) throw new IdentityFailure(409, "paymentDataConflict");
+            var discount = row.MucGiamSnapshot ?? 0;
+            var hasSnapshot = row.MucGiamSnapshot is not null && !string.IsNullOrWhiteSpace(row.TenKhuyenMaiSnapshot);
+            if (fee < 0 || decimal.Truncate(fee) != fee || subtotal + fee > MaxMoney ||
+                discount < 0 || discount > subtotal || decimal.Truncate(discount) != discount ||
+                (row.MaKhuyenMai is not null ? !hasSnapshot : row.MucGiamSnapshot is not null || row.TenKhuyenMaiSnapshot is not null))
+                throw new IdentityFailure(409, "paymentDataConflict");
+            var total = subtotal - discount + fee;
             var existing = payments.Where(p => p.MaDangKy == row.MaDangKy).ToArray();
             if (existing.Length > 1 || existing.Any(p => !ValidPayment(p, total)))
                 throw new IdentityFailure(409, "paymentDataConflict");
@@ -267,7 +272,7 @@ public static class PaymentEndpoints
             return new PaymentRegistrationSummaryDto(row.MaDangKy, Utc(row.NgayDangKy), new(customer.MaKhachHang, customer.HoTen),
                 new(recipient.MaNguoiDuocTiem, recipient.HoTen), subtotal, total, successful.Sum(),
                 RegistrationRules.RemainingAmount(total, successful), payment?.MaThanhToan, "VND", row.PhiKhamTuVan,
-                payment?.TrangThai ?? "ChuaThanhToan", row.KenhThanhToanDuKien);
+                payment?.TrangThai ?? "ChuaThanhToan", row.KenhThanhToanDuKien, discount);
         }).ToArray();
     }
 
@@ -327,6 +332,6 @@ public static class PaymentEndpoints
                 payment.MaGiaoDich, payment.PhuongThuc == "MoPhong" ? null : Payer(payment), payment.NhaCungCapThanhToan,
                 payment.TenChuTaiKhoanThe, payment.SoDinhDanhMasked, payment.ThamChieuThanhToan,
                 payment.SoTienKhachDua, payment.SoTienKhachDua - payment.SoTien), summary.ConsultationFee,
-            summary.PaymentState, summary.ExpectedChannel, canWrite && pending, registration.Contact);
+            summary.PaymentState, summary.ExpectedChannel, canWrite && pending, registration.Contact, summary.DiscountAmount);
     }
 }

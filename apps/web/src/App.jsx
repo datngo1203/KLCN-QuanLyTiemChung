@@ -5,6 +5,8 @@ import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
+import { getValidPromotions } from './api/client'
+import { money } from './registrationForm'
 import VaccinationJourneys from './VaccinationJourneys'
 import Home, { centerName, centerAddress, centerHours, centerDays, centerHotline, centerTel, centerMap } from './Home'
 import './theme.css'
@@ -23,10 +25,6 @@ const pageFromHash = () => {
   if (path === 'vaccinations/history' || /^vaccinations\/[1-9]\d{0,9}$/.test(path)) return path
   return pages.some(([id]) => id === path) || (path.startsWith('catalog/vaccines/') || path.startsWith('register/recipient/')) ? path : 'home'
 }
-
-const offers = [
-  { id: 'thang10', title: 'Ưu đãi tiêm chủng tháng 10', code: 'THANG10', discount: 'Giảm 10%', period: '01/10/2026 – 31/10/2026', status: 'Đang áp dụng' },
-]
 
 function App() {
   const [account, setAccount] = useState(null)
@@ -88,7 +86,6 @@ function App() {
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
-        {page === 'promotions' && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
         {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
         {page === 'home' && <Home go={go} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
@@ -127,19 +124,27 @@ function PageIntro({ eyebrow, title, text }) { return <div className="page-intro
 
 function Offers({ go, notify }) {
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('Tất cả')
   const [selectedOffer, setSelectedOffer] = useState(null)
-  const filteredOffers = offers.filter(offer => {
-    const matchesQuery = `${offer.title} ${offer.code} ${offer.discount}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))
-    const matchesFilter = filter === 'Tất cả' || offer.status === filter
-    return matchesQuery && matchesFilter
-  })
+  const [result, setResult] = useState(null)
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    let current = true
+    getValidPromotions().then(data => { if (current) setResult(data) },
+      () => { if (current) setResult({ failed: true, items: [] }) })
+    return () => { current = false }
+  }, [retry])
+  const date = value => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+  const filteredOffers = (result?.items ?? []).filter(offer => offer.name.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')))
+    .map(offer => ({ ...offer, title: offer.name, discount: money(offer.discountAmount),
+      period: `${date(offer.startsAt)} – ${date(offer.endsAt)}`, status: 'Đang áp dụng' }))
   return <section className="offers-page wrap">
     <PageIntro eyebrow="CHƯƠNG TRÌNH ƯU ĐÃI" title="Ưu đãi dành cho bạn" text="Khám phá các chương trình ưu đãi đang áp dụng." />
-    <div className="offers-controls"><label className="offer-search"><span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm ưu đãi hoặc mã" aria-label="Tìm ưu đãi hoặc mã" /></label><div className="filter-tabs" role="tablist" aria-label="Lọc ưu đãi">{['Tất cả', 'Đang áp dụng'].map(item => <button key={item} role="tab" aria-selected={filter === item} className={filter === item ? 'filter-tab selected' : 'filter-tab'} onClick={() => setFilter(item)}>{item}</button>)}</div></div>
-    <div className="offers-grid">{filteredOffers.map(offer => <article className="offer-card" key={offer.id}><div className="offer-card-top"><span className="offer-spark"><Tag aria-hidden="true" /></span><span className="offer-status">{offer.status}</span></div><div className="offer-discount">{offer.discount}</div><h2>{offer.title}</h2><div className="offer-code"><span>Mã ưu đãi</span><b>{offer.code}</b></div><div className="offer-period"><span>Thời gian</span><b>{offer.period}</b></div><div className="offer-actions"><button className="button outline" onClick={() => setSelectedOffer(offer)}>Chi tiết</button><button className="button primary" onClick={() => { go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></div></article>)}</div>
-    {filteredOffers.length === 0 && <div className="empty-state">Không có ưu đãi phù hợp.</div>}
-    {selectedOffer && <div className="offer-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedOffer(null) }}><section className="offer-modal" role="dialog" aria-modal="true" aria-labelledby="offer-modal-title"><button className="offer-modal-close" aria-label="Đóng" onClick={() => setSelectedOffer(null)}><X aria-hidden="true" /></button><div className="card-kicker">{selectedOffer.status.toLocaleUpperCase('vi')}</div><h2 id="offer-modal-title">{selectedOffer.title}</h2><div className="offer-modal-discount">{selectedOffer.discount}</div><p>Mã ưu đãi: <b>{selectedOffer.code}</b></p><p>Thời gian áp dụng: <b>{selectedOffer.period}</b></p><button className="button primary" onClick={() => { setSelectedOffer(null); go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></section></div>}
+    <div className="offers-controls"><label className="offer-search"><span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm theo tên ưu đãi" aria-label="Tìm theo tên ưu đãi" /></label></div>
+    <div className="offers-grid">{filteredOffers.map(offer => <article className="offer-card" key={offer.id}><div className="offer-card-top"><span className="offer-spark"><Tag aria-hidden="true" /></span><span className="offer-status">{offer.status}</span></div><div className="offer-discount">{offer.discount}</div><h2>{offer.title}</h2><div className="offer-period"><span>Thời gian</span><b>{offer.period}</b></div><div className="offer-actions"><button className="button outline" onClick={() => setSelectedOffer(offer)}>Chi tiết</button><button className="button primary" onClick={() => { go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></div></article>)}</div>
+    {!result && <p role="status">Đang tải ưu đãi…</p>}
+    {result?.failed && <div role="alert">Chưa tải được ưu đãi. <button className="button outline" onClick={() => { setResult(null); setRetry(value => value + 1) }}>Thử lại</button></div>}
+    {result && !result.failed && filteredOffers.length === 0 && <div className="empty-state">Không có ưu đãi phù hợp.</div>}
+    {selectedOffer && <div className="offer-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedOffer(null) }}><section className="offer-modal" role="dialog" aria-modal="true" aria-labelledby="offer-modal-title"><button className="offer-modal-close" aria-label="Đóng" onClick={() => setSelectedOffer(null)}><X aria-hidden="true" /></button><div className="card-kicker">{selectedOffer.status.toLocaleUpperCase('vi')}</div><h2 id="offer-modal-title">{selectedOffer.title}</h2><div className="offer-modal-discount">{selectedOffer.discount}</div><p>{selectedOffer.description}</p><p>Thời gian áp dụng: <b>{selectedOffer.period}</b></p><button className="button primary" onClick={() => { setSelectedOffer(null); go('catalog'); notify('Chọn dịch vụ để tiếp tục đăng ký.') }}>Khám phá dịch vụ <ArrowRight aria-hidden="true" /></button></section></div>}
   </section>
 }
 

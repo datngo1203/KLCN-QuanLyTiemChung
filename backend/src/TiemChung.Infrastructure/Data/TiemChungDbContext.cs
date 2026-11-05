@@ -115,6 +115,8 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dangkydichvu.Property(x => x.MaNhanVien).HasColumnType("int");
         dangkydichvu.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
         dangkydichvu.Property(x => x.MaKhuyenMai).HasColumnType("int");
+        dangkydichvu.Property(x => x.TenKhuyenMaiSnapshot).HasMaxLength(150);
+        dangkydichvu.Property(x => x.MucGiamSnapshot).HasColumnType("decimal(18,0)");
         dangkydichvu.HasOne<KhuyenMai>().WithMany().HasForeignKey(x => x.MaKhuyenMai).OnDelete(DeleteBehavior.Restrict);
         dangkydichvu.Property(x => x.NgayDangKy).HasColumnType("datetime2");
         dangkydichvu.Property(x => x.HinhThucTiem).HasColumnType("nvarchar(50)");
@@ -214,7 +216,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         khuyenmai.Property(x => x.NoiDung).IsRequired();
         khuyenmai.Property(x => x.ThoiGianBatDau).HasColumnType("datetime2");
         khuyenmai.Property(x => x.ThoiGianKetThuc).HasColumnType("datetime2");
-        khuyenmai.Property(x => x.MucUuDai).HasColumnType("decimal(8,2)");
+        khuyenmai.Property(x => x.MucUuDai).HasColumnType("decimal(18,0)");
         khuyenmai.ToTable(t => t.HasCheckConstraint("CK_KhuyenMai_MucUuDai", "[MucUuDai] >= 0"));
 
         var technology = model.Entity<CongNgheVacXin>();

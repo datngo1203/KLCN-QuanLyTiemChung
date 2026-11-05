@@ -31,7 +31,7 @@
         <DataGridTextColumn Header="Khách hàng" Binding="{Binding Customer.FullName}" Width="190"/>
         <DataGridTextColumn Header="Người được tiêm" Binding="{Binding Recipient.FullName}" Width="190"/>
         <DataGridTextColumn Header="Tạo lúc" Binding="{Binding CreatedLabel}" Width="145"/>
-        <DataGridTextColumn Header="Tổng (VND)" Binding="{Binding TotalBeforeDiscount, StringFormat=N0}" Width="130"/>
+        <DataGridTextColumn Header="Tổng (VND)" Binding="{Binding TotalDue, StringFormat=N0}" Width="130"/>
         <DataGridTextColumn Header="Ngày mong muốn tiêm" Binding="{Binding PreferredDateLabel}" Width="150"/>
         <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="120"/>
        </DataGrid.Columns>
@@ -59,7 +59,9 @@
       </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
       <TextBlock Text="{Binding Detail.Subtotal, StringFormat=Tạm tính dịch vụ: {0:N0} đ}" Margin="0,8,0,0"/>
       <TextBlock Text="{Binding Detail.ConsultationFeeLabel, StringFormat=Phí khám/tư vấn: {0}}"/>
-      <TextBlock Text="{Binding Detail.TotalBeforeDiscount, StringFormat=Tổng trước ưu đãi: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,6"/>
+      <TextBlock Text="{Binding Detail.PromotionName}"/>
+      <TextBlock Text="{Binding Detail.DiscountAmount, StringFormat=Ưu đãi: {0:N0} đ}"/>
+      <TextBlock Text="{Binding Detail.TotalDue, StringFormat=Tổng thanh toán: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,6"/>
       <TextBlock Text="Đã lưu đăng ký; chưa có thanh toán hoặc lịch tiêm trong luồng này." Style="{StaticResource CE.Caption}"/>
      </StackPanel></Border>
     </StackPanel>
@@ -140,7 +142,14 @@
       <CheckBox Content="Tôi đã kiểm tra lại giá và thành phần mới" IsChecked="{Binding CatalogConfirmed}" Visibility="{Binding NeedsCatalogConfirmation, Converter={StaticResource Visible}}" Margin="0,8"/>
       <TextBlock Text="{Binding Subtotal, StringFormat=Tạm tính dịch vụ: {0:N0} đ}" Margin="0,8,0,0"/>
       <TextBlock Text="{Binding ConsultationFeeLabel, StringFormat=Phí khám/tư vấn: {0}}"/>
-      <TextBlock Text="{Binding TotalBeforeDiscount, StringFormat=Tổng trước ưu đãi: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,4"/>
+      <TextBlock Text="Ưu đãi"/>
+      <ComboBox ItemsSource="{Binding Promotions}" SelectedItem="{Binding SelectedPromotion}"
+                IsEnabled="{Binding CanEditDraft}" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Ưu đãi">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="{Binding PromotionNotice}" TextWrapping="Wrap"/>
+      <TextBlock Text="{Binding DiscountPreview, StringFormat=Ưu đãi: {0:N0} đ}"/>
+      <TextBlock Text="{Binding TotalDuePreview, StringFormat=Tổng thanh toán: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,4"/>
       <TextBlock Text="Giá do API quyết định và lưu tại thời điểm đăng ký." Style="{StaticResource CE.Caption}"/>
       <TextBlock Text="{Binding FormError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,8"/>
       <Button Content="Xác nhận tạo đăng ký" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,4"/>

@@ -15,7 +15,8 @@ internal static class HistoricalCatalogFixture
         ALTER TABLE KhachHang ADD DanhXung nvarchar(10) NULL, NgaySinh date NULL;
         ALTER TABLE DangKyDichVu ADD TenNguoiLienHe nvarchar(150) NULL, SoDienThoaiLienHe varchar(11) NULL,
             EmailLienHe nvarchar(254) NULL, TinhThanhLienHe nvarchar(100) NULL, PhuongXaLienHe nvarchar(100) NULL,
-            DiaChiLienHe nvarchar(250) NULL, PhiKhamTuVan decimal(18,0) NULL, KenhThanhToanDuKien nvarchar(30) NULL;
+            DiaChiLienHe nvarchar(250) NULL, PhiKhamTuVan decimal(18,0) NULL, KenhThanhToanDuKien nvarchar(30) NULL,
+            TenKhuyenMaiSnapshot nvarchar(150) NULL, MucGiamSnapshot decimal(18,0) NULL;
         -- The historical S5 aftercare test runs current registration/payment APIs before testing its own Down.
         ALTER TABLE ThanhToan ADD MaGiaoDich nvarchar(50) NULL, TenNguoiThanhToan nvarchar(150) NULL,
             SoDienThoaiThanhToan varchar(11) NULL, EmailThanhToan nvarchar(254) NULL, TinhThanhThanhToan nvarchar(100) NULL,

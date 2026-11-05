@@ -117,6 +117,7 @@ app.MapGet("/api/v1/modules", () => new ModuleDto[] {
 app.MapProfileEndpoints();
 app.MapIdentityEndpoints();
 app.MapRegistrationEndpoints();
+app.MapPromotionEndpoints();
 app.MapPaymentEndpoints();
 app.MapAppointmentEndpoints();
 app.MapReminderEndpoints();

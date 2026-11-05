@@ -362,7 +362,7 @@ public sealed class RegistrationSqlTests
         Assert.Equal("get", Assert.Single(paths.GetProperty(Route + "/settings").EnumerateObject()).Name);
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("CreateRegistrationRequest").GetProperty("properties");
-        Assert.Equal(new[] { "contact", "customerId", "items", "preferredDate", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
+        Assert.Equal(new[] { "contact", "customerId", "items", "preferredDate", "promotionId", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
         Assert.Contains("expectedUnitPrice", schemas.GetProperty("RegistrationItemRequest").GetProperty("required").EnumerateArray().Select(x => x.GetString()));
         Assert.True(schemas.GetProperty("RegistrationDto").GetProperty("properties").TryGetProperty("subtotal", out _));
         });

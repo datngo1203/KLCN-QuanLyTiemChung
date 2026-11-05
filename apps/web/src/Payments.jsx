@@ -62,7 +62,7 @@ function PaymentWorkspace({ go }) {
         {list.rows.length === 0 && <p role="status">Không có đăng ký ở trang này.</p>}
         <ul className="payment-registration-list">{list.rows.map(row => <li key={row.id}>
           <button className="payment-select" aria-pressed={selectedId === row.id} aria-controls="payment-detail" onClick={() => setSelectedId(row.id)}>
-            <strong>{registrationCode(row.id)}</strong><span>Khách hàng: {row.customer.fullName}</span><span>Người được tiêm: {row.recipient.fullName}</span><small>{dateTime(row.createdAt)}</small><b>Tổng đăng ký: {money(row.totalBeforeDiscount)}</b><span className="payment-select-hint">Xem thanh toán</span>
+            <strong>{registrationCode(row.id)}</strong><span>Khách hàng: {row.customer.fullName}</span><span>Người được tiêm: {row.recipient.fullName}</span><small>{dateTime(row.createdAt)}</small><b>Tổng đăng ký: {money(row.totalDue ?? row.totalBeforeDiscount)}</b><span className="payment-select-hint">Xem thanh toán</span>
           </button>
         </li>)}</ul>
         <nav className="registration-actions" aria-label="Trang đăng ký thanh toán"><button className="button outline" disabled={page === 1} onClick={() => loadList(page - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={list.rows.length < 25} onClick={() => loadList(page + 1)}>Trang sau</button></nav>
@@ -194,6 +194,7 @@ function PaymentSummary({ detail }) {
       <dl className="registration-review-profiles">
         <div><dt>Tạm tính dịch vụ</dt><dd>{money(detail.subtotal)}</dd></div>
         <div><dt>Phí khám/tư vấn</dt><dd>{consultationFeeLabel(detail.consultationFee)}</dd></div>
+        <div><dt>Ưu đãi</dt><dd>{money(detail.discountAmount ?? 0)}</dd></div>
       </dl>
       <div className="registration-total"><span>Tổng phải thu</span><strong>{money(detail.totalDue)}</strong></div>
   </aside>

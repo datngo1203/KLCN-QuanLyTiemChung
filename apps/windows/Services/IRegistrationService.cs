@@ -22,19 +22,23 @@ public sealed record RegistrationLine(int ServiceId, string Name, string Kind, i
     public string AvailabilityLabel => Available ? "" : "Dịch vụ không còn trong Catalog SQL. Hãy xóa dòng này.";
 }
 public sealed record RegistrationSummary(int Id, DateTimeOffset CreatedAt, string Status, RegistrationPerson Customer,
-    RegistrationPerson Recipient, int? EmployeeId, decimal Subtotal, string Currency, DateOnly? PreferredDate, decimal? ConsultationFee)
+    RegistrationPerson Recipient, int? EmployeeId, decimal Subtotal, string Currency, DateOnly? PreferredDate, decimal? ConsultationFee,
+    string? PromotionName = null, decimal DiscountAmount = 0)
 {
+    public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public string PreferredDateLabel => PreferredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật";
     public string Code => $"DK-{Id:0000}";
     public string StatusLabel => Status == "DaDangKy" ? "Đã đăng ký" : Status;
-    public string Display => $"{Code} · {Recipient.FullName} · {TotalBeforeDiscount:N0} đ";
+    public string Display => $"{Code} · {Recipient.FullName} · {TotalDue:N0} đ";
     public string CreatedLabel => CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 }
 public sealed record RegistrationDetail(int Id, DateTimeOffset CreatedAt, string Status, RegistrationPerson Customer,
     RegistrationPerson Recipient, int? EmployeeId, RegistrationLine[] Items, decimal Subtotal, string Currency,
-    DateOnly? PreferredDate, RegistrationContact? Contact, decimal? ConsultationFee)
+    DateOnly? PreferredDate, RegistrationContact? Contact, decimal? ConsultationFee,
+    string? PromotionName = null, decimal DiscountAmount = 0)
 {
+    public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
     public string PreferredDateLabel => PreferredDate?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật";
@@ -51,7 +55,12 @@ public sealed record RegistrationRequestItem(string Kind, int ServiceId, int Qua
     RegistrationComponentRequest[]? ExpectedComponents);
 public sealed record RegistrationComponentRequest(int VaccineId, int Quantity);
 public sealed record RegistrationRequest(int CustomerId, int RecipientId, RegistrationRequestItem[] Items,
-    DateOnly PreferredDate, RegistrationContact Contact);
+    DateOnly PreferredDate, RegistrationContact Contact,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? PromotionId = null);
+public sealed record RegistrationPromotion(int? Id, string Name, decimal DiscountAmount)
+{
+    public string Label => Id is null ? Name : $"{Name} · {DiscountAmount:N0} đ";
+}
 public sealed record RegistrationContact(string? FullName, string? PhoneNumber, string? Email,
     string? ProvinceCity, string? WardCommune, string? AddressLine);
 public sealed record RegistrationSettings([property: System.Text.Json.Serialization.JsonRequired] decimal ConsultationFee)
@@ -74,6 +83,7 @@ public interface IRegistrationService
     Task<RecipientRecord[]> GetRecipientsAsync(int customerId);
     Task<RegistrationCatalogItem[]> GetCatalogAsync();
     Task<RegistrationSettings> GetSettingsAsync();
+    Task<RegistrationPromotion[]> GetPromotionsAsync() => Task.FromResult(Array.Empty<RegistrationPromotion>());
     Task<RegistrationSummary[]> GetRegistrationsAsync(int page);
     Task<RegistrationDetail> GetDetailAsync(int id);
     Task<int> CreateAsync(RegistrationRequest request);
@@ -156,6 +166,8 @@ public sealed class RegistrationApiService(IdentityApiService? identity = null) 
         using var response = await SendAsync(HttpMethod.Get, "registrations/settings");
         return await response.Content.ReadFromJsonAsync<RegistrationSettings>() ?? throw new JsonException();
     }
+
+    public Task<RegistrationPromotion[]> GetPromotionsAsync() => ListAsync<RegistrationPromotion>("promotions/valid");
 
     public Task<RegistrationSummary[]> GetRegistrationsAsync(int page) =>
         ListAsync<RegistrationSummary>($"registrations?page={page}&pageSize={PageSize}");

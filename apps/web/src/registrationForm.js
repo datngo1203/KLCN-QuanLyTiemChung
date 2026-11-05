@@ -1,5 +1,5 @@
 export const maxMoney = 9999999999999999n
-const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal', 'consultationFee', 'totalBeforeDiscount', 'totalDue', 'paidAmount', 'remainingAmount', 'amount'])
+const moneyFields = new Set(['price', 'unitPrice', 'lineTotal', 'subtotal', 'consultationFee', 'totalBeforeDiscount', 'totalDue', 'paidAmount', 'remainingAmount', 'amount', 'discountAmount'])
 
 // VND exceeds Number.MAX_SAFE_INTEGER in the contract; preserve the JSON number text.
 export function parseRegistrationJson(text) {
@@ -79,7 +79,7 @@ export function registrationPayload(draft, customers, recipients, fee, today = v
     throw new Error('Chọn ngày mong muốn tiêm từ hôm nay theo giờ Việt Nam.')
   if (fee == null) throw new Error('Chưa tải được phí khám/tư vấn.')
   if (total(draft.items) + BigInt(fee) > maxMoney) throw new Error('Tổng tiền vượt giới hạn đăng ký. Hãy giảm số lượng dịch vụ.')
-  return { ...services, contact, preferredDate }
+  return { ...services, contact, preferredDate, ...(draft.promotionId ? { promotionId: Number(draft.promotionId) } : {}) }
 }
 
 export function registrationBody(payload) {

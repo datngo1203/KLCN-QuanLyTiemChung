@@ -33,3 +33,5 @@ export async function getVaccine(id) {
 }
 export const getPackages = (search = '', filters = {}) => apiGet(`/api/v1/catalog/packages?${catalogQuery(search, filters)}`, true)
 export const getVaccineTechnologies = () => apiGet('/api/v1/catalog/vaccine-technologies')
+
+export const getValidPromotions = () => apiGet('/api/v1/promotions/valid', true)

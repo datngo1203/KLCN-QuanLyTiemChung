@@ -27,7 +27,7 @@ public sealed record PaymentRecord(int Id, int RegistrationId, decimal Amount, i
 }
 public sealed record PaymentRegistration(int Id, DateTimeOffset CreatedAt, RegistrationPerson Customer,
     RegistrationPerson Recipient, decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount,
-    int? PaymentId, string Currency, decimal? ConsultationFee = null, string? PaymentState = null)
+    int? PaymentId, string Currency, decimal? ConsultationFee = null, string? PaymentState = null, decimal DiscountAmount = 0)
 {
     public string Code => $"DK-{Id:0000}";
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);
@@ -46,7 +46,7 @@ public sealed record RegistrationPayment(int RegistrationId, string Registration
     [property: JsonRequired] bool RequiresPayment, [property: JsonRequired] bool CanRecordPayment,
     [property: JsonRequired] bool IsSimulation, string Message, [property: JsonRequired] PaymentRecord? Payment, decimal? ConsultationFee = null,
     string? PaymentState = null, string? ExpectedChannel = null, bool CanConfirmPendingPayment = false,
-    RegistrationContact? RegistrationContact = null)
+    RegistrationContact? RegistrationContact = null, decimal DiscountAmount = 0)
 {
     public string Code => $"DK-{RegistrationId:0000}";
     public string ConsultationFeeLabel => RegistrationSettings.FeeLabel(ConsultationFee);

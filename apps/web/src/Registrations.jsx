@@ -1,3 +1,4 @@
+import { getValidPromotions } from './api/client'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Plus, RefreshCw, Search } from 'lucide-react'
 import { identity } from './api/identity'
@@ -29,13 +30,14 @@ function ContactSnapshot({ contact, preferredDate }) {
   </dl>
 }
 
-function MoneyBreakdown({ subtotal, fee, totalBeforeDiscount }) {
+function MoneyBreakdown({ subtotal, fee, discount = 0, totalDue, promotionName }) {
   return <>
     <dl className="registration-review-profiles">
       <div><dt>Tạm tính dịch vụ</dt><dd>{money(subtotal)}</dd></div>
       <div><dt>Phí khám/tư vấn</dt><dd>{consultationFeeLabel(fee)}</dd></div>
+      <div><dt>Ưu đãi{promotionName ? ` · ${promotionName}` : ''}</dt><dd>{BigInt(discount) > 0n ? `−${money(discount)}` : money(0)}</dd></div>
     </dl>
-    <div className="registration-total"><span>Tổng trước ưu đãi</span><strong>{money(totalBeforeDiscount)}</strong></div>
+    <div className="registration-total"><span>Tổng thanh toán</span><strong>{money(totalDue)}</strong></div>
   </>
 }
 
@@ -53,6 +55,18 @@ export default function Registrations({ account, active, recipientLink = null, n
   const [catalog, setCatalog] = useState([])
   const [fee, setFee] = useState(null)
   const [draft, setDraft] = useState(emptyDraft)
+  const [promotions, setPromotions] = useState(null)
+  const [promotionReload, setPromotionReload] = useState(0)
+  useEffect(() => {
+    let current = true
+    getValidPromotions().then(result => { if (current) setPromotions(result) },
+      () => { if (current) setPromotions({ items: [], failed: true }) })
+    return () => { current = false }
+  }, [promotionReload])
+  const promotion = promotions?.items.find(item => String(item.id) === draft.promotionId)
+  const subtotal = total(draft.items)
+  const offeredAmount = BigInt(promotion?.discountAmount ?? 0)
+  const discount = offeredAmount > subtotal ? subtotal : offeredAmount
   const [draftOpen, setDraftOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState('')
@@ -175,6 +189,11 @@ export default function Registrations({ account, active, recipientLink = null, n
           setNeedsCatalog(true); setStep(1)
           setNotice('Giá hoặc thành phần đã thay đổi. Cần tải lại danh mục, xem lại và xác nhận lần nữa.')
           await updateCatalog()
+        } else if (failure.code === 'promotionUnavailable') {
+          setDraft(current => ({ ...current, promotionId: '' }))
+          setPromotions(null)
+          setPromotionReload(value => value + 1)
+          setNotice('Ưu đãi vừa hết hiệu lực. Vui lòng chọn lại và xác nhận đăng ký.')
         } else if (failure.uncertain || !failure.status || failure.status >= 500) {
           setUncertain(true); setCheckedList(false)
           setNotice('Chưa xác định đăng ký đã được lưu hay chưa. Không gửi lại ngay; kiểm tra danh sách và chi tiết trước để tránh đăng ký trùng.')
@@ -210,7 +229,7 @@ export default function Registrations({ account, active, recipientLink = null, n
       <div className="registration-actions"><button className="button primary" disabled={busy || uncertain || draftOpen} onClick={() => start()}><Plus aria-hidden="true" />{busy ? 'Đang tải hồ sơ và dịch vụ…' : 'Tạo đăng ký'}</button>{draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => { setError(''); setView('form') }}>Tiếp tục bản nháp</button>}<button className="button outline" disabled={busy || listLoading} onClick={() => setReload(value => value + 1)}><RefreshCw aria-hidden="true" />Tải lại</button></div>
       {listLoading && <p role="status">Đang tải danh sách đăng ký…</p>}
       {listError && <p className="registration-message error" role="alert">{listError} <button className="button outline" onClick={() => setReload(value => value + 1)}>Thử lại</button></p>}
-      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>{registrationCode(row.id)} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết {registrationCode(row.id)}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
+      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>{registrationCode(row.id)} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalDue ?? row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết {registrationCode(row.id)}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
     </>}
 
     {view === 'detail' && <>
@@ -223,7 +242,7 @@ export default function Registrations({ account, active, recipientLink = null, n
         }
       }}>Đã tìm thấy đăng ký, kết thúc bản nháp</button>}
       {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} /><Lines items={detail.items} />
-        <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} totalBeforeDiscount={detail.totalBeforeDiscount} />{!uncertain && <button className="button primary" disabled={busy} onClick={() => go(`vaccinations/${detailId}`)}>{BigInt(detail.totalBeforeDiscount) > 0n ? 'Tiếp tục thanh toán' : 'Xem hành trình'}</button>}</div>}
+        <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} discount={detail.discountAmount} promotionName={detail.promotionName} totalDue={detail.totalDue ?? detail.totalBeforeDiscount} />{!uncertain && <button className="button primary" disabled={busy} onClick={() => go(`vaccinations/${detailId}`)}>{BigInt(detail.totalDue ?? detail.totalBeforeDiscount) > 0n ? 'Tiếp tục thanh toán' : 'Xem hành trình'}</button>}</div>}
     </>}
 
     {view === 'form' && <>
@@ -272,7 +291,13 @@ export default function Registrations({ account, active, recipientLink = null, n
             <p className="muted">Cơ sở sẽ xác nhận lịch ở bước sau.</p>
           </div>}
           {step === 3 && <div className="registration-panel"><h2>Kiểm tra trước khi xác nhận</h2><dl className="registration-review-profiles"><div><dt>Khách hàng</dt><dd>{customer?.fullName}</dd></div><div><dt>Người được tiêm</dt><dd>{recipient?.fullName}</dd></div></dl><ContactSnapshot contact={draft.contact} preferredDate={draft.preferredDate} /><Lines items={draft.items} />
-            <MoneyBreakdown subtotal={total(draft.items)} fee={fee} totalBeforeDiscount={total(draft.items) + BigInt(fee)} /><p>Chỉ xác nhận đăng ký dịch vụ. Nhân viên sẽ xử lý các bước tiếp theo theo điều kiện nghiệp vụ; chưa tạo lịch hay thanh toán.</p></div>}
+            <label>Ưu đãi<select value={draft.promotionId ?? ''} onChange={event => setDraft(current => ({ ...current, promotionId: event.target.value }))}>
+              <option value="">Không áp dụng ưu đãi</option>
+              {promotions?.items.map(item => <option key={item.id} value={item.id}>{item.name} · {money(item.discountAmount)}</option>)}
+            </select></label>
+            {!promotions && <p role="status">Đang tải ưu đãi…</p>}
+            {promotions?.failed && <p role="alert">Chưa tải được ưu đãi. <button type="button" onClick={() => { setPromotions(null); setPromotionReload(value => value + 1) }}>Thử lại</button></p>}
+            <MoneyBreakdown subtotal={subtotal} fee={fee} discount={discount} totalDue={subtotal - discount + BigInt(fee)} /><p>Chỉ xác nhận đăng ký dịch vụ. Nhân viên sẽ xử lý các bước tiếp theo theo điều kiện nghiệp vụ; chưa tạo lịch hay thanh toán.</p></div>}
           <div className="registration-actions registration-form-actions"><button className="button outline" type="button" onClick={showList}>Lưu bản nháp trong phiên, về danh sách</button>{step > 0 && <button className="button outline" type="button" onClick={() => { setStep(value => value - 1); setError('') }}><ArrowLeft aria-hidden="true" />Quay lại</button>}<button className="button primary" type="submit" disabled={needsCatalog || (step === 0 && (!customer || !recipient)) || (step > 0 && !draft.items.length)}>{busy ? 'Đang gửi đăng ký…' : step === 3 ? 'Xác nhận đăng ký' : step === 2 ? 'Xem lại' : step === 1 ? 'Nhập thông tin liên hệ' : 'Chọn dịch vụ'}<ArrowRight aria-hidden="true" /></button></div>
         </fieldset>
       </form>

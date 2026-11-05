@@ -74,6 +74,8 @@ public sealed class DangKyDichVu
     public int MaNguoiDuocTiem { get; set; }
     public int? MaNhanVien { get; set; }
     public int? MaKhuyenMai { get; set; }
+    public string? TenKhuyenMaiSnapshot { get; set; }
+    public decimal? MucGiamSnapshot { get; set; }
     public DateTime NgayDangKy { get; set; }
     public string? HinhThucTiem { get; set; }
     public DateTime? ThoiGianDuKien { get; set; }
@@ -139,6 +141,7 @@ public sealed class KhuyenMai
     public DateTime ThoiGianBatDau { get; set; }
     public DateTime ThoiGianKetThuc { get; set; }
     public decimal MucUuDai { get; set; }
+    public bool IsEnabled { get; set; }
 }
 
 public sealed class CongNgheVacXin
