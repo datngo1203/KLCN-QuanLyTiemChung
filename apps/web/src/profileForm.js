@@ -51,4 +51,3 @@ export function profileSearchBody(draft) {
   const { mode, profileCode, phoneNumber, fullName, dateOfBirth } = draft
   return mode === 'profileCode' ? { mode, profileCode, phoneNumber } : { mode, fullName, dateOfBirth, phoneNumber }
 }
-
