@@ -118,6 +118,17 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
   }
   return {
     profiles,
+    async findProfile(body) {
+      const response = await request(`${baseUrl}/api/v1/recipients/find`, {
+        method: 'POST', credentials: 'omit', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), signal: AbortSignal.timeout(15000),
+      })
+      if (!response.ok) {
+        const problem = await response.json().catch(() => ({}))
+        throw new Error(problem.code === 'rateLimited' ? messages.rateLimited : 'Chưa tìm được hồ sơ. Vui lòng kiểm tra thông tin và thử lại.')
+      }
+      return (await response.json()).matched === true
+    },
     appointments: (query = '') => profiles(`appointments${query}`),
     getAppointment: id => profiles(`appointments/${id}`),
     vaccinationHistory: (query = '') => profiles(`vaccinations/history${query}`),

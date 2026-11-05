@@ -45,3 +45,10 @@ export function profileError(error) {
     return 'Không thể kết nối hoặc xử lý yêu cầu. Vui lòng thử lại.'
   return error.message || 'Chưa thực hiện được thao tác. Vui lòng thử lại.'
 }
+
+export const emptyProfileSearch = { mode: 'profileCode', profileCode: '', phoneNumber: '', fullName: '', dateOfBirth: '' }
+export function profileSearchBody(draft) {
+  const { mode, profileCode, phoneNumber, fullName, dateOfBirth } = draft
+  return mode === 'profileCode' ? { mode, profileCode, phoneNumber } : { mode, fullName, dateOfBirth, phoneNumber }
+}
+

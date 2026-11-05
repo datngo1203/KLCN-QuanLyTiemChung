@@ -13,6 +13,7 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   globalThis.document = window.document
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   window.scrollTo = () => {}
+  globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window)
   const originalFetch = globalThis.fetch
   const catalogRequests = []
   globalThis.fetch = async url => {
@@ -122,6 +123,34 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.equal(profileEntries().length, 1)
   await act(async () => profileEntries()[0].click())
   assert.equal(document.querySelector('main h1').textContent, 'Hồ sơ tiêm chủng')
+  // A pending search must take priority over the journey return-after-login route.
+  identity.findProfile = async () => true
+  const mainButton = label => [...document.querySelectorAll('main button')].find(x => x.textContent === label)
+  await act(async () => mainButton('Đăng xuất').click())
+  await act(async () => [...header.querySelectorAll('button')].find(x => x.textContent === 'Tiêm chủng của tôi').click())
+  await act(async () => mainButton('Đăng nhập').click())
+  await act(async () => document.querySelectorAll('.account-entry-option')[1].click())
+  for (const [label, value] of [['Mã hồ sơ', 'VAC-ABCDEF123456'], ['Số điện thoại', '0900000000']]) {
+    const field = [...document.querySelectorAll('main label')].find(x => x.textContent.startsWith(label)).querySelector('input')
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(field, value)
+      field.dispatchEvent(new window.Event('input', { bubbles: true }))
+    })
+  }
+  await act(async () => mainButton('Tìm hồ sơ').click())
+  await act(async () => mainButton('Tiếp tục đăng nhập').click())
+  for (const [index, value] of [[0, 'khach01@example.invalid'], [1, 'Synthetic@2026Test!']]) {
+    const field = document.querySelectorAll('main form input')[index]
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(field, value)
+      field.dispatchEvent(new window.Event('input', { bubbles: true }))
+    })
+  }
+  await act(async () => document.querySelector('main form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(window.location.hash, '#account')
+  assert.ok(document.querySelector('dialog[open]'))
+  assert.equal(document.querySelector('input[placeholder="VAC-XXXXXXXXXXXX"]').value, 'VAC-ABCDEF123456')
+
 })
 
 test('shared native date layout retains the calendar indicator', async () => {

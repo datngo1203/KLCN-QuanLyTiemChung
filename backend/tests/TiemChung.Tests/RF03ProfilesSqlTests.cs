@@ -395,6 +395,115 @@ public sealed class RF03ProfilesSqlTests
         WHERE object_id = OBJECT_ID(N'KhachHang') AND name IN (N'DanhXung', N'NgaySinh')
         """).SingleAsync();
 
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task PublicFindReturnsOnlyMatchWithoutSessionLinksOrHealthAccess() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var owner = await AddCustomer(f, "Nguyễn Test An", "khach01@example.invalid");
+            var recipient = AddRecipient(f, owner, "Nguyễn Test Bình");
+            await f.Db.SaveChangesAsync();
+            var sessions = await f.Db.Set<IdentitySession>().CountAsync();
+            var audits = await f.Db.Set<SecurityAudit>().CountAsync();
+            var byCode = new { mode = "profileCode", profileCode = recipient.MaHoSo.ToLowerInvariant(), phoneNumber = Phone };
+            var byName = new { mode = "personalInfo", fullName = " nguyễn test bình ", dateOfBirth = Child, phoneNumber = Phone };
+            foreach (var body in new object[] { byCode, byName })
+            {
+                using var found = await f.Client.PostAsJsonAsync("/api/v1/recipients/find", body);
+                Assert.Equal(HttpStatusCode.OK, found.StatusCode);
+                Assert.Equal("no-store", found.Headers.CacheControl!.ToString());
+                Assert.False(found.Headers.Contains("Set-Cookie"));
+                Assert.Equal("{\"matched\":true}", await found.Content.ReadAsStringAsync());
+            }
+            foreach (var body in new object[] { byCode with { phoneNumber = "0900000001" },
+                byCode with { profileCode = "VAC-000000000000" }, byName with { fullName = "Nguyễn Test Chi" },
+                byName with { dateOfBirth = Child.AddDays(1) } })
+            {
+                using var absent = await f.Client.PostAsJsonAsync("/api/v1/recipients/find", body);
+                Assert.Equal(HttpStatusCode.OK, absent.StatusCode);
+                Assert.Equal("{\"matched\":false}", await absent.Content.ReadAsStringAsync());
+            }
+            using var noClaim = await f.Client.PostAsJsonAsync(RecipientClaim, byCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, noClaim.StatusCode);
+            using var noHealth = await f.Client.GetAsync("/api/v1/vaccinations/history");
+            Assert.Equal(HttpStatusCode.Unauthorized, noHealth.StatusCode);
+            Assert.Equal(sessions, await f.Db.Set<IdentitySession>().CountAsync());
+            Assert.Equal(audits, await f.Db.Set<SecurityAudit>().CountAsync());
+            Assert.False(await f.Db.Set<AccountProfileLink>().AnyAsync());
+            // Ownership is deliberately absent from the public result, even after someone links it.
+            var account = await AddAccount(f, "khach01@example.invalid");
+            using var actor = await Login(f, account);
+            using var linked = await actor.PostAsJsonAsync(RecipientClaim, byCode);
+            Assert.Equal(HttpStatusCode.OK, linked.StatusCode);
+            using var stillFound = await f.Client.PostAsJsonAsync("/api/v1/recipients/find", byCode);
+            Assert.Equal("{\"matched\":true}", await stillFound.Content.ReadAsStringAsync());
+        });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task PublicFindCannotAuthorizeClaimAndClaimRechecksChangedDataAndVerifiedEmail() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var owner = await AddCustomer(f, "Nguyễn Test An", "khach01@example.invalid");
+            var recipient = AddRecipient(f, owner, "Nguyễn Test Bình");
+            var account = await AddAccount(f, "khach01@example.invalid");
+            await f.Db.SaveChangesAsync();
+            var body = new { mode = "profileCode", profileCode = recipient.MaHoSo, phoneNumber = Phone };
+            using var found = await f.Client.PostAsJsonAsync("/api/v1/recipients/find", body);
+            Assert.Equal("{\"matched\":true}", await found.Content.ReadAsStringAsync());
+            using var actor = await Login(f, account);
+            await f.Db.Customers.Where(x => x.MaKhachHang == owner.MaKhachHang)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.SoDienThoai, "0900000001"));
+            await AssertUnavailable(actor, RecipientClaim, body);
+            Assert.False(await f.Db.Set<AccountProfileLink>().AnyAsync());
+            await f.Db.Customers.Where(x => x.MaKhachHang == owner.MaKhachHang)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.SoDienThoai, Phone));
+            await f.Db.Set<TaiKhoan>().Where(x => x.MaTaiKhoan == account.MaTaiKhoan)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.EmailVerifiedAt, (DateTimeOffset?)null));
+            using var unverified = await actor.PostAsJsonAsync(RecipientClaim, body);
+            Assert.Equal(HttpStatusCode.Forbidden, unverified.StatusCode);
+            Assert.Equal("emailVerificationRequired", await Code(unverified));
+            using var loginDenied = await f.Client.PostAsJsonAsync("/api/v1/auth/login",
+                new { identifier = account.LoginEmail, password = f.Password, clientType = "native" });
+            Assert.Equal(HttpStatusCode.Forbidden, loginDenied.StatusCode);
+            Assert.False(await f.Db.Set<AccountProfileLink>().AnyAsync());
+            await f.Db.Set<TaiKhoan>().Where(x => x.MaTaiKhoan == account.MaTaiKhoan)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.EmailVerifiedAt, DateTimeOffset.UtcNow));
+            using var linked = await actor.PostAsJsonAsync(RecipientClaim, body);
+            Assert.Equal(HttpStatusCode.OK, linked.StatusCode);
+            using var other = await Login(f, await AddAccount(f, "khach02@example.invalid"));
+            await AssertUnavailable(other, RecipientClaim, body);
+            Assert.Equal(2, await f.Db.Set<AccountProfileLink>().CountAsync());
+        });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task PublicFindRejectsAmbiguousAndMixedInputAndSharesIpBudgetWithClaims() =>
+        SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f =>
+        {
+            var owner = await AddCustomer(f, "Nguyễn Test An", "khach01@example.invalid");
+            AddRecipient(f, owner, "Nguyễn Test Bình");
+            AddRecipient(f, owner, "Nguyễn Test Bình");
+            await f.Db.SaveChangesAsync();
+            var body = new { mode = "personalInfo", fullName = "Nguyễn Test Bình", dateOfBirth = Child, phoneNumber = Phone };
+            using var ambiguous = await f.Client.PostAsJsonAsync("/api/v1/recipients/find", body);
+            Assert.Equal("{\"matched\":false}", await ambiguous.Content.ReadAsStringAsync());
+            for (var i = 1; i < 30; i++)
+            {
+                using var invalid = await f.Client.PostAsJsonAsync("/api/v1/recipients/find",
+                    new { mode = "profileCode", profileCode = "VAC-ABCDEF123456", phoneNumber = Phone, fullName = body.fullName });
+                Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+                var json = await invalid.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal("validation", json.GetProperty("code").GetString());
+                Assert.Equal(JsonValueKind.Null, json.GetProperty("errors").ValueKind);
+            }
+            foreach (var route in new[] { "/api/v1/recipients/find", RecipientClaim, CustomerClaim })
+            {
+                using var limited = await f.Client.PostAsJsonAsync(route, body);
+                Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+                Assert.Equal("rateLimited", await Code(limited));
+                Assert.NotNull(limited.Headers.RetryAfter);
+            }
+            Assert.False(await f.Db.Set<AccountProfileLink>().AnyAsync());
+        });
+
     private static async Task<string?> Code(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString();
 

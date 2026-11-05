@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus, Pencil, Trash2, RefreshCw, X, ArrowRight } from 'lucide-react'
 import { identity } from './api/identity'
 import { emptyCustomer, emptyRecipient, profileBody, profileError, relationships, salutations, vietnamToday } from './profileForm'
+import ProfileClaimFields from './ProfileClaimFields'
+import { profileSearchBody } from './profileForm'
 import './Profiles.css'
 
 async function list(resource) {
@@ -28,7 +30,6 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
   const viewing = editor.mode === 'view'
   const claiming = editor.mode === 'claim'
   const findingRecipient = claiming && isRecipient
-  const byCode = editor.claimMode === 'profileCode'
   const title = claiming ? 'Tìm hồ sơ tiêm chủng có sẵn' : viewing ? 'Thông tin người được tiêm' : `${editor.draft.id ? 'Chỉnh sửa' : 'Thêm'} ${isRecipient ? 'người được tiêm' : 'hồ sơ cá nhân'}`
   useEffect(() => {
     const element = dialog.current
@@ -63,18 +64,11 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
         ? isRecipient ? 'Nhập số điện thoại trong hồ sơ và thông tin người được tiêm.' : 'Nhập đúng thông tin đã cung cấp cho nhân viên. Email đã xác minh của tài khoản phải trùng email trong hồ sơ.'
         : 'Các trường có dấu * là bắt buộc. CCCD có thể để trống.'}</p>
       {isRecipient && !claiming && <p className="profile-owner">Hồ sơ liên kết: <strong>{customers.find(customer => customer.id === Number(editor.draft.customerId))?.fullName || 'Không có hồ sơ khách hàng trong phạm vi xem'}</strong>{editor.draft.id && <span>Không thể chuyển sang khách hàng khác.</span>}</p>}
-      {findingRecipient && <fieldset disabled={busy} className="profile-claim-method">
-        <legend>Cách tìm hồ sơ</legend>
-        {[['profileCode', 'Mã hồ sơ'], ['personalInfo', 'Thông tin cá nhân']].map(([value, label]) =>
-          <label key={value}><input type="radio" name="claimMode" value={value} checked={editor.claimMode === value}
-            onChange={() => setEditor(current => ({ ...current, claimMode: value }))} /> {label}</label>)}
-      </fieldset>}
+      {findingRecipient ? <ProfileClaimFields draft={{ ...editor.draft, mode: editor.claimMode }} busy={busy}
+        onChange={({ mode, ...draft }) => setEditor(current => ({ ...current, draft, claimMode: mode }))} /> : <>
       <fieldset disabled={busy} className="profile-fields">
-        {findingRecipient && byCode && input('profileCode', 'Mã hồ sơ', { pattern: '[Vv][Aa][Cc]-[0-9a-fA-F]{12}', placeholder: 'VAC-XXXXXXXXXXXX', title: 'Nhập VAC- và 12 ký tự từ 0–9 hoặc A–F.' })}
-        {(!findingRecipient || !byCode) && <>
           {input('fullName', 'Họ và tên', { maxLength: 150, autoComplete: 'off' })}
           {input('dateOfBirth', 'Ngày sinh', { type: 'date', max: vietnamToday() })}
-        </>}
         {!claiming && input('identityNumber', 'CCCD (12 chữ số)', { required: false, maxLength: 12, pattern: '[0-9]{12}', inputMode: 'numeric', title: 'Nhập đúng 12 chữ số hoặc để trống.' })}
         {(!isRecipient || findingRecipient) && input('phoneNumber', 'Số điện thoại', { type: 'tel', maxLength: 11, pattern: '[0-9]{10,11}', inputMode: 'numeric', title: 'Nhập số điện thoại gồm 10–11 chữ số.', autoComplete: 'tel' })}
         {!claiming && (isRecipient ? <>
@@ -84,18 +78,18 @@ function ProfileDialog({ editor, setEditor, customers, busy, error, onClose, onS
           {select('salutation', 'Danh xưng', salutations)}
           {input('email', 'Email', { type: 'email', maxLength: 254, autoComplete: 'email' })}
         </>)}
-      </fieldset>
+      </fieldset></>}
       {error && <p className="profile-feedback error" role="alert">{error}</p>}
       <div className="profile-form-actions"><button className="button outline" type="button" disabled={busy} onClick={onClose}>Hủy</button><button className="button primary" type="submit" disabled={busy}>{claiming ? busy ? 'Đang xác minh…' : 'Tìm và liên kết' : busy ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
     </form>}
   </dialog>
 }
 
-export default function Profiles({ capabilities, sessionBusy = false, onBusyChange, go = () => {} }) {
+export default function Profiles({ initialClaim, onClaimDismiss = () => {}, capabilities, sessionBusy = false, onBusyChange, go = () => {} }) {
   const [customers, setCustomers] = useState([])
   const [recipients, setRecipients] = useState([])
   const [customerId, setCustomerId] = useState('')
-  const [editor, setEditor] = useState(null)
+  const [editor, setEditor] = useState(() => initialClaim ? { resource: 'recipients', mode: 'claim', draft: { ...initialClaim }, claimMode: initialClaim.mode } : null)
   const [busy, setBusy] = useState(true)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
@@ -139,15 +133,14 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
   function open(resource, draft, mode = 'edit') {
     setError(''); setErrorResource(null); setNotice(null); setEditor({ resource, draft: { ...draft }, mode, claimMode: 'profileCode' })
   }
-  function close() { setEditor(null); setError('') }
+  function close() { setEditor(null); setError(''); onClaimDismiss() }
   async function save() {
     const { resource, draft, mode } = editor
     if (mode === 'claim') {
-      const { fullName, dateOfBirth, phoneNumber, profileCode } = draft
+      const { fullName, dateOfBirth, phoneNumber } = draft
       const claimMode = editor.claimMode
       const body = resource === 'customers' ? { fullName, dateOfBirth, phoneNumber }
-        : claimMode === 'profileCode' ? { mode: claimMode, profileCode, phoneNumber }
-        : { mode: claimMode, fullName, dateOfBirth, phoneNumber }
+        : profileSearchBody({ ...draft, mode: claimMode })
       const linked = await identity.profiles(`${resource}/claim`, 'POST', body)
       const add = (items, item) => items.some(current => current.id === item.id)
         ? items.map(current => current.id === item.id ? item : current) : [...items, item]
@@ -155,7 +148,7 @@ export default function Profiles({ capabilities, sessionBusy = false, onBusyChan
       setCustomers(items => add(items, customer))
       setCustomerId(customer.id)
       if (resource === 'recipients') setRecipients(items => add(items, linked.recipient))
-      setEditor(null); setNotice({ resource, text: 'Đã liên kết hồ sơ với tài khoản của bạn.' })
+      setEditor(null); onClaimDismiss(); setNotice({ resource, text: 'Đã liên kết hồ sơ với tài khoản của bạn.' })
       return
     }
     const body = profileBody(resource, draft, customers)

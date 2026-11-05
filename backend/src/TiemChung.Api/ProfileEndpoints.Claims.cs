@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using TiemChung.Infrastructure.Data;
@@ -10,6 +11,17 @@ public static partial class ProfileEndpoints
 {
     private static void MapClaims(RouteGroupBuilder group)
     {
+        group.MapPost("/recipients/find", async (HttpContext context, IdentityRateLimits limits,
+            TiemChungDbContext db, CancellationToken ct) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            limits.CheckProfileClaimIp(context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+            var body = await IdentityEndpoints.Payload(context,
+                ["mode", "profileCode", "phoneNumber", "fullName", "dateOfBirth"], ct);
+            var matches = await FindRecipients(db, body, null, ct);
+            // Existence only: ownership and access are checked again by authenticated claim.
+            return Results.Ok(new { matched = matches.Length == 1 });
+        });
         group.MapPost("/customers/claim", (HttpContext context, IdentityAuthorization auth, IdentityRateLimits limits,
             TiemChungDbContext db, CancellationToken ct) => ClaimAsync(context, auth, limits, db, customer: true, ct));
         group.MapPost("/recipients/claim", (HttpContext context, IdentityAuthorization auth, IdentityRateLimits limits,
@@ -68,44 +80,10 @@ public static partial class ProfileEndpoints
             }
             else
             {
-                var mode = IdentityEndpoints.Value(body, "mode");
-                var phone = IdentityEndpoints.Value(body, "phoneNumber").Trim();
-                if (phone.Length is < 10 or > 11 || !phone.All(char.IsAsciiDigit))
-                    throw new IdentityFailure(400, "validation");
-
-                var candidates = from recipient in db.Recipients.AsNoTracking()
-                                 join customerRow in db.Customers.AsNoTracking()
-                                     on recipient.MaKhachHang equals customerRow.MaKhachHang
-                                 where (customerId == null || customerRow.MaKhachHang == customerId)
-                                     && customerRow.SoDienThoai.Trim() == phone
-                                 select new { Recipient = recipient, Owner = customerRow };
-
-                string? name = null;
-                if (mode == "profileCode")
-                {
-                    var code = IdentityEndpoints.Value(body, "profileCode").Trim().ToUpperInvariant();
-                    if (body.TryGetProperty("fullName", out _) || body.TryGetProperty("dateOfBirth", out _)
-                        || !Regex.IsMatch(code, @"\AVAC-[0-9A-F]{12}\z"))
-                        throw new IdentityFailure(400, "validation");
-                    candidates = candidates.Where(x => x.Recipient.MaHoSo == code);
-                }
-                else if (mode == "personalInfo")
-                {
-                    name = IdentityEndpoints.Value(body, "fullName").Trim();
-                    var dob = ReadBirthDate(body);
-                    if (body.TryGetProperty("profileCode", out _) || name.Length is 0 or > 150
-                        || dob == DateOnly.MinValue || dob > ProfileRules.Today(DateTimeOffset.UtcNow))
-                        throw new IdentityFailure(400, "validation");
-                    candidates = candidates.Where(x => x.Recipient.NgaySinh == dob);
-                }
-                else throw new IdentityFailure(400, "validation");
-
-                var rows = await candidates.ToListAsync(ct);
-                var matches = rows.Where(x => x.Owner.SoDienThoai.Trim() == phone
-                    && (name is null || SameText(x.Recipient.HoTen, name))).Take(2).ToArray();
+                var matches = await FindRecipients(db, body, customerId, ct);
                 if (matches.Length != 1) throw ClaimUnavailable();
-
-                var (match, owner) = (matches[0].Recipient, matches[0].Owner);
+                var match = matches[0];
+                var owner = await db.Customers.AsNoTracking().SingleAsync(c => c.MaKhachHang == match.MaKhachHang, ct);
                 if (customerId is null && await links.AnyAsync(l => l.CustomerId == owner.MaKhachHang, ct))
                     throw ClaimUnavailable();
                 var linkedAccount = await links.Where(l => l.RecipientId == match.MaNguoiDuocTiem)
@@ -155,6 +133,41 @@ public static partial class ProfileEndpoints
 
         if (failure is not null) throw failure;
         return Results.Ok(profile);
+    }
+
+    private static async Task<NguoiDuocTiem[]> FindRecipients(TiemChungDbContext db, JsonElement body,
+        int? customerId, CancellationToken ct)
+    {
+        var mode = IdentityEndpoints.Value(body, "mode");
+        var phone = IdentityEndpoints.Value(body, "phoneNumber").Trim();
+        if (phone.Length is < 10 or > 11 || !phone.All(char.IsAsciiDigit))
+            throw new IdentityFailure(400, "validation");
+        var candidates = from recipient in db.Recipients.AsNoTracking()
+                         join owner in db.Customers.AsNoTracking() on recipient.MaKhachHang equals owner.MaKhachHang
+                         where (customerId == null || owner.MaKhachHang == customerId) && owner.SoDienThoai.Trim() == phone
+                         select new { Recipient = recipient, Phone = owner.SoDienThoai };
+        string? name = null;
+        if (mode == "profileCode")
+        {
+            var code = IdentityEndpoints.Value(body, "profileCode").Trim().ToUpperInvariant();
+            if (body.TryGetProperty("fullName", out _) || body.TryGetProperty("dateOfBirth", out _)
+                || !Regex.IsMatch(code, @"\AVAC-[0-9A-F]{12}\z"))
+                throw new IdentityFailure(400, "validation");
+            candidates = candidates.Where(x => x.Recipient.MaHoSo == code);
+        }
+        else if (mode == "personalInfo")
+        {
+            name = IdentityEndpoints.Value(body, "fullName").Trim();
+            var dob = ReadBirthDate(body);
+            if (body.TryGetProperty("profileCode", out _) || name.Length is 0 or > 150
+                || dob == DateOnly.MinValue || dob > ProfileRules.Today(DateTimeOffset.UtcNow))
+                throw new IdentityFailure(400, "validation");
+            candidates = candidates.Where(x => x.Recipient.NgaySinh == dob);
+        }
+        else throw new IdentityFailure(400, "validation");
+        var rows = await candidates.ToListAsync(ct);
+        return rows.Where(x => x.Phone.Trim() == phone && (name is null || SameText(x.Recipient.HoTen, name)))
+            .Select(x => x.Recipient).Take(2).ToArray();
     }
 
     private static IdentityFailure ClaimUnavailable() => new(409, "profileClaimUnavailable");
