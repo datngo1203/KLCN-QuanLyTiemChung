@@ -37,7 +37,7 @@ Theo quyết định người dùng 03/11, **được mở rộng phạm vi từ
 
 **Thứ tự test:** test X1 độc lập + hồi quy đọc lô S5 có liên quan; test từng PR S6/S7; một PR tương thích S6→S5 sau chốt contract ưu đãi; cuối cùng mới S8 end-to-end. Không ghi PASS khi mới đọc code hoặc khi chỉ có branch.
 
-**Refinement queue cập nhật 05/11/2026:** S6-INT #138 / PR #139 ☑ DONE. **#142 AUTHZ-R1 là ACTIVE duy nhất**: thống nhất RBAC chức danh → quyền → màn hình. Sau #142 → **#145 AUTH-R2** đưa “Tìm hồ sơ tiêm chủng” ngang hàng với “Đăng nhập” trên Web → **#143 DATA-R1** dọn filler/demo data và thay visible medical seed bằng dữ liệu có nguồn → RF-05B → RF-05C → RF-05D → RF-05E → RF-02C → S8.
+**Refinement queue cập nhật 05/11/2026:** S6-INT #138 / PR #139 ☑ DONE; **#142 AUTHZ-R1 ☑ DONE** qua PR #150 (squash `9b99bcfb`, CI #322 xanh), ma trận chức danh thống nhất và Windows navigation/A12 role-change API thật. A12 tạo account/password reset vẫn qua operator tool hiện có; Windows full-shell smoke dời tới S8, không ghi PASS. **#145 AUTH-R2 là ACTIVE duy nhất**: đưa “Tìm hồ sơ tiêm chủng” ngang hàng với “Đăng nhập” trên Web, chỉ xác minh trước đăng nhập rồi tiếp tục login/register để liên kết, không cấp quyền truy cập sức khỏe bằng mã hồ sơ + SĐT. Sau #145 → **#143 DATA-R1** dọn filler/demo data và thay visible medical seed bằng dữ liệu có nguồn → RF-05B → RF-05C → RF-05D → RF-05E → RF-02C → S8.
 
 ## An toàn tối thiểu của S5 / G5 — đã nghiệm thu theo contract S4 (03/11/2026)
 
