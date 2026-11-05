@@ -86,7 +86,7 @@ function App() {
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
-        {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
+        {page === 'account' && <Account account={account} setAccount={(next, options) => { if (options?.continueProfileClaim) returnAfterLogin.current = null; setAccount(next) }} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
         {page === 'home' && <Home go={go} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}

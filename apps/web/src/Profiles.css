@@ -41,7 +41,7 @@
 .account-page .profile-feedback, .profile-dialog .profile-feedback { padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.7; margin: 16px 0 0; overflow-wrap: anywhere; }
 .profile-feedback.error { color: #9b241c; background: #fff1ef; border: 1px solid #f6d2cc; }
 .profile-feedback.success { color: #166534; background: #edf8f0; border: 1px solid #c9e6d1; }
-.account-auth { max-width: 540px; --primary: #2a388f; }
+.account-auth { max-width: 760px; }
 .account-auth h1, .account-auth .text-button { color: var(--primary); }
 .account-auth .button { border-radius: 10px; font-size: 14px; }
 .account-auth .button.primary { background: var(--primary); }
@@ -89,3 +89,21 @@ body:has(.profile-dialog[open]) { overflow: hidden; }
 .profile-claim-method legend { font-weight: 600; margin-bottom: 8px; }
 .profile-claim-method label { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; cursor: pointer; }
 .profile-claim-method input { accent-color: var(--primary); }
+
+.account-entry-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.account-entry-option { display: grid; gap: 8px; align-content: start; text-align: left; padding: 18px; border: 2px solid var(--line); border-radius: 12px; background: white; color: var(--ink); min-width: 0; }
+.account-entry-option strong { font-size: 16px; line-height: 1.5; }
+.account-entry-option span { font-size: 13px; line-height: 1.6; color: var(--muted); }
+.account-entry-option[aria-pressed="true"] { border-color: var(--primary); background: var(--blue-soft); }
+.account-continuation { margin-top: 20px; }
+.account-auth .form-card h2 { font-size: 20px; line-height: 1.5; }
+.account-auth .profile-search .profile-fields { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.account-auth .profile-search .profile-claim-method { display: flex; }
+.account-auth .profile-search input[type="radio"] { width: 18px; height: 18px; }
+@media (max-width: 500px) {
+  .account-entry-option { padding: 12px; }
+  .account-entry-option strong { font-size: 14px; }
+  .account-entry-option span { font-size: 12px; }
+}
+
+.account-auth .profile-search .account-actions { margin-top: 16px; }
