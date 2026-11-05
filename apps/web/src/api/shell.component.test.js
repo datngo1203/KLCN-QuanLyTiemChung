@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { Window } from 'happy-dom'
 import { createServer } from 'vite'
 import { act, createElement } from 'react'
+import { customerDisplayName } from '../customerDisplayName.js'
 
 test('VNVC shell preserves the profile and auth routes without a second profile CTA', async t => {
   const window = new Window({ url: 'http://localhost/#schedule' })
@@ -15,8 +16,10 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   const originalFetch = globalThis.fetch
   const catalogRequests = []
   globalThis.fetch = async url => {
-    const path = new URL(url).pathname
-    catalogRequests.push(path)
+    const request = new URL(url)
+    const path = request.pathname
+    catalogRequests.push(request)
+    if (path.endsWith('/vaccine-technologies')) return Response.json({ items: [{ id: 12, name: '[DEMO] Công nghệ thử' }] })
     const items = path.endsWith('/vaccines')
       ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000 }]
       : [{ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', price: 300000, items: [{ vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] }]
@@ -70,8 +73,8 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   }
   assert.doesNotMatch(home.textContent, /Tra cứu vắc xin|Tìm hiểu gói tiêm|Quản lý hồ sơ gia đình|Chủ động chăm sóc sức khỏe/)
   assert.doesNotMatch(footer.textContent, /example@email\.com|Giờ làm việc dự kiến/)
-  assert.ok(catalogRequests.includes('/api/v1/catalog/vaccines'))
-  assert.ok(catalogRequests.includes('/api/v1/catalog/packages'))
+  assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/vaccines'))
+  assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages'))
   assert.match(home.textContent, /Vắc xin kiểm thử API/)
   assert.match(home.textContent, /Gói tiêm kiểm thử API/)
   assert.match(home.textContent, /Thành phần kiểm thử × 1/)
@@ -86,7 +89,19 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.match(guidance.textContent, /Sau khi tiêm.*ít nhất 30 phút/)
   await act(async () => home.querySelector('.vac-service-preview button').click())
   assert.equal(window.location.hash, '#catalog')
-  assert.equal(home.querySelector('input[aria-label="Tìm theo tên"]').value, '[DEMO] Gói tiêm kiểm thử API')
+  assert.equal(home.querySelector('input[aria-label="Tìm theo tên"]').value, 'Gói tiêm kiểm thử API')
+  assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages' && url.searchParams.get('search') === '[DEMO] Gói tiêm kiểm thử API'))
+  assert.match(home.textContent, /Gói tiêm kiểm thử API/)
+  assert.match(home.textContent, /Thành phần kiểm thử × 1/)
+  assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
+  const details = home.querySelector('a[aria-label="Xem chi tiết Vắc xin kiểm thử API"]')
+  assert.equal(details.getAttribute('href'), '#catalog/vaccines/42')
+  await act(async () => {
+    window.location.hash = details.getAttribute('href')
+    window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+  })
+  assert.equal(home.querySelector('.vaccine-detail h1').textContent, 'Vắc xin kiểm thử API')
+  assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
   await act(async () => header.querySelector('.brand').click())
   await act(async () => heroButton('Đăng ký tiêm').click())
   assert.equal(window.location.hash, '#register')
@@ -113,4 +128,13 @@ test('shared native date layout retains the calendar indicator', async () => {
   const css = await readFile(new URL('../theme.css', import.meta.url), 'utf8')
   assert.match(css, /input\[type="date"\]\s*\{[^}]*min-width:\s*0;[^}]*color-scheme:\s*light;/)
   assert.match(css, /input\[type="date"\]::-webkit-calendar-picker-indicator\s*\{[^}]*align-self:\s*center;/)
+})
+
+
+test('customer names drop only a leading marker and preserve source values', () => {
+  const vaccine = Object.freeze({ id: 42, name: '[demo]   Vắc xin [DEMO] A', code: 'VX-DEMO-A' })
+  assert.equal(customerDisplayName(vaccine.name), 'Vắc xin [DEMO] A')
+  assert.equal(customerDisplayName(vaccine.code), 'VX-DEMO-A')
+  assert.equal(vaccine.name, '[demo]   Vắc xin [DEMO] A')
+  assert.equal(vaccine.id, 42)
 })

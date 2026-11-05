@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, ImageOff } from 'lucide-react'
 import { getVaccine } from './api/client'
 import { money } from './registrationForm'
+import { customerDisplayName } from './customerDisplayName'
 
 export function ProductPlaceholder() {
   return <div className="product-placeholder"><ImageOff aria-hidden="true" /><span>Chưa có hình ảnh sản phẩm được xác minh</span></div>
@@ -23,7 +24,7 @@ export default function VaccineDetail({ id, go }) {
 
   return <section className="catalog-page vaccine-detail wrap">
     <a className="button text-button" href="#catalog"><ArrowLeft aria-hidden="true" />Về danh mục</a>
-    <div className="page-intro"><div className="eyebrow">CHI TIẾT VẮC XIN</div><h1>{vaccine?.name || 'Thông tin vắc xin'}</h1></div>
+    <div className="page-intro"><div className="eyebrow">CHI TIẾT VẮC XIN</div><h1>{customerDisplayName(vaccine?.name) || 'Thông tin vắc xin'}</h1></div>
     {loading && <p role="status">Đang tải chi tiết vắc xin…</p>}
     {error && <div role="alert" className="notice">{error}<button className="button outline" onClick={() => { setLoading(true); setError(''); setReload(value => value + 1) }}>Thử lại</button></div>}
     {!loading && !error && !vaccine && <div className="empty-state">Không tìm thấy vắc xin trong danh mục hiện tại. Vắc xin có thể đã được thay đổi hoặc gỡ bỏ.</div>}
@@ -31,10 +32,10 @@ export default function VaccineDetail({ id, go }) {
       <div className="vaccine-detail-layout">
         <ProductPlaceholder />
         <div className="vaccine-detail-info">
-          <p className="vac-reference">Danh mục từ cơ sở dữ liệu. Các mục có nhãn [DEMO] sử dụng thông tin và giá giả để trình diễn.</p>
+          <p className="vac-reference">Danh mục từ cơ sở dữ liệu.</p>
           <dl className="vaccine-facts">
-            <div><dt>Nhà sản xuất</dt><dd>{vaccine.manufacturer || 'Chưa có thông tin'}</dd></div>
-            <div><dt>Nước sản xuất / xuất xứ</dt><dd>{vaccine.origin || 'Chưa có thông tin'}</dd></div>
+            <div><dt>Nhà sản xuất</dt><dd>{customerDisplayName(vaccine.manufacturer) || 'Chưa có thông tin'}</dd></div>
+            <div><dt>Nước sản xuất / xuất xứ</dt><dd>{customerDisplayName(vaccine.origin) || 'Chưa có thông tin'}</dd></div>
             <div><dt>Giá niêm yết</dt><dd className="vaccine-price">{money(vaccine.price)}</dd></div>
           </dl>
           <button className="button primary" onClick={() => go('register')}>Đăng ký dịch vụ<ArrowRight aria-hidden="true" /></button>

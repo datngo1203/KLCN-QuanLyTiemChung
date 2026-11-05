@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import { getVaccines, getPackages, getVaccineTechnologies } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
 import { money } from './registrationForm'
+import { customerDisplayName } from './customerDisplayName'
 
 export default function Catalog({ query, setQuery }) {
   const [technologies, setTechnologies] = useState([])
@@ -29,11 +30,11 @@ export default function Catalog({ query, setQuery }) {
   const packages = kind === 'Vắc xin lẻ' ? [] : data.packages
   const count = vaccines.length + packages.length
   return <section className="catalog-page wrap">
-    <div className="page-intro"><div className="eyebrow">DANH MỤC DỊCH VỤ</div><h1>Vắc xin và gói tiêm chủng</h1><p>Tra cứu tên, loại và giá dịch vụ. Các mục có nhãn [DEMO] dùng dữ liệu và giá giả để trình diễn.</p></div>
+    <div className="page-intro"><div className="eyebrow">DANH MỤC DỊCH VỤ</div><h1>Vắc xin và gói tiêm chủng</h1><p>Tra cứu tên, loại và giá dịch vụ.</p></div>
     <form className="catalog-controls" onSubmit={event => { event.preventDefault(); setLoading(true); setError(''); setSubmitted({ search: query, filters: { ...filters } }) }}>
-      <div className="search-box"><span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} maxLength={150} aria-label="Tìm theo tên" placeholder="Tìm vắc xin hoặc gói theo tên"/><button className="button primary" type="submit" disabled={loading}>Tìm kiếm</button></div>
+      <div className="search-box"><span><Search aria-hidden="true" /></span><input value={customerDisplayName(query)} onChange={event => setQuery(event.target.value)} maxLength={150} aria-label="Tìm theo tên" placeholder="Tìm vắc xin hoặc gói theo tên"/><button className="button primary" type="submit" disabled={loading}>Tìm kiếm</button></div>
       <div className="catalog-filters">
-        <label>Công nghệ vắc xin<select name="technologyId" value={filters.technologyId} onChange={changeFilter}><option value="">Tất cả</option>{technologies.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+        <label>Công nghệ vắc xin<select name="technologyId" value={filters.technologyId} onChange={changeFilter}><option value="">Tất cả</option>{technologies.map(t => <option key={t.id} value={t.id}>{customerDisplayName(t.name)}</option>)}</select></label>
         <label>Giá từ (VND)<input type="number" min="0" step="1" name="minPrice" value={filters.minPrice} onChange={changeFilter}/></label>
         <label>Giá đến (VND)<input type="number" min={filters.minPrice || '0'} step="1" name="maxPrice" value={filters.maxPrice} onChange={changeFilter}/></label>
       </div>
@@ -47,16 +48,16 @@ export default function Catalog({ query, setQuery }) {
           <caption>Vắc xin lẻ · Giá niêm yết (VND)<span className="catalog-table-hint">Cuộn ngang để xem đầy đủ các cột.</span></caption>
           <thead><tr><th scope="col">Tên vắc xin</th><th scope="col">Nhà sản xuất</th><th scope="col">Nước sản xuất / xuất xứ</th><th scope="col" className="catalog-price">Giá</th><th scope="col">Chi tiết</th></tr></thead>
           <tbody>{vaccines.map(vaccine => <tr key={vaccine.id}>
-            <th scope="row"><a className="catalog-name" href={`#catalog/vaccines/${vaccine.id}`}>{vaccine.name}</a></th>
-            <td>{vaccine.manufacturer || 'Chưa có thông tin'}</td><td>{vaccine.origin || 'Chưa có thông tin'}</td>
+            <th scope="row"><a className="catalog-name" href={`#catalog/vaccines/${vaccine.id}`}>{customerDisplayName(vaccine.name)}</a></th>
+            <td>{customerDisplayName(vaccine.manufacturer) || 'Chưa có thông tin'}</td><td>{customerDisplayName(vaccine.origin) || 'Chưa có thông tin'}</td>
             <td className="catalog-price">{money(vaccine.price)}</td>
-            <td><a className="button outline" href={`#catalog/vaccines/${vaccine.id}`} aria-label={`Xem chi tiết ${vaccine.name}`}>Xem chi tiết</a></td>
+            <td><a className="button outline" href={`#catalog/vaccines/${vaccine.id}`} aria-label={`Xem chi tiết ${customerDisplayName(vaccine.name)}`}>Xem chi tiết</a></td>
           </tr>)}</tbody>
         </table>
       </div>}
       {packages.length > 0 && <><h2 className="catalog-packages-title">Gói vắc xin</h2><div className="catalog-grid">{packages.map(item => <article className="catalog-card" key={item.id}>
-        <ProductPlaceholder /><div className="catalog-info"><div className="card-kicker">Gói vắc xin</div><h3>{item.name}</h3>
-        <p>Thành phần: {item.items.map(v => `${v.vaccineName} × ${v.quantity}`).join(', ')}</p>
+        <ProductPlaceholder /><div className="catalog-info"><div className="card-kicker">Gói vắc xin</div><h3>{customerDisplayName(item.name)}</h3>
+        <p>Thành phần: {item.items.map(v => `${customerDisplayName(v.vaccineName)} × ${v.quantity}`).join(', ')}</p>
         <div className="demo-price">{money(item.price)}</div></div>
       </article>)}</div></>}
       {count === 0 && <div className="empty-state">Không có mục phù hợp.</div>}</>}

@@ -3,6 +3,7 @@ import { Armchair, ArrowUpRight, Baby, Clock3, MapPin, Phone, Stethoscope, Syrin
 import { getVaccines, getPackages } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
 import { money } from './registrationForm'
+import { customerDisplayName } from './customerDisplayName'
 
 export const centerName = 'VNVC Hoàng Văn Thụ'
 export const centerAddress = '198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM'
@@ -29,10 +30,6 @@ const vaccinationSteps = [
   'Kiểm tra và hướng dẫn trước khi về',
   'Hỗ trợ sau tiêm khi cần',
 ]
-
-function catalogLabel(name) {
-  return name?.replace(/^\[DEMO\]\s*/i, '')
-}
 
 function HomeActions({ go, setQuery }) {
   return <div className="hero-actions">
@@ -120,8 +117,8 @@ function HomeCatalog({ go, setQuery }) {
     return () => { active = false }
   }, [reload])
   const items = [
-    ...data.vaccines.slice(0, 2).map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', href: `#catalog/vaccines/${item.id}`, description: [item.manufacturer, item.origin].map(catalogLabel).filter(Boolean).join(' · ') })),
-    ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', description: item.items?.map(vaccine => `${catalogLabel(vaccine.vaccineName)} × ${vaccine.quantity}`).join(', ') })),
+    ...data.vaccines.slice(0, 2).map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', href: `#catalog/vaccines/${item.id}`, description: [item.manufacturer, item.origin].map(customerDisplayName).filter(Boolean).join(' · ') })),
+    ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', description: item.items?.map(vaccine => `${customerDisplayName(vaccine.vaccineName)} × ${vaccine.quantity}`).join(', ') })),
   ]
   return <section className="vac-discover section" aria-labelledby="home-catalog-title"><div className="wrap">
     <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2 id="home-catalog-title">Danh mục vắc xin và gói tiêm</h2><p>Tham khảo thông tin và giá dịch vụ để chuẩn bị cho lần đến trung tâm.</p></div><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
@@ -130,7 +127,7 @@ function HomeCatalog({ go, setQuery }) {
     {!loading && !error && <>
       <div className="service-grid">{items.map(item => <article className="service-card vac-service-preview" key={item.key}>
         <ProductPlaceholder />
-        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{catalogLabel(item.name)}</a> : catalogLabel(item.name)}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{money(item.price)}</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${catalogLabel(item.name)}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
+        <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{customerDisplayName(item.name)}</a> : customerDisplayName(item.name)}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{money(item.price)}</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${customerDisplayName(item.name)}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
       </article>)}</div>
       {items.length === 0 && <div className="vac-catalog-state">Danh mục dịch vụ đang được cập nhật. Bạn có thể quay lại sau.</div>}
     </>}
