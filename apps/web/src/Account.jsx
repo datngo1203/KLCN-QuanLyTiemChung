@@ -79,7 +79,7 @@ export default function Account({ account, setAccount, sessionBusy = false, onSe
   }
   const labels = { login: 'Đăng nhập', register: 'Đăng ký tài khoản', confirm: 'Xác minh email', forgot: 'Quên mật khẩu', reset: 'Đặt lại mật khẩu' }
   return <section className={`account-page wrap ${account ? '' : 'account-auth'}`}>
-    <div className="account-page-heading"><div><span className="profile-kicker">TÀI KHOẢN VAC</span><h1 ref={authHeading} tabIndex={-1}>{account ? 'Hồ sơ tiêm chủng' : labels[mode]}</h1><p>{account ? 'Quản lý hồ sơ, người được tiêm và bảo mật tài khoản.' : mode === 'forgot' ? 'Nhập email tài khoản khách hàng để yêu cầu token đặt lại mật khẩu.' : mode === 'reset' ? 'Nhập token nhận qua email và chọn mật khẩu mới.' : 'Đăng nhập để quản lý thông tin tiêm chủng của bạn.'}</p></div>
+    <div className="account-page-heading"><div><span className="profile-kicker">TÀI KHOẢN VNVC</span><h1 ref={authHeading} tabIndex={-1}>{account ? 'Hồ sơ tiêm chủng' : labels[mode]}</h1><p>{account ? 'Quản lý hồ sơ, người được tiêm và bảo mật tài khoản.' : mode === 'forgot' ? 'Nhập email tài khoản khách hàng để yêu cầu token đặt lại mật khẩu.' : mode === 'reset' ? 'Nhập token nhận qua email và chọn mật khẩu mới.' : 'Đăng nhập để quản lý thông tin tiêm chủng của bạn.'}</p></div>
       {account && <button className="button outline" disabled={busy || sessionBusy || profileBusy} onClick={() => run(async () => { await identity.logout(); closePasswordForm(); setAccount(null); setMessage('Đã đăng xuất.'); setMode('login') }, 'logout')}><LogOut aria-hidden="true" />Đăng xuất</button>}
     </div>
     {account && feedbackArea === 'logout' && error && <p className="profile-feedback error" role="alert">{error}</p>}

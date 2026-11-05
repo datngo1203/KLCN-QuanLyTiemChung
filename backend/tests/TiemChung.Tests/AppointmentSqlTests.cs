@@ -25,7 +25,7 @@ namespace TiemChung.Tests;
 public sealed class AppointmentSqlTests
 {
     private const string Route = "/api/v1/appointments";
-    private const string Facility = "Trung tâm tiêm chủng VAC · 140 Lê Trọng Tấn, Phường Tây Thạnh, Thành phố Hồ Chí Minh";
+    private const string Facility = "VNVC Hoàng Văn Thụ · 198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM";
 
     [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("unpaid", "ChuaThanhToan", null, false)]
@@ -112,7 +112,7 @@ public sealed class AppointmentSqlTests
             var registration = await f.Register();
             var item = registration.Items[0];
             var old = new LichHenTiem { MaDangKy = registration.Id, MaNguoiDuocTiem = registration.Recipient.Id,
-                MaChiTietVacXin = item.Id, ThoiGianHen = DateTime.UtcNow.AddDays(-1), DiemTiem = "Địa điểm trước đây", TrangThai = "DaXepLich" };
+                MaChiTietVacXin = item.Id, ThoiGianHen = DateTime.UtcNow.AddDays(-1), DiemTiem = "Trung tâm tiêm chủng VAC · 140 Lê Trọng Tấn, Phường Tây Thạnh, Thành phố Hồ Chí Minh", TrangThai = "DaXepLich" };
             f.Db.Add(old); await f.Db.SaveChangesAsync();
             await using var factory = f.Base.Factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, config) =>
                 config.AddInMemoryCollection(new Dictionary<string, string?> {
@@ -125,8 +125,8 @@ public sealed class AppointmentSqlTests
             var saved = (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
             Assert.Equal("Cơ sở thử nghiệm · Địa chỉ thử nghiệm", saved.Location);
             Assert.Equal(saved.Location, await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == saved.Id).Select(a => a.DiemTiem).SingleAsync());
-            Assert.Equal("Địa điểm trước đây", (await client.GetFromJsonAsync<AppointmentDto>(Route + "/" + old.MaLichHen))!.Location);
-            Assert.Equal("Địa điểm trước đây", await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == old.MaLichHen).Select(a => a.DiemTiem).SingleAsync());
+            Assert.Equal(old.DiemTiem, (await client.GetFromJsonAsync<AppointmentDto>(Route + "/" + old.MaLichHen))!.Location);
+            Assert.Equal(old.DiemTiem, await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == old.MaLichHen).Select(a => a.DiemTiem).SingleAsync());
         });
     }
 

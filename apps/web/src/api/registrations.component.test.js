@@ -86,6 +86,7 @@ async function render(t, fee, fail) {
   await fill('Phường', 'Phường thử'); await fill('Địa chỉ', 'Đường thử'); await fill('Ngày mong muốn', preferredDate)
   await click('Quay lại'); await submit()
   assert.equal(field('Địa chỉ').value, 'Đường thử')
+  assert.equal(field('Ngày mong muốn').type, 'date')
   assert.equal(field('Ngày mong muốn').value, preferredDate)
   await submit()
   assert.match(host.textContent, /Liên hệ riêng/)

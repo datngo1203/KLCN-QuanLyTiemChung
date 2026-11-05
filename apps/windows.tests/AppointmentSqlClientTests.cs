@@ -15,7 +15,7 @@ namespace TiemChung.Windows.Tests;
 
 public sealed class AppointmentSqlClientTests
 {
-    private const string Facility = "Trung tâm tiêm chủng VAC · 140 Lê Trọng Tấn, Phường Tây Thạnh, Thành phố Hồ Chí Minh";
+    private const string Facility = "VNVC Hoàng Văn Thụ · 198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM";
 
     [SqlTheory]
     [InlineData(false)]

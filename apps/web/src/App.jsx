@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Search, Menu, X, Info, Clock3, Mail, MapPin, Tag, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, Search, Menu, X, Info, Clock3, MapPin, Tag, ArrowUpRight } from 'lucide-react'
 import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
 import VaccinationJourneys from './VaccinationJourneys'
-import Home from './Home'
+import Home, { centerName, centerAddress, centerHours, centerDays, centerHotline, centerTel, centerMap } from './Home'
 import './theme.css'
 import './Catalog.css'
+
+const brandName = 'Trung tâm tiêm chủng VNVC'
 
 const pages = [
   ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ tiêm chủng'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
@@ -70,22 +72,25 @@ function App() {
 
   return (
     <div className="app-shell">
-      <div className="announcement"><span className="announcement-dot" /> VAC · Cổng thông tin tiêm chủng</div>
       <header className="site-header">
-        <button disabled={registrationBusy} className="brand" onClick={() => go('home')} aria-label="Về trang chủ">
-          <img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="64" height="64" /><span><b>TRUNG TÂM TIÊM CHỦNG VAC</b><small>VACCINE ADMINISTRATION CENTER</small></span>
+        <button disabled={registrationBusy} className="brand" onClick={() => go('home')} aria-label={`Về trang chủ · ${brandName}`}>
+          <picture>
+            <source media="(max-width: 900px)" srcSet="/assets/vnvc-logo-square.png" width="447" height="447" />
+            <img className="brand-logo" src="/assets/vnvc-logo-horizontal.png" alt="" width="383" height="99" />
+          </picture>
+          <b>{brandName}</b>
         </button>
         <nav id="main-navigation" className={mobileMenuOpen ? 'main-nav mobile-open' : 'main-nav'} aria-label="Điều hướng chính">
-          {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} className={page === id || page.startsWith(`${id}/`) ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
+          {pages.map(([id, label]) => <button disabled={registrationBusy} key={id} aria-current={page === id || page.startsWith(`${id}/`) ? 'page' : undefined} className={page === id || page.startsWith(`${id}/`) ? 'nav-link active' : 'nav-link'} onClick={() => go(id)}>{label}</button>)}
         </nav>
-        <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')} aria-label={account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}>{account ? 'Hồ sơ tiêm chủng' : 'Đăng nhập'}</button>
+        {!account && <button disabled={registrationBusy} className="button outline account-button" onClick={() => go('account')}>Đăng nhập</button>}
         <button disabled={registrationBusy} className="mobile-menu" aria-label={mobileMenuOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" onClick={() => setMobileMenuOpen(open => !open)}>{mobileMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
       </header>
 
       <main ref={mainRef} tabIndex={-1}>
         {page === 'promotions' && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
         {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
-        {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
+        {page === 'home' && <Home go={go} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
@@ -93,25 +98,25 @@ function App() {
         {(page === 'vaccinations' || page.startsWith('vaccinations/')) && <VaccinationJourneys key={`${account?.accountId || 'guest'}:${page}`} account={account} sessionBusy={sessionBusy} page={page} go={go} />}
       </main>
 
-      <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VAC">
+      <footer id="lien-he" className="site-footer" aria-label="Thông tin trung tâm VNVC">
         <div className="footer-content wrap">
           <div className="footer-identity">
-            <div className="footer-brand"><img className="brand-logo" src="/images/vac-logo.png" alt="VAC" width="76" height="76" /><div><b>TRUNG TÂM<br />TIÊM CHỦNG VAC</b><small>Vaccine Administration Center</small></div></div>
+            <div className="footer-brand"><img className="brand-logo" src="/assets/vnvc-logo-horizontal.png" alt="" width="383" height="99" /><b>{brandName}</b></div>
             <p>Đồng hành cùng bạn trong việc tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe gia đình.</p>
           </div>
           <div className="footer-location">
-            <h2><MapPin aria-hidden="true" />Đến trung tâm VAC</h2>
-            <address>140 Lê Trọng Tấn, Phường Tây Thạnh,<br />Thành phố Hồ Chí Minh</address>
-            <a className="footer-map" href="https://www.google.com/maps/search/?api=1&query=140%20L%C3%AA%20Tr%E1%BB%8Dng%20T%E1%BA%A5n%2C%20Ph%C6%B0%E1%BB%9Dng%20T%C3%A2y%20Th%E1%BA%A1nh%2C%20Th%C3%A0nh%20ph%E1%BB%91%20H%E1%BB%93%20Ch%C3%AD%20Minh" target="_blank" rel="noreferrer">Xem đường đi trên bản đồ <ArrowUpRight aria-hidden="true" /></a>
+            <h2><MapPin aria-hidden="true" />{centerName}</h2>
+            <address>{centerAddress}</address>
+            <a className="footer-map" href={centerMap} target="_blank" rel="noreferrer">Xem đường đi trên bản đồ <ArrowUpRight aria-hidden="true" /></a>
           </div>
           <div className="footer-contact">
-            <h2><Clock3 aria-hidden="true" />Giờ làm việc dự kiến</h2>
-            <strong className="footer-hours">07:30 – 17:00</strong>
-            <p>Thứ Hai – Chủ nhật · Không nghỉ trưa</p>
-            <p className="footer-email"><Mail aria-hidden="true" /><span>Email</span>example@email.com</p>
+            <h2><Clock3 aria-hidden="true" />Giờ làm việc</h2>
+            <strong className="footer-hours">{centerHours}</strong>
+            <p>{centerDays}</p>
+            <p className="footer-hotline">Hotline <a href={centerTel}>{centerHotline}</a></p>
           </div>
         </div>
-        <div className="footer-bottom wrap"><span>© VAC · Trung tâm tiêm chủng</span><span>Chủ động hôm nay, an tâm ngày mai.</span></div>
+        <div className="footer-bottom wrap"><span>© {brandName}</span><span>Chủ động hôm nay, an tâm ngày mai.</span></div>
       </footer>
       {toast && <div className="toast" role="status"><span><Info aria-hidden="true" /></span>{toast}<button onClick={() => setToast('')} aria-label="Đóng thông báo"><X aria-hidden="true" /></button></div>}
     </div>
