@@ -5,8 +5,8 @@ using System.Text.Json;
 
 namespace TiemChung.Desktop.Services;
 
-public sealed record ClinicalVaccine(int Id, string Name);
-public sealed record ClinicalDetail(AppointmentRecord Appointment, ClinicalVaccine[] AllowedVaccines);
+public sealed record ClinicalVaccine(int Id, string Name, bool CanIndicate = true, int? RemainingDoses = null);
+public sealed record ClinicalDetail(AppointmentRecord Appointment, ClinicalVaccine[] AllowedVaccines, string? BlockReason = null);
 public sealed record AssessmentRequest(string Conclusion, string? Reason, int[] VaccineIds);
 public sealed record ClinicalIndication(int Id, int VaccineId, string VaccineName, string Result, DateTimeOffset RecordedAt)
 {
@@ -63,6 +63,9 @@ public sealed class ScreeningApiService(IdentityApiService? identity = null) : I
                 "validation" => "Kiểm tra kết luận, lý do và vắc xin được chọn. Bản nháp được giữ lại.",
                 "resourceNotFound" => "Lịch hoặc nguồn dịch vụ không còn hợp lệ. Hãy tải lại.",
                 "assessmentAlreadyRecorded" => "Buổi hẹn đã có kết luận. Hãy GET đối chiếu, không ghi đè.",
+                "appointmentNotStarted" => "Chưa đến giờ hẹn. Chưa thể khám hoặc chỉ định; hãy tải lại khi đến giờ.",
+                "doseEntitlementExhausted" => "Đã thực hiện đủ số mũi đăng ký. Không thể chỉ định thêm; hãy tải lại.",
+                "doseEntitlementUnavailable" => "Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi khám hoặc chỉ định.",
                 _ => "Không đọc được API. Hãy thử lại; bản nháp được giữ lại."
             });
         }

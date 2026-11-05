@@ -116,6 +116,8 @@ public sealed class VaccinationSqlFixture : IAsyncDisposable
                 .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
             var appointments=new AppointmentApiService(reception);var source=await appointments.GetSourceAsync(registrationId);
             var created=new List<AppointmentRecord>();foreach(var item in source.Items)created.Add(await appointments.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1))));
+            await f.Db.Set<LichHenTiem>().Where(a => a.MaDangKy == registrationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.ThoiGianHen, DateTime.UtcNow.AddMinutes(-1)));
             await reception.LogoutAsync();
             using var doctorHttp=f.Factory.CreateClient();var doctor=new IdentityApiService(doctorHttp);Assert.True((await doctor.LoginAsync("s55.doctor",f.Password)).Succeeded);
             var clinical=new ScreeningApiService(doctor);foreach(var appointment in created){var detail=await clinical.GetAsync(appointment.Id);await clinical.CreateAsync(appointment.Id,new("Đủ điều kiện",null,detail.AllowedVaccines.Select(v=>v.Id).ToArray()));}await doctor.LogoutAsync();

@@ -162,6 +162,8 @@ public sealed class DevelopmentInventorySeedSqlTests
                 f.Request(registration, registration.Items.Single(x => x.Kind == "vaccine")));
             Assert.Equal(HttpStatusCode.Created, created.StatusCode);
             var appointment = (await created.Content.ReadFromJsonAsync<AppointmentDto>())!;
+            await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == appointment.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.ThoiGianHen, DateTime.UtcNow.AddMinutes(-1)));
             using var doctor = await f.Actor("BacSi", false);
             using var assessed = await doctor.PostAsJsonAsync($"/api/v1/clinical/appointments/{appointment.Id}/assessment",
                 new CreateClinicalAssessmentRequest("Đủ điều kiện", null, [appointment.ServiceId]));

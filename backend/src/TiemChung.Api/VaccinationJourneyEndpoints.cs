@@ -55,10 +55,17 @@ public static class VaccinationJourneyEndpoints
             var payment = await PaymentEndpoints.Detail(db, row, actor, ct);
             var schedule = appointments.Where(a => a.RegistrationId == row.MaDangKy)
                 .OrderBy(a => a.ScheduledAt).ThenBy(a => a.Id).ToArray();
+            var doses = await RegisteredDoseEntitlements.Read(db, row.MaDangKy, ct);
+            var confirmed = schedule.Where(a => a.Status == "DaXepLich" && a.ScheduledAt > now).ToArray();
+            var progress = doses.Select(d => new VaccinationProgressDto(d.VaccineId, d.Name, d.Registered,
+                d.Administered, d.Remaining, d.Remaining is > 0 ? confirmed.FirstOrDefault(a =>
+                    a.ItemKind == "vaccine" ? a.ServiceId == d.VaccineId :
+                    payment.Items.Any(i => i.Kind == "package" && i.Id == a.RegistrationItemId &&
+                        i.Components?.Any(c => c.VaccineId == d.VaccineId) == true)) : null)).ToArray();
             result.Add(new(row.MaDangKy, new DateTimeOffset(DateTime.SpecifyKind(row.NgayDangKy, DateTimeKind.Utc)),
                 row.ThoiGianDuKien is { } preferred ? DateOnly.FromDateTime(preferred) : null,
-                payment, schedule, schedule.FirstOrDefault(a => a.ScheduledAt > now),
-                shots.Where(s => s.RegistrationId == row.MaDangKy).ToArray()));
+                payment, schedule, confirmed.FirstOrDefault(),
+                shots.Where(s => s.RegistrationId == row.MaDangKy).ToArray()) { Progress = progress });
         }
         return result.ToArray();
     }

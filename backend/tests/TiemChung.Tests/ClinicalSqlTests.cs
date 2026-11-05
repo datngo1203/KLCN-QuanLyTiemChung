@@ -31,7 +31,11 @@ public sealed class ClinicalSqlTests
         await f.Db.Registrations.Where(r => r.MaDangKy == registration.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
         using var response=await f.Reception.PostAsJsonAsync("/api/v1/appointments",f.Request(registration,registration.Items.Single(x=>x.Kind==kind)));
-        Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
+        Assert.Equal(HttpStatusCode.Created,response.StatusCode);
+        var result = (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
+        await f.Db.Set<LichHenTiem>().Where(a => a.MaLichHen == result.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.ThoiGianHen, DateTime.UtcNow.AddMinutes(-1)));
+        return result;
     }
     private static async Task<ClinicalAssessmentDto> Post(HttpClient doctor,int id,CreateClinicalAssessmentRequest request)
     {

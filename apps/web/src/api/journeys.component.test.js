@@ -72,3 +72,28 @@ test('embedded payment refreshes the same journey and switches to a receipt', as
   assert.match(host.textContent, /Biên nhận thanh toán/)
   assert.equal(host.querySelectorAll('[name=method]').length, 0)
 })
+
+test('journey shows registered progress and confirmed dates without deriving regimen dates', async t => {
+  const { host, render } = mount(t)
+  const appointment = { id: 8, scheduledAt: '2026-12-01T01:30:00Z', location: 'Trung tâm tiêm chủng', serviceName: 'Gói đã đăng ký' }
+  const facts = { registrationId: 42, createdAt: '2026-11-04T00:00:00Z',
+    payment: { registrationId: 42, recipient: { fullName: 'Nguyễn Minh Anh' }, customer: { fullName: 'Nguyễn Minh Anh' },
+      items: [], totalDue: '0', subtotal: '0', payment: null }, appointments: [appointment], nextAppointment: appointment, shots: [],
+    progress: [
+      { vaccineId: 1, vaccineName: 'Avaxim 80U', registeredDoses: 3, administeredDoses: 1, remainingDoses: 2, nextAppointment: appointment },
+      { vaccineId: 2, vaccineName: 'Havax 0,5 ml', registeredDoses: 1, administeredDoses: 1, remainingDoses: 0, nextAppointment: null },
+      { vaccineId: 3, vaccineName: 'Hồ sơ cũ', registeredDoses: null, administeredDoses: 0, remainingDoses: null, nextAppointment: null },
+    ] }
+  identity.getVaccinationJourney = async () => facts
+  await render(Journeys, { account: { accountType: 'customer' }, page: 'vaccinations/42' })
+  const rows = host.querySelectorAll('.journey-progress li')
+  assert.match(rows[0].textContent, /Đã đăng ký 3 mũi · Đã tiêm 1 · Còn lại 2/)
+  assert.match(rows[0].textContent, /Lịch hẹn đã xác nhận tiếp theo:.*1\/12\/2026/)
+  assert.match(rows[1].textContent, /Còn lại 0/)
+  assert.match(rows[1].textContent, /Chưa có lịch hẹn tiếp theo được xác nhận/)
+  assert.match(rows[2].textContent, /Chưa xác định số mũi còn lại/)
+  assert.doesNotMatch(host.textContent, /mũi nhắc lại|phác đồ|Tự động/i)
+  facts.progress = []
+  await act(async () => host.querySelector('.payment-reload').click())
+  assert.match(host.textContent, /Chưa đủ thông tin để xác định số mũi đã đăng ký/)
+})

@@ -17,7 +17,7 @@ public sealed record VaccinationLot(string Number, DateOnly ManufacturedOn, Date
 {
     public string Label => $"{Number} · HSD {ExpiresOn:dd/MM/yyyy} · Tồn {Stock}";
 }
-public sealed record VaccinationDetail(VaccinationIndication Indication, DateOnly FacilityDate, VaccinationLot[] Lots)
+public sealed record VaccinationDetail(VaccinationIndication Indication, DateOnly FacilityDate, VaccinationLot[] Lots, string? BlockReason = null)
 {
     public string FacilityDateLabel => FacilityDate.ToString("dd/MM/yyyy");
 }
@@ -80,6 +80,9 @@ public sealed class VaccinationApiService(IdentityApiService? identity = null) :
                 "vaccinationZeroTotalNotSupported"=>"Đăng ký tổng 0 chưa được chốt chính sách ghi tiêm. Chưa thể ghi mũi.",
                 "paymentDataConflict"=>"Dữ liệu thanh toán/giá đã chốt không nhất quán. Chưa thể ghi mũi.",
                 "vaccinationLotUnavailable"=>"Lô không còn hợp lệ, hết hạn, hết tồn hoặc sai vắc xin. Giữ bản nháp để đối chiếu; xóa nháp và tải lại khi cần chọn lô mới.",
+                "appointmentNotStarted"=>"Chưa đến giờ hẹn. Chưa thể ghi tiêm; hãy tải lại khi đến giờ.",
+                "doseEntitlementExhausted"=>"Đã thực hiện đủ số mũi đăng ký. Không thể ghi thêm; hãy tải lại.",
+                "doseEntitlementUnavailable"=>"Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi ghi tiêm.",
                 _=>"Không đọc được API. Hãy thử lại; bản nháp được giữ lại."
             });
         }

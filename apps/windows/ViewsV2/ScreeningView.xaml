@@ -58,7 +58,7 @@
          <TextBlock Text="Vắc xin chỉ định cho buổi hẹn" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
          <TextBlock Text="Đủ điều kiện: chủ động chọn ít nhất một vắc xin. Chỉ các mục được chọn có chỉ định; không tự cho phép toàn bộ gói." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,6,0,10"/>
          <ItemsControl ItemsSource="{Binding Vaccines}" IsEnabled="{Binding CanSelectVaccines}"><ItemsControl.ItemTemplate><DataTemplate>
-          <CheckBox IsChecked="{Binding IsSelected}" Margin="0,6" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/></CheckBox>
+           <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanIndicate}" Margin="0,6" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/></CheckBox>
          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         </StackPanel>
        </StackPanel>
