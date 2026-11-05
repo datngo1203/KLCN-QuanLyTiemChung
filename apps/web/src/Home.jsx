@@ -30,18 +30,18 @@ export default function Home({ go, setQuery }) {
   return <>
     <section className="center-hero" aria-labelledby="home-title">
       <div className="wrap center-hero-layout">
-        <div>
+        <div className="center-hero-copy">
           <h1 id="home-title">{centerName}</h1>
           <p>Trung tâm tiêm chủng cho trẻ em và người lớn</p>
           <HomeActions go={go} setQuery={setQuery} />
         </div>
-        <img src="/images/vaccination.jpg" alt="" width="1920" height="1280" fetchPriority="high" />
+        <img src="/assets/vnvc-home-vaccination.png" alt="Nhân viên VNVC tư vấn và tiêm chủng cho trẻ em và người lớn" width="1200" height="822" />
+        <dl className="center-facts">
+          <div><dt><MapPin aria-hidden="true" />Địa chỉ</dt><dd>{centerAddress}<a href={centerMap} target="_blank" rel="noreferrer">Xem bản đồ <ArrowUpRight aria-hidden="true" /></a></dd></div>
+          <div><dt><Clock3 aria-hidden="true" />Giờ làm việc</dt><dd>{centerHours}<span>{centerDays}</span></dd></div>
+          <div><dt><Phone aria-hidden="true" />Hotline</dt><dd><a href={centerTel}>{centerHotline}</a></dd></div>
+        </dl>
       </div>
-      <dl className="wrap center-facts">
-        <div><dt><MapPin aria-hidden="true" />Địa chỉ</dt><dd>{centerAddress}<a href={centerMap} target="_blank" rel="noreferrer">Xem bản đồ <ArrowUpRight aria-hidden="true" /></a></dd></div>
-        <div><dt><Clock3 aria-hidden="true" />Giờ làm việc</dt><dd>{centerHours}<span>{centerDays}</span></dd></div>
-        <div><dt><Phone aria-hidden="true" />Hotline</dt><dd><a href={centerTel}>{centerHotline}</a></dd></div>
-      </dl>
     </section>
 
     <section className="section wrap center-about" aria-labelledby="center-about-title">
