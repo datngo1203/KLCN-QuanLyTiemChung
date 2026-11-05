@@ -149,10 +149,10 @@ public sealed class CatalogSqlTests
     public async Task SeedIsDevelopmentOnlyRepeatableAndWindowsServiceWritesActualSql()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Production")));
-        await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Production")));
+        await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
         var first=await f.Db.Vaccines.FirstAsync(); first.Gia=123456; await f.Db.SaveChangesAsync();
-        await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+        await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
         Assert.Equal(2,await f.Db.Vaccines.CountAsync());
         Assert.Equal(2,await f.Db.Set<CongNgheVacXin>().CountAsync()); Assert.Single(await f.Db.Set<GoiVacXin>().ToArrayAsync());
         Assert.Equal(2,await f.Db.Set<GoiVacXin_VacXin>().CountAsync());
@@ -178,7 +178,7 @@ public sealed class CatalogSqlTests
     public async Task WindowsCommandsManageAllFourCatalogsWithRF02ACompatibilityFields()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-        await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+        await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
         using var http=f.Factory.CreateClient();
         var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
         Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
@@ -244,7 +244,7 @@ public sealed class CatalogSqlTests
     public async Task WindowsCreateValidatesActiveProfileAndPreservesDraftCodeAndRealInactiveStatus()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-            await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+            await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
             using var http=f.Factory.CreateClient(); var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
             var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };
@@ -278,7 +278,7 @@ public sealed class CatalogSqlTests
             Assert.Single(await f.Db.Set<VacXin_Benh>().Where(x=>x.MaVacXin==saved.MaVacXin).ToArrayAsync());
             await f.Db.Vaccines.Where(x=>x.MaVacXin==saved.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
             await Command(vm.LoadCommand);vm.Selected=vm.Rows.Single(x=>x.Id==saved.MaVacXin);
-            Assert.Equal("Inactive — Ngừng sử dụng",vm.StatusLabel);Assert.True(vm.CodeReadOnly);
+            Assert.Equal("Ngừng sử dụng",vm.StatusLabel);Assert.True(vm.CodeReadOnly);
             vm.Code="VX-REJECTED";vm.Name="Synthetic inactive rename";Assert.Equal(saved.Code,vm.Code);
             await Command(vm.SaveCommand);Assert.StartsWith("Đã ",vm.Feedback);
             var inactive=await f.Db.Vaccines.AsNoTracking().SingleAsync(x=>x.MaVacXin==saved.MaVacXin);
@@ -295,7 +295,7 @@ public sealed class CatalogSqlTests
     public async Task WindowsLegacyNamePriceEditsPreserveMissingMetadataAndCode()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-            await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+            await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
             var vaccine=await f.Db.Vaccines.AsNoTracking().OrderBy(x=>x.MaVacXin).FirstAsync();
             var package=await f.Db.Set<GoiVacXin>().AsNoTracking().SingleAsync();
             await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).ExecuteUpdateAsync(s=>s
@@ -335,7 +335,7 @@ public sealed class CatalogSqlTests
     public async Task WindowsExplicitClearingExistingMetadataIsRejectedAndKeepsTheEdit()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-            await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+            await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
             using var http=f.Factory.CreateClient();var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);
             var vm=new TiemChung.Desktop.ViewModels.CatalogViewModel(new(identity),identity.Permissions) { Confirm = _ => true };await vm.InitializeAsync();
@@ -368,7 +368,7 @@ public sealed class CatalogSqlTests
     public async Task WindowsB1LookupStatusSearchDuplicatesReferencesAndRevokedPermissionPersistInSql()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
-            await DevelopmentCatalogSeed.RunAsync(f.Db,new SeedEnvironment("Development"));
+            await SyntheticCatalogFixture.RunAsync(f.Db,new SeedEnvironment("Development"));
             using var http=f.Factory.CreateClient();
             var identity=new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed",f.Password)).Succeeded);

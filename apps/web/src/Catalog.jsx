@@ -42,7 +42,7 @@ export default function Catalog({ query, setQuery }) {
     </form>
     {loading && <p role="status">Đang tải danh mục…</p>}
     {error && <div role="alert" className="notice">{error} <button className="button outline" onClick={() => { setLoading(true); setError(''); setReload(x => x + 1) }}>Thử lại</button></div>}
-    {!loading && !error && <><p className="muted" role="status">{data.source === 'database' ? 'Danh mục từ cơ sở dữ liệu' : 'Danh mục mẫu'} · {count} kết quả</p>
+    {!loading && !error && <><p className="muted" role="status">Danh mục dịch vụ · {count} kết quả</p>
       {vaccines.length > 0 && <div className="catalog-table-scroll" role="region" aria-label="Bảng vắc xin, cuộn ngang để xem thêm" tabIndex={0}>
         <table className="catalog-table">
           <caption>Vắc xin lẻ · Giá niêm yết (VND)<span className="catalog-table-hint">Cuộn ngang để xem đầy đủ các cột.</span></caption>

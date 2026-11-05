@@ -38,7 +38,7 @@ public sealed class DevelopmentInventorySeedSqlTests
                 Assert.True(lot.SoLuongBanDau > 0);
                 Assert.InRange(lot.SoLuongTon, 0, lot.SoLuongBanDau);
                 var vaccine = await f.Db.Vaccines.SingleAsync(x => x.MaVacXin == lot.MaVacXin);
-                Assert.Equal(lot.SoLo.EndsWith("-B") ? "[DEMO] Vắc xin B" : "[DEMO] Vắc xin A", vaccine.TenVacXin);
+                Assert.Equal(lot.SoLo.EndsWith("-B") ? "Havax 0,5 ml" : "Avaxim 80U", vaccine.TenVacXin);
             }
             var valid = Assert.Single(lots, x => x.SoLo == "[DEMO] S5-VALID-A");
             Assert.True(valid.HanSuDung > today); Assert.Equal(100, valid.SoLuongTon);
@@ -92,18 +92,18 @@ public sealed class DevelopmentInventorySeedSqlTests
     public async Task MissingOrAmbiguousSourceFailsWithoutPartialInventory(string scenario)
     {
         await WithCatalog(async f => {
-            var source = await f.Db.Vaccines.SingleAsync(x => x.TenVacXin == "[DEMO] Vắc xin B");
+            var source = await f.Db.Vaccines.SingleAsync(x => x.TenVacXin == "Havax 0,5 ml");
             if (scenario == "missing") {
                 await f.Db.Set<GoiVacXin_VacXin>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
                 await f.Db.Set<VacXin_Benh>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
                 await f.Db.Set<VacXin_CongNghe>().Where(x => x.MaVacXin == source.MaVacXin).ExecuteDeleteAsync();
                 await f.Db.Set<VaccineRegimen>().Where(x => x.VaccineId == source.MaVacXin).ExecuteDeleteAsync();
                 f.Db.Remove(source);
-            } else if (scenario == "renamed") source.TenVacXin = "Non-demo source";
-            else f.Db.Add(new VacXin { Code="VX-SYNTHETIC", TenVacXin=source.TenVacXin, NhaSanXuat="Synthetic", XuatXu="Synthetic", Gia=1, TrangThai="Active" });
+            } else if (scenario == "renamed") source.Code = "VX-RENAMED";
+            else source.Code = "vx-havax-05";
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentInventorySeed.RunAsync(f.Db, Development));
-            Assert.Contains("requires exactly one synthetic catalog vaccine '[DEMO] Vắc xin B'", error.Message);
+            Assert.Contains("requires exactly one curated catalog vaccine 'VX-HAVAX-05'", error.Message);
             Assert.Empty(await f.Db.Set<LoVacXin>().ToArrayAsync());
         });
     }
@@ -114,7 +114,7 @@ public sealed class DevelopmentInventorySeedSqlTests
     public async Task ConflictingLotCodeFailsWithoutOverwritingOrPartialInsert(bool caseCollision)
     {
         await WithCatalog(async f => {
-            var vaccine = await f.Db.Vaccines.SingleAsync(x => x.TenVacXin == (caseCollision ? "[DEMO] Vắc xin B" : "[DEMO] Vắc xin A"));
+            var vaccine = await f.Db.Vaccines.SingleAsync(x => x.TenVacXin == (caseCollision ? "Havax 0,5 ml" : "Avaxim 80U"));
             f.Db.Add(new LoVacXin { SoLo=caseCollision ? "[demo] s5-empty-b" : "[DEMO] S5-EMPTY-B", MaVacXin=vaccine.MaVacXin,
                 NgaySanXuat=new(2000,1,1), HanSuDung=new(2001,1,1), SoLuongBanDau=7, SoLuongTon=2, TrangThai="Inactive" });
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
@@ -201,7 +201,7 @@ public sealed class DevelopmentInventorySeedSqlTests
     {
         await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
             var missing = await Cli(f.Database.ConnectionString, "Development");
-            Assert.NotEqual(0, missing.ExitCode); Assert.Contains("requires exactly one synthetic catalog vaccine", missing.Output);
+            Assert.NotEqual(0, missing.ExitCode); Assert.Contains("requires exactly one curated catalog vaccine", missing.Output);
             Assert.Empty(await f.Db.Vaccines.ToArrayAsync()); Assert.Empty(await f.Db.Set<LoVacXin>().ToArrayAsync());
             var combined = await Cli(f.Database.ConnectionString, "Development", "--seed-catalog");
             Assert.NotEqual(0, combined.ExitCode); Assert.Contains("separately", combined.Output);

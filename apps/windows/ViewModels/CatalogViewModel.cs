@@ -11,7 +11,7 @@ namespace TiemChung.Desktop.ViewModels;
 public sealed record CatalogStatus(string? Value, string Label)
 {
     public override string ToString() => Label;
-    public static string Describe(string value) => value == "Inactive" ? "Inactive — Ngừng sử dụng" : "Active — Đang sử dụng";
+    public static string Describe(string value) => value == "Inactive" ? "Ngừng sử dụng" : "Đang sử dụng";
 }
 public sealed record CatalogRow(int Id, string Name, string Description = "", decimal? Price = null, CatalogVaccine? Vaccine = null, CatalogPackage? Package = null, string Code = "", string Status = "Active", CatalogType? Technology = null)
 {
@@ -76,7 +76,7 @@ public sealed partial class CatalogViewModel : ViewModelBase
     public bool ShowEmpty => _hasLoaded && !_busy && !_loadFailed && Rows.Count == 0;
     public string EmptyMessage => string.IsNullOrWhiteSpace(Search) && StatusFilter.Value is null ? "Chưa có dữ liệu. Chọn Thêm mới để tạo danh mục." : "Không có kết quả phù hợp. Thử từ khóa hoặc trạng thái khác.";
     public string SearchHint => ShowVaccine ? "Tìm mã, tên vắc xin hoặc bệnh phòng" : "Tìm mã hoặc tên " + ResourceLabel;
-    public string DataSourceLabel => "API / SQL thật · [DEMO] là dữ liệu giả";
+    public string DataSourceLabel => "Thông tin vắc xin, phòng bệnh và gói tiêm chủng.";
     public string ResourceLabel => Resource switch { "vaccine-technologies" => "công nghệ vắc xin", "diseases" => "phòng bệnh", "packages" => "gói vắc xin", _ => "vắc xin" };
     public string FormTitle => Selected is null ? (IsReadOnly ? "Xem " : "Thêm ") + ResourceLabel : "Chi tiết " + ResourceLabel;
     public string SaveLabel => Selected is null ? "Tạo mới" : "Lưu thay đổi";

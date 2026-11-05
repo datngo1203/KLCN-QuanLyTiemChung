@@ -22,10 +22,10 @@ public static class DevelopmentInventorySeed
 
         var vaccineIds = new Dictionary<string, int>();
         foreach (var suffix in new[] { "A", "B" }) {
-            var name = "[DEMO] Vắc xin " + suffix;
-            var matches = await db.Vaccines.AsNoTracking().Where(x => x.TenVacXin == name).ToArrayAsync();
-            if (matches.Length != 1 || matches[0].TenVacXin != name)
-                throw new InvalidOperationException($"Inventory seed requires exactly one synthetic catalog vaccine '{name}'. Run --seed-catalog separately on the intended Development database or review the catalog conflict.");
+            var code = suffix == "A" ? "VX-AVAXIM-80U" : "VX-HAVAX-05";
+            var matches = await db.Vaccines.AsNoTracking().Where(x => x.Code == code).ToArrayAsync();
+            if (matches.Length != 1 || matches[0].Code != code)
+                throw new InvalidOperationException($"Inventory seed requires exactly one curated catalog vaccine '{code}'. Run --seed-catalog separately on the intended Development database or review the catalog conflict.");
             vaccineIds[suffix] = matches[0].MaVacXin;
         }
 
