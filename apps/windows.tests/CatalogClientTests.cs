@@ -24,6 +24,8 @@ public sealed partial class CatalogClientTests
     {
         var h = new Handler(); var vm = Create(h);
         await Execute(vm, vm.SelectTabCommand, tab);
+        Assert.DoesNotContain("API", vm.DataSourceLabel); Assert.DoesNotContain("SQL", vm.DataSourceLabel); Assert.DoesNotContain("DEMO", vm.DataSourceLabel);
+        Assert.Equal("Đang sử dụng", CatalogStatus.Describe("Active")); Assert.Equal("Ngừng sử dụng", CatalogStatus.Describe("Inactive"));
         Assert.Equal(4, vm.Tabs.Count); Assert.All(h.Paths, x => Assert.Contains("/" + resource, x));
         vm.Name = "Đối tượng thử"; Assert.Equal(prefix + "-DOI-TUONG-THU", vm.Code);
         vm.Code = prefix + "-CUSTOM"; vm.Name = "Tên khác"; Assert.Equal(prefix + "-CUSTOM", vm.Code);

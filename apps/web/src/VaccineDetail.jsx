@@ -32,7 +32,10 @@ export default function VaccineDetail({ id, go }) {
       <div className="vaccine-detail-layout">
         <ProductPlaceholder />
         <div className="vaccine-detail-info">
-          <p className="vac-reference">Danh mục từ cơ sở dữ liệu.</p>
+          {vaccine.sourceUrl && /^https?:\/\//i.test(vaccine.sourceUrl) && <p className="vac-reference">
+            <a href={vaccine.sourceUrl} target="_blank" rel="noreferrer">Nguồn thông tin sản phẩm</a>
+            {vaccine.informationUpdatedAt && Number.isFinite(Date.parse(vaccine.informationUpdatedAt)) && <> · Kiểm tra {new Date(vaccine.informationUpdatedAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</>}
+          </p>}
           <dl className="vaccine-facts">
             <div><dt>Nhà sản xuất</dt><dd>{customerDisplayName(vaccine.manufacturer) || 'Chưa có thông tin'}</dd></div>
             <div><dt>Nước sản xuất / xuất xứ</dt><dd>{customerDisplayName(vaccine.origin) || 'Chưa có thông tin'}</dd></div>
@@ -42,6 +45,7 @@ export default function VaccineDetail({ id, go }) {
           <p className="vac-reference">Chọn vắc xin và người được tiêm trong trang đăng ký. Đăng ký dịch vụ không xác nhận đủ điều kiện tiêm.</p>
         </div>
       </div>
+      {vaccine.sourceName && <p className="catalog-clinical-note">{vaccine.sourceName}</p>}
       <p className="catalog-clinical-note">Danh mục hiện chưa cung cấp độ tuổi, liều dùng, lịch tiêm, chống chỉ định hoặc tồn kho. Vui lòng trao đổi với nhân viên y tế để được tư vấn; chỉ định tiêm cần được đánh giá chuyên môn.</p>
     </>}
   </section>

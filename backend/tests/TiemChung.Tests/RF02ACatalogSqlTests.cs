@@ -22,7 +22,7 @@ public sealed class RF02ACatalogSqlTests
     private static readonly IHostEnvironment Development = new SeedEnvironment();
 
     private static Task WithCatalog(Func<CatalogSqlTests.Fixture, Task> test) => SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
-        await DevelopmentCatalogSeed.RunAsync(f.Db, Development); await f.Login(); await test(f);
+        await SyntheticCatalogFixture.RunAsync(f.Db, Development); await f.Login(); await test(f);
     });
     private static async Task<VaccineRequest> Request(CatalogSqlTests.Fixture f)
     {
@@ -215,7 +215,7 @@ public sealed class RF02ACatalogSqlTests
     {
         await WithCatalog(async f => {
             var before=JsonSerializer.Serialize(await List(f.Client,"vaccines"));
-            await DevelopmentCatalogSeed.RunAsync(f.Db,Development);await DevelopmentCatalogSeed.RunAsync(f.Db,Development);
+            await SyntheticCatalogFixture.RunAsync(f.Db,Development);await SyntheticCatalogFixture.RunAsync(f.Db,Development);
             f.Config["Catalog:UseDemoData"]="true";
             Assert.Equal(before,JsonSerializer.Serialize(await List(f.Client,"vaccines")));
             Assert.Equal(2,await f.Db.Vaccines.CountAsync());Assert.Equal(2,await f.Db.Set<Benh>().CountAsync());
@@ -325,7 +325,7 @@ public sealed class RF02ACatalogSqlTests
             await f.Db.Set<GoiVacXin_VacXin>().ExecuteDeleteAsync();await f.Db.Set<GoiVacXin>().ExecuteDeleteAsync();
             var vaccine=await f.Db.Vaccines.AsNoTracking().OrderBy(x=>x.MaVacXin).FirstAsync();
             await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));f.Db.ChangeTracker.Clear();
-            var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>DevelopmentCatalogSeed.RunAsync(f.Db,Development));
+            var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>SyntheticCatalogFixture.RunAsync(f.Db,Development));
             Assert.Contains("non-Active vaccine",error.Message);Assert.Empty(await f.Db.Set<GoiVacXin>().ToArrayAsync());Assert.Empty(await f.Db.Set<GoiVacXin_VacXin>().ToArrayAsync());
             Assert.Equal("Inactive",await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.TrangThai).SingleAsync());
             Assert.Equal(vaccine.Code,await f.Db.Vaccines.Where(x=>x.MaVacXin==vaccine.MaVacXin).Select(x=>x.Code).SingleAsync());

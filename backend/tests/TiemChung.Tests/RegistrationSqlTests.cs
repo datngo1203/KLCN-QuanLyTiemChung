@@ -603,7 +603,7 @@ public sealed class RegistrationSqlTests
             Fixture? partial = null;
             try {
             await b.Login();
-            await DevelopmentCatalogSeed.RunAsync(b.Db, new EnvironmentStub());
+            await SyntheticCatalogFixture.RunAsync(b.Db, new EnvironmentStub());
             var customer = new KhachHang { HoTen = "[DEMO] G2 Customer", SoDienThoai = "0900000000", Email = "g2@example.invalid" };
             b.Db.Add(customer); await b.Db.SaveChangesAsync();
             var recipient = new NguoiDuocTiem { MaKhachHang = customer.MaKhachHang, HoTen = "[DEMO] G2 Recipient", NgaySinh = new(2020, 1, 1), GioiTinh = "Khác", QuanHeVoiKhachHang = "Con" };

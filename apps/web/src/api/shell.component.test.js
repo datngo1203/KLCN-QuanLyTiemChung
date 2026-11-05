@@ -22,7 +22,7 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
     catalogRequests.push(request)
     if (path.endsWith('/vaccine-technologies')) return Response.json({ items: [{ id: 12, name: '[DEMO] Công nghệ thử' }] })
     const items = path.endsWith('/vaccines')
-      ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000 }]
+      ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000, sourceName: 'Nguồn tham khảo kiểm thử, kiểm tra 05/11/2026', sourceUrl: 'https://example.invalid/vaccine', informationUpdatedAt: '2026-11-05T00:00:00+07:00' }]
       : [{ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', price: 300000, items: [{ vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] }]
     return Response.json({ source: 'database', items })
   }
@@ -102,6 +102,13 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
     window.dispatchEvent(new window.HashChangeEvent('hashchange'))
   })
   assert.equal(home.querySelector('.vaccine-detail h1').textContent, 'Vắc xin kiểm thử API')
+  const source = home.querySelector('.vaccine-detail-info .vac-reference a')
+  assert.equal(source.getAttribute('href'), 'https://example.invalid/vaccine')
+  assert.equal(source.getAttribute('rel'), 'noreferrer')
+  assert.match(source.parentElement.textContent, /Kiểm tra 5\/11\/2026/)
+  assert.match(home.textContent, /Nguồn tham khảo kiểm thử/)
+  assert.doesNotMatch(home.textContent, /Danh mục từ cơ sở dữ liệu/)
+
   assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
   await act(async () => header.querySelector('.brand').click())
   await act(async () => heroButton('Đăng ký tiêm').click())

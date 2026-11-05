@@ -26,7 +26,7 @@
 .vaccine-facts dt { color: var(--muted); font-size: 13px; }
 .vaccine-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .vaccine-price { color: var(--primary); font-size: 22px; }
-.catalog-clinical-note { padding: 22px; margin-top: 32px; background: var(--blue-soft); border-radius: 14px; color: var(--ink); line-height: 1.8; font-size: 14px; }
+.catalog-clinical-note { overflow-wrap: anywhere; padding: 22px; margin-top: 32px; background: var(--blue-soft); border-radius: 14px; color: var(--ink); line-height: 1.8; font-size: 14px; }
 .catalog-page .notice { flex-wrap: wrap; align-items: center; }
 @media (max-width: 700px) {
   .catalog-table-hint { display: block; margin-top: 8px; }

@@ -905,7 +905,7 @@ public sealed partial class PaymentSqlTests
             Fixture? partial = null;
             try {
             await b.Login();
-            if (historicalCatalog) await HistoricalCatalogFixture.SeedAsync(b.Db); else await DevelopmentCatalogSeed.RunAsync(b.Db, new SeedEnvironment());
+            if (historicalCatalog) await HistoricalCatalogFixture.SeedAsync(b.Db); else await SyntheticCatalogFixture.RunAsync(b.Db, new SeedEnvironment());
             var customer = new KhachHang { HoTen = "[DEMO] G3 Customer", Email = "g3@example.invalid" };
             b.Db.Add(customer); await b.Db.SaveChangesAsync();
             var recipient = new NguoiDuocTiem { HoTen = "[DEMO] G3 Recipient", MaKhachHang = customer.MaKhachHang,

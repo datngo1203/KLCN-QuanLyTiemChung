@@ -78,7 +78,7 @@ Lần đầu Docker cần tải các image nên có thể mất vài phút. Khi 
 
 ### Tạo dữ liệu và tài khoản demo
 
-Tạo danh mục vắc xin/gói tiêm mẫu:
+Tạo danh mục development có nguồn (Avaxim 80U, Havax 0,5 ml; không tạo gói):
 
 ```powershell
 docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm api --seed-catalog
@@ -90,13 +90,13 @@ S5.4 — tạo nguồn lô/tồn synthetic để chuẩn bị kiểm thử ghi t
 docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm api --seed-inventory
 ```
 
-Lệnh yêu cầu môi trường **Development**, migration đã áp dụng và đúng một vắc xin SQL tên `[DEMO] Vắc xin A`, `[DEMO] Vắc xin B` từ catalog synthetic. Thiếu/trùng nguồn hoặc mã lô gắn sai vắc xin thì báo lỗi và rollback; không tự gọi `--seed-catalog`, migrate hoặc tạo vắc xin thay thế. Chạy từng lệnh riêng, không ghép `--seed-inventory` với lệnh seed/migrate khác. API khởi động bình thường không tự seed. Nếu image API có sẵn từ trước S5.4, cần rebuild image từ source mới trước khi chạy lệnh.
+Lệnh yêu cầu môi trường **Development**, migration đã áp dụng và đúng một vắc xin SQL cho mỗi Code `VX-AVAXIM-80U`, `VX-HAVAX-05` từ catalog có nguồn. Thiếu/trùng nguồn hoặc mã lô gắn sai vắc xin thì báo lỗi và rollback; không tự gọi `--seed-catalog`, migrate hoặc tạo vắc xin thay thế. Chạy từng lệnh riêng, không ghép `--seed-inventory` với lệnh seed/migrate khác. API khởi động bình thường không tự seed. Nếu image API có sẵn từ trước S5.4, cần rebuild image từ source mới trước khi chạy lệnh.
 
 | Mã lô synthetic | Vắc xin | Ngày sản xuất / hạn dùng khi tạo lần đầu | Ban đầu / tồn | Trạng thái |
 |---|---|---|---|---|
-| `[DEMO] S5-VALID-A` | `[DEMO] Vắc xin A` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 100 / 100 | Active |
-| `[DEMO] S5-EXPIRED-A` | `[DEMO] Vắc xin A` | Ngày UTC chạy lệnh − 2 năm / − 1 ngày | 20 / 20 | Active |
-| `[DEMO] S5-EMPTY-B` | `[DEMO] Vắc xin B` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 10 / 0 | Active |
+| `[DEMO] S5-VALID-A` | `Avaxim 80U` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 100 / 100 | Active |
+| `[DEMO] S5-EXPIRED-A` | `Avaxim 80U` | Ngày UTC chạy lệnh − 2 năm / − 1 ngày | 20 / 20 | Active |
+| `[DEMO] S5-EMPTY-B` | `Havax 0,5 ml` | Ngày UTC chạy lệnh − 6 tháng / + 1 năm | 10 / 0 | Active |
 
 Mã lô cố định, không lấy từ lô thực tế. Transaction và khóa SQL `sp_getapplock` tuần tự hóa các lần seed đồng thời. Chỉ thêm mã thiếu; mã có sẵn phải đúng chính xác mã và `MaVacXin` nguồn. Chạy lại giữ nguyên mọi trường/RowVersion của lô đã có, kể cả tồn đã giảm, số lượng ban đầu, ngày sản xuất/hạn dùng và trạng thái đã đổi; không sửa lô khác. Vì ngày không được gia hạn khi chạy lại, lô hợp lệ ban đầu có thể hết hạn về sau. Lệnh không tạo biến động kho, lịch hẹn, phiếu khám/chỉ định, thanh toán hay mũi tiêm; lệnh seed không cung cấp API CRUD lô/UI kho hoặc thực hiện trừ tồn; ghi mũi S5.5 dùng API riêng.
 
@@ -115,7 +115,11 @@ docker compose --env-file infra/.env -p vac-demo -f infra/compose.yaml run --rm 
 Remove-Item Env:DevelopmentSeed__Username, Env:DevelopmentSeed__Password
 ```
 
-Các lệnh seed không ghi đè tài khoản Admin hoặc nhân bản danh mục đã có. Dữ liệu có nhãn `[DEMO]` và giá giả, chỉ dùng để xem thử.
+Các lệnh seed không ghi đè tài khoản Admin hoặc nhân bản danh mục đã có. Catalog tra theo Code, chỉ thêm bản ghi thiếu và giữ nguyên chỉnh sửa/trạng thái/giá/khóa ngoại hiện hữu. Hai tiến trình catalog seed được tuần tự hóa bằng khóa transaction. Không tự đổi tên, xóa hay ánh xạ vắc xin A/B, gói hoặc dữ liệu y khoa cũ sang sản phẩm thật; DB demo đang có dữ liệu cần được coordinator chọn phương án dọn riêng trước khi dùng trình diễn. Không reseed/reset DB dùng chung để vượt bước này.
+
+Dữ liệu catalog được tổng hợp ngắn từ [VNVC Avaxim](https://vnvc.vn/avaxim-vac-xin-phong-viem-gan/), [VNVC Havax](https://vnvc.vn/vac-xin-havax/), [Sanofi AVAXIM 80 U](https://www.sanofi.com/assets/countries/india/docs/science-and-innovation/for-healthcare-professionals/product-information/vaccines/avaxim-80-u-api.pdf) (bất hoạt, 80 U/0,5 ml), và [sổ tiêm VNVC](https://vnvc.vn/wp-content/uploads/2017/12/VNVC_SOTIEMCHUNG_TODINHKEM_watermark.pdf) (liều Havax 0,5 ml cho trẻ 24 tháng–dưới 18 tuổi). Lịch tham khảo 2 mũi, mũi 2 sau 6 tháng theo từng trang VNVC; không quy tháng thành ngày, không sinh lịch cá nhân/chỉ định. Havax chưa gán công nghệ vì nguồn được chọn chưa đủ căn cứ. Field Description/MoTa vẫn giữ.
+
+Giá snapshot kiểm tra **05/11/2026** từ [bảng giá VNVC tháng 11/2026](https://vnvc.vn/gia-tiem-chung-vac-xin/), cột giá tiêm lẻ: Avaxim 80U **685.000đ**, Havax **295.000đ** (đối chiếu [danh mục đặt mua VNVC](https://vax.vnvc.vn/vaccine)). Đây là giá đã ghi nhận tại ngày kiểm tra, không cam kết giá ở thời điểm sau. Dataset và provenance nằm trong `DevelopmentCatalogSeed.cs`, không gọi Internet khi seed/runtime. Không có nguồn gói đủ nên không seed gói; vaccine/package synthetic và giá tùy ý chỉ còn trong fixture test độc lập.
 
 Tạo Lễ tân Development để ghi hồ sơ qua API thật (không cấp quyền này cho Admin):
 
