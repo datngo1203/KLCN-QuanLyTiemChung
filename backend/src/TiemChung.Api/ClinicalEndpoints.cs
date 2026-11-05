@@ -88,8 +88,15 @@ public static class ClinicalEndpoints
             await RequireDoctor(context, auth, false, ct);
             var row = await Appointment(db, id, ct);
             var vaccines = await Vaccines(db, row, ct);
+            var doses = await RegisteredDoseEntitlements.Read(db, row.RegistrationId, ct);
+            var availability = vaccines.Select(v => new ClinicalVaccineAvailabilityDto(v.Id, v.Name,
+                doses.Any(d => d.VaccineId == v.Id && d.BlockReason is null),
+                doses.SingleOrDefault(d => d.VaccineId == v.Id)?.Remaining)).ToArray();
+            var block = RegisteredDoseEntitlements.TimeBlock(row.ScheduledAt) ??
+                (availability.Any(v => v.CanIndicate) ? null : doses.Any(d => d.Registered is null) || doses.Length == 0
+                    ? "doseEntitlementUnavailable" : "doseEntitlementExhausted");
             await tx.CommitAsync(ct);
-            return Results.Ok(new ClinicalAppointmentDto(row, vaccines));
+            return Results.Ok(new ClinicalAppointmentDto(row, availability, block));
         });
         group.MapGet("/{id:int}/assessment", async (int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
@@ -101,18 +108,25 @@ public static class ClinicalEndpoints
         });
         group.MapPost("/{id:int}/assessment", async (int id, CreateClinicalAssessmentRequest req, HttpContext context,
             IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
-            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, ct);
             var actor = await RequireDoctor(context, auth, true, ct);
             if (id <= 0 || req.Conclusion is not (Eligible or "Tạm hoãn" or "Chống chỉ định") || req.Reason?.Trim().Length > 500 ||
                 req.VaccineIds is null || req.VaccineIds.Length > 100 || req.VaccineIds.Any(v => v <= 0) ||
                 req.VaccineIds.Distinct().Count() != req.VaccineIds.Length ||
                 (req.Conclusion == Eligible ? req.VaccineIds.Length == 0 : req.VaccineIds.Length != 0 || string.IsNullOrWhiteSpace(req.Reason)))
                 throw new IdentityFailure(400, "validation");
+            // Same registration lock/order as vaccination: quota reads cannot race a committed shot.
+            await db.Registrations.FromSqlInterpolated($"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy=(SELECT MaDangKy FROM LichHenTiem WHERE MaLichHen={id})").SingleOrDefaultAsync(ct);
             await db.Set<LichHenTiem>().FromSqlInterpolated($"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={id}").SingleOrDefaultAsync(ct);
             var appointment = await Appointment(db, id, ct);
             if (await db.Set<PhieuKhamSangLoc>().AnyAsync(x => x.MaLichHen == id, ct)) throw new IdentityFailure(409, "assessmentAlreadyRecorded");
+            if (RegisteredDoseEntitlements.TimeBlock(appointment.ScheduledAt) is { } block) throw new IdentityFailure(409, block);
             var allowed = await Vaccines(db, appointment, ct);
             if (req.VaccineIds.Any(v => !allowed.Any(a => a.Id == v))) throw new IdentityFailure(400, "validation");
+            var doses = await RegisteredDoseEntitlements.Read(db, appointment.RegistrationId, ct);
+            if (req.VaccineIds.Length == 0 && !allowed.Any(v => doses.Any(d => d.VaccineId == v.Id && d.BlockReason is null)))
+                throw new IdentityFailure(409, doses.Any(d => d.Registered is null) || doses.Length == 0 ? "doseEntitlementUnavailable" : "doseEntitlementExhausted");
+            foreach (var vaccine in req.VaccineIds) RegisteredDoseEntitlements.RequireAvailable(doses, vaccine);
             var now = DateTimeOffset.UtcNow;
             var row = new PhieuKhamSangLoc {
                 MaLichHen=id, MaDangKy=appointment.RegistrationId, MaNguoiDuocTiem=appointment.Recipient.Id,

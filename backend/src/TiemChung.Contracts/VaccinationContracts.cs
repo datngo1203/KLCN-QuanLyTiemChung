@@ -9,7 +9,7 @@ public sealed record VaccinationIndicationDto(int Id, int AppointmentId, int Reg
     DateTimeOffset ScheduledAt, string Location, RegistrationProfileDto Doctor, DateTimeOffset AssessedAt);
 public sealed record VaccinationListResponse(VaccinationIndicationDto[] Items);
 public sealed record VaccinationLotDto(string Number, DateOnly ManufacturedOn, DateOnly ExpiresOn, int Stock);
-public sealed record VaccinationDetailDto(VaccinationIndicationDto Indication, DateOnly FacilityDate, VaccinationLotDto[] Lots);
+public sealed record VaccinationDetailDto(VaccinationIndicationDto Indication, DateOnly FacilityDate, VaccinationLotDto[] Lots, string? BlockReason = null);
 public sealed record VaccinationDto(int Id, int IndicationId, int AppointmentId, int RegistrationId,
     RegistrationProfileDto Recipient, ClinicalVaccineDto Vaccine, string LotNumber, string InjectionSite,
     RegistrationProfileDto Nurse, DateTimeOffset AdministeredAt, string Status);

@@ -14,6 +14,21 @@ public sealed class VaccinationClientTests
     private static readonly VaccinationDetail Detail=new(Indication,new(2026,11,1),[Lot]);
     private static readonly VaccinationRecord Saved=new(8,12,7,3,new(2,"[DEMO] Recipient"),new(11,"[DEMO] vaccine"),Lot.Number,"Bắp tay trái",new(6,"[DEMO] nurse"),DateTimeOffset.UtcNow,"DaTiem");
     private static readonly VaccinationRequest Request=new(12,Lot.Number,"Bắp tay trái");
+    [Theory]
+    [InlineData("appointmentNotStarted", "Chưa đến giờ hẹn")]
+    [InlineData("doseEntitlementExhausted", "Đã thực hiện đủ số mũi")]
+    [InlineData("doseEntitlementUnavailable", "Chưa xác định được số mũi")]
+    public async Task ServerBlockDisablesDirectActionsAndStaleQuotaRequiresReload(string code, string message)
+    {
+        var fake = new Fake { DetailValue = Detail with { BlockReason = code } };
+        var vm = await Ready(fake);
+        Assert.Contains(message, vm.Feedback); Assert.False(vm.CanEdit); Assert.False(vm.CanSave);
+        Fill(vm); Assert.Null(vm.BeginConfirmation()); await vm.ConfirmAsync(true); await vm.RetryAsync(); Assert.Equal(0, fake.PostCalls);
+        fake.DetailValue = Detail; await vm.LoadDetailAsync(); Fill(vm); Assert.True(vm.CanSave);
+        fake.Error = code; vm.BeginConfirmation(); await vm.ConfirmAsync(true);
+        Assert.False(vm.CanEdit); Assert.False(vm.CanSave); Assert.True(vm.CanBrowse); Assert.False(vm.HasPending);
+        await vm.RetryAsync(); Assert.Equal(1, fake.PostCalls);
+    }
     private static async Task<IdentityApiService> Login(Handler handler){var identity=new IdentityApiService(new HttpClient(handler){BaseAddress=new("http://test/")});Assert.True((await identity.LoginAsync("synthetic","synthetic-password")).Succeeded);return identity;}
     private static async Task<VaccinationViewModel> Ready(Fake fake,IdentityApiService? identity=null){var vm=new VaccinationViewModel(fake,identity??await Login(new()));await vm.LoadAsync();vm.Selected=Assert.Single(vm.Queue);await vm.LoadDetailAsync();return vm;}
     private static void Fill(VaccinationViewModel vm){vm.SelectedLot=vm.Lots.Single();vm.InjectionSite=" Bắp tay trái ";}

@@ -47,13 +47,13 @@ public sealed class VaccinationViewModel : ViewModelBase
     public bool HasPending=>HasAccess && _pending is not null;
     public bool IsDirty=>_lot is not null || _site.Length>0;
     public bool CanBrowse=>HasAccess && !_busy && !_confirming && _pending is null && !IsDirty;
-    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is not null && Result is null;
+    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is { BlockReason: null } && Result is null;
     public bool IsDraft=>HasAccess && Detail is not null && Result is null;
     public bool IsRecorded=>HasAccess && Result is not null;
     public bool NoDetail=>HasAccess && Detail is null && Result is null;
     public bool HasDetail=>HasAccess && (Detail is not null || Result is not null);
     public bool NoResults=>HasAccess && !_busy && !_loadError && Queue.Count==0;
-    public bool NoLots=>IsDraft && Lots.Count==0;
+    public bool NoLots=>IsDraft && Detail?.BlockReason is null && Lots.Count==0;
     public bool CanSave=>CanEdit && SelectedLot is not null && Lots.Contains(SelectedLot) && !string.IsNullOrWhiteSpace(InjectionSite) && InjectionSite.Trim().Length<=100;
     public bool CanReadResult=>CanBrowse && LookupId>0;
     public int Page=>_page;
@@ -85,6 +85,9 @@ public sealed class VaccinationViewModel : ViewModelBase
     {
         if(!IsCurrent)return;
         _loadError=true;
+        if (error is VaccinationApiException { Code: "appointmentNotStarted" or "doseEntitlementExhausted" or "doseEntitlementUnavailable" } blocked && _detail is not null) {
+            _detail = _detail with { BlockReason = blocked.Code }; ClearDraft(); Lots.Clear(); OnPropertyChanged(nameof(Detail));
+        }
         if(error is VaccinationApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
         Feedback=error is VaccinationApiException?error.Message:"Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
     }
@@ -112,7 +115,12 @@ public sealed class VaccinationViewModel : ViewModelBase
             if(result is not null){Accept(result);return;}
             var detail=await _service.GetAsync(selected.Id);if(!IsCurrent || _denied)return;
             _detail=detail;foreach(var lot in detail.Lots)Lots.Add(lot);OnPropertyChanged(nameof(Detail));
-            Feedback=Lots.Count==0?"Không có lô còn hạn, còn tồn và phù hợp từ SQL. Chưa thể ghi mũi.":"Chọn lô và nhập vị trí thực tế. Chỉ xác nhận sau khi đã thực hiện tiêm theo chỉ định bác sĩ.";
+            Feedback=detail.BlockReason switch {
+                "appointmentNotStarted" => "Chưa đến giờ hẹn. Chưa thể ghi tiêm; hãy tải lại khi đến giờ.",
+                "doseEntitlementExhausted" => "Đã thực hiện đủ số mũi đăng ký. Không thể ghi thêm.",
+                null => Lots.Count==0 ? "Không có lô còn hạn, còn tồn và phù hợp. Chưa thể ghi mũi." : "Chọn lô và nhập vị trí thực tế. Chỉ xác nhận sau khi đã thực hiện tiêm theo chỉ định bác sĩ.",
+                _ => "Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi ghi tiêm."
+            };
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public string? BeginConfirmation()

@@ -116,10 +116,14 @@ public static class VaccinationEndpoints
             var registration = await db.Registrations.AsNoTracking().SingleAsync(r => r.MaDangKy == source.RegistrationId, ct);
             await RequirePayment(db, registration, ct);
             var day = FacilityDate(DateTimeOffset.UtcNow);
+            var doses = await RegisteredDoseEntitlements.Read(db, source.RegistrationId, ct);
+            var block = RegisteredDoseEntitlements.TimeBlock(source.ScheduledAt) ??
+                doses.SingleOrDefault(d => d.VaccineId == indication.MaVacXin)?.BlockReason;
+            if (!doses.Any(d => d.VaccineId == indication.MaVacXin)) block = "doseEntitlementUnavailable";
             var lots = await UsableLots(db, indication.MaVacXin, day).AsNoTracking().OrderBy(l => l.SoLo)
                 .Select(l => new VaccinationLotDto(l.SoLo, l.NgaySanXuat, l.HanSuDung, l.SoLuongTon)).ToArrayAsync(ct);
             await tx.CommitAsync(ct);
-            return Results.Ok(new VaccinationDetailDto(source, day, lots));
+            return Results.Ok(new VaccinationDetailDto(source, day, block is null ? lots : [], block));
         });
         group.MapGet("/indications/{id:int}/result", async (int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) => {
             await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, ct);
@@ -149,7 +153,9 @@ public static class VaccinationEndpoints
             await db.Set<LichHenTiem>().FromSqlInterpolated(
                 $"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={appointmentId}").SingleAsync(ct);
             var source = await Source(db, indication, assessment, ct);
+            if (RegisteredDoseEntitlements.TimeBlock(source.ScheduledAt) is { } block) throw new IdentityFailure(409, block);
             await RequirePayment(db, registration, ct);
+            RegisteredDoseEntitlements.RequireAvailable(await RegisteredDoseEntitlements.Read(db, registration.MaDangKy, ct), indication.MaVacXin);
             var now = DateTimeOffset.UtcNow;
             var day = FacilityDate(now);
             var number = req.LotNumber.Trim();

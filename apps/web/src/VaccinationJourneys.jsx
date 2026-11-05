@@ -7,6 +7,7 @@ import { preferredDateLabel } from './registrationForm'
 import { appointmentCode, appointmentTime } from './scheduleView'
 import { vaccinationCode, vaccinationTime } from './historyView'
 import { journeyState } from './journeyView'
+import { customerDisplayName } from './customerDisplayName'
 import './VaccinationJourneys.css'
 
 const hub = 'vaccinations'
@@ -83,6 +84,7 @@ function JourneyList({ go }) {
             <div><dt>Thanh toán</dt><dd>{paymentLabel}</dd></div>
             <div><dt>Lịch hẹn</dt><dd>{schedule}{nextAppointment && <><br />{appointmentTime(nextAppointment.scheduledAt)}<br />{nextAppointment.location} · {nextAppointment.serviceName}</>}</dd></div>
           </dl>
+          <JourneyProgress progress={journey.progress} />
           <p className="journey-action"><small>Việc cần làm tiếp theo</small><strong>{action}</strong></p>
           <button className="button primary" onClick={() => go(`${hub}/${registrationId}`)}>Xem hành trình</button>
         </article>
@@ -135,6 +137,10 @@ function JourneyDetail({ id, go }) {
           <li key={label} aria-current={next.step === index ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}
       </ol>
       <PaymentDetail id={id} accessDenied={accessDenied} go={go} initialDetail={initialPayment} loadDetail={loadPayment} />
+      <section className="registration-panel">
+        <h3>Tiến độ theo vắc xin</h3>
+        <JourneyProgress progress={journey.progress} />
+      </section>
       <div className="journey-grid">
         <section className="registration-panel">
           <h3>Lịch hẹn</h3>
@@ -153,4 +159,19 @@ function JourneyDetail({ id, go }) {
       </div>
     </>}
   </>
+}
+
+function JourneyProgress({ progress }) {
+  if (!progress?.length) return <p>Chưa đủ thông tin để xác định số mũi đã đăng ký.</p>
+  return <ul className="journey-events journey-progress" aria-label="Tiến độ theo vắc xin">
+    {progress.map(item => <li key={item.vaccineId}>
+      <strong>{customerDisplayName(item.vaccineName)}</strong>
+      {Number.isInteger(item.registeredDoses) && Number.isInteger(item.remainingDoses)
+        ? <span>Đã đăng ký {item.registeredDoses} mũi · Đã tiêm {item.administeredDoses} · Còn lại {item.remainingDoses}</span>
+        : <span>Đã tiêm {item.administeredDoses} · Chưa xác định số mũi còn lại</span>}
+      <span>{item.nextAppointment
+        ? <>Lịch hẹn đã xác nhận tiếp theo: {appointmentTime(item.nextAppointment.scheduledAt)} · {item.nextAppointment.location}</>
+        : 'Chưa có lịch hẹn tiếp theo được xác nhận.'}</span>
+    </li>)}
+  </ul>
 }

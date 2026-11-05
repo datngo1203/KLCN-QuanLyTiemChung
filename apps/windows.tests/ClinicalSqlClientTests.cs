@@ -49,6 +49,8 @@ public sealed class ClinicalSqlClientTests
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
         var appointmentApi=new AppointmentApiService(reception);var source=await appointmentApi.GetSourceAsync(registrationId);
         foreach(var item in source.Items)await appointmentApi.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1)));
+        await db.Set<LichHenTiem>().Where(a => a.MaDangKy == registrationId)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.ThoiGianHen, DateTime.UtcNow.AddMinutes(-1)));
         await reception.LogoutAsync();
         var handler=new LostResponse(factory.Server.CreateHandler());using var doctorClient=new HttpClient(handler){BaseAddress=receptionClient.BaseAddress};var identity=new IdentityApiService(doctorClient);Assert.True((await identity.LoginAsync("BacSi",password)).Succeeded);
         var service=new ScreeningApiService(identity);var vm=new ScreeningViewModel(service,identity);await vm.LoadAsync();Assert.Equal(2,vm.Appointments.Count);

@@ -12,6 +12,30 @@ public sealed class ClinicalClientTests
     private static readonly ClinicalDetail Detail=new(Appointment,[new(11,"[DEMO] vaccine A"),new(22,"[DEMO] vaccine B")]);
     private static readonly ClinicalAssessment Saved=new(1,7,3,2,new(4,"[DEMO] doctor"),DateTimeOffset.UtcNow,"Đủ điều kiện",null,null,null,[new(1,11,"[DEMO] vaccine A","DuocTiem",DateTimeOffset.UtcNow)]);
     private static readonly AssessmentRequest Request=new("Đủ điều kiện",null,[11]);
+    [Theory]
+    [InlineData("appointmentNotStarted", "Chưa đến giờ hẹn")]
+    [InlineData("doseEntitlementExhausted", "Đã thực hiện đủ số mũi")]
+    [InlineData("doseEntitlementUnavailable", "Chưa xác định được số mũi")]
+    public async Task ServerBlockDisablesDirectActionsAndReloadRestoresEligibility(string code, string message)
+    {
+        var fake = new Fake { DetailValue = Detail with { BlockReason = code } };
+        var vm = await Ready(fake);
+        Assert.Contains(message, vm.Feedback); Assert.False(vm.CanEdit); Assert.False(vm.CanSave);
+        Fill(vm); Assert.Null(vm.BeginConfirmation()); await vm.ConfirmAsync(true); await vm.RetryAsync(); Assert.Equal(0, fake.PostCalls);
+        fake.DetailValue = Detail; await vm.LoadDetailAsync(); Fill(vm); Assert.True(vm.CanSave);
+        fake.Error = code; vm.BeginConfirmation(); await vm.ConfirmAsync(true);
+        Assert.False(vm.CanEdit); Assert.False(vm.CanSave); Assert.True(vm.CanBrowse); Assert.False(vm.HasPending);
+        await vm.RetryAsync(); Assert.Equal(1, fake.PostCalls);
+    }
+    [Fact]
+    public void ExhaustedVaccineCannotBeSelectedThroughViewModel()
+    {
+        var option = new ClinicalVaccineOption(new(1, "Vắc xin A", false, 0), () => true, () => { });
+        option.IsSelected = true; Assert.False(option.IsSelected); Assert.False(option.CanIndicate);
+        Assert.Contains("Không còn mũi", option.Name);
+        var unknown = new ClinicalVaccineOption(new(1, "Vắc xin A", false), () => true, () => { });
+        Assert.Contains("Chưa xác định", unknown.Name); Assert.False(unknown.CanIndicate);
+    }
     private static async Task<IdentityApiService> Login(Handler handler){var identity=new IdentityApiService(new HttpClient(handler){BaseAddress=new("http://test/")});Assert.True((await identity.LoginAsync("synthetic","synthetic-password")).Succeeded);return identity;}
     private static async Task<ScreeningViewModel> Ready(Fake fake,IdentityApiService? identity=null){var vm=new ScreeningViewModel(fake,identity??await Login(new()));await vm.LoadAsync();vm.Selected=Assert.Single(vm.Appointments);await vm.LoadDetailAsync();return vm;}
     private static void Fill(ScreeningViewModel vm){vm.Conclusion="Đủ điều kiện";vm.Vaccines[0].IsSelected=true;}
@@ -106,7 +130,8 @@ public sealed class ClinicalClientTests
         public TaskCompletionSource<AppointmentRecord[]>? ListGate;public TaskCompletionSource<ClinicalDetail>? DetailGate;public TaskCompletionSource<ClinicalAssessment>? PostGate;
         public List<AssessmentRequest> Requests=[];
         public Task<AppointmentRecord[]> ListAsync(int page,string search){ListCalls++;return ListGate?.Task??Task.FromResult(new[]{Appointment});}
-        public Task<ClinicalDetail> GetAsync(int id)=>FailGet?Task.FromException<ClinicalDetail>(new HttpRequestException()):DetailGate?.Task??Task.FromResult(Detail);
+        public ClinicalDetail DetailValue=Detail;
+        public Task<ClinicalDetail> GetAsync(int id)=>FailGet?Task.FromException<ClinicalDetail>(new HttpRequestException()):DetailGate?.Task??Task.FromResult(DetailValue);
         public Task<ClinicalAssessment?> GetAssessmentAsync(int id)=>FailGet?Task.FromException<ClinicalAssessment?>(new HttpRequestException()):Task.FromResult(Persisted?Saved:null);
         public Task<ClinicalAssessment> CreateAsync(int id,AssessmentRequest request){PostCalls++;Requests.Add(request);if(PostGate!=null)return PostGate.Task;if(Error!=null)throw new ClinicalApiException(Error,"Safe message");Persisted=true;return Task.FromResult(Saved);}
     }

@@ -5,6 +5,10 @@ public sealed record VaccinationJourneyDto(int RegistrationId, DateTimeOffset Cr
     VaccinationHistoryDto[] Shots)
 {
     public int ShotCount => Shots.Length;
+    public VaccinationProgressDto[] Progress { get; init; } = [];
 }
+
+public sealed record VaccinationProgressDto(int VaccineId, string VaccineName, int? RegisteredDoses,
+    int AdministeredDoses, int? RemainingDoses, AppointmentDto? NextAppointment);
 
 public sealed record VaccinationJourneyListResponse(VaccinationJourneyDto[] Items);

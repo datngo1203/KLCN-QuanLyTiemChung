@@ -7,8 +7,10 @@ public sealed class ClinicalVaccineOption(ClinicalVaccine vaccine, Func<bool> ca
 {
     private bool _selected;
     public int Id => vaccine.Id;
-    public string Name => vaccine.Name;
-    public bool IsSelected { get => _selected; set { if (canEdit() && Set(ref _selected, value)) changed(); } }
+    public string Name => vaccine.CanIndicate ? vaccine.Name : vaccine.Name + (vaccine.RemainingDoses is null
+        ? " · Chưa xác định số mũi đăng ký" : " · Không còn mũi được phép chỉ định");
+    public bool CanIndicate => vaccine.CanIndicate;
+    public bool IsSelected { get => _selected; set { if (CanIndicate && canEdit() && Set(ref _selected, value)) changed(); } }
     internal void Clear() { _selected=false; OnPropertyChanged(nameof(IsSelected)); }
 }
 
@@ -54,7 +56,7 @@ public sealed class ScreeningViewModel : ViewModelBase
     public bool HasPending=>HasAccess && _pending is not null;
     public bool IsDirty=>_conclusion.Length>0 || _reason.Length>0 || Vaccines.Any(v=>v.IsSelected);
     public bool CanBrowse=>HasAccess && !_busy && !_confirming && _pending is null && !IsDirty;
-    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is not null && Assessment is null;
+    public bool CanEdit=>HasAccess && !_busy && !_confirming && _pending is null && Detail is { BlockReason: null } && Assessment is null;
     public bool CanSelectVaccines=>CanEdit && Conclusion=="Đủ điều kiện";
     public bool IsDraft=>HasAccess && Detail is not null && Assessment is null;
     public bool IsRecorded=>HasAccess && Assessment is not null;
@@ -91,6 +93,9 @@ public sealed class ScreeningViewModel : ViewModelBase
     {
         if(!IsCurrent)return;
         _loadError=true;
+        if (error is ClinicalApiException { Code: "appointmentNotStarted" or "doseEntitlementExhausted" or "doseEntitlementUnavailable" } blocked && _detail is not null) {
+            _detail = _detail with { BlockReason = blocked.Code }; ClearDraft(); OnPropertyChanged(nameof(Detail));
+        }
         if(error is ClinicalApiException {Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
         Feedback=error is ClinicalApiException ? error.Message : "Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
     }
@@ -121,7 +126,13 @@ public sealed class ScreeningViewModel : ViewModelBase
             _detail=detail;_assessment=assessment;
             foreach(var vaccine in detail.AllowedVaccines)Vaccines.Add(new(vaccine,()=>CanSelectVaccines,Refresh));
             OnPropertyChanged(nameof(Detail));OnPropertyChanged(nameof(Assessment));
-            Feedback=assessment is null?"Bác sĩ chủ động chọn kết luận và vắc xin. Chưa có kết quả tiêm.":"Kết luận đã lưu, chỉ đọc; không sửa hoặc hủy trong chức năng này.";
+            Feedback=assessment is not null ? "Kết luận đã lưu, chỉ đọc; không sửa hoặc hủy trong chức năng này."
+                : detail.BlockReason switch {
+                    "appointmentNotStarted" => "Chưa đến giờ hẹn. Chưa thể khám hoặc chỉ định; hãy tải lại khi đến giờ.",
+                    "doseEntitlementExhausted" => "Đã thực hiện đủ số mũi đăng ký. Không thể khám hoặc chỉ định thêm.",
+                    null => "Bác sĩ chủ động chọn kết luận và vắc xin. Chưa có kết quả tiêm.",
+                    _ => "Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi khám hoặc chỉ định."
+                };
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public string? BeginConfirmation()

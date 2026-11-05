@@ -67,8 +67,10 @@ public sealed class VaccinationJourneySqlTests
             var id = source.Registration.Id;
             var before = await Read(owner, id);
             Assert.Equal("ThanhCong", before.Payment.PaymentState);
-            Assert.Equal(source.Appointment.Id, before.NextAppointment!.Id);
+            Assert.Null(before.NextAppointment);
             Assert.Empty(before.Shots);
+            Assert.Equal(3, before.Progress.Single(d => d.VaccineId == f.A).RegisteredDoses);
+            Assert.Equal(1, before.Progress.Single(d => d.VaccineId == f.B).RegisteredDoses);
             var nearRequest = f.Base.Request(source.Registration, source.Registration.Items.Single(i => i.Kind == "vaccine"))
                 with { ScheduledAt = DateTimeOffset.UtcNow.AddDays(1).ToString("O") };
             using var nearResponse = await f.Base.Reception.PostAsJsonAsync("/api/v1/appointments", nearRequest);
@@ -89,6 +91,9 @@ public sealed class VaccinationJourneySqlTests
             var after = await Read(owner, id);
             Assert.Equal(new[] { f.B, f.A }, after.Shots.Select(s => s.Vaccine.Id));
             Assert.Equal(2, after.ShotCount);
+            Assert.Equal(1, after.Progress.Single(d => d.VaccineId == f.A).AdministeredDoses);
+            Assert.Equal(2, after.Progress.Single(d => d.VaccineId == f.A).RemainingDoses);
+            Assert.Equal(0, after.Progress.Single(d => d.VaccineId == f.B).RemainingDoses);
             Assert.Empty((await Read(owner, unrelated.Id)).Shots);
             await f.Db.Set<MuiTiem>().Where(s => s.MaMuiTiem == after.Shots[0].Id)
                 .ExecuteUpdateAsync(s => s.SetProperty(m => m.MaChiDinh, (int?)null));
