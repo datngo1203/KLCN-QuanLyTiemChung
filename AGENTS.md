@@ -112,6 +112,15 @@ Người dùng cho phép các chat tạo, sử dụng và lưu rõ username/pass
 
 Được ghi plaintext credential synthetic vào sổ local này và hiển thị mật khẩu test cho người dùng khi cần. Không coi quy định không tiết lộ secret thật là lý do chặn việc lưu/sử dụng credential test đã được cho phép. Không đưa sổ local hoặc mật khẩu môi trường test này vào Git/PR/log công khai. Quyết định này không tắt hash mật khẩu tại backend, validation, phân quyền, audit hoặc kiểm thử bảo mật của sản phẩm; không tự mở rộng quyền SQL/OS hay áp dụng cho credential thật/production. Không gửi tin sang chat khác nếu chưa có yêu cầu trực tiếp.
 
+### Quy ước tên đăng nhập và mật khẩu test dễ nhập — 05/11/2026
+
+- Mục tiêu: tài khoản **test/dev local, synthetic** cần **dễ nhìn, nhớ, gõ và phân biệt theo chức danh**; không tạo username bốc thăm, chuỗi dài vô nghĩa hay password random khó nhập cho các tài khoản cần thao tác tay.
+- Staff: ưu tiên username không dấu, viết thường, theo chức danh + số thứ tự: `admin01`, `letan01`, `bacsi01`, `dieuduong01`, `thungan01`, `thukho01`; hiển thị họ tên synthetic tự nhiên. Customer đăng nhập bằng email: ví dụ `khach01@example.invalid` nếu validator/local mail sink hỗ trợ. Với tài khoản khác cần uniqueness thì tăng số thứ tự.
+- Mật khẩu **chỉ cho tài khoản test local**: chọn chuỗi dễ nhớ, nhập tay, **ít nhất 12 ký tự và đáp ứng validator hiện hành**, có thể kết hợp tên vai trò + năm + cụm test + ký tự đặc biệt; ví dụ **minh họa định dạng, không phải mật khẩu đã cấp**: `LeTan@2026Test!`. Ưu tiên khác nhau theo vai trò. Không dùng `123456`, `password`, mật khẩu quá ngắn hoặc credential production.
+- Trước khi tạo mới: đọc `TEST-ACCOUNTS.local.md`; **tái sử dụng tài khoản đang hoạt động** nếu có, không reset/đổi mật khẩu chỉ cho đẹp mẫu. Chỉ ghi trong sổ local giá trị **đã thực sự tạo và xác minh đăng nhập được**; mục chưa kiểm phải phân biệt rõ.
+- Khi bàn giao test tay: nêu **vai trò + username/email dễ nhận diện + vị trí sổ local** (không đưa mật khẩu vào Git/PR), và chỉ dẫn cách đăng nhập ngắn. Không tự phát minh credential chưa tồn tại.
+- Không hardcode các mật khẩu/test account này vào production code, migration, dữ liệu công khai hoặc default đăng nhập. Dùng test fixture/seed Development-only hiện có; giữ hash, validation và kiểm quyền tại API. Nếu môi trường không hoàn toàn local/disposable, dùng credential riêng không chia sẻ, không sử dụng công thức mật khẩu dễ đoán.
+
 ## Phân công và Git — quyết định bàn giao 02/11/2026
 
 | Thành viên | GitHub | Phụ trách từ 02/11/2026 |
