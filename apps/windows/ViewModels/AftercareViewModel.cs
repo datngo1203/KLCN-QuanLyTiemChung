@@ -11,7 +11,7 @@ public sealed class AftercareViewModel:ViewModelBase
     private bool _busy,_denied,_confirming,_committed,_reconciled,_loadError;
     private int _page=1;
     private string _search="",_lookup="",_condition="",_severity="",_treatment="",_feedback="";
-    private VaccinationRecord? _selected;
+    private FollowUpPendingItem? _selected;
     private FollowUpDetail? _detail;
     private FollowUpRequest? _confirmation,_pending;
     private int _pendingId;
@@ -22,12 +22,12 @@ public sealed class AftercareViewModel:ViewModelBase
         ReloadCommand=new(async _=>await LoadAsync(1),_=>CanBrowse);
         PreviousCommand=new(async _=>await LoadAsync(Page-1),_=>CanBrowse&&Page>1);
         NextCommand=new(async _=>await LoadAsync(Page+1),_=>CanBrowse&&Queue.Count==AftercareApiService.PageSize);
-        DetailCommand=new(async _=>await LoadDetailAsync(),_=>CanBrowse&&Selected is not null);
+        DetailCommand=new(async _=>await RefreshDetailAsync(),_=>CanRefreshDetail);
         ResetDraftCommand=new(_=>{ClearDraft();Refresh();},_=>CanEdit&&IsDirty);
         ReconcileCommand=new(async _=>await ReconcileAsync(),_=>HasAccess&&!_busy&&_pending is not null);
-        RetryCommand=new(async _=>await RetryAsync(),_=>HasAccess&&!_busy&&_pending is not null&&_reconciled&&!_committed);
+        RetryCommand=new(async _=>await RetryAsync(),_=>HasAccess&&!_busy&&_pending is not null&&_reconciled&&!_committed&&Detail?.Observation is{CanComplete:true,BlockReason:null});
     }
-    public ObservableCollection<VaccinationRecord> Queue{get;}=[];
+    public ObservableCollection<FollowUpPendingItem> Queue{get;}=[];
     public RelayCommand ReloadCommand{get;}
     public RelayCommand PreviousCommand{get;}
     public RelayCommand NextCommand{get;}
@@ -49,7 +49,8 @@ public sealed class AftercareViewModel:ViewModelBase
     public bool IsRecorded=>HasDetail&&Result is not null;
     public bool NoResults=>HasAccess&&!_busy&&!_loadError&&Queue.Count==0;
     private static bool Input(string value,int max)=>!string.IsNullOrWhiteSpace(value)&&value.Trim().Length<=max;
-    public bool CanSave=>CanEdit&&Input(Condition,100)&&Input(Severity,100)&&Input(Treatment,500);
+    public bool CanSave=>CanEdit&&Detail?.Observation is{CanComplete:true,BlockReason:null}&&Input(Condition,100)&&Input(Severity,100)&&Input(Treatment,500);
+    public bool CanRefreshDetail=>HasAccess&&!_busy&&!_confirming&&_pending is null&&(Detail is not null||Selected is not null);
     private int LookupId=>int.TryParse(_lookup.Trim().Replace("MT-","",StringComparison.OrdinalIgnoreCase),out var id)?id:0;
     public bool CanReadResult=>CanBrowse&&LookupId>0;
     public int Page=>_page;
@@ -59,7 +60,7 @@ public sealed class AftercareViewModel:ViewModelBase
     public string Condition{get=>_condition;set{if(CanEdit&&Set(ref _condition,value))Refresh();}}
     public string Severity{get=>_severity;set{if(CanEdit&&Set(ref _severity,value))Refresh();}}
     public string Treatment{get=>_treatment;set{if(CanEdit&&Set(ref _treatment,value))Refresh();}}
-    public VaccinationRecord? Selected{get=>_selected;set{if(CanBrowse&&Set(ref _selected,value)){ClearDetail();Refresh();}}}
+    public FollowUpPendingItem? Selected{get=>_selected;set{if(CanBrowse&&Set(ref _selected,value)){ClearDetail();Refresh();}}}
     public FollowUpDetail? Detail=>_detail;
     public FollowUpRecord? Result=>_detail?.FollowUp;
     private void ClearDraft(){_condition="";_severity="";_treatment="";OnPropertyChanged(nameof(Condition));OnPropertyChanged(nameof(Severity));OnPropertyChanged(nameof(Treatment));}
@@ -74,28 +75,44 @@ public sealed class AftercareViewModel:ViewModelBase
     {
         if(!IsCurrent)return;_loadError=true;
         if(error is AftercareApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
-        Feedback=error is AftercareApiException?error.Message:"Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+        Feedback=error is AftercareApiException?error.Message:"Không kết nối hoặc đọc được dữ liệu. Bản nháp được giữ lại; hãy thử lại.";
     }
     private void Refresh()
     {
-        foreach(var name in new[]{nameof(HasAccess),nameof(NoAccess),nameof(IsBusy),nameof(HasPending),nameof(IsDirty),nameof(CanBrowse),nameof(CanEdit),nameof(HasDetail),nameof(NoDetail),nameof(IsDraft),nameof(IsRecorded),nameof(NoResults),nameof(CanSave),nameof(CanReadResult),nameof(Page)})OnPropertyChanged(name);
+        foreach(var name in new[]{nameof(HasAccess),nameof(NoAccess),nameof(IsBusy),nameof(HasPending),nameof(IsDirty),nameof(CanBrowse),nameof(CanEdit),nameof(HasDetail),nameof(NoDetail),nameof(IsDraft),nameof(IsRecorded),nameof(NoResults),nameof(CanSave),nameof(CanRefreshDetail),nameof(CanReadResult),nameof(Page)})OnPropertyChanged(name);
         foreach(var command in new[]{ReloadCommand,PreviousCommand,NextCommand,DetailCommand,ResetDraftCommand,ReconcileCommand,RetryCommand})command?.NotifyCanExecuteChanged();
     }
     private void Accept(FollowUpDetail detail)
     {
         _detail=detail;OnPropertyChanged(nameof(Detail));OnPropertyChanged(nameof(Result));
+        var queued=Queue.FirstOrDefault(x=>x.Vaccination.Id==detail.Vaccination.Id);
+        if(queued is not null){
+            if(detail.FollowUp is not null){Queue.Remove(queued);_selected=null;OnPropertyChanged(nameof(Selected));}
+            else if(detail.Observation is{} observation){
+                var updated=new FollowUpPendingItem(detail.Vaccination,observation);Queue[Queue.IndexOf(queued)]=updated;
+                if(_selected?.Vaccination.Id==detail.Vaccination.Id){_selected=updated;OnPropertyChanged(nameof(Selected));}
+            }
+        }
         if(detail.FollowUp is not null){_pending=null;_pendingId=0;_committed=false;_reconciled=false;ClearDraft();_lookup=detail.Vaccination.Id.ToString();OnPropertyChanged(nameof(ResultVaccinationId));}
-        Feedback=detail.FollowUp is null?"Nhập đủ ba nội dung thực tế. Chưa có bản ghi theo dõi cho mũi này.":"Đã đọc kết quả từ API / SQL. Chỉ đọc; việc lưu không phải quyết định cho về hoặc xác nhận an toàn.";
+        Feedback=detail.FollowUp is null?"Nhập đủ ba nội dung thực tế. Chưa có bản ghi theo dõi cho mũi này.":"Đã đọc kết quả đã lưu. Chỉ đọc; việc lưu không phải quyết định cho về hoặc xác nhận an toàn.";
     }
     public async Task LoadAsync(int page=1)
     {
         if(!CanBrowse||page<1)return;if(SearchText.Trim().Length>100){Feedback="Tìm kiếm tối đa 100 ký tự.";return;}
-        _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Queue.Clear();Feedback="Đang tải mũi chưa có theo dõi từ API / SQL…";Refresh();
+        _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Queue.Clear();Feedback="Đang tải mũi chưa có theo dõi …";Refresh();
         try{var rows=await _service.ListAsync(page,SearchText);if(!IsCurrent||_denied)return;foreach(var row in rows)Queue.Add(row);_page=page;
             Feedback=rows.Length==0?"Không có mũi chưa có bản ghi theo dõi phù hợp.":"Chọn mũi để đối chiếu trước khi ghi theo dõi. Danh sách không xác nhận người tiêm còn ở cơ sở.";
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
-    public async Task LoadDetailAsync(){if(CanBrowse&&Selected is{} shot)await ReadAsync(shot.Id);}
+    public async Task LoadDetailAsync(){if(CanBrowse&&Selected is{} shot)await ReadAsync(shot.Vaccination.Id);}
+    public async Task RefreshDetailAsync()
+    {
+        if(!CanRefreshDetail)return;
+        var id=Detail?.Vaccination.Id??Selected!.Vaccination.Id;_busy=true;Refresh();
+        try{var detail=await _service.GetAsync(id);if(IsCurrent&&!_denied)Accept(detail);}
+        catch(Exception e){if(IsCurrent&&Detail is{} old){_detail=old with{Observation=null};OnPropertyChanged(nameof(Detail));}Error(e);}
+        finally{_busy=false;Refresh();}
+    }
     public async Task ReadResultAsync(){if(CanReadResult){_selected=null;OnPropertyChanged(nameof(Selected));await ReadAsync(LookupId);}}
     private async Task ReadAsync(int id)
     {
@@ -115,19 +132,20 @@ public sealed class AftercareViewModel:ViewModelBase
     }
     private async Task SendPendingAsync()
     {
-        _busy=true;_reconciled=false;Feedback="Đang lưu theo dõi và audit…";Refresh();
-        try{var result=await _service.RecordAsync(_pendingId,_pending!);if(IsCurrent&&!_denied)Accept(new(Detail!.Vaccination,result));}
+        _busy=true;_reconciled=false;Feedback="Đang lưu theo dõi…";Refresh();
+        try{var result=await _service.RecordAsync(_pendingId,_pending!);if(IsCurrent&&!_denied)Accept(new(Detail!.Vaccination,result,Detail.Observation));}
         catch(AftercareApiException e)when(e.Code is "outcomeUnknown" or "recordedUnreadable" or "followUpAlreadyRecorded"){
             if(IsCurrent){_committed=e.Code=="recordedUnreadable";Feedback=e.Message;}
-        }catch(Exception e){if(IsCurrent){if(e is AftercareApiException)_pending=null;Error(e);}}
+        }catch(Exception e){if(IsCurrent){if(e is AftercareApiException)_pending=null;
+            if(e is AftercareApiException{Code:"observationPeriodNotCompleted" or "followUpSourceConflict"}&&Detail is{} old){_detail=old with{Observation=null};OnPropertyChanged(nameof(Detail));}Error(e);}}
         finally{_busy=false;Refresh();}
     }
     public async Task ReconcileAsync()
     {
-        if(!HasAccess||_busy||_pending is null)return;_busy=true;_reconciled=false;Feedback="Đang GET đối chiếu kết quả…";Refresh();
+        if(!HasAccess||_busy||_pending is null)return;_busy=true;_reconciled=false;Feedback="Đang đối chiếu kết quả…";Refresh();
         try{var detail=await _service.GetAsync(_pendingId);if(!IsCurrent||_denied)return;
-            if(detail.FollowUp is not null)Accept(detail);else{_reconciled=true;Feedback=_committed?"API đã trả 201. Tiếp tục GET, không POST lại.":"GET chưa thấy bản ghi. Có thể thử lại đúng yêu cầu cũ; API chặn ghi trùng.";}
+            if(detail.FollowUp is not null)Accept(detail);else{_detail=detail;OnPropertyChanged(nameof(Detail));_reconciled=true;Feedback=_committed?"Đã nhận xác nhận lưu. Tiếp tục đối chiếu, không gửi lại.":"Chưa thấy bản ghi. Khi đủ mốc theo dõi, có thể thử lại đúng nội dung cũ.";}
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
-    public async Task RetryAsync(){if(HasAccess&&!_busy&&_pending is not null&&_reconciled&&!_committed)await SendPendingAsync();}
+    public async Task RetryAsync(){if(HasAccess&&!_busy&&_pending is not null&&_reconciled&&!_committed&&Detail?.Observation is{CanComplete:true,BlockReason:null})await SendPendingAsync();}
 }

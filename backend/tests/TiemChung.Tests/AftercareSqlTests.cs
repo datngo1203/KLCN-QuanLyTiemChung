@@ -6,6 +6,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using Xunit;
@@ -18,11 +20,15 @@ public sealed class AftercareSqlTests
     private static string Path(int id)=>$"{Root}/{id}/follow-ups";
     private static CreateFollowUpRequest Request()=>new(" [DEMO] Tình trạng do điều dưỡng nhập "," [DEMO] Mức độ được ghi nhận "," [DEMO] Xử trí thực tế đã ghi ");
     private static Task Run(Func<VaccinationSqlTests.Fixture,Task> test)=>SqlFixtureLifecycle.RunAsync(VaccinationSqlTests.Fixture.Create,test);
-    private static async Task<VaccinationDto> Shot(VaccinationSqlTests.Fixture f)
+    private static async Task<VaccinationDto> Shot(VaccinationSqlTests.Fixture f,bool elapsed=true)
     {
         var source=await f.Source();
         using var response=await f.Nurse.PostAsJsonAsync(Root,new RecordVaccinationRequest(source.Assessment.Indications.Single().Id,"[DEMO] S5-VALID-A","[DEMO] site"));
-        Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<VaccinationDto>())!;
+        Assert.Equal(HttpStatusCode.Created,response.StatusCode);var shot=(await response.Content.ReadFromJsonAsync<VaccinationDto>())!;
+        if(!elapsed)return shot;
+        var time=DateTimeOffset.UtcNow.AddMinutes(-31);
+        await f.Db.Set<MuiTiem>().Where(m=>m.MaMuiTiem==shot.Id).ExecuteUpdateAsync(s=>s.SetProperty(m=>m.ThoiDiemTiem,time.UtcDateTime));
+        return shot with{AdministeredAt=time};
     }
     private static async Task Problem(HttpResponseMessage response,int status,string code)
     {
@@ -38,6 +44,25 @@ public sealed class AftercareSqlTests
             values.Add(Convert.ToString(await cmd.ExecuteScalarAsync())!);
         }}finally{await f.Db.Database.CloseConnectionAsync();}return string.Join("\n",values);
     }
+    [Theory,Trait("Category","SqlIntegration")]
+    [InlineData(0,false)][InlineData(1799,false)][InlineData(1800,true)][InlineData(1801,true)]
+    public async Task ServerMilestoneGatesExactBoundaryWithoutGetOrRejectedPostSideEffects(int seconds,bool allowed)
+    {
+        await Run(async f=>{
+            var shot=await Shot(f,false);var clock=new FixedClock(shot.AdministeredAt.AddSeconds(seconds));
+            await using var factory=f.Base.Base.Factory.WithWebHostBuilder(b=>b.ConfigureServices(s=>s.AddSingleton<TimeProvider>(clock)));
+            using var client=factory.CreateClient();client.DefaultRequestHeaders.Authorization=f.Nurse.DefaultRequestHeaders.Authorization;
+            var before=await f.Snapshot();var detail=(await client.GetFromJsonAsync<FollowUpDetailDto>(Path(shot.Id)))!;
+            var observation=detail.Observation!;Assert.Equal(shot.AdministeredAt.AddMinutes(30),observation.ObservationUntil);
+            Assert.Equal(allowed,observation.CanComplete);Assert.Equal(allowed?null:"observationPeriodNotCompleted",observation.BlockReason);
+            var pending=(await client.GetFromJsonAsync<FollowUpPendingResponse>(Root+"/follow-up-pending"))!;
+            Assert.Equal(observation,Assert.Single(pending.Observations!));Assert.Equal(before,await f.Snapshot());
+            using var response=await client.PostAsJsonAsync(Path(shot.Id),Request());
+            if(!allowed){await Problem(response,409,"observationPeriodNotCompleted");Assert.Equal(before,await f.Snapshot());}
+            else{Assert.Equal(HttpStatusCode.Created,response.StatusCode);Assert.Equal(clock.GetUtcNow(),(await response.Content.ReadFromJsonAsync<FollowUpDto>())!.RecordedAt);}
+        });
+    }
+    private sealed class FixedClock(DateTimeOffset now):TimeProvider { public override DateTimeOffset GetUtcNow()=>now; }
     [Fact,Trait("Category","SqlIntegration")]
     public async Task RealShotRecordsExactTrimmedTextActorUtcAndReadsWithoutChangingShotStockMoneyOrClinicalData()
     {

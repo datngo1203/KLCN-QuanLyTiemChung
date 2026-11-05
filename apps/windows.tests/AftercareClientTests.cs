@@ -9,10 +9,12 @@ namespace TiemChung.Windows.Tests;
 
 public sealed class AftercareClientTests
 {
-    private static readonly VaccinationRecord Shot=new(8,12,7,3,new(2,"[DEMO] Recipient"),new(11,"[DEMO] vaccine"),"[DEMO] LOT","[DEMO] site",new(6,"[DEMO] nurse"),DateTimeOffset.UtcNow.AddMinutes(-1),"DaTiem");
+    private static readonly VaccinationRecord Shot=new(8,12,7,3,new(2,"[DEMO] Recipient"),new(11,"[DEMO] vaccine"),"[DEMO] LOT","[DEMO] site",new(6,"[DEMO] nurse"),DateTimeOffset.UtcNow.AddMinutes(-31),"DaTiem");
     private static readonly FollowUpRequest Request=new("[DEMO] tình trạng","[DEMO] mức độ","[DEMO] xử trí thực tế");
     private static readonly FollowUpRecord Saved=new(9,8,Request.Condition,Request.Severity,Request.Treatment,new(5,"[DEMO] recording nurse"),DateTimeOffset.UtcNow);
-    private static readonly FollowUpDetail Detail=new(Shot,null);
+    private static readonly FollowUpObservation Observation=new(Shot.Id,Shot.AdministeredAt.AddMinutes(30),true,null);
+    private static readonly FollowUpPendingItem Pending=new(Shot,Observation);
+    private static readonly FollowUpDetail Detail=new(Shot,null,Observation);
     private static async Task<IdentityApiService> Login(Handler handler){var identity=new IdentityApiService(new HttpClient(handler){BaseAddress=new("http://test/")});Assert.True((await identity.LoginAsync("synthetic","synthetic-password")).Succeeded);return identity;}
     private static async Task<AftercareViewModel> Ready(Fake fake,IdentityApiService? identity=null){var vm=new AftercareViewModel(fake,identity??await Login(new()));await vm.LoadAsync();vm.Selected=Assert.Single(vm.Queue);await vm.LoadDetailAsync();return vm;}
     private static void Fill(AftercareViewModel vm){vm.Condition=" "+Request.Condition+" ";vm.Severity=" "+Request.Severity+" ";vm.Treatment=" "+Request.Treatment+" ";}
@@ -43,6 +45,7 @@ public sealed class AftercareClientTests
     }
     [Theory]
     [InlineData("missingWrapper")][InlineData("wrongShot")][InlineData("wrongFollowup")][InlineData("beforeShot")]
+    [InlineData("missingObservation")][InlineData("wrongMilestone")][InlineData("wrongObservationShot")][InlineData("conflictingReadiness")]
     public async Task MalformedGetsCannotProveNoRecordOrShowWrongPatient(string failure)
     {
         var h=new Handler{Failure=failure};var service=new AftercareApiService(await Login(h));await Assert.ThrowsAsync<JsonException>(()=>service.GetAsync(8));
@@ -52,7 +55,7 @@ public sealed class AftercareClientTests
     {
         var f=new Fake();var vm=await Ready(f);Assert.Equal("",vm.Condition);Assert.Equal("",vm.Severity);Assert.Equal("",vm.Treatment);Assert.False(vm.CanSave);
         vm.Condition=Request.Condition;vm.Severity=Request.Severity;Assert.False(vm.CanSave);vm.Treatment=" ";Assert.False(vm.CanSave);Fill(vm);Assert.True(vm.CanSave);Assert.False(vm.CanBrowse);
-        vm.Selected=Shot with{Id=99};Assert.Equal(Shot,vm.Selected);Assert.Contains(Request.Treatment,vm.BeginConfirmation());Assert.False(vm.CanEdit);vm.Condition="blocked";Assert.Equal(" "+Request.Condition+" ",vm.Condition);
+        vm.Selected=Pending with{Vaccination=Shot with{Id=99}};Assert.Equal(Pending,vm.Selected);Assert.Contains(Request.Treatment,vm.BeginConfirmation());Assert.False(vm.CanEdit);vm.Condition="blocked";Assert.Equal(" "+Request.Condition+" ",vm.Condition);
         await vm.ConfirmAsync(false);Assert.Equal(0,f.PostCalls);Assert.True(vm.CanSave);vm.BeginConfirmation();await vm.ConfirmAsync(true);Assert.True(vm.IsRecorded);Assert.False(vm.CanSave);Assert.False(vm.CanEdit);Assert.Equal(Saved,vm.Result);Assert.Equal("",vm.Condition);
         await vm.LoadAsync();vm.ResultVaccinationId="MT-0008";await vm.ReadResultAsync();Assert.Equal(Saved,vm.Result);
     }
@@ -95,7 +98,7 @@ public sealed class AftercareClientTests
         else if(stage=="get"){f.GetGate=new();operation=vm.LoadDetailAsync();}
         else{Fill(vm);vm.BeginConfirmation();if(stage=="post"){f.PostGate=new();operation=vm.ConfirmAsync(true);}else{f.Error="outcomeUnknown";await vm.ConfirmAsync(true);f.GetGate=new();operation=vm.ReconcileAsync();}}
         await identity.LogoutAsync();h.Title="Admin";Assert.True((await identity.LoginAsync("other","synthetic-password")).Succeeded);
-        f.ListGate?.SetResult([Shot]);f.GetGate?.SetResult(new(Shot,Saved));f.PostGate?.SetResult(Saved);await operation;
+        f.ListGate?.SetResult([Pending]);f.GetGate?.SetResult(new(Shot,Saved,Observation));f.PostGate?.SetResult(Saved);await operation;
         Assert.Empty(vm.Queue);Assert.Null(vm.Detail);Assert.Null(vm.Result);Assert.Null(vm.Selected);Assert.Equal("",vm.Condition);Assert.Equal("",vm.Treatment);Assert.False(vm.HasPending);Assert.False(vm.HasAccess);
     }
     [Fact]
@@ -104,12 +107,27 @@ public sealed class AftercareClientTests
         var h=new Handler();var identity=await Login(h);var service=new AftercareApiService(identity);await identity.LogoutAsync();Assert.True((await identity.LoginAsync("next","synthetic-password")).Succeeded);
         await Assert.ThrowsAsync<OperationCanceledException>(()=>service.GetAsync(8));Assert.Equal(0,h.PostCount);
     }
+    [Fact]
+    public async Task WaitingMilestoneRequiresRefreshAndKeepsDraftOnRefreshFailureAndServerRejection()
+    {
+        var f=new Fake{CurrentObservation=Observation with{CanComplete=false,BlockReason="observationPeriodNotCompleted"}};
+        var vm=await Ready(f);Fill(vm);Assert.False(vm.CanSave);Assert.Null(vm.BeginConfirmation());
+        Assert.Equal("Đang theo dõi sau tiêm",vm.Detail!.Observation!.StatusLabel);
+        Assert.Contains(Observation.ObservationUntil.ToLocalTime().ToString("HH:mm:ss"),vm.Detail.Observation.UntilLabel);
+        f.FailGet=true;await vm.RefreshDetailAsync();Assert.False(vm.CanSave);Assert.Equal(" "+Request.Treatment+" ",vm.Treatment);
+        f.FailGet=false;f.CurrentObservation=Observation;await vm.RefreshDetailAsync();Assert.True(vm.CanSave);
+        Assert.True(Assert.Single(vm.Queue).Observation.CanComplete);
+        Assert.Equal(" "+Request.Treatment+" ",vm.Treatment);Assert.True(vm.DetailCommand.CanExecute(null));
+        f.Error="observationPeriodNotCompleted";vm.BeginConfirmation();await vm.ConfirmAsync(true);
+        Assert.False(vm.CanSave);Assert.False(vm.HasPending);Assert.Equal(" "+Request.Treatment+" ",vm.Treatment);
+        await vm.RefreshDetailAsync();f.Error=null;Assert.True(vm.CanSave);vm.BeginConfirmation();await vm.ConfirmAsync(true);Assert.True(vm.IsRecorded);Assert.Empty(vm.Queue);
+    }
     private sealed class Fake:IAftercareService
     {
-        public int PostCalls,ListCalls;public bool Persisted,FailGet,ListError;public string? Error;public VaccinationRecord[] ListValue=[Shot];
-        public TaskCompletionSource<VaccinationRecord[]>? ListGate;public TaskCompletionSource<FollowUpDetail>? GetGate;public TaskCompletionSource<FollowUpRecord>? PostGate;public List<FollowUpRequest> Requests=[];
-        public Task<VaccinationRecord[]> ListAsync(int page,string search){ListCalls++;return ListError?Task.FromException<VaccinationRecord[]>(new HttpRequestException()):ListGate?.Task??Task.FromResult(ListValue);}
-        public Task<FollowUpDetail> GetAsync(int id)=>FailGet?Task.FromException<FollowUpDetail>(new HttpRequestException()):GetGate?.Task??Task.FromResult(new FollowUpDetail(Shot,Persisted?Saved:null));
+        public FollowUpObservation CurrentObservation=Observation;public int PostCalls,ListCalls;public bool Persisted,FailGet,ListError;public string? Error;public FollowUpPendingItem[] ListValue=[Pending];
+        public TaskCompletionSource<FollowUpPendingItem[]>? ListGate;public TaskCompletionSource<FollowUpDetail>? GetGate;public TaskCompletionSource<FollowUpRecord>? PostGate;public List<FollowUpRequest> Requests=[];
+        public Task<FollowUpPendingItem[]> ListAsync(int page,string search){ListCalls++;return ListError?Task.FromException<FollowUpPendingItem[]>(new HttpRequestException()):ListGate?.Task??Task.FromResult(ListValue);}
+        public Task<FollowUpDetail> GetAsync(int id)=>FailGet?Task.FromException<FollowUpDetail>(new HttpRequestException()):GetGate?.Task??Task.FromResult(new FollowUpDetail(Shot,Persisted?Saved:null,CurrentObservation));
         public Task<FollowUpRecord> RecordAsync(int id,FollowUpRequest request){PostCalls++;Requests.Add(request);if(PostGate!=null)return PostGate.Task;if(Error!=null)throw new AftercareApiException(Error,"safe");Persisted=true;return Task.FromResult(Saved);}
     }
     private sealed class Handler:HttpMessageHandler
@@ -121,9 +139,13 @@ public sealed class AftercareClientTests
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))RefreshCount++;return Json(new{accessToken="access",refreshToken="refresh"});}
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Array.Empty<string>(),capabilities=new { vaccinations=Title=="DieuDuong",aftercare=Title=="DieuDuong" }});
             if(req.Method==HttpMethod.Post){PostCount++;Body=await req.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="timeout")throw new TaskCanceledException();if(Failure=="invalid201")return Json(new{},HttpStatusCode.Created);if(Failure=="wrong201")return Json(Saved with{VaccinationId=99},HttpStatusCode.Created);return PostStatus==HttpStatusCode.Created?Json(Saved,PostStatus):Json(new{code="followUpAlreadyRecorded",detail="PRIVATE SQL note"},PostStatus);}
-            if(path.Contains('?'))return Json(new{items=new[]{Shot}});
-            if(Failure=="missingWrapper")return Json(new{vaccination=Shot});if(Failure=="wrongShot")return Json(new FollowUpDetail(Shot with{Id=99},null));
-            if(Failure=="wrongFollowup")return Json(new FollowUpDetail(Shot,Saved with{VaccinationId=99}));if(Failure=="beforeShot")return Json(new FollowUpDetail(Shot,Saved with{RecordedAt=Shot.AdministeredAt.AddSeconds(-1)}));return Json(Detail);
+            if(path.Contains('?'))return Json(new{items=new[]{Shot},observations=new[]{Observation}});
+            if(Failure=="missingObservation")return Json(new FollowUpDetail(Shot,null));
+            if(Failure=="wrongMilestone")return Json(Detail with{Observation=Observation with{ObservationUntil=Observation.ObservationUntil.AddSeconds(-1)}});
+            if(Failure=="wrongObservationShot")return Json(Detail with{Observation=Observation with{VaccinationId=99}});
+            if(Failure=="conflictingReadiness")return Json(Detail with{Observation=Observation with{CanComplete=true,BlockReason="observationPeriodNotCompleted"}});
+            if(Failure=="missingWrapper")return Json(new{vaccination=Shot});if(Failure=="wrongShot")return Json(new FollowUpDetail(Shot with{Id=99},null,Observation));
+            if(Failure=="wrongFollowup")return Json(new FollowUpDetail(Shot,Saved with{VaccinationId=99},Observation));if(Failure=="beforeShot")return Json(new FollowUpDetail(Shot,Saved with{RecordedAt=Shot.AdministeredAt.AddSeconds(-1)},Observation));return Json(Detail);
         }
         private static HttpResponseMessage Json(object value,HttpStatusCode status=HttpStatusCode.OK)=>new(status){Content=JsonContent.Create(value)};
     }
