@@ -91,7 +91,7 @@ public sealed partial class PaymentSqlTests
     public async Task PromotionCapsAtServiceSubtotalAndPaymentUsesImmutableSnapshot(bool pendingTransfer)
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(consultationFee: "50000"), async f => {
-            var manager = await f.Actor("LeTan", "QuanLyKhuyenMai");
+            var manager = await f.Actor("Admin", "QuanLyKhuyenMai");
             const string promotions = "/api/v1/promotions";
             var request = new UpsertPromotionRequest("Ưu đãi kiểm thử", "Chương trình tổng hợp",
                 DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1),
@@ -250,7 +250,7 @@ public sealed partial class PaymentSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task EveryRouteEnforcesRoleGrantsAndCurrentIdentityState()
+    public async Task EveryRouteEnforcesRoleAndCurrentIdentityState()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var registration = await f.Register();
@@ -270,12 +270,14 @@ public sealed partial class PaymentSqlTests
         }
         var reader = await f.Actor("ThuNgan", "XemThanhToan");
         var view = await reader.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
-        Assert.False(view!.CanRecordPayment); Assert.True(view.RequiresPayment);
+        Assert.True(view!.CanRecordPayment); Assert.True(view.RequiresPayment);
         Assert.Equal(HttpStatusCode.OK, (await reader.Client.GetAsync(ListPath)).StatusCode);
-        await Problem(await reader.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalBeforeDiscount)), 403, "permissionDenied");
+        Assert.True((await reader.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id)))!.CanRecordPayment);
         var writerOnly = await f.Actor("ThuNgan", "GhiThanhToan");
-        await Denied(writerOnly.Client, 403);
+        Assert.Equal(HttpStatusCode.OK,(await writerOnly.Client.GetAsync(ListPath)).StatusCode);
         await f.Db.Set<TaiKhoan_QuyenHan>().Where(g => g.MaTaiKhoan == f.Cashier.Account.MaTaiKhoan).ExecuteDeleteAsync();
+        Assert.Equal(HttpStatusCode.OK,(await f.Cashier.Client.GetAsync(ListPath)).StatusCode);
+        await f.Db.Set<NhanVien>().Where(e=>e.MaNhanVien==f.Cashier.Employee!.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"LeTan"));
         await Denied(f.Cashier.Client, 403);
         var inactive = await f.Actor("ThuNgan", "XemThanhToan", "GhiThanhToan");
         await f.Db.Set<NhanVien>().Where(e => e.MaNhanVien == inactive.Employee!.MaNhanVien)
@@ -670,8 +672,8 @@ public sealed partial class PaymentSqlTests
             Assert.Equal("TrucTuyen", (await f.Customer.Client.GetFromJsonAsync<RegistrationDto>($"/api/v1/registrations/{registration.Id}"))!.ExpectedChannel);
             Assert.False((await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!.CanConfirmPendingPayment);
             await Problem(await f.Customer.Client.PostAsync(confirm, null), 403, "permissionDenied");
-            var reader = await f.Actor("ThuNgan", "XemThanhToan");
-            Assert.False((await reader.Client.GetFromJsonAsync<RegistrationPaymentDto>(url))!.CanConfirmPendingPayment);
+            var reader = await f.Actor("LeTan", "XemThanhToan");
+            await Problem(await reader.Client.GetAsync(url),403,"permissionDenied");
             await Problem(await reader.Client.PostAsync(confirm, null), 403, "permissionDenied");
             await Problem(await f.Cashier.Client.PostAsJsonAsync(url, Cash(pending.TotalDue)), 409, "paymentAlreadyRecorded");
 

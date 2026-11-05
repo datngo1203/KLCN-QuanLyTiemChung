@@ -119,7 +119,7 @@ public sealed class AftercareClientTests
         {
             var path=req.RequestUri!.PathAndQuery;Paths.Add(path);
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))RefreshCount++;return Json(new{accessToken="access",refreshToken="refresh"});}
-            if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Array.Empty<string>()});
+            if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Array.Empty<string>(),capabilities=new { vaccinations=Title=="DieuDuong",aftercare=Title=="DieuDuong" }});
             if(req.Method==HttpMethod.Post){PostCount++;Body=await req.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="timeout")throw new TaskCanceledException();if(Failure=="invalid201")return Json(new{},HttpStatusCode.Created);if(Failure=="wrong201")return Json(Saved with{VaccinationId=99},HttpStatusCode.Created);return PostStatus==HttpStatusCode.Created?Json(Saved,PostStatus):Json(new{code="followUpAlreadyRecorded",detail="PRIVATE SQL note"},PostStatus);}
             if(path.Contains('?'))return Json(new{items=new[]{Shot}});
             if(Failure=="missingWrapper")return Json(new{vaccination=Shot});if(Failure=="wrongShot")return Json(new FollowUpDetail(Shot with{Id=99},null));

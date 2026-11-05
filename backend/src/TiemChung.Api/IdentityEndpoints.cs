@@ -81,8 +81,9 @@ public static class IdentityEndpoints
                 profileState=a.IsCustomer?(linked?"linked":"unlinked"):"notApplicable",
                 employee=a.Employee is null?null:new { id=a.Employee.MaNhanVien,title=a.Employee.ChucDanh,administrativeDuty=a.Account.AdministrativeDuty },
                 permissions=a.Permissions,
-                capabilities=new { profilesRead=a.IsCustomer || a.CanReadProfiles, profilesCreate=a.IsCustomer || a.CanCreateProfiles,
-                    profilesUpdate=a.IsCustomer ? linked : a.CanCreateProfiles,selfClaim=a.IsCustomer && !customerLinked,representatives=false }
+                capabilities=a.IsCustomer
+                    ? new TiemChung.Infrastructure.Data.EmployeeCapabilities { ProfilesRead=true, ProfilesCreate=true, ProfilesUpdate=linked, SelfClaim=!customerLinked }
+                    : TiemChung.Infrastructure.Data.EmployeeAuthorization.CapabilitiesFor(a.Employee?.ChucDanh, a.Account.AdministrativeDuty)
             });
         });
     }

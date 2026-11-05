@@ -12,7 +12,7 @@ public static class AftercareEndpoints
     private static async Task<IdentityActor> RequireNurse(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor=await auth.RequireAsync(context,write,ct);
-        if(actor.IsCustomer || actor.Employee?.ChucDanh!="DieuDuong")throw new IdentityFailure(403,"permissionDenied");
+        actor.RequirePermission(EmployeeAuthorization.Aftercare);
         return actor;
     }
     private static IQueryable<MuiTiem> Sources(TiemChungDbContext db) =>

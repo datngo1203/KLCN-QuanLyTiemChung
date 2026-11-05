@@ -21,8 +21,7 @@ public static class ReportEndpoints
             CancellationToken ct) =>
         {
             var actor = await auth.RequireAsync(context, false, ct);
-            if (!actor.Permissions.Contains("XemBaoCao"))
-                throw new IdentityFailure(403, "permissionDenied");
+            actor.RequirePermission("XemBaoCao");
 
             var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
@@ -96,8 +95,7 @@ public static class ReportEndpoints
             CancellationToken ct) =>
         {
             var actor = await auth.RequireAsync(context, false, ct);
-            if (!actor.Permissions.Contains("XemBaoCao"))
-                throw new IdentityFailure(403, "permissionDenied");
+            actor.RequirePermission("XemBaoCao");
 
             var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
@@ -164,8 +162,7 @@ public static class ReportEndpoints
         ) =>
         {
             var actor = await auth.RequireAsync(context, false, ct);
-            if (!actor.Permissions.Contains("XemBaoCao"))
-                throw new IdentityFailure(403, "permissionDenied");
+            actor.RequirePermission("XemBaoCao");
 
             context.Response.Headers.CacheControl = "no-store";
 

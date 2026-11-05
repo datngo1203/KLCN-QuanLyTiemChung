@@ -118,7 +118,7 @@ public sealed class ClinicalClientTests
             var path=request.RequestUri!.PathAndQuery;Paths.Add(path);
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))RefreshCount++;return Json(new{accessToken="access",refreshToken="refresh"});}
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
-            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Array.Empty<string>()});
+            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Array.Empty<string>(),capabilities=new { screening=Title=="BacSi" }});
             if(request.Method==HttpMethod.Post){PostCount++;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="timeout")throw new TaskCanceledException();if(Failure=="invalid201")return Json(new{},HttpStatusCode.Created);return PostStatus==HttpStatusCode.Created?Json(Saved,PostStatus):Json(new{code=PostStatus==HttpStatusCode.Conflict?"assessmentAlreadyRecorded":"validation",detail="PRIVATE medical SQL"},PostStatus);}
             if(path.Contains("?"))return Json(new{items=new[]{Appointment}});
             if(path.EndsWith("/assessment"))return Json(new{assessment=(ClinicalAssessment?)null});return Json(Detail);

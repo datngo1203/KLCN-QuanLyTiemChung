@@ -221,7 +221,7 @@ public sealed class InventoryReceiptHistoryClientTests
             if(path.EndsWith("/logout"))return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
             if(path.EndsWith("/me"))return Task.FromResult(Json(new{
                 accountType="employee",employee=new{title=Title},
-                permissions=Receive?new[]{"XemKho","NhapKho"}:new[]{"XemKho"}}));
+                permissions=Receive?new[]{"XemKho","NhapKho"}:new[]{"XemKho"},capabilities=new { inventoryRead=Title=="ThuKho",inventoryReceive=Title=="ThuKho" && Receive }}));
             Paths.Add(path);
             if(Status!=HttpStatusCode.OK)return Task.FromResult(Json(new{detail="PRIVATE SQL"},Status));
             if(Failure=="listNull")return Task.FromResult(Json(new{items=(object?)null,hasMore=false}));

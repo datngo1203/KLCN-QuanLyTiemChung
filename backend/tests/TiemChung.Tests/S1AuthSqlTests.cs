@@ -50,7 +50,7 @@ public sealed class S1AuthSqlTests
         var first = await Tokens(await Login(client, password));
         var second = await Tokens(await Login(client, password));
         client.DefaultRequestHeaders.Authorization = new("Bearer", first.GetProperty("accessToken").GetString());
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/customers")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/v1/customers")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/customers", new { })).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = "wrong", newPassword = nextPassword })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/change-password", new { currentPassword = password, newPassword = "short" })).StatusCode);

@@ -103,7 +103,7 @@ public sealed class CatalogSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task EveryWriteChecksCurrentEmployeePermissionsAndCustomerIsReadOnly()
+    public async Task EveryWriteChecksCurrentRoleAndCustomerIsReadOnly()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
         var routes=new[] { "vaccine-technologies","diseases","vaccines","packages" };
@@ -124,11 +124,14 @@ public sealed class CatalogSqlTests
         await f.Login();
         var account=await f.Db.Set<TaiKhoan>().SingleAsync();
         var grants=await f.Db.Set<TaiKhoan_QuyenHan>().ToArrayAsync(); f.Db.RemoveRange(grants); await f.Db.SaveChangesAsync();
+        await f.Db.Set<NhanVien>().Where(e=>e.MaNhanVien==account.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"LeTan"));
         await Denied(HttpStatusCode.Forbidden);
         var clinical=await f.Db.Set<QuyenHan>().SingleAsync(x=>x.Code=="QuanLyDanhMucChuyenMon");
         f.Db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=account.MaTaiKhoan, MaQuyen=clinical.MaQuyen }); await f.Db.SaveChangesAsync();
+        await Denied(HttpStatusCode.Forbidden); // An extra grant cannot turn reception into catalog administration.
+        await f.Db.Set<NhanVien>().Where(e=>e.MaNhanVien==account.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"Admin"));
         Assert.Equal(HttpStatusCode.Created,(await f.Client.PostAsJsonAsync(Path("vaccine-technologies"),Payload("vaccine-technologies"))).StatusCode);
-        foreach (var route in new[] { "vaccines","packages" }) Assert.Equal(HttpStatusCode.Forbidden,(await f.Client.PostAsJsonAsync(Path(route),Payload(route))).StatusCode);
+        foreach (var route in new[] { "vaccines","packages" }) Assert.Equal(HttpStatusCode.BadRequest,(await f.Client.PostAsJsonAsync(Path(route),Payload(route))).StatusCode);
         // Verified customer with even an explicit catalog grant must still be refused.
         var customer=new TaiKhoan { AccountType="Customer",TenDangNhap="s2-customer",LoginEmail="s2@example.invalid",NormalizedEmail="S2@EXAMPLE.INVALID",EmailVerifiedAt=DateTimeOffset.UtcNow,TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
         f.Db.Add(customer); await f.Db.SaveChangesAsync();
@@ -398,6 +401,7 @@ public sealed class CatalogSqlTests
             }
             await Command(vm.RevertCommand);
             var grants=await f.Db.Set<TaiKhoan_QuyenHan>().ToArrayAsync();f.Db.RemoveRange(grants);await f.Db.SaveChangesAsync();
+            await f.Db.Set<NhanVien>().ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"LeTan"));
             vm.Name="[DEMO] Denied change";await Command(vm.SaveCommand);
             Assert.Contains("quyền",vm.Feedback);Assert.Equal("[DEMO] Denied change",vm.Name);
             Assert.DoesNotContain(await service.ListAsync<TiemChung.Desktop.Services.CatalogType>("diseases"),x=>x.Name==vm.Name);

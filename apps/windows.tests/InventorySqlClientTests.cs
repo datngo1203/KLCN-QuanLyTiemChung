@@ -30,6 +30,8 @@ public sealed class InventorySqlClientTests
             Assert.True((await identity.LoginAsync("x1.warehouse",f.Source.Password)).Succeeded);
             var reopen=new InventoryViewModel(identity:identity);await reopen.LoadAsync();Assert.NotEmpty(reopen.Batches);
             await f.Source.Db.Set<TaiKhoan_QuyenHan>().Where(g=>g.MaTaiKhoan==f.WarehouseAccountId).ExecuteDeleteAsync();
+            var roleEmployeeId=(await f.Source.Db.Set<TaiKhoan>().SingleAsync(a=>a.MaTaiKhoan==f.WarehouseAccountId)).MaNhanVien;
+            await f.Source.Db.Set<NhanVien>().Where(e=>e.MaNhanVien==roleEmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"Admin"));
             await reopen.LoadAsync();Assert.True(reopen.NoAccess);Assert.Empty(reopen.Batches);Assert.False(reopen.NoBatches);
             Assert.Equal(before,await f.Source.Snapshot());await identity.LogoutAsync();
         });

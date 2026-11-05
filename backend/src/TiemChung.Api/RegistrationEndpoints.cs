@@ -170,7 +170,7 @@ public static class RegistrationEndpoints
     private static async Task<IdentityActor> RequireActor(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (!actor.IsCustomer && actor.Employee?.ChucDanh != "LeTan") throw new IdentityFailure(403, "permissionDenied");
+        if (!actor.IsCustomer) actor.RequirePermission(EmployeeAuthorization.Registrations);
         return actor;
     }
 

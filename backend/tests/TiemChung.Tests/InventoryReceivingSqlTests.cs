@@ -74,23 +74,23 @@ public sealed class InventoryReceivingSqlTests
         });
     }
     [Fact,Trait("Category","SqlIntegration")]
-    public async Task OnlyCurrentActiveWarehouseWithBothGrantsCanUseAllReceiptRoutes()
+    public async Task OnlyCurrentActiveWarehouseRoleCanUseAllReceiptRoutes()
     {
         await SqlFixtureLifecycle.RunAsync(()=>Fixture.Create(),async f=>{
             var req=await Request(f);
             async Task Denied(HttpClient client,HttpStatusCode status){await Status(await client.PostAsJsonAsync(Root,req),status);await Status(await client.GetAsync(Get(req.LotNumber)),status);await Status(await client.GetAsync("/api/v1/inventory/receiving-vaccines"),status);await Status(await client.GetAsync(Root+"/history"),status);}
             using var anonymous=f.Base.Factory.CreateClient();await Denied(anonymous,HttpStatusCode.Unauthorized);
             foreach(var title in new string?[]{null,"Admin","BacSi","LeTan","DieuDuong","ThuNgan"}){using var client=await Actor(f,title);await Denied(client,HttpStatusCode.Forbidden);}
-            using var readOnly=await Actor(f,write:false);await Denied(readOnly,HttpStatusCode.Forbidden);
-            using var writeOnly=await Actor(f,read:false);await Denied(writeOnly,HttpStatusCode.Forbidden);
-            foreach(var scenario in new[]{"grant","account","employee","session","version"}){
+            using var readOnly=await Actor(f,write:false);await Status(await readOnly.GetAsync("/api/v1/inventory/receiving-vaccines"),HttpStatusCode.OK);
+            using var writeOnly=await Actor(f,read:false);await Status(await writeOnly.GetAsync("/api/v1/inventory/receiving-vaccines"),HttpStatusCode.OK);
+            foreach(var scenario in new[]{"role","account","employee","session","version"}){
                 using var client=await Actor(f);var id=f.LastAccountId;
-                if(scenario=="grant")await f.Db.Set<TaiKhoan_QuyenHan>().Where(g=>g.MaTaiKhoan==id).ExecuteDeleteAsync();
+                if(scenario=="role"){var employeeId=(await f.Db.Set<TaiKhoan>().SingleAsync(a=>a.MaTaiKhoan==id)).MaNhanVien;await f.Db.Set<NhanVien>().Where(n=>n.MaNhanVien==employeeId).ExecuteUpdateAsync(s=>s.SetProperty(n=>n.ChucDanh,"LeTan"));}
                 if(scenario=="account")await f.Db.Set<TaiKhoan>().Where(a=>a.MaTaiKhoan==id).ExecuteUpdateAsync(s=>s.SetProperty(a=>a.TrangThai,"Inactive"));
                 if(scenario=="employee"){var e=(await f.Db.Set<TaiKhoan>().SingleAsync(a=>a.MaTaiKhoan==id)).MaNhanVien;await f.Db.Set<NhanVien>().Where(n=>n.MaNhanVien==e).ExecuteUpdateAsync(s=>s.SetProperty(n=>n.TrangThai,"Inactive"));}
                 if(scenario=="session")await f.Db.Set<IdentitySession>().Where(s=>s.AccountId==id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.RevokedAt,DateTimeOffset.UtcNow));
                 if(scenario=="version")await f.Db.Set<TaiKhoan>().Where(a=>a.MaTaiKhoan==id).ExecuteUpdateAsync(s=>s.SetProperty(a=>a.SecurityVersion,a=>a.SecurityVersion+1));
-                await Denied(client,scenario=="grant"?HttpStatusCode.Forbidden:HttpStatusCode.Unauthorized);
+                await Denied(client,scenario=="role"?HttpStatusCode.Forbidden:HttpStatusCode.Unauthorized);
             }
             Assert.Empty(await f.Db.Set<LoVacXin>().ToArrayAsync());
         });

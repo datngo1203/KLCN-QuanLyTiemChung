@@ -63,7 +63,7 @@ public sealed partial class ComboBoxTemplateTests
         {
             object body = request.RequestUri!.AbsolutePath switch {
                 "/api/v1/auth/login" => new { accessToken = "synthetic", refreshToken = "synthetic" },
-                "/api/v1/auth/me" => new { accountType = "employee", employee = new { title = "LeTan" }, permissions = new[] { "QuanLyLichHen" } },
+                "/api/v1/auth/me" => new { accountType = "employee", employee = new { title = "LeTan" }, permissions = new[] { "QuanLyLichHen" }, capabilities=new { appointments=true } },
                 "/api/v1/appointments/sources" => new { items = new[] { Row } },
                 "/api/v1/appointments/sources/7" => new AppointmentSource(Row, [new(12, "vaccine", 99, "Vắc xin thử", 1)]),
                 _ => throw new InvalidOperationException("Unexpected appointment test route.")

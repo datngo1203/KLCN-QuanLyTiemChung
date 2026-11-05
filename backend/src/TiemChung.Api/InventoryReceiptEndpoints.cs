@@ -11,9 +11,7 @@ public static class InventoryReceiptEndpoints
     private static async Task<IdentityActor> RequireReceiver(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "ThuKho" ||
-            !actor.Permissions.Contains("NhapKho") || !actor.Permissions.Contains("XemKho"))
-            throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission(IdentityPermissions.InventoryReceive);
         return actor;
     }
     private static Task<InventoryReceiptDto?> Read(TiemChungDbContext db, string lot, CancellationToken ct) =>

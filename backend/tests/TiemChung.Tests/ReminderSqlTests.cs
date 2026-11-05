@@ -49,7 +49,7 @@ public sealed class ReminderSqlTests
             Assert.Single(await f.Db.Set<NhacLich>().ToArrayAsync());Assert.Equal(1,await f.Db.Set<SecurityAudit>().CountAsync(x=>x.Action=="reminders.simulated"));
         });
     }
-    [Theory][InlineData("Admin")][InlineData("BacSi")][InlineData("DieuDuong")][InlineData("ThuNgan")][InlineData("ThuKho")][InlineData(null)][InlineData("LeTan")]
+    [Theory][InlineData("Admin")][InlineData("BacSi")][InlineData("DieuDuong")][InlineData("ThuNgan")][InlineData("ThuKho")][InlineData(null)]
     public async Task OtherActorsCannotReadOrWrite(string? title) {
         await Run(async f=>{var a=await Appointment(f);using var actor=await f.Actor(title,title!="LeTan");
             await Problem(await actor.GetAsync(Path(a.Id)),403,"permissionDenied");await Problem(await actor.PostAsJsonAsync(Path(a.Id),new{}),403,"permissionDenied");});

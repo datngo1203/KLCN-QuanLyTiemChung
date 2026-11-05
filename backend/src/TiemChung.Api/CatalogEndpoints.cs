@@ -263,7 +263,8 @@ public static class CatalogEndpoints
     private static async Task<IdentityActor> RequireWrite(HttpContext context, IdentityAuthorization auth, bool price, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, true, ct);
-        if (actor.IsCustomer || !actor.Permissions.Contains("QuanLyDanhMucChuyenMon") || price && !actor.Permissions.Contains("QuanLyDanhMucGia")) throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission("QuanLyDanhMucChuyenMon");
+        if (price) actor.RequirePermission("QuanLyDanhMucGia");
         return actor;
     }
     private static void ValidateText(string? value, int max, bool required = true)

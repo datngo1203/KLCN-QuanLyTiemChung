@@ -63,9 +63,9 @@ public sealed class PaymentSqlClientTests
             var otherVm = new PaymentViewModel(identity: other); await otherVm.LoadPageAsync(1);
             Assert.Equal(read, otherVm.HasAccess); Assert.False(otherVm.CanRecord);
             var otherApi = new PaymentApiService(other);
-            if (read) { otherVm.SelectedRegistration = Assert.Single(otherVm.Registrations); await otherVm.LoadDetailAsync(); Assert.NotNull(otherVm.Detail); Assert.True(otherVm.IsReadOnly); }
+            if (read) { otherVm.SelectedRegistration = Assert.Single(otherVm.Registrations); await otherVm.LoadDetailAsync(); Assert.NotNull(otherVm.Detail); Assert.False(otherVm.IsReadOnly); }
             else Assert.Equal("permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.SearchAsync("", 1))).Code);
-            Assert.Equal("permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.RecordAsync(f.RegistrationId, request))).Code);
+            Assert.Equal(read ? "paymentAlreadyRecorded" : "permissionDenied", (await Assert.ThrowsAsync<PaymentApiException>(() => otherApi.RecordAsync(f.RegistrationId, request))).Code);
             await other.LogoutAsync();
         }
         await identity.LogoutAsync(); Assert.Null(vm.Detail); Assert.Empty(vm.Registrations);

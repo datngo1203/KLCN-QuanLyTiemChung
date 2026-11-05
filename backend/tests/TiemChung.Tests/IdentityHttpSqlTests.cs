@@ -96,7 +96,7 @@ public sealed class IdentityHttpSqlTests
             Assert.Equal(HttpStatusCode.OK,response.StatusCode);
             using var staffTokens=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             client.DefaultRequestHeaders.Authorization=new("Bearer",staffTokens.RootElement.GetProperty("accessToken").GetString());
-            Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/customers")).StatusCode);
+            Assert.Equal(title is "LeTan" or "BacSi" or "DieuDuong" ? HttpStatusCode.OK : HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
             if(title=="LeTan") {
                 foreach(var invalid in new[]{
                     new {fullName="",identityNumber="000000000099",phoneNumber="0900000000",email="ok@example.invalid"},
@@ -136,7 +136,7 @@ public sealed class IdentityHttpSqlTests
                 var permission=new QuyenHan { Code="XemHoSo",TenQuyen="XemHoSo",MoTa="Synthetic" };
                 db.Add(permission); await db.SaveChangesAsync();
                 db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=staff.MaTaiKhoan,MaQuyen=permission.MaQuyen }); await db.SaveChangesAsync();
-                Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/v1/customers")).StatusCode);
+                Assert.Equal(title is "LeTan" or "BacSi" or "DieuDuong" ? HttpStatusCode.OK : HttpStatusCode.Forbidden,(await client.GetAsync("/api/v1/customers")).StatusCode);
             }
             await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==staff.MaTaiKhoan).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
             Assert.Equal(HttpStatusCode.Unauthorized,(await client.GetAsync("/api/v1/auth/me")).StatusCode);

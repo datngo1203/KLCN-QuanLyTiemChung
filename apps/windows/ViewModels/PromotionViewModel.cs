@@ -16,7 +16,7 @@ public sealed class PromotionViewModel : ViewModelBase
     private bool _saving;
     private bool _enabled = true;
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
-    public bool CanEdit => !_saving && _identity.Permissions.Contains("QuanLyKhuyenMai");
+    public bool CanEdit => !_saving && _identity.CanManagePromotions;
 
     public PromotionViewModel(IdentityApiService? identity = null)
     {
@@ -89,7 +89,7 @@ public sealed class PromotionViewModel : ViewModelBase
         Selected is not null &&
         !IsAssigned &&
         !_saving &&
-        _identity.Permissions.Contains("QuanLyKhuyenMai");
+        _identity.CanManagePromotions;
 
     public async Task LoadAsync()
     {
@@ -101,7 +101,7 @@ public sealed class PromotionViewModel : ViewModelBase
             Refresh();
             return;
         }
-        if (!_identity.Permissions.Contains("QuanLyKhuyenMai"))
+        if (!_identity.CanManagePromotions)
         {
             Promotions.Clear();
             Feedback = "Tài khoản không có quyền Quản lý khuyến mãi.";

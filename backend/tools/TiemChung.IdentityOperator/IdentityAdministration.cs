@@ -121,10 +121,9 @@ public sealed class IdentityAdministration(TiemChungDbContext db)
         var valid=false;
         try { valid=account is not null && Hasher.VerifyHashedPassword(account,account.MatKhauHash,password)!=PasswordVerificationResult.Failed; }
         catch(FormatException) { }
-        if(!valid || account!.AccountType!="Employee" || account.TrangThai!="Active" || account.AdministrativeDuty=="Director" ||
-            !await db.Set<NhanVien>().AnyAsync(x=>x.MaNhanVien==account.MaNhanVien && x.TrangThai=="Active" && x.ChucDanh=="Admin",ct) ||
-            !await (from grant in db.Set<TaiKhoan_QuyenHan>() join permission in db.Set<QuyenHan>() on grant.MaQuyen equals permission.MaQuyen
-                where grant.MaTaiKhoan==account.MaTaiKhoan && permission.Code=="QuanLyTaiKhoan" select grant).AnyAsync(ct))
+        var employee = account is null ? null : await db.Set<NhanVien>().SingleOrDefaultAsync(x=>x.MaNhanVien==account.MaNhanVien,ct);
+        if(!valid || account!.AccountType!="Employee" || account.TrangThai!="Active" || employee?.TrangThai!="Active" ||
+            !EmployeeAuthorization.CapabilitiesFor(employee.ChucDanh,account.AdministrativeDuty).Accounts)
             throw new IdentityFailure(403,"permissionDenied");
         return account;
     }

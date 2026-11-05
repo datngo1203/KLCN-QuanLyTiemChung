@@ -24,16 +24,14 @@ public static partial class AppointmentEndpoints
     private static async Task<IdentityActor> RequireReception(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "LeTan" || !actor.Permissions.Contains("QuanLyLichHen"))
-            throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission("QuanLyLichHen");
         return actor;
     }
 
     private static async Task<IdentityActor> RequireReader(HttpContext context, IdentityAuthorization auth, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, false, ct);
-        if (!actor.IsCustomer && (actor.Employee?.ChucDanh != "LeTan" || !actor.Permissions.Contains("QuanLyLichHen")))
-            throw new IdentityFailure(403, "permissionDenied");
+        if (!actor.IsCustomer) actor.RequirePermission("QuanLyLichHen");
         return actor;
     }
 

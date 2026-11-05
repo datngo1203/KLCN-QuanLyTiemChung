@@ -1,5 +1,28 @@
 # API dùng chung · v1
 
+## AUTHZ-R1 — quyền nhân viên theo chức danh (#142)
+
+Nguồn runtime duy nhất: `EmployeeAuthorization` trong Infrastructure. Employee Active có đúng một trong sáu chức danh; grant legacy được giữ trong SQL nhưng không thêm/bớt quyền runtime. `AdministrativeDuty=Director` tiếp tục không được quản trị tài khoản. Customer và kiểm tra ownership hiện hành không đổi.
+
+| Chức danh | Màn Windows | Quyền nghiệp vụ |
+|---|---|---|
+| LeTan | A01/A03/A07/A09/A14 | Hồ sơ đọc/ghi, đăng ký, lịch hẹn/nhắc lịch |
+| BacSi | A01/A02/A14 | Đọc hồ sơ, kết luận/chỉ định |
+| DieuDuong | A01/A06/A06F/A14 | Đọc hồ sơ, ghi tiêm/theo dõi |
+| ThuNgan | A01/A08/A14 | Tra cứu đăng ký phục vụ thanh toán, ghi/xác nhận thanh toán |
+| ThuKho | A01/A05/A14 | Đọc kho, nhập một lô theo contract hiện hành |
+| Admin | A01/A04/A10/A11/A12/A14 | Danh mục, ưu đãi, báo cáo, chức danh tài khoản |
+
+`GET /api/v1/auth/me` giữ `permissions` và các capability Customer cũ; Employee permissions được derive từ matrix, capabilities bổ sung boolean `overview`, `changePassword`, `registrations`, `screening`, `vaccinations`, `aftercare`, `paymentsRead`, `paymentsWrite`, `inventoryRead`, `inventoryReceive`, `appointments`, `catalog`, `promotions`, `reports`, `accounts`. Windows dùng các boolean từ server cho menu/search/direct navigation; thiếu capability thì từ chối. Thu ngân/thủ kho/Admin đọc dữ liệu cần thiết qua API riêng của module, không được đọc danh sách hồ sơ chung. Admin không bypass actor lâm sàng/thu ngân/thủ kho/lễ tân. Các điều kiện tiền, tồn, chỉ định và transaction nghiệp vụ giữ nguyên.
+
+A12 bỏ các thao tác Sample và checkbox quyền rời rạc, chỉ đổi một chức danh cho tài khoản nhân viên có sẵn. Provision/reset/khóa tài khoản tiếp tục qua công cụ operator hiện có, không bổ sung HTTP cho các thao tác này.
+
+- `GET /api/v1/employee-access`: Admin có capability accounts; no-store; trả `{items:[{accountId,employeeId,fullName,username,title,employeeStatus,accountStatus,version}],roles:[{title,label,access}]}`. `version` là RowVersion base64, `label`/`access` dùng tiếng Việt cho UI.
+- `PUT /api/v1/employee-access/{accountId}/role`: `{title,expectedTitle,version}`; title/expectedTitle phải thuộc sáu chức danh, version 8 byte. Không tự đổi chức danh; không nhận Customer. Serializable + khóa administration/account; kiểm expectedTitle/RowVersion, đổi ChucDanh + tăng SecurityVersion + thu hồi sessions/refresh credentials + audit cùng transaction; 204. Không đổi hash mật khẩu hoặc grant legacy.
+- Lỗi: 400 validation, 401 invalidSession, 403 permissionDenied, 404 resourceNotFound, 409 concurrencyConflict, 503 dependencyUnavailable. Client tải lại sau lỗi không xác định/conflict, bỏ response trễ khi đổi phiên.
+- Không migration. Automated WPF render/navigation cho sáu role; manual full-shell deferred to S8 theo giao việc #142.
+
+
 ## RF-01 — Khách hàng quên mật khẩu (Issue #77)
 
 - POST `/api/v1/auth/password-resets/request`, đúng JSON `{ "email": "customer@example.invalid" }`: `202 { "status": "passwordResetPending" }` cho email Customer Active, không tồn tại, Employee hoặc tài khoản không Active. Không tạo account hoặc tiết lộ tài khoản có tồn tại. Username không phải email trả `400 validation`.

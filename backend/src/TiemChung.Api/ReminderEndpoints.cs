@@ -13,8 +13,7 @@ public static class ReminderEndpoints
     private static async Task<IdentityActor> RequireReception(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "LeTan" || !actor.Permissions.Contains("QuanLyLichHen"))
-            throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission("GuiNhacLich");
         return actor;
     }
     private static Task<ReminderDto?> Result(TiemChungDbContext db, int id, CancellationToken ct) =>

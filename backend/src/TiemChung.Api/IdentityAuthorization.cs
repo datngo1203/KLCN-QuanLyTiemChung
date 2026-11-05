@@ -7,10 +7,11 @@ namespace TiemChung.Api;
 public sealed record IdentityActor(TaiKhoan Account, IdentitySession Session, NhanVien? Employee, string[] Permissions)
 {
     public bool IsCustomer => Account.AccountType == "Customer";
-    public bool CanReadProfiles => !IsCustomer;
-    public bool CanCreateProfiles => !IsCustomer && Employee?.ChucDanh == "LeTan";
-    public bool CanAdminister => !IsCustomer && Employee?.ChucDanh == "Admin" &&
-        Account.AdministrativeDuty != "Director" && Permissions.Contains("QuanLyTaiKhoan");
+    public bool HasPermission(string code) => !IsCustomer && Permissions.Contains(code);
+    public void RequirePermission(string code) { if (!HasPermission(code)) throw new IdentityFailure(403, "permissionDenied"); }
+    public bool CanReadProfiles => HasPermission("XemHoSo");
+    public bool CanCreateProfiles => HasPermission(EmployeeAuthorization.ProfilesWrite);
+    public bool CanAdminister => HasPermission("QuanLyTaiKhoan");
 }
 
 public sealed class IdentityFailure(int status, string code) : Exception(code)
@@ -47,12 +48,9 @@ public sealed class IdentityAuthorization(TiemChungDbContext db, IdentityTokens 
             return new(account, session, null, []);
         }
         var employee = await db.Set<NhanVien>().AsNoTracking().SingleOrDefaultAsync(x => x.MaNhanVien == account.MaNhanVien, ct);
-        if (employee?.TrangThai != "Active" || employee.ChucDanh is not ("Admin" or "LeTan" or "BacSi" or "ThuNgan" or "ThuKho" or "DieuDuong"))
+        if (employee?.TrangThai != "Active" || !EmployeeAuthorization.IsRole(employee.ChucDanh))
             throw new IdentityFailure(401, "invalidSession");
-        var permissions = await (from grant in db.Set<TaiKhoan_QuyenHan>().AsNoTracking()
-            join permission in db.Set<QuyenHan>().AsNoTracking() on grant.MaQuyen equals permission.MaQuyen
-            where grant.MaTaiKhoan == accountId select permission.Code).ToArrayAsync(ct);
-        if (account.AdministrativeDuty == "Director") permissions = permissions.Where(x => x != "QuanLyTaiKhoan").ToArray();
+        var permissions = EmployeeAuthorization.PermissionsFor(employee.ChucDanh, account.AdministrativeDuty);
         return new(account, session, employee, permissions);
     }
 }

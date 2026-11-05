@@ -126,10 +126,10 @@ public sealed class WpfComboBoxHost : IDisposable
     {
         _thread = new Thread(() => {
             try {
-                var app = new Application();
+                var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 app.Resources.MergedDictionaries.Add(new Wpf.Ui.Markup.ThemesDictionary { Theme = Wpf.Ui.Appearance.ApplicationTheme.Light });
                 app.Resources.MergedDictionaries.Add(new Wpf.Ui.Markup.ControlsDictionary());
-                foreach (var file in new[] { "Colors", "Typography", "Controls", "Buttons", "Cards", "BadgesAlerts" })
+                foreach (var file in new[] { "Colors", "Typography", "Controls", "Buttons", "Cards", "BadgesAlerts", "Navigation" })
                     app.Resources.MergedDictionaries.Add(new ResourceDictionary {
                         Source = new Uri($"pack://application:,,,/TiemChung.Desktop;component/Themes/{file}.xaml")
                     });
