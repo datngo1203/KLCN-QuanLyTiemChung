@@ -63,6 +63,16 @@ Dùng kiến trúc Modular Monolith React/WPF → một ASP.NET Core API → m�
 
 Mỗi gói ghi ngắn: luồng người dùng cần chạy, dữ liệu cần lưu, tiêu chí đạt, kiểm thử liên quan và phần hoãn. Ưu tiên một vài luồng hoàn chỉnh từ UI đến API/SQL thay vì nhiều màn chỉ có mock hoặc hạ tầng chưa được người dùng sử dụng. Dữ liệu mẫu được ghi rõ; không trình bày mock là nghiệp vụ thật.
 
+### Quy tắc dữ liệu synthetic cho test/dev — 05/11/2026
+
+- **Dữ liệu cá nhân dùng trong test/dev là synthetic hoàn toàn và được phép tự sinh.** Codex có thể tự tạo họ tên, ngày sinh, giới tính, số điện thoại, email, CCCD/định danh, địa chỉ, người liên hệ và các trường hồ sơ khác để đủ điều kiện validator/test. Không cần né tránh vì “có thể lộ dữ liệu” khi chính Codex vừa tạo dữ liệu giả đó.
+- Không lấy/copy dữ liệu cá nhân của người thật, không dùng credential thật, không commit secret thật. Synthetic credential theo sổ test/local policy hiện có vẫn được phép.
+- Ưu tiên dữ liệu ngắn, hợp lệ theo format và dễ đọc trong test. Ví dụ tên `Nguyễn Test A`, email `test.a@example.invalid`, số điện thoại/CCCD là chuỗi số đúng độ dài mà validator yêu cầu. Không cần thêm prefix `[DEMO]`, “mô phỏng”, “dữ liệu giả lập” vào từng giá trị nếu bản thân ngữ cảnh đã là test/dev.
+- Mỗi test cần uniqueness thì sinh giá trị mới/deterministic theo test id; không dùng random khó tái lập nếu không cần.
+- **Không dùng text filler mô tả** kiểu “mô tả test”, “abc”, “dữ liệu mô phỏng”, “nội dung demo” cho các trường nghiệp vụ nếu trường đó cần nội dung có ý nghĩa. Với dữ liệu không-y-tế có thể tạo nội dung ngắn, tự nhiên và đủ validator.
+- **Dữ liệu y tế/vắc xin là ngoại lệ:** tên vắc xin, bệnh phòng ngừa, công nghệ, đường dùng, đối tượng, liều lượng, phác đồ, phản ứng sau tiêm, nguồn tham khảo… nếu dùng làm dữ liệu trình diễn/seed phải lấy từ nguồn công khai đáng tin cậy (ưu tiên VNVC, Bộ Y tế, WHO, nhà sản xuất/tờ hướng dẫn đã công khai) và điền đủ trường có căn cứ. Không bịa để “cho có”.
+- Test unit/integration thuần logic vẫn có thể dùng vaccine synthetic tối giản khi test không phụ thuộc nội dung y khoa; nhưng dữ liệu seed/demo nhìn thấy trên UI phải ưu tiên dữ liệu y tế có nguồn, không dùng catalog `[DEMO] Vắc xin A/B` lâu dài.
+
 ### 3. Giữ chất lượng thiết yếu
 
 Bắt buộc hash mật khẩu tại backend; API kiểm quyền và phạm vi hồ sơ; validate đầu vào; giữ ràng buộc dữ liệu; xử lý lỗi rõ ràng. Với tiền/tồn kho và ghi nhiều bảng, dùng transaction/kiểm tra cạnh tranh khi cần để tránh sai nghiệp vụ. Ghi nhận người thực hiện/thời điểm cho thao tác quan trọng. Không bịa nghiệp vụ y tế, tài chính hoặc quyền đại diện để làm demo chạy được. Credential test ghi sổ theo AGENTS; không đưa dữ liệu người thật vào Git.
