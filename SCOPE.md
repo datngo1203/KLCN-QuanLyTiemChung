@@ -37,7 +37,7 @@ Theo quyết định người dùng 03/11, **được mở rộng phạm vi từ
 
 **Thứ tự test:** test X1 độc lập + hồi quy đọc lô S5 có liên quan; test từng PR S6/S7; một PR tương thích S6→S5 sau chốt contract ưu đãi; cuối cùng mới S8 end-to-end. Không ghi PASS khi mới đọc code hoặc khi chỉ có branch.
 
-**Refinement queue cập nhật 05/11/2026:** S6-INT #138 / PR #139 vẫn là ACTIVE. Sau khi S6 merge: **#142 AUTHZ-R1** thống nhất RBAC chức danh → quyền → màn hình → **#143 DATA-R1** dọn filler/demo data và thay visible medical seed bằng dữ liệu có nguồn → RF-05B → RF-05C → RF-05D → RF-05E → RF-02C → S8. #142/#143 chỉ QUEUED, không chen vào diff #139.
+**Refinement queue cập nhật 05/11/2026:** S6-INT #138 / PR #139 vẫn là ACTIVE. Sau khi S6 merge: **#142 AUTHZ-R1** thống nhất RBAC chức danh → quyền → màn hình → **#145 AUTH-R2** đưa “Tìm hồ sơ tiêm chủng” ngang hàng với “Đăng nhập” trên Web, pre-auth search generic rồi login/register để liên kết → **#143 DATA-R1** dọn filler/demo data và thay visible medical seed bằng dữ liệu có nguồn → RF-05B → RF-05C → RF-05D → RF-05E → RF-02C → S8. #142/#145/#143 chỉ QUEUED, không chen vào diff #139.
 
 ## An toàn tối thiểu của S5 / G5 — đã nghiệm thu theo contract S4 (03/11/2026)
 
