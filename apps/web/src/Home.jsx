@@ -9,13 +9,13 @@ export default function Home({ go, query, setQuery }) {
     <section className="vac-home" aria-labelledby="home-title">
       <div className="vac-cover">
         <img src="/images/vaccination.jpg" alt="Bác sĩ thực hiện tiêm chủng cho người trưởng thành" fetchPriority="high" width="1920" height="1280" />
-        <div className="wrap cover-caption"><span>VAC · VACCINE ADMINISTRATION CENTER</span><p>Chăm sóc hôm nay.<br />An tâm ngày mai.</p></div>
+        <div className="wrap cover-caption"><span>Trung tâm tiêm chủng VNVC</span><p>Chăm sóc hôm nay.<br />An tâm ngày mai.</p></div>
       </div>
       <div className="vac-intro wrap">
         <div className="vac-intro-copy">
-          <span className="vac-label">Trung tâm tiêm chủng VAC</span>
+          <span className="vac-label">Trung tâm tiêm chủng VNVC</span>
           <h1 id="home-title">Chủ động tiêm chủng.<br /><em>Vững tâm mỗi ngày.</em></h1>
-          <p>Thông tin rõ ràng, lựa chọn dễ dàng. Cùng VAC tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe cho bạn, cho gia đình.</p>
+          <p>Thông tin rõ ràng, lựa chọn dễ dàng. Cùng VNVC tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe cho bạn, cho gia đình.</p>
           <div className="hero-actions">
             <button className="button primary" onClick={() => go('catalog')}>Khám phá vắc xin <ArrowUpRight aria-hidden="true" /></button>
             <a className="button outline" href="#lien-he">Thông tin trung tâm <ArrowDown aria-hidden="true" /></a>
@@ -25,7 +25,7 @@ export default function Home({ go, query, setQuery }) {
             <button type="submit" className="button primary">Tìm kiếm</button>
           </form>
         </div>
-        <aside className="vac-stories" aria-label="Khám phá dịch vụ VAC">
+        <aside className="vac-stories" aria-label="Khám phá dịch vụ VNVC">
           <button className="vac-story" onClick={() => go('catalog')}><img src="/images/vaccine-care.jpg" alt="Nhân viên y tế chuẩn bị vắc xin tại phòng khám" width="800" height="533" /><span><small>TÌM HIỂU DỊCH VỤ</small><b>Vắc xin & gói tiêm chủng</b><i><ArrowUpRight aria-hidden="true" /></i></span></button>
           <button className="vac-story" onClick={() => go('account')}><img src="/images/clinical-care.jpg" alt="Nhân viên y tế chăm sóc người được tiêm" width="800" height="533" /><span><small>ĐỒNG HÀNH CÙNG BẠN</small><b>Quản lý hồ sơ gia đình</b><i><ArrowUpRight aria-hidden="true" /></i></span></button>
         </aside>
@@ -34,8 +34,8 @@ export default function Home({ go, query, setQuery }) {
     </section>
 
     <section className="vac-about section wrap" aria-labelledby="about-title">
-      <div><div className="eyebrow">VỀ VAC</div><h2 id="about-title">Thông tin trong tầm tay.<br />An tâm cho cả gia đình.</h2></div>
-      <div className="vac-about-content"><p>Cổng thông tin VAC giúp bạn tìm hiểu vắc xin, tham khảo gói tiêm chủng và chuẩn bị hồ sơ trước khi đến trung tâm. Từ thông tin của bản thân đến hồ sơ của bé, bạn có thể quản lý tập trung trong tài khoản khách hàng.</p>
+      <div><div className="eyebrow">VỀ VNVC</div><h2 id="about-title">Thông tin trong tầm tay.<br />An tâm cho cả gia đình.</h2></div>
+      <div className="vac-about-content"><p>Cổng thông tin VNVC giúp bạn tìm hiểu vắc xin, tham khảo gói tiêm chủng và chuẩn bị hồ sơ trước khi đến trung tâm. Từ thông tin của bản thân đến hồ sơ của bé, bạn có thể quản lý tập trung trong tài khoản khách hàng.</p>
         <ul><li>Tra cứu tên, nguồn gốc và giá dịch vụ trong danh mục.</li><li>Tìm hiểu thành phần của từng gói tiêm chủng.</li><li>Lưu và cập nhật hồ sơ của bạn cùng người thân.</li></ul>
         <button className="button outline" onClick={() => go('account')}>Quản lý hồ sơ gia đình <ArrowUpRight aria-hidden="true" /></button>
       </div>
@@ -54,11 +54,11 @@ export default function Home({ go, query, setQuery }) {
     </section>
 
     <section className="vac-faq section" aria-labelledby="faq-title"><div className="wrap vac-faq-layout">
-      <div><div className="eyebrow">GIẢI ĐÁP NHANH</div><h2 id="faq-title">Bạn đang cần<br />tìm hiểu điều gì?</h2><p>Những thông tin hữu ích khi sử dụng cổng tiêm chủng VAC.</p><a className="button outline" href="#lien-he">Thông tin liên hệ <ArrowDown aria-hidden="true" /></a></div>
+      <div><div className="eyebrow">GIẢI ĐÁP NHANH</div><h2 id="faq-title">Bạn đang cần<br />tìm hiểu điều gì?</h2><p>Những thông tin hữu ích khi sử dụng cổng tiêm chủng VNVC.</p><a className="button outline" href="#lien-he">Thông tin liên hệ <ArrowDown aria-hidden="true" /></a></div>
       <div className="vac-faq-list">
         <details><summary>Tôi xem thông tin và giá vắc xin ở đâu?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Mở Danh mục để tra cứu theo tên, loại vắc xin, loại tiêm chủng hoặc khoảng giá. Mỗi mục hiển thị thông tin và giá đang được niêm yết trong danh mục.</p><button className="button text-button" onClick={() => go('catalog')}>Tra cứu danh mục <ArrowRight aria-hidden="true" /></button></div></details>
         <details><summary>Tôi có thể quản lý hồ sơ cho bé và người thân không?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Có. Sau khi đăng nhập và đăng ký hồ sơ khách hàng, bạn có thể thêm người được tiêm, nhập thông tin của bé hoặc người thân và cập nhật khi cần.</p><button className="button text-button" onClick={() => go('account')}>Mở tài khoản và hồ sơ <ArrowRight aria-hidden="true" /></button></div></details>
-        <details><summary>Làm thế nào để tạo tài khoản VAC?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Chọn Đăng nhập, sau đó chọn Tạo tài khoản khách hàng. Nhập email và mật khẩu, hoàn tất xác minh email rồi đăng nhập để quản lý hồ sơ.</p></div></details>
+        <details><summary>Làm thế nào để tạo tài khoản VNVC?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Chọn Đăng nhập, sau đó chọn Tạo tài khoản khách hàng. Nhập email và mật khẩu, hoàn tất xác minh email rồi đăng nhập để quản lý hồ sơ.</p></div></details>
         <details><summary>Gói tiêm chủng gồm những vắc xin nào?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Trong Danh mục, chọn Gói vắc xin để xem tên gói, giá và danh sách vắc xin cùng số lượng tương ứng. Trao đổi với nhân viên y tế để được tư vấn phù hợp.</p></div></details>
       </div>
     </div></section>

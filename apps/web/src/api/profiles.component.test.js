@@ -69,6 +69,7 @@ test('existing customer and recipient claims preserve the draft on network failu
   await ui.fill('Họ và tên', owner.fullName); await ui.fill('Ngày sinh', owner.dateOfBirth); await ui.fill('Số điện thoại', owner.phoneNumber)
   await ui.submit()
   assert.equal(ui.field('Họ và tên').value, owner.fullName)
+  assert.equal(ui.field('Ngày sinh').type, 'date')
   assert.equal(ui.field('Ngày sinh').value, owner.dateOfBirth)
   assert.equal(ui.field('Số điện thoại').value, owner.phoneNumber)
   assert.match(ui.host.querySelector('[role=alert]').textContent, /Vui lòng thử lại/)

@@ -8,7 +8,7 @@ import './Payments.css'
 export default function VaccinationHistory({ account, sessionBusy, go }) {
   return <section className="registration-page payments-page wrap">
     <div className="page-intro"><div className="eyebrow">THÔNG TIN CÁ NHÂN</div><h1>Lịch sử tiêm</h1>
-      <p>Đây là lịch sử các mũi đã được ghi nhận trong hệ thống VAC.</p>
+      <p>Đây là lịch sử các mũi đã được ghi nhận trong hệ thống VNVC.</p>
       <p>Thời gian hiển thị theo giờ địa phương của thiết bị.</p></div>
     {sessionBusy ? <p className="registration-message" role="status">Đang cập nhật phiên. Vui lòng chờ…</p>
       : account?.accountType === 'customer' ? <HistoryWorkspace key={account.accountId} go={go} />
