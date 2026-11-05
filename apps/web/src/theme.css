@@ -170,8 +170,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 180px; }
 .vac-service-preview p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.8; }
 .vac-service-preview strong { color: var(--primary); font-size: 20px; margin-top: auto; }
 .vac-service-preview .button { align-self: flex-start; }
-.vac-reference { font-size: 12px; color: var(--muted); line-height: 1.9; margin: 20px 0; }
-.vac-reference a { color: var(--primary); text-underline-offset: 3px; }
 /* Apply the Windows selection/focus palette to inherited controls. */
 .demo-field input:focus, .demo-field select:focus { border-color: var(--primary); outline-color: var(--blue-soft); }
 .demo-price, .record-date b, .step.current, .identity-gate-icon { color: var(--primary); }
@@ -253,4 +251,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .center-facts > div + div { border-inline-start: 0; border-block-start: 1px solid var(--line); }
   .center-facilities { gap: 10px; }
   .center-facilities li { padding: 12px; }
+}
+
+.center-process { padding-block: 0 48px; }
+.center-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 16px; list-style: none; margin: 0; padding: 0; }
+.center-steps li { display: flex; flex-direction: column; gap: 10px; position: relative; padding-inline-end: 12px; font-size: 14px; font-weight: 600; }
+.center-steps li:not(:nth-child(4n))::before { content: ''; position: absolute; top: 16px; left: 42px; right: 0; border-top: 1px solid var(--line); }
+.center-steps li > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--blue-soft); color: var(--primary); font-weight: 700; }
+.center-guidance { padding-bottom: 20px; }
+.center-guidance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.center-guidance-grid article { padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--blue-soft); }
+.center-guidance-grid h3 { display: flex; align-items: center; gap: 10px; color: var(--primary); margin: 0 0 8px; font-size: 16px; }
+.center-guidance-grid h3 svg { width: 20px; height: 20px; }
+.center-guidance-grid p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+@media (max-width: 700px) {
+  .center-process { padding-bottom: 32px; }
+  .center-steps, .center-guidance-grid { grid-template-columns: 1fr; }
+  .center-steps { gap: 12px; }
+  .center-steps li { flex-direction: row; align-items: center; gap: 12px; }
+  .center-steps li > span { flex: 0 0 34px; }
+  .center-steps li:nth-child(n):not(:last-child)::before { top: 34px; bottom: -12px; left: 16px; right: auto; border-top: 0; border-left: 1px solid var(--line); }
 }

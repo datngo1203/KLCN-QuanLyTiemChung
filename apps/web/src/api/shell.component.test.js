@@ -18,8 +18,8 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
     const path = new URL(url).pathname
     catalogRequests.push(path)
     const items = path.endsWith('/vaccines')
-      ? [{ id: 42, name: 'Vắc xin kiểm thử API', price: 150000 }]
-      : [{ id: 43, name: 'Gói tiêm kiểm thử API', price: 300000, items: [] }]
+      ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000 }]
+      : [{ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', price: 300000, items: [{ vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] }]
     return Response.json({ source: 'database', items })
   }
   const server = await createServer({ root: fileURLToPath(new URL('../..', import.meta.url)),
@@ -74,6 +74,20 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.ok(catalogRequests.includes('/api/v1/catalog/packages'))
   assert.match(home.textContent, /Vắc xin kiểm thử API/)
   assert.match(home.textContent, /Gói tiêm kiểm thử API/)
+  assert.match(home.textContent, /Thành phần kiểm thử × 1/)
+  assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
+  const steps = [...home.querySelectorAll('[aria-labelledby="center-process-title"] li')]
+  assert.equal(steps.length, 8)
+  for (const label of ['Khám sàng lọc', 'Thanh toán', 'Tiêm vắc xin', 'Theo dõi sau tiêm']) {
+    assert.ok(steps.some(step => step.textContent.includes(label)))
+  }
+  const guidance = home.querySelector('[aria-labelledby="center-guidance-title"]')
+  assert.match(guidance.textContent, /Trước khi tiêm.*tiền sử tiêm chủng/)
+  assert.match(guidance.textContent, /Sau khi tiêm.*ít nhất 30 phút/)
+  await act(async () => home.querySelector('.vac-service-preview button').click())
+  assert.equal(window.location.hash, '#catalog')
+  assert.equal(home.querySelector('input[aria-label="Tìm theo tên"]').value, '[DEMO] Gói tiêm kiểm thử API')
+  await act(async () => header.querySelector('.brand').click())
   await act(async () => heroButton('Đăng ký tiêm').click())
   assert.equal(window.location.hash, '#register')
   await act(async () => header.querySelector('.brand').click())
