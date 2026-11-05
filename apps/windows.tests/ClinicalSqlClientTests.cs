@@ -32,7 +32,7 @@ public sealed class ClinicalSqlClientTests
         }).Build();
         await using var db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(owner.ConnectionString).Options);
         await db.Database.MigrateAsync();foreach(var code in IdentityPermissions.Codes)db.Add(new QuyenHan{Code=code,TenQuyen=code,MoTa="[DEMO] test"});await db.SaveChangesAsync();
-        await DevelopmentCatalogSeed.RunAsync(db,new Environment());
+        await TiemChung.Tests.SyntheticCatalogFixture.RunAsync(db,new Environment());
         foreach(var title in new[]{"BacSi","LeTan"}){
             var e=new NhanVien{HoTen="[DEMO] S53 "+title,ChucDanh=title,TrangThai="Active"};db.Add(e);await db.SaveChangesAsync();
             var a=new TaiKhoan{AccountType="Employee",MaNhanVien=e.MaNhanVien,TenDangNhap=title,NormalizedUsername=title.ToUpperInvariant(),TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow};a.MatKhauHash=new PasswordHasher<TaiKhoan>().HashPassword(a,password);db.Add(a);await db.SaveChangesAsync();

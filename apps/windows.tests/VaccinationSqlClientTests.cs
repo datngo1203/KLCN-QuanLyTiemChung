@@ -83,7 +83,11 @@ public sealed class VaccinationSqlFixture : IAsyncDisposable
             f.Db=new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(f._owner.ConnectionString).Options);
             await f.Db.Database.MigrateAsync();
             foreach(var code in IdentityPermissions.Codes)f.Db.Add(new QuyenHan{Code=code,TenQuyen=code,MoTa="[DEMO] test"});await f.Db.SaveChangesAsync();
-            await DevelopmentCatalogSeed.RunAsync(f.Db,new TestEnvironment());await DevelopmentInventorySeed.RunAsync(f.Db,new TestEnvironment());
+            await TiemChung.Tests.SyntheticCatalogFixture.RunAsync(f.Db,new TestEnvironment());
+            await f.Db.Vaccines.Where(v=>v.TenVacXin=="[DEMO] Vắc xin A").ExecuteUpdateAsync(s=>s.SetProperty(v=>v.Code,"VX-AVAXIM-80U"));
+            await f.Db.Vaccines.Where(v=>v.TenVacXin=="[DEMO] Vắc xin B").ExecuteUpdateAsync(s=>s.SetProperty(v=>v.Code,"VX-HAVAX-05"));
+            f.Db.ChangeTracker.Clear();
+            await DevelopmentInventorySeed.RunAsync(f.Db,new TestEnvironment());
             var b=await f.Db.Vaccines.SingleAsync(x=>x.TenVacXin=="[DEMO] Vắc xin B");var day=VaccinationEndpoints.FacilityDate(DateTimeOffset.UtcNow);
             f.Db.Add(new LoVacXin{SoLo="[DEMO] S55-VALID-B",MaVacXin=b.MaVacXin,NgaySanXuat=day.AddMonths(-6),HanSuDung=day.AddYears(1),SoLuongBanDau=10,SoLuongTon=10,TrangThai="Active"});
             foreach(var (username,title,grants) in new[]{("s55.nurse","DieuDuong",Array.Empty<string>()),("s55.nurse2","DieuDuong",Array.Empty<string>()),

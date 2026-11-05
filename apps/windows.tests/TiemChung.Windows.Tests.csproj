@@ -9,6 +9,7 @@
     <Compile Include="../windows/Services/IReminderService.cs;../windows/ViewModels/ReminderViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IAftercareService.cs;../windows/ViewModels/AftercareViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IVaccinationService.cs;../windows/ViewModels/VaccinationViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
+    <Compile Include="../../backend/tests/TiemChung.Tests/SyntheticCatalogFixture.cs" Link="Tests/SyntheticCatalogFixture.cs" />
     <Compile Include="../../backend/tests/TiemChung.Tests/SqlFixtureLifecycle.cs" Link="Tests/SqlFixtureLifecycle.cs" />
     <Compile Include="../windows/Services/IScreeningService.cs;../windows/ViewModels/ScreeningViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IAppointmentService.cs;../windows/ViewModels/AppointmentViewModel.cs" Link="Windows/%(Filename)%(Extension)" />

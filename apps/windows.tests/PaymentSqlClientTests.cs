@@ -119,7 +119,7 @@ public sealed class PaymentSqlFixture : IAsyncDisposable
         await db.Database.MigrateAsync();
         var environment = new TestEnvironment();
         await DevelopmentAdminSeed.RunAsync(db, environment, config);
-        await DevelopmentCatalogSeed.RunAsync(db, environment);
+        await TiemChung.Tests.SyntheticCatalogFixture.RunAsync(db, environment);
         config["DevelopmentSeed:Username"] = "g3c.reception";
         await DevelopmentReceptionSeed.RunAsync(db, environment, config);
         foreach (var (user, grants) in new[] { ("g3c.cashier", new[] { "XemThanhToan", "GhiThanhToan" }), ("g3c.reader", new[] { "XemThanhToan" }) }) {
