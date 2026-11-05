@@ -142,6 +142,39 @@ public sealed class VaccinationSqlTests
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData(100000, false)]
+    [InlineData(900000, true)]
+    public async Task VaccinationGateUsesDiscountedTotalAndStillBlocksZeroDue(int amount, bool zeroDue)
+    {
+        await Run(async f => {
+            var promotion = new KhuyenMai {
+                TenKhuyenMai = "Ưu đãi kiểm thử ghi tiêm", NoiDung = "Dữ liệu tổng hợp", IsEnabled = true,
+                MucUuDai = amount, ThoiGianBatDau = DateTime.UtcNow.AddDays(-1), ThoiGianKetThuc = DateTime.UtcNow.AddDays(1)
+            };
+            f.Db.Promotions.Add(promotion);
+            await f.Db.SaveChangesAsync();
+            var source = await f.Source(recordPayment: false, promotionId: promotion.MaKhuyenMai);
+            var indication = source.Assessment.Indications.Single().Id;
+            var before = await f.Snapshot();
+            if (zeroDue) {
+                Assert.Equal(0m, source.Registration.TotalDue);
+                await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(indication)), 409, "vaccinationZeroTotalNotSupported");
+                Assert.Equal(before, await f.Snapshot());
+                return;
+            }
+
+            Assert.Equal(source.Registration.Subtotal - amount, source.Registration.TotalDue);
+            await Problem(await f.Nurse.PostAsJsonAsync(Route, Request(indication)), 409, "vaccinationPaymentRequired");
+            Assert.Equal(before, await f.Snapshot());
+            using var paid = await f.Cashier.PostAsJsonAsync($"/api/v1/registrations/{source.Registration.Id}/payment",
+                PaymentSqlTests.Cash(source.Registration.TotalDue));
+            Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
+            using var recorded = await f.Nurse.PostAsJsonAsync(Route, Request(indication));
+            Assert.Equal(HttpStatusCode.Created, recorded.StatusCode);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("TheQuocTe")]
     [InlineData("TheNoiDia")]
     [InlineData("ChuyenKhoanOnline")]
@@ -376,15 +409,15 @@ public sealed class VaccinationSqlTests
                 await f.Db.SaveChangesAsync();f.Db.ChangeTracker.Clear();return f;
             }catch(Exception e){await SqlFixtureLifecycle.CleanupAfterFailureAsync(e,f.DisposeAsync);throw;}
         }
-        public async Task<RegistrationDto> Register()
+        public async Task<RegistrationDto> Register(int? promotionId = null)
         {
             using var response=await Base.Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(Base.CustomerId,Base.RecipientId,
-                [new("vaccine",A,2,150000),new("package",PackageId,1,350000,[new(A,1),new(B,1)])]));
+                [new("vaccine",A,2,150000),new("package",PackageId,1,350000,[new(A,1),new(B,1)])]) with { PromotionId = promotionId });
             Assert.Equal(HttpStatusCode.Created,response.StatusCode);return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public async Task<SourceData> Source(string kind="vaccine",int[]? vaccineIds=null,bool recordPayment=true)
+        public async Task<SourceData> Source(string kind="vaccine",int[]? vaccineIds=null,bool recordPayment=true,int? promotionId=null)
         {
-            var registration=await Register();
+            var registration=await Register(promotionId);
             await Db.Registrations.Where(r => r.MaDangKy == registration.Id)
                 .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
             using var appointed=await Base.Reception.PostAsJsonAsync("/api/v1/appointments",Base.Request(registration,registration.Items.Single(i=>i.Kind==kind)));
@@ -393,7 +426,7 @@ public sealed class VaccinationSqlTests
             Assert.Equal(HttpStatusCode.Created,assessed.StatusCode);var assessment=(await assessed.Content.ReadFromJsonAsync<ClinicalAssessmentDto>())!;
             if (recordPayment) {
                 using var paid = await Cashier.PostAsJsonAsync($"/api/v1/registrations/{registration.Id}/payment",
-                    PaymentSqlTests.Cash(registration.TotalBeforeDiscount + 1));
+                    PaymentSqlTests.Cash(registration.TotalDue + 1));
                 Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
             }
             return new(registration,appointment,assessment);
