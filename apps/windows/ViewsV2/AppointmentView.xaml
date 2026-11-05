@@ -12,7 +12,7 @@
   <StackPanel Grid.Row="2" Margin="0,0,0,12">
    <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
    <TextBlock Text="Đang xử lý…" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}"/>
-   <StackPanel Orientation="Horizontal" Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,0"><Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
+   <StackPanel Orientation="Horizontal" Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,0"><Button Content="Đối chiếu lịch đã lưu" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
   </StackPanel>
   <Grid Grid.Row="3" Visibility="{Binding HasAccess,Converter={StaticResource Vis}}">
    <Grid.ColumnDefinitions><ColumnDefinition Width="1*" MinWidth="240"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.3*" MinWidth="340"/></Grid.ColumnDefinitions>
@@ -25,9 +25,10 @@
     <TextBlock Grid.Row="1" Text="Chưa có lịch trong trang này." Visibility="{Binding NoResults,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     <StackPanel Grid.Row="2" Orientation="Horizontal"><Button Content="Trang trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page,StringFormat=Trang {0}}" VerticalAlignment="Center" Margin="10,0"/><Button Content="Trang sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
    </Grid></Border>
-   <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel>
-     <StackPanel Visibility="{Binding IsViewing,Converter={StaticResource Vis}}">
+   <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><Grid>
+    <ScrollViewer Visibility="{Binding IsViewing,Converter={StaticResource Vis}}" IsVisibleChanged="PanelVisibilityChanged"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+     <StackPanel Margin="0,0,12,0">
       <TextBlock Text="Chi tiết lịch hẹn" Style="{StaticResource CE.SectionHeading}"/>
       <TextBlock Text="Chọn lịch bên trái để xem. Thông tin chỉ đọc; đổi/hủy lịch chưa triển khai." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,12"/>
       <TextBlock Text="{Binding Detail.Label}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,14,0,8"/>
@@ -41,7 +42,7 @@
       <StackPanel DataContext="{Binding Reminder}" Margin="0,22,0,0" Visibility="{Binding HasSelection,Converter={StaticResource Vis}}">
        <TextBlock Text="Nhắc lịch mô phỏng" Style="{StaticResource CE.SectionHeading}"/>
        <TextBlock Text="Chức năng mô phỏng: không gửi email hoặc SMS đến khách hàng." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8,0,8"/>
-       <Button Content="Xem nhắc lịch / GET đối chiếu" Command="{Binding LoadCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left"/>
+       <Button Content="Xem nhắc lịch" Command="{Binding LoadCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left"/>
        <TextBlock Text="{Binding Feedback}" TextWrapping="Wrap" Margin="0,8,0,8" AutomationProperties.LiveSetting="Polite"/>
        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Style="{StaticResource CE.Body}"/>
        <TextBlock Text="{Binding Result.RecorderLabel,StringFormat=Người ghi: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
@@ -54,31 +55,52 @@
        <Button Content="Thử lại log trên cùng lịch" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,0"/>
       </StackPanel>
      </StackPanel>
-     <StackPanel Visibility="{Binding IsCreating,Converter={StaticResource Vis}}">
+    </ScrollViewer>
+    <Grid Visibility="{Binding IsCreating,Converter={StaticResource Vis}}">
+     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+     <ScrollViewer IsVisibleChanged="PanelVisibilityChanged" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="0,0,12,0">
       <TextBlock Text="Tạo lịch từ đăng ký" Style="{StaticResource CE.SectionHeading}"/>
       <StackPanel IsEnabled="{Binding CanEdit}">
        <TextBlock Text="Mã đăng ký (tùy chọn, ví dụ DK-0001)" Style="{StaticResource CE.Caption}" Margin="0,14,0,4"/>
        <DockPanel><Button DockPanel.Dock="Right" Content="Tra cứu" Command="{Binding FindSourceCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0,0,0"/><TextBox x:Name="SourceCodeInput" Text="{Binding SourceCode,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã đăng ký"/></DockPanel>
        <TextBlock Text="Hoặc chọn trong danh sách đăng ký" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
-       <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" DisplayMemberPath="Display" SelectionChanged="SourceChanged" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Đăng ký nguồn"/>
-       <StackPanel Orientation="Horizontal" Margin="0,8,0,0"><Button Content="Trước" Command="{Binding PreviousSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding SourcePage,StringFormat=Trang {0}}" Margin="10,0" VerticalAlignment="Center"/><Button Content="Sau" Command="{Binding NextSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/></StackPanel>
-       <TextBlock Text="{Binding Source.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap" Margin="0,12,0,0"/>
-       <TextBlock Text="{Binding Source.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+       <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource,Mode=OneWay}" SelectionChanged="SourceChanged" Style="{StaticResource CE.ComboBox}" ItemContainerStyle="{StaticResource CE.ComboBoxItem}" AutomationProperties.Name="Đăng ký nguồn">
+        <ComboBox.ItemTemplate><DataTemplate>
+         <StackPanel Margin="0,5">
+          <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+          <TextBlock Text="{Binding PreferredDateLabel,StringFormat=Ngày mong muốn: {0}}" Style="{StaticResource CE.Caption}"/>
+          <TextBlock Text="{Binding ReadinessLabel}" TextWrapping="Wrap"/>
+         </StackPanel>
+        </DataTemplate></ComboBox.ItemTemplate>
+       </ComboBox>
+       <WrapPanel Margin="0,8,0,0"><Button Content="Trước" Command="{Binding PreviousSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding SourcePage,StringFormat=Trang {0}}" Margin="10,0" VerticalAlignment="Center"/><Button Content="Sau" Command="{Binding NextSourceCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Tải lại đăng ký" Command="{Binding RefreshSourceCommand}" Style="{StaticResource CE.Button.Secondary}"/></WrapPanel>
+       <StackPanel Visibility="{Binding HasSource,Converter={StaticResource Vis}}" Margin="0,12,0,0">
+        <TextBlock Text="{Binding Source.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding Source.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <TextBlock Text="{Binding Source.PreferredDateLabel,StringFormat=Ngày khách hàng mong muốn: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <Border DataContext="{Binding Source}" Style="{StaticResource A09.SchedulingReadinessBadge}" Margin="0,8,0,0">
+         <TextBlock Text="{Binding ReadinessLabel}" TextWrapping="Wrap"/>
+        </Border>
+        <TextBlock Text="Cơ sở tiêm" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
+        <TextBlock Text="{Binding Source.Facility}" TextWrapping="Wrap"/>
+       </StackPanel>
        <TextBlock Text="Dòng dịch vụ đã chốt" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
-       <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" DisplayMemberPath="Label" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Dòng dịch vụ"/>
+       <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Style="{StaticResource CE.ComboBox}" ItemContainerStyle="{StaticResource CE.ComboBoxItem}" AutomationProperties.Name="Dòng dịch vụ">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap"/></DataTemplate></ComboBox.ItemTemplate>
+       </ComboBox>
        <TextBlock Text="Một buổi hẹn cho dòng dịch vụ đã chọn; không tự chia gói thành các mũi." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
        <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
         <StackPanel><TextBlock Text="Ngày hẹn" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><DatePicker SelectedDate="{Binding AppointmentDate}" Style="{StaticResource CE.DatePicker}" AutomationProperties.Name="Ngày hẹn"/></StackPanel>
         <StackPanel Grid.Column="2"><TextBlock Text="Giờ hẹn (HH:mm)" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><TextBox Text="{Binding Time,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Giờ hẹn"/></StackPanel>
        </Grid>
        <TextBlock Text="Thời gian theo múi giờ máy đang sử dụng, phải ở tương lai." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,6,0,0"/>
-       <TextBlock Text="Địa điểm (1–200 ký tự)" Style="{StaticResource CE.Caption}" Margin="0,12,0,4"/>
-       <TextBox Text="{Binding Location,UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" MaxLength="200" AutomationProperties.Name="Địa điểm"/>
       </StackPanel>
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"><Button Content="Hủy bản nháp" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Lưu lịch hẹn" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel>
-     </StackPanel>
-    </StackPanel>
-   </ScrollViewer></Border>
+      </StackPanel>
+     </ScrollViewer>
+     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0"><Button Content="Hủy bản nháp" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,0"/><Button Content="Lưu lịch hẹn" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}"/></StackPanel>
+    </Grid>
+   </Grid></Border>
   </Grid>
  </Grid>
 </UserControl>

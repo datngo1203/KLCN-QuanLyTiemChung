@@ -108,8 +108,10 @@ public sealed class VaccinationSqlFixture : IAsyncDisposable
             using var receptionHttp=f.Factory.CreateClient();var reception=new IdentityApiService(receptionHttp);Assert.True((await reception.LoginAsync("s55.reception",f.Password)).Succeeded);
             var registrations=new RegistrationApiService(reception);var catalog=await registrations.GetCatalogAsync();var vaccine=catalog.First(x=>x.Kind=="vaccine");var package=catalog.First(x=>x.Kind=="package");
             var registrationId=await registrations.CreateAsync(new(customer.MaKhachHang,recipient.MaNguoiDuocTiem,[new("vaccine",vaccine.Id,2,vaccine.Price,null),new("package",package.Id,1,package.Price,package.Components!.Select(c=>new RegistrationComponentRequest(c.VaccineId,c.Quantity)).ToArray())], RegistrationClientTests.PreferredDate, RegistrationClientTests.SyntheticContact));
+            await f.Db.Registrations.Where(r => r.MaDangKy == registrationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
             var appointments=new AppointmentApiService(reception);var source=await appointments.GetSourceAsync(registrationId);
-            var created=new List<AppointmentRecord>();foreach(var item in source.Items)created.Add(await appointments.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1),"[DEMO] S55 cơ sở")));
+            var created=new List<AppointmentRecord>();foreach(var item in source.Items)created.Add(await appointments.CreateAsync(new(registrationId,item.Kind,item.Id,DateTimeOffset.UtcNow.AddDays(1))));
             await reception.LogoutAsync();
             using var doctorHttp=f.Factory.CreateClient();var doctor=new IdentityApiService(doctorHttp);Assert.True((await doctor.LoginAsync("s55.doctor",f.Password)).Succeeded);
             var clinical=new ScreeningApiService(doctor);foreach(var appointment in created){var detail=await clinical.GetAsync(appointment.Id);await clinical.CreateAsync(appointment.Id,new("Đủ điều kiện",null,detail.AllowedVaccines.Select(v=>v.Id).ToArray()));}await doctor.LogoutAsync();

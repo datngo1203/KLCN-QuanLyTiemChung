@@ -385,6 +385,8 @@ public sealed class VaccinationSqlTests
         public async Task<SourceData> Source(string kind="vaccine",int[]? vaccineIds=null,bool recordPayment=true)
         {
             var registration=await Register();
+            await Db.Registrations.Where(r => r.MaDangKy == registration.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.KenhThanhToanDuKien, "TaiTrungTam"));
             using var appointed=await Base.Reception.PostAsJsonAsync("/api/v1/appointments",Base.Request(registration,registration.Items.Single(i=>i.Kind==kind)));
             Assert.Equal(HttpStatusCode.Created,appointed.StatusCode);var appointment=(await appointed.Content.ReadFromJsonAsync<AppointmentDto>())!;
             using var assessed=await Doctor.PostAsJsonAsync($"/api/v1/clinical/appointments/{appointment.Id}/assessment",new CreateClinicalAssessmentRequest("Đủ điều kiện",null,vaccineIds??[A]));

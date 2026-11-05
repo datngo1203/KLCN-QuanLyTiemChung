@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using TiemChung.Desktop.Services;
 using TiemChung.Desktop.ViewModels;
 
 namespace TiemChung.Desktop.ViewsV2;
@@ -21,10 +22,18 @@ public partial class AppointmentView : UserControl
     }
     private async void SourceChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is AppointmentViewModel vm) await vm.LoadSourceDetailAsync();
+        if (DataContext is AppointmentViewModel { CanEdit: true } vm &&
+            e.AddedItems.Count == 1 && e.AddedItems[0] is AppointmentSourceOption source) {
+            vm.SelectedSource = source;
+            await vm.LoadSourceDetailAsync();
+        }
     }
     private async void AppointmentChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DataContext is AppointmentViewModel vm) await vm.LoadDetailAsync();
+    }
+    private void PanelVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (sender is ScrollViewer { IsVisible: true } panel) panel.ScrollToTop();
     }
 }
