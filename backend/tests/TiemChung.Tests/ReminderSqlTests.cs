@@ -52,17 +52,18 @@ public sealed class ReminderSqlTests
     [Theory][InlineData("Admin")][InlineData("BacSi")][InlineData("DieuDuong")][InlineData("ThuNgan")][InlineData("ThuKho")][InlineData(null)]
     public async Task OtherActorsCannotReadOrWrite(string? title) {
         await Run(async f=>{var a=await Appointment(f);using var actor=await f.Actor(title,title!="LeTan");
-            await Problem(await actor.GetAsync(Path(a.Id)),403,"permissionDenied");await Problem(await actor.PostAsJsonAsync(Path(a.Id),new{}),403,"permissionDenied");});
+            await Problem(await actor.GetAsync("/api/v1/reminders/queue"),403,"permissionDenied");await Problem(await actor.GetAsync(Path(a.Id)),403,"permissionDenied");await Problem(await actor.PostAsJsonAsync(Path(a.Id),new{}),403,"permissionDenied");});
     }
-    [Theory][InlineData("past")][InlineData("status")][InlineData("legacy")][InlineData("parent")][InlineData("registration")]
+    [Theory][InlineData("past")][InlineData("current")][InlineData("status")][InlineData("legacy")][InlineData("parent")][InlineData("registration")]
     public async Task InvalidSourceIsRejected(string scenario) {
         await Run(async f=>{var a=await Appointment(f);
+            if(scenario=="current")await f.Db.Set<LichHenTiem>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ThoiGianHen,DateTime.UtcNow));
             if(scenario=="past")await f.Db.Set<LichHenTiem>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ThoiGianHen,DateTime.UtcNow.AddDays(-1)));
             if(scenario=="status")await f.Db.Set<LichHenTiem>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Legacy"));
             if(scenario=="legacy")await f.Db.Set<LichHenTiem>().ExecuteUpdateAsync(s=>s.SetProperty(x=>x.MaDangKy,(int?)null).SetProperty(x=>x.MaChiTietVacXin,(int?)null));
             if(scenario=="registration")await f.Db.Registrations.ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Legacy"));
             if(scenario=="parent") {var c=new KhachHang{HoTen="[DEMO] other"};f.Db.Add(c);await f.Db.SaveChangesAsync();await f.Db.Recipients.ExecuteUpdateAsync(s=>s.SetProperty(x=>x.MaKhachHang,c.MaKhachHang));}
-            var before=await Snapshot(f);await Problem(await f.Reception.PostAsJsonAsync(Path(a.Id),new{}),409,"reminderSourceConflict");Assert.Empty(await f.Db.Set<NhacLich>().ToArrayAsync());Assert.Equal(before,await Snapshot(f));});
+            var before=await Snapshot(f);Assert.Empty((await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue"))!.Items);await Problem(await f.Reception.PostAsJsonAsync(Path(a.Id),new{}),409,"reminderSourceConflict");Assert.Empty(await f.Db.Set<NhacLich>().ToArrayAsync());Assert.Equal(before,await Snapshot(f));});
     }
     [Theory][InlineData("account")][InlineData("employee")][InlineData("session")]
     public async Task IdentityIsCheckedAtOperationTime(string target) {
@@ -70,7 +71,7 @@ public sealed class ReminderSqlTests
             if(target=="account")await f.Db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==f.AccountId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
             if(target=="employee")await f.Db.Set<NhanVien>().Where(x=>x.MaNhanVien==f.EmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
             if(target=="session")await f.Db.Set<IdentitySession>().Where(x=>x.AccountId==f.AccountId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.RevokedAt,DateTimeOffset.UtcNow));
-            await Problem(await f.Reception.GetAsync(Path(a.Id)),401,"invalidSession");await Problem(await f.Reception.PostAsJsonAsync(Path(a.Id),new{}),401,"invalidSession");});
+            await Problem(await f.Reception.GetAsync("/api/v1/reminders/queue"),401,"invalidSession");await Problem(await f.Reception.GetAsync(Path(a.Id)),401,"invalidSession");await Problem(await f.Reception.PostAsJsonAsync(Path(a.Id),new{}),401,"invalidSession");});
     }
     [Fact] public async Task ConcurrentPostsCommitExactlyOneLogAndAudit() {
         await Run(async f=>{var a=await Appointment(f);using var second=await f.Actor("LeTan",true);var before=await Snapshot(f);
@@ -95,8 +96,33 @@ public sealed class ReminderSqlTests
             Assert.Equal(HttpStatusCode.Created,shot.StatusCode);
             var before=await f.Snapshot();var preview=(await f.Base.Reception.GetFromJsonAsync<ReminderDetailDto>(Path(source.Appointment.Id)))!;
             Assert.False(preview.CanRecord);Assert.Null(preview.Preview);
+            Assert.DoesNotContain((await f.Base.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue"))!.Items,x=>x.Id==source.Appointment.Id);
             await Problem(await f.Base.Reception.PostAsJsonAsync(Path(source.Appointment.Id),new{}),409,"reminderSourceConflict");
             Assert.Empty(await f.Db.Set<NhacLich>().ToArrayAsync());Assert.Equal(before,await f.Snapshot());
+        });
+    }
+    [Fact] public async Task QueueSearchPagingLegacyAndReadbackHaveNoWriteSideEffects() {
+        await Run(async f=>{
+            var a=await Appointment(f);var b=await Appointment(f,"package");
+            var other=await f.Register();var wrongLine=other.Items.Single(i=>i.Kind=="vaccine").Id;
+            await Assert.ThrowsAsync<Microsoft.Data.SqlClient.SqlException>(()=>f.Db.Set<LichHenTiem>().Where(x=>x.MaLichHen==a.Id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.MaChiTietVacXin,wrongLine)));
+            await f.Db.Database.ExecuteSqlInterpolatedAsync($"INSERT NhacLich(MaLichHen,KenhGui,ThoiDiemGui,TrangThai) VALUES({a.Id},{"Email"},{DateTime.UtcNow},{"Legacy"})");
+            var before=await Snapshot(f);
+            var rows=(await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue"))!.Items;
+            Assert.Equal(new[]{a.Id,b.Id},rows.Select(x=>x.Id));Assert.Equal(a,rows[0]);
+            var byName=(await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue?search="+Uri.EscapeDataString(a.Recipient.FullName)))!.Items;
+            Assert.Contains(byName,x=>x.Id==a.Id);
+            Assert.Equal(b.Id,Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentListResponse>($"/api/v1/reminders/queue?page=2&pageSize=1"))!.Items).Id);
+            Assert.Equal(a.Id,Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentListResponse>($"/api/v1/reminders/queue?search=LH-{a.Id:0000}"))!.Items).Id);
+            Assert.Empty((await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue?search=missing"))!.Items);
+            Assert.Equal(before,await Snapshot(f));Assert.Single(await f.Db.Set<NhacLich>().ToArrayAsync());
+            Assert.Equal(0,await f.Db.Set<SecurityAudit>().CountAsync(x=>x.Action=="reminders.simulated"));
+            using var created=await f.Reception.PostAsJsonAsync(Path(a.Id),new{});Assert.Equal(HttpStatusCode.Created,created.StatusCode);
+            Assert.Equal(b.Id,Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/queue"))!.Items).Id);
+            Assert.Equal(2,await f.Db.Set<NhacLich>().CountAsync());
+            using var anonymous=f.Base.Factory.CreateClient();await Problem(await anonymous.GetAsync("/api/v1/reminders/queue"),401,"invalidSession");
+            foreach(var query in new[]{"page=abc","page=0","pageSize=0","pageSize=101","page=2147483647&pageSize=100","search="+new string('x',101)})
+                await Problem(await f.Reception.GetAsync("/api/v1/reminders/queue?"+query),400,"validation");
         });
     }
     [Fact] public async Task MigrationPreservesLegacyRejectsConflictAndGuardsDown() {

@@ -70,6 +70,7 @@ app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/clinical")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/appointments")) context.Response.Headers.CacheControl = "no-store";
+    if (context.Request.Path.StartsWithSegments("/api/v1/reminders")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/auth")) context.Response.Headers.CacheControl = "no-store";
     if (context.Request.Path.StartsWithSegments("/api/v1/payment-registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/registrations") &&
@@ -89,6 +90,7 @@ app.Use(async (context, next) => {
         context.Request.Path.StartsWithSegments("/api/v1/registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/payment-registrations") ||
         context.Request.Path.StartsWithSegments("/api/v1/appointments") ||
+        context.Request.Path.StartsWithSegments("/api/v1/reminders") ||
         context.Request.Path.StartsWithSegments("/api/v1/clinical") ||
         context.Request.Path.StartsWithSegments("/api/v1/vaccinations")) {
         context.Response.StatusCode = failure.StatusCode;
