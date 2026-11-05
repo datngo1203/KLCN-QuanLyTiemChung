@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../windows/ViewModels/AccountViewModel.cs" Link="Windows/AccountViewModel.cs" />
     <Compile Include="../windows/ViewModels/CatalogViewModel.cs;../windows/ViewModels/CatalogViewModel.Vaccine.cs;../windows/ViewModels/CatalogViewModel.Package.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IInventoryReceivingService.cs;../windows/ViewModels/InventoryReceivingViewModel.cs" Link="Windows/%(Filename)%(Extension)" />
     <Compile Include="../windows/Services/IInventoryReceiptHistoryService.cs;../windows/ViewModels/InventoryReceiptHistoryViewModel.cs" Link="Windows/%(Filename)%(Extension)" />

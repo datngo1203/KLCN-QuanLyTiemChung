@@ -71,7 +71,7 @@ public sealed partial class ComboBoxTemplateTests
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = request.RequestUri!.AbsolutePath.EndsWith("/login")
                     ? JsonContent.Create(new { accessToken = "access", refreshToken = "refresh" })
-                    : JsonContent.Create(new { accountType = "employee", employee = new { title = "LeTan" } })
+                    : JsonContent.Create(new { accountType = "employee", employee = new { title = "LeTan" }, capabilities=new { registrations=true } })
             });
     }
 

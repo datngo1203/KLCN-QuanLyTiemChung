@@ -342,7 +342,7 @@ public sealed class RF02ACatalogSqlTests
             var packageReq=new PackageRequest("[DEMO] Race package",123,[new(vaccine.Id,1)],"GOI-RACE",Status:"Inactive",TargetAudience:"[DEMO] Synthetic");
             var package=await Success<PackageDto>(f.Client.PostAsJsonAsync(Root+"packages",packageReq),HttpStatusCode.Created);
             // A distinct employee/session avoids serializing the race solely on Identity account locks.
-            var employee=new NhanVien {HoTen="[DEMO] Catalog race",ChucDanh="BacSi",TrangThai="Active"};f.Db.Add(employee);await f.Db.SaveChangesAsync();
+            var employee=new NhanVien {HoTen="[DEMO] Catalog race",ChucDanh="Admin",TrangThai="Active"};f.Db.Add(employee);await f.Db.SaveChangesAsync();
             var account=new TaiKhoan {MaNhanVien=employee.MaNhanVien,AccountType="Employee",TenDangNhap="rf02a.race",NormalizedUsername="RF02A.RACE",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow};
             account.MatKhauHash=new PasswordHasher<TaiKhoan>().HashPassword(account,f.Password);f.Db.Add(account);await f.Db.SaveChangesAsync();
             var permissions=await f.Db.Set<QuyenHan>().Where(p=>p.Code=="QuanLyDanhMucChuyenMon"||p.Code=="QuanLyDanhMucGia").ToArrayAsync();

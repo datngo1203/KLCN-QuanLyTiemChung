@@ -30,6 +30,8 @@ public sealed class InventoryReceiptHistorySqlClientTests
             Assert.True((await identity.LoginAsync("x1.warehouse",f.Source.Password)).Succeeded);
             var reopen=new InventoryReceiptHistoryViewModel(identity);await reopen.LoadAsync();reopen.Selected=Assert.Single(reopen.Rows);await reopen.ReadDetailAsync();Assert.Contains(saved.Received.DocumentNumber,reopen.DetailLabel);
             await db.Set<TaiKhoan_QuyenHan>().Where(g=>g.MaTaiKhoan==f.WarehouseAccountId && g.MaQuyen==db.Set<QuyenHan>().Single(p=>p.Code=="NhapKho").MaQuyen).ExecuteDeleteAsync();
+            var roleEmployeeId=(await db.Set<TaiKhoan>().SingleAsync(a=>a.MaTaiKhoan==f.WarehouseAccountId)).MaNhanVien;
+            await db.Set<NhanVien>().Where(e=>e.MaNhanVien==roleEmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(e=>e.ChucDanh,"Admin"));
             await reopen.ReadDetailAsync();Assert.True(reopen.NoAccess);Assert.Empty(reopen.Rows);Assert.Null(reopen.Selected);Assert.DoesNotContain(saved.Received.DocumentNumber,reopen.DetailLabel);
             Assert.Equal(before,await f.Source.Snapshot());await identity.LogoutAsync();
         });

@@ -50,6 +50,8 @@ jobs:
         run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~CatalogClientTests"
       - name: RF-04B1 cashier client and SQL reconciliation
         run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~Payment"
+      - name: AUTHZ-R1 capability and account-role client regression
+        run: dotnet test apps/windows.tests/TiemChung.Windows.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~EmployeeAccessClientTests"
       - name: Repeat migration without resetting data
         run: docker compose -p klcn-s0 -f infra/compose.yaml run --rm migrate
       - name: Build SQL-principal acceptance (not executed without approved provisioning)

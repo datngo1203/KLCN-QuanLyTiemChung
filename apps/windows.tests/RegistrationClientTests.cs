@@ -302,7 +302,7 @@ public sealed class RegistrationClientTests
                 return Json(new { accessToken = "access", refreshToken = "refresh" });
             }
             if (path.EndsWith("/logout")) return new(HttpStatusCode.NoContent);
-            if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = Title }, capabilities = new { profilesRead = true, profilesCreate = false, profilesUpdate = false } });
+            if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = Title }, capabilities = new { registrations=Title=="LeTan", profilesRead = true, profilesCreate = false, profilesUpdate = false } });
             Assert.Equal("Bearer access", request.Headers.Authorization?.ToString());
             if (request.Method == HttpMethod.Post) {
                 PostCount++; PostBody = await request.Content!.ReadAsStringAsync(ct);

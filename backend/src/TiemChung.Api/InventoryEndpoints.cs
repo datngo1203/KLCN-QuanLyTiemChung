@@ -10,8 +10,7 @@ public static class InventoryEndpoints
     private static async Task RequireWarehouse(HttpContext context, IdentityAuthorization auth, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, false, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "ThuKho" || !actor.Permissions.Contains("XemKho"))
-            throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission("XemKho");
     }
 
     private static (int Skip, int Size) Paging(int? page, int? pageSize)

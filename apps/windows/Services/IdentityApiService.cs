@@ -26,17 +26,21 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
         SessionRevision++;
         SessionCleared?.Invoke(this, EventArgs.Empty);
     }
-    public bool CanReadProfiles => IsSignedIn && _account?.Capabilities?.ProfilesRead == true;
-    public bool CanWriteProfiles => IsSignedIn && _account?.Capabilities is { ProfilesCreate: true, ProfilesUpdate: true };
-    public bool CanUseRegistrations => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "LeTan" };
-    public bool CanUseClinical => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "BacSi" };
-    public bool CanUseVaccinations => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "DieuDuong" };
-    public bool CanReadInventory => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuKho" } && Permissions.Contains("XemKho");
-    public bool CanReceiveInventory => CanReadInventory && Permissions.Contains("NhapKho");
-    public bool CanViewReports => IsSignedIn && Permissions.Contains("XemBaoCao");
-    public bool CanUseAppointments => CanUseRegistrations && Permissions.Contains("QuanLyLichHen");
-    public bool CanReadPayments => IsSignedIn && _account is { AccountType: "employee", Employee.Title: "ThuNgan" } && Permissions.Contains("XemThanhToan");
-    public bool CanWritePayments => CanReadPayments && Permissions.Contains("GhiThanhToan");
+    public bool CanReadProfiles => IsSignedIn && HasCapability("profilesRead");
+    public bool CanWriteProfiles => IsSignedIn && HasCapability("profilesCreate") && HasCapability("profilesUpdate");
+    public bool CanUseRegistrations => HasCapability("registrations");
+    public bool CanUseClinical => HasCapability("screening");
+    public bool CanUseVaccinations => HasCapability("vaccinations");
+    public bool CanUseAftercare => HasCapability("aftercare");
+    public bool CanReadInventory => HasCapability("inventoryRead");
+    public bool CanReceiveInventory => HasCapability("inventoryReceive");
+    public bool CanViewReports => HasCapability("reports");
+    public bool CanUseAppointments => HasCapability("appointments");
+    public bool CanReadPayments => HasCapability("paymentsRead");
+    public bool CanWritePayments => HasCapability("paymentsWrite");
+    public bool CanManageAccounts => HasCapability("accounts");
+    public bool CanManagePromotions => HasCapability("promotions");
+    public bool HasCapability(string name) => IsSignedIn && _account?.Capabilities?.GetValueOrDefault(name) == true;
     public IReadOnlyCollection<string> Permissions => IsSignedIn ? _account?.Permissions ?? [] : [];
     public bool UseSampleData { get; set; } = false;
     public bool IsSignedIn => _tokens is not null;
@@ -153,8 +157,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
     }
 
     private sealed record Tokens(string AccessToken, string RefreshToken);
-    private sealed record Account(string AccountType, string[]? Permissions, Capabilities? Capabilities, Employee? Employee);
+    private sealed record Account(string AccountType, string[]? Permissions, Dictionary<string, bool>? Capabilities, Employee? Employee);
     private sealed record Employee(string Title);
-    private sealed record Capabilities(bool ProfilesRead, bool ProfilesCreate, bool ProfilesUpdate);
     private sealed record Problem(string Code);
 }

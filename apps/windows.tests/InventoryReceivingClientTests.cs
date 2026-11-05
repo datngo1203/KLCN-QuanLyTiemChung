@@ -112,7 +112,7 @@ public sealed class InventoryReceivingClientTests
             var path=req.RequestUri!.PathAndQuery;
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))Refreshes++;return Json(new{accessToken="access",refreshToken="refresh"});}
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
-            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Write?new[]{"XemKho","NhapKho"}:new[]{"XemKho"}});
+            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Write?new[]{"XemKho","NhapKho"}:new[]{"XemKho"},capabilities=new { inventoryRead=Title=="ThuKho",inventoryReceive=Title=="ThuKho" && Write }});
             Paths.Add(path);
             if(req.Method==HttpMethod.Post){Posts++;Body=await req.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="timeout")throw new TaskCanceledException();if(Failure=="bad201")return Json(new{},HttpStatusCode.Created);return Status==HttpStatusCode.OK?Json(Saved,HttpStatusCode.Created):Json(new{detail="PRIVATE SQL"},Status);}
             return path.Contains("receiving-vaccines")?Json(new InventoryVaccineListResponse([new(1,Saved.VaccineName)],false)):Json(Saved);

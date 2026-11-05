@@ -105,7 +105,7 @@ public sealed partial class ComboBoxTemplateTests
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = request.RequestUri!.AbsolutePath.EndsWith("/me")
                     ? JsonContent.Create(new { accountType = "employee", employee = new { title = "ThuNgan" },
-                        permissions = new[] { "XemThanhToan", "GhiThanhToan" } })
+                        permissions = new[] { "XemThanhToan", "GhiThanhToan" }, capabilities=new { paymentsRead=true,paymentsWrite=true } })
                     : JsonContent.Create(new { accessToken = "synthetic", refreshToken = "synthetic" })
             });
     }

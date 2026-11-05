@@ -203,7 +203,7 @@ public sealed class AppointmentClientTests
             var path=request.RequestUri!.PathAndQuery;Paths.Add(path);
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))RefreshCount++;return Json(new {accessToken="access",refreshToken="refresh"});}
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
-            if(path.EndsWith("/me"))return Json(new {accountType="employee",employee=new {title=Title},permissions=Grant?new[]{"QuanLyLichHen"}:Array.Empty<string>()});
+            if(path.EndsWith("/me"))return Json(new {accountType="employee",employee=new {title=Title},permissions=Grant?new[]{"QuanLyLichHen"}:Array.Empty<string>(),capabilities=new { appointments=Title=="LeTan" && Grant }});
             if(request.Method==HttpMethod.Post){PostCount++;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="timeout")throw new TaskCanceledException();if(Failure=="invalid201")return Json(new {},HttpStatusCode.Created);return PostStatus==HttpStatusCode.Created?Json(Saved,PostStatus):Json(new {code=PostStatus==HttpStatusCode.Conflict?ConflictCode:"validation",title="SQL token"},PostStatus);}
             if(path.Contains("appointments?"))return Json(new {items=new[]{Saved}});
             if(path.Contains("appointments/sources?"))return Json(new {items=new[]{Summary}});

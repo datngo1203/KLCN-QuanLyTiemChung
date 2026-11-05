@@ -402,7 +402,7 @@ public sealed class PaymentClientTests
             var path = request.RequestUri!.PathAndQuery; Paths.Add(path);
             if (path.EndsWith("/login") || path.EndsWith("/refresh")) { if (path.EndsWith("/refresh")) RefreshCount++; return Json(new { accessToken = "access", refreshToken = "refresh" }); }
             if (path.EndsWith("/logout")) return new(HttpStatusCode.NoContent);
-            if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = Title }, permissions = Grants });
+            if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = Title }, permissions = Grants, capabilities = new { paymentsRead = Title=="ThuNgan" && Grants.Contains("XemThanhToan"), paymentsWrite = Title=="ThuNgan" && Grants.Contains("XemThanhToan") && Grants.Contains("GhiThanhToan") } });
             if (request.Method == HttpMethod.Post) {
                 PostCount++; PostBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(ct);
                 if (Failure == "network") throw new HttpRequestException("SQL token");

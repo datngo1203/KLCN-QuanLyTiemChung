@@ -36,7 +36,7 @@ public sealed class AftercareViewModel:ViewModelBase
     public RelayCommand ReconcileCommand{get;}
     public RelayCommand RetryCommand{get;}
     private bool IsCurrent=>_identity.IsSignedIn&&_identity.SessionRevision==_revision;
-    public bool HasAccess=>IsCurrent&&_identity.CanUseVaccinations&&!_denied;
+    public bool HasAccess=>IsCurrent&&_identity.CanUseAftercare&&!_denied;
     public bool NoAccess=>!HasAccess;
     public bool IsBusy=>_busy;
     public bool HasPending=>HasAccess&&_pending is not null;

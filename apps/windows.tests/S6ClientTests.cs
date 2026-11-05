@@ -219,7 +219,7 @@ public sealed class S6ClientTests
             Calls.Add($"{request.Method} {path}");
             if (path.EndsWith("/login")) return Json(new { accessToken = "access", refreshToken = "refresh" });
             if (path.EndsWith("/me")) return Json(new { accountType = "employee", employee = new { title = "LeTan" },
-                permissions = Manager ? new[] { "QuanLyKhuyenMai" } : [] });
+                permissions = Manager ? new[] { "QuanLyKhuyenMai" } : [], capabilities=new { promotions=Manager, registrations=true } });
             Assert.Equal("Bearer access", request.Headers.Authorization!.ToString());
             if (path.StartsWith("/api/v1/promotions")) {
                 if (Failure == "network") throw new HttpRequestException("SQL JWT secret");

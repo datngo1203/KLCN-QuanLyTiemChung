@@ -72,7 +72,7 @@ public sealed class ReminderClientTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct){
             var path=request.RequestUri!.AbsolutePath;
             if(path.EndsWith("/login")||path.EndsWith("/refresh")){if(path.EndsWith("/refresh"))Refreshes++;return Json(new{accessToken="access",refreshToken="refresh"});}
-            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Grant?new[]{"QuanLyLichHen"}:[]});
+            if(path.EndsWith("/me"))return Json(new{accountType="employee",employee=new{title=Title},permissions=Grant?new[]{"QuanLyLichHen"}:[],capabilities=new { appointments=Title=="LeTan" && Grant }});
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
             if(request.Method==HttpMethod.Post){Posts++;LastPath=path;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="bad201")return Json(new{},HttpStatusCode.Created);
                 return Status==HttpStatusCode.Created?Json(Saved,Status):Json(new{code=Status==HttpStatusCode.Conflict?"reminderAlreadyRecorded":"validation",detail="SQL PRIVATE"},Status);}

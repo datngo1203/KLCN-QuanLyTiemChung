@@ -228,8 +228,7 @@ public static class PaymentEndpoints
 
     private static void RequireCashier(IdentityActor actor, bool write)
     {
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "ThuNgan" || !actor.Permissions.Contains("XemThanhToan") ||
-            write && !actor.Permissions.Contains("GhiThanhToan")) throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission(write ? "GhiThanhToan" : "XemThanhToan");
     }
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
@@ -318,8 +317,7 @@ public static class PaymentEndpoints
         var registration = await RegistrationEndpoints.Detail(db, row, ct);
         var payment = payments.SingleOrDefault();
         var requiresPayment = summary.RemainingAmount > 0;
-        var canWrite = !actor.IsCustomer && actor.Employee?.ChucDanh == "ThuNgan" &&
-            actor.Permissions.Contains("XemThanhToan") && actor.Permissions.Contains("GhiThanhToan");
+        var canWrite = actor.HasPermission("GhiThanhToan");
         var pending = summary.PaymentState == "ChoXacNhan";
         return new(row.MaDangKy, row.TrangThai, summary.Customer, summary.Recipient, registration.Items,
             summary.Subtotal, summary.TotalDue, summary.PaidAmount, summary.RemainingAmount, "VND", requiresPayment,

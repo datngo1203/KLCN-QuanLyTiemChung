@@ -14,7 +14,7 @@ public static class VaccinationEndpoints
     private static async Task<IdentityActor> RequireNurse(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "DieuDuong") throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission(EmployeeAuthorization.Vaccination);
         return actor;
     }
 

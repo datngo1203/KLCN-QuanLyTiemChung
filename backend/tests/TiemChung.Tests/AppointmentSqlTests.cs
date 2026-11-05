@@ -203,7 +203,7 @@ public sealed class AppointmentSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task AllRoutesRequireCurrentSessionReceptionTitleAndExistingPermission()
+    public async Task AllRoutesRequireCurrentSessionAndReceptionRole()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
             var registration = await f.Register(); var request = f.Request(registration, registration.Items[0]);
@@ -215,7 +215,7 @@ public sealed class AppointmentSqlTests
                 await Problem(await client.PostAsJsonAsync(Route,request), status);
             }
             using var anonymous = f.Base.Factory.CreateClient(); await Denied(anonymous,401);
-            foreach (var title in new string?[] { "LeTan", "Admin", "ThuNgan", "BacSi", "DieuDuong", "ThuKho" }) {
+            foreach (var title in new string?[] { "Admin", "ThuNgan", "BacSi", "DieuDuong", "ThuKho" }) {
                 using var actor = await f.Actor(title, title != "LeTan"); await Denied(actor,403);
             }
             using var customer = await f.Actor(null, false);
@@ -227,6 +227,8 @@ public sealed class AppointmentSqlTests
             using var payment = await f.Reception.GetAsync($"/api/v1/registrations/{registration.Id}/payment");
             Assert.Equal(HttpStatusCode.Forbidden, payment.StatusCode);
             await f.Db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==f.AccountId).ExecuteDeleteAsync();
+            Assert.Equal(HttpStatusCode.OK,(await f.Reception.GetAsync(Route)).StatusCode);
+            await f.Db.Set<NhanVien>().Where(x=>x.MaNhanVien==f.EmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ChucDanh,"ThuNgan"));
             await Denied(f.Reception,403);
             await f.Db.Set<NhanVien>().Where(x=>x.MaNhanVien==f.EmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
             await Denied(f.Reception,401);

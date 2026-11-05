@@ -123,7 +123,7 @@ public sealed class InventoryClientTests
             var path=req.RequestUri!.PathAndQuery;object value;
             if(path.EndsWith("/login")||path.EndsWith("/refresh"))value=new { accessToken="access",refreshToken="refresh" };
             else if(path.EndsWith("/logout"))return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
-            else if(path.EndsWith("/me"))value=new { accountType="employee",employee=new { title=Title },permissions=Grant?new[]{"XemKho"}:[] };
+            else if(path.EndsWith("/me"))value=new { accountType="employee",employee=new { title=Title },permissions=Grant?new[]{"XemKho"}:[], capabilities=new { inventoryRead=Title=="ThuKho" && Grant } };
             else {
                 Paths.Add(path);Methods.Add(req.Method);
                 value=Status!=HttpStatusCode.OK?new { detail="PRIVATE SQL" }:Malformed?new { }:path.Contains("/lots?")?Lots:Movements;

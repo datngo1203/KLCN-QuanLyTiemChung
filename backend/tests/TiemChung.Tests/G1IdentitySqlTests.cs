@@ -52,7 +52,7 @@ public sealed class G1IdentitySqlTests
             client.DefaultRequestHeaders.Authorization = new("Bearer", session.GetProperty("accessToken").GetString());
             var me = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
             var capabilities = me.GetProperty("capabilities");
-            Assert.True(capabilities.GetProperty("profilesRead").GetBoolean());
+            Assert.Equal(title is "LeTan" or "BacSi" or "DieuDuong", capabilities.GetProperty("profilesRead").GetBoolean());
             Assert.Equal(title == "LeTan", capabilities.GetProperty("profilesCreate").GetBoolean());
             Assert.Equal(title == "LeTan", capabilities.GetProperty("profilesUpdate").GetBoolean());
             using var created = await client.PostAsJsonAsync("/api/v1/customers", body);
@@ -62,7 +62,7 @@ public sealed class G1IdentitySqlTests
                 Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/customers/{customer.Id}", body with { FullName = "[DEMO] G1 updated" })).StatusCode);
                 Assert.Equal("[DEMO] G1 updated", (await f.Db.Customers.AsNoTracking().SingleAsync(c => c.MaKhachHang == customer.Id)).HoTen);
             }
-            Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/catalog/vaccine-technologies", new { name = "denied", description = "" })).StatusCode);
+            Assert.Equal(title == "Admin" ? HttpStatusCode.BadRequest : HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/catalog/vaccine-technologies", new { name = "denied", description = "" })).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new { clientType = "native", refreshToken = session.GetProperty("refreshToken").GetString() })).StatusCode);
         }
         });

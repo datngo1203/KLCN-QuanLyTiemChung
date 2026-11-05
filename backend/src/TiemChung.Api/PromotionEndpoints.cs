@@ -166,8 +166,7 @@ public static class PromotionEndpoints
 
     private static void RequirePromotionManager(IdentityActor actor)
     {
-        if (actor.IsCustomer || !actor.Permissions.Contains("QuanLyKhuyenMai"))
-            throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission("QuanLyKhuyenMai");
     }
 
     private static (string Name, string Description, DateTime StartUtc, DateTime EndUtc, decimal Discount) ValidateRequest(UpsertPromotionRequest req)

@@ -91,7 +91,7 @@ public sealed class InventorySqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task BothRoutesRequireWarehouseTitleAndCurrentGrantAndActiveIdentity()
+    public async Task BothRoutesRequireWarehouseRoleAndActiveIdentity()
     {
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
             await Seed(f);
@@ -103,10 +103,13 @@ public sealed class InventorySqlTests
             foreach (var title in new string?[] { null,"Admin","LeTan","BacSi","DieuDuong","ThuNgan" }) {
                 using var other = await Actor(f,title); await Denied(other,403,"permissionDenied");
             }
-            using var noGrant = await Actor(f,grant:false); await Denied(noGrant,403,"permissionDenied");
+            using var noGrant = await Actor(f,grant:false); Assert.Equal(HttpStatusCode.OK,(await noGrant.GetAsync(Root+"lots")).StatusCode);
             using var warehouse = await Actor(f); var accountId = f.LastAccountId;
             Assert.Equal(HttpStatusCode.OK, (await warehouse.GetAsync(Root + "lots")).StatusCode);
             await f.Db.Set<TaiKhoan_QuyenHan>().Where(g => g.MaTaiKhoan == accountId).ExecuteDeleteAsync();
+            Assert.Equal(HttpStatusCode.OK,(await warehouse.GetAsync(Root+"lots")).StatusCode);
+            var revokedRoleEmployeeId=(await f.Db.Set<TaiKhoan>().SingleAsync(a=>a.MaTaiKhoan==accountId)).MaNhanVien;
+            await f.Db.Set<NhanVien>().Where(n=>n.MaNhanVien==revokedRoleEmployeeId).ExecuteUpdateAsync(s=>s.SetProperty(n=>n.ChucDanh,"LeTan"));
             await Denied(warehouse,403,"permissionDenied");
             foreach (var invalid in new[] { "employee","account","session","version","expired" }) {
                 using var client = await Actor(f); var id = f.LastAccountId;

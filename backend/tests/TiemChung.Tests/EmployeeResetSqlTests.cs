@@ -33,21 +33,18 @@ public sealed class EmployeeResetSqlTests
         async Task<IdentityAdministration.ResetActorSnapshot> Snapshot()=>await admin.AuthenticateResetActorAsync("reset-admin","synthetic-admin-password",CancellationToken.None);
         async Task<byte[]> Reset(IdentityAdministration.ResetActorSnapshot snapshot,int id,int emp,byte[] version)=>
             await admin.ResetPasswordAsync(snapshot,"reset-admin","synthetic-admin-password",id,emp,version,"synthetic-new-password","synthetic-new-password",CancellationToken.None);
-        foreach(var state in new[]{"locked","director","inactive","noPermission"}) {
+        foreach(var state in new[]{"locked","director","inactive","role"}) {
             var snapshot=await Snapshot();
             if(state=="locked") await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Locked"));
             if(state=="director") await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.AdministrativeDuty,"Director"));
             if(state=="inactive") await db.Set<NhanVien>().Where(x=>x.MaNhanVien==adminEmployee.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Inactive"));
-            if(state=="noPermission") await db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteDeleteAsync();
+            if(state=="role") await db.Set<NhanVien>().Where(x=>x.MaNhanVien==adminEmployee.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ChucDanh,"LeTan"));
             await Assert.ThrowsAsync<IdentityFailure>(()=>Reset(snapshot,targetId,employee.MaNhanVien,before.RowVersion));
             db.ChangeTracker.Clear();
             await db.Set<TaiKhoan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Active").SetProperty(x=>x.AdministrativeDuty,"Technical"));
-            await db.Set<NhanVien>().Where(x=>x.MaNhanVien==adminEmployee.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Active"));
-            if(state=="noPermission") {
-                foreach(var p in await db.Set<QuyenHan>().ToListAsync()) db.Add(new TaiKhoan_QuyenHan { MaTaiKhoan=adminId,MaQuyen=p.MaQuyen });
-                await db.SaveChangesAsync();
-            }
+            await db.Set<NhanVien>().Where(x=>x.MaNhanVien==adminEmployee.MaNhanVien).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.TrangThai,"Active").SetProperty(x=>x.ChucDanh,"Admin"));
         }
+        await db.Set<TaiKhoan_QuyenHan>().Where(x=>x.MaTaiKhoan==adminId).ExecuteDeleteAsync(); // Legacy grants do not define the Admin role.
         var customer=new TaiKhoan { AccountType="Customer",TenDangNhap="synthetic-customer",LoginEmail="c@example.invalid",NormalizedEmail="C@EXAMPLE.INVALID",MatKhauHash="synthetic",TrangThai="Active",CreatedAt=DateTimeOffset.UtcNow };
         db.Add(customer); await db.SaveChangesAsync();
         var customerActor=await Snapshot();

@@ -13,7 +13,7 @@ public static class ClinicalEndpoints
     private static async Task<IdentityActor> RequireDoctor(HttpContext context, IdentityAuthorization auth, bool write, CancellationToken ct)
     {
         var actor = await auth.RequireAsync(context, write, ct);
-        if (actor.IsCustomer || actor.Employee?.ChucDanh != "BacSi") throw new IdentityFailure(403, "permissionDenied");
+        actor.RequirePermission(EmployeeAuthorization.Screening);
         return actor;
     }
 
