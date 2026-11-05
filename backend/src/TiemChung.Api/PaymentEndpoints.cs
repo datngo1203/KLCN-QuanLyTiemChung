@@ -63,7 +63,7 @@ public static class PaymentEndpoints
 
         group.MapGet("/payment/settings", async (HttpContext context, IdentityAuthorization auth, CancellationToken ct) => {
             await RequireCustomer(context, auth, false, ct);
-            return Results.Ok(new PaymentSettingsDto("Ngân hàng VAC", "Trung tâm tiêm chủng VAC", "0000000402"));
+            return Results.Ok(new PaymentSettingsDto("Đơn vị nhận chuyển khoản", "Trung tâm tiêm chủng VNVC", "0000000402"));
         }).WithName("GetPaymentSettings").Produces<PaymentSettingsDto>();
 
         group.MapPost("/registrations/{id:int}/payment/online", async (int id, OnlinePaymentRequest req,
@@ -324,9 +324,9 @@ public static class PaymentEndpoints
         return new(row.MaDangKy, row.TrangThai, summary.Customer, summary.Recipient, registration.Items,
             summary.Subtotal, summary.TotalDue, summary.PaidAmount, summary.RemainingAmount, "VND", requiresPayment,
             canWrite && requiresPayment && payment is null, true,
-            pending ? "Đang chờ Thu ngân xác nhận chuyển khoản mô phỏng."
-                : payment is not null ? "Đã ghi nhận thanh toán mô phỏng toàn bộ; không xử lý tiền thật."
-                : summary.TotalDue == 0 ? "Không phát sinh khoản thu." : "Chưa ghi nhận thanh toán mô phỏng; không xử lý tiền thật.",
+            pending ? "Đang chờ Thu ngân xác nhận chuyển khoản."
+                : payment is not null ? "Đã ghi nhận thanh toán toàn bộ."
+                : summary.TotalDue == 0 ? "Không phát sinh khoản thu." : "Chưa ghi nhận thanh toán.",
             payment is null ? null : new(payment.MaThanhToan, payment.MaDangKy, payment.SoTien, payment.MaNhanVien,
                 Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true,
                 payment.MaGiaoDich, payment.PhuongThuc == "MoPhong" ? null : Payer(payment), payment.NhaCungCapThanhToan,

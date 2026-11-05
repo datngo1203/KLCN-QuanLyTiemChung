@@ -9,23 +9,25 @@ namespace TiemChung.Desktop.ViewModels;
 
 public sealed class PromotionViewModel : ViewModelBase
 {
+    private readonly IdentityApiService _identity;
     private string _name = "", _description = "", _amount = "", _feedback = "";
     private DateTime _start = DateTime.Today, _end = DateTime.Today.AddDays(7);
     private PromotionRecord? _selected;
     private bool _saving;
     private bool _enabled = true;
     public bool Enabled { get => _enabled; set => Set(ref _enabled, value); }
-    public bool CanEdit => !_saving && IdentityApiService.Current.Permissions.Contains("QuanLyKhuyenMai");
+    public bool CanEdit => !_saving && _identity.Permissions.Contains("QuanLyKhuyenMai");
 
-    public PromotionViewModel()
+    public PromotionViewModel(IdentityApiService? identity = null)
     {
+        _identity = identity ?? IdentityApiService.Current;
         Promotions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasNoData));
-        SaveCommand = new(async _ => await SaveApiAsync(), _ => CanSave);
-        DeleteCommand = new(async _ => await DeleteApiAsync(), _ => CanDelete);
+        SaveCommand = new(async _ => await SaveAsync(), _ => CanSave);
+        DeleteCommand = new(async _ => await DeleteAsync(), _ => CanDelete);
         NewCommand = new(_ => Clear(), _ => CanEdit);
         ReloadCommand = new(async _ => await LoadAsync(), _ => !_saving);
 
-        IdentityApiService.Current.SessionCleared += (_, _) => ResetForSessionChange();
+        _identity.SessionCleared += (_, _) => ResetForSessionChange();
     }
 
     public ObservableCollection<PromotionRecord> Promotions { get; } = [];
@@ -87,19 +89,19 @@ public sealed class PromotionViewModel : ViewModelBase
         Selected is not null &&
         !IsAssigned &&
         !_saving &&
-        IdentityApiService.Current.Permissions.Contains("QuanLyKhuyenMai");
+        _identity.Permissions.Contains("QuanLyKhuyenMai");
 
     public async Task LoadAsync()
     {
         if (_saving) return;
-        if (!IdentityApiService.Current.IsSignedIn)
+        if (!_identity.IsSignedIn)
         {
             Promotions.Clear();
             Feedback = "Vui lòng đăng nhập để xem chương trình khuyến mãi.";
             Refresh();
             return;
         }
-        if (!IdentityApiService.Current.Permissions.Contains("QuanLyKhuyenMai"))
+        if (!_identity.Permissions.Contains("QuanLyKhuyenMai"))
         {
             Promotions.Clear();
             Feedback = "Tài khoản không có quyền Quản lý khuyến mãi.";
@@ -111,9 +113,9 @@ public sealed class PromotionViewModel : ViewModelBase
         Feedback = "Đang tải danh sách khuyến mãi từ máy chủ...";
         Refresh();
 
-        var rev = IdentityApiService.Current.SessionRevision;
-        var (ok, items, error) = await PromotionApiClient.LoadAsync(rev);
-        if (rev != IdentityApiService.Current.SessionRevision) return;
+        var rev = _identity.SessionRevision;
+        var (ok, items, error) = await PromotionApiClient.LoadAsync(rev, _identity);
+        if (rev != _identity.SessionRevision) return;
 
         _saving = false;
         if (!ok)
@@ -131,7 +133,7 @@ public sealed class PromotionViewModel : ViewModelBase
         Refresh();
     }
 
-    private async Task SaveApiAsync()
+    public async Task SaveAsync()
     {
         if (!CanSave) return;
         _saving = true;
@@ -140,12 +142,12 @@ public sealed class PromotionViewModel : ViewModelBase
 
         var discount = decimal.Parse(Amount, CultureInfo.InvariantCulture);
         var editingId = Selected?.Id;
-        var rev = IdentityApiService.Current.SessionRevision;
+        var rev = _identity.SessionRevision;
 
         var (ok, saved, error) = await PromotionApiClient.SaveAsync(
-            editingId, Name, Description, Start, End, discount, Enabled, rev);
+            editingId, Name, Description, Start, End, discount, Enabled, rev, _identity);
 
-        if (rev != IdentityApiService.Current.SessionRevision) return;
+        if (rev != _identity.SessionRevision) return;
         _saving = false;
 
         if (!ok || saved is null)
@@ -175,7 +177,7 @@ public sealed class PromotionViewModel : ViewModelBase
         Refresh();
     }
 
-    private async Task DeleteApiAsync()
+    public async Task DeleteAsync()
     {
         if (Selected is null || !CanDelete) return;
         var target = Selected;
@@ -183,9 +185,9 @@ public sealed class PromotionViewModel : ViewModelBase
         Feedback = "Đang xóa chương trình…";
         Refresh();
 
-        var rev = IdentityApiService.Current.SessionRevision;
-        var (ok, error) = await PromotionApiClient.DeleteAsync(target.Id, rev);
-        if (rev != IdentityApiService.Current.SessionRevision) return;
+        var rev = _identity.SessionRevision;
+        var (ok, error) = await PromotionApiClient.DeleteAsync(target.Id, rev, _identity);
+        if (rev != _identity.SessionRevision) return;
 
         _saving = false;
         if (!ok)

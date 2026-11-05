@@ -11,6 +11,8 @@ namespace TiemChung.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
+                IF EXISTS (SELECT 1 FROM DangKyDichVu WHERE MaKhuyenMai IS NOT NULL)
+                    THROW 51000, 'Legacy promotion assignments require explicit historical reconciliation before S6 migration.', 1;
                 IF EXISTS (SELECT 1 FROM KhuyenMai WHERE MucUuDai <> FLOOR(MucUuDai))
                     THROW 51000, 'Fractional legacy promotion amounts require explicit reconciliation.', 1;
                 """);
@@ -49,6 +51,8 @@ namespace TiemChung.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
+                IF EXISTS (SELECT 1 FROM DangKyDichVu WHERE MaKhuyenMai IS NOT NULL)
+                    THROW 51000, 'Legacy promotion assignments require explicit historical reconciliation before S6 migration.', 1;
                 IF EXISTS (SELECT 1 FROM KhuyenMai WHERE MucUuDai > 999999 OR IsEnabled = 1)
                    OR EXISTS (SELECT 1 FROM DangKyDichVu WHERE MucGiamSnapshot IS NOT NULL OR TenKhuyenMaiSnapshot IS NOT NULL)
                     THROW 51000, 'Promotion data cannot be represented by the previous schema.', 1;

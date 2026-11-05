@@ -157,7 +157,7 @@ public sealed class RegistrationViewModel : ViewModelBase
     public string QuantityText { get => _quantityText; set { Set(ref _quantityText, value); Refresh(); } }
     public bool QuantityValid => int.TryParse(QuantityText, NumberStyles.None, CultureInfo.InvariantCulture, out var q) && q is >= 1 and <= 100;
     public decimal Subtotal => Lines.Sum(x => x.LineTotal);
-    public string FormError => Customer is null ? "Chọn khách hàng." : Recipient is null || Recipient.CustomerId != Customer.Id ? "Chọn người được tiêm thuộc khách hàng." : Lines.Count == 0 ? "Thêm ít nhất một dịch vụ." : Lines.Count > 100 ? "Tối đa 100 dòng dịch vụ." : Lines.Any(x => !x.Available) ? "Xóa dịch vụ không còn trong Catalog." : _consultationFee is null ? "Chưa tải được phí khám/tư vấn." :
+    public string FormError => Customer is null ? "Chọn khách hàng." : Recipient is null || Recipient.CustomerId != Customer.Id ? "Chọn người được tiêm thuộc khách hàng." : Lines.Count == 0 ? "Thêm ít nhất một dịch vụ." : Lines.Count > 100 ? "Tối đa 100 dòng dịch vụ." : Lines.Any(x => !x.Available) ? "Xóa dịch vụ không còn trong danh mục." : _consultationFee is null ? "Chưa tải được phí khám/tư vấn." :
         TotalBeforeDiscount > 9999999999999999m ? "Tổng tiền vượt giới hạn VND." : ContactError();
     public bool CanSubmit => CanEditDraft && IsCreating && _catalogReady && (!_catalogReviewRequired || CatalogConfirmed) && FormError.Length == 0;
 
@@ -208,7 +208,7 @@ public sealed class RegistrationViewModel : ViewModelBase
         Registrations.Clear(); foreach (var row in rows) Registrations.Add(row);
         SelectedRegistration = null; _page = page;
         if (_unknownOutcome && page == 1) _reviewedList = true;
-        Feedback = rows.Length == 0 ? "Trang này chưa có đăng ký. Có thể quay lại trang trước hoặc tạo mới." : "Đã tải danh sách từ API / SQL. Chọn đăng ký rồi mở chi tiết.";
+        Feedback = rows.Length == 0 ? "Trang này chưa có đăng ký. Có thể quay lại trang trước hoặc tạo mới." : "Đã tải danh sách đăng ký. Chọn đăng ký để xem chi tiết.";
     });
 
     public Task NewAsync() => RunAsync(async () => {
@@ -219,7 +219,7 @@ public sealed class RegistrationViewModel : ViewModelBase
         var customers = await _service.GetCustomersAsync("", 1);
         if (!IsCurrent) return;
         foreach (var c in customers) Customers.Add(c);
-        Feedback = "Tìm khách hàng, chọn hồ sơ rồi tải người được tiêm. Giá hiển thị sẽ được API đối chiếu khi lưu.";
+        Feedback = "Tìm khách hàng, chọn hồ sơ rồi tải người được tiêm. Giá sẽ được kiểm tra lại khi xác nhận đăng ký.";
     });
     public Task SearchCustomersAsync()
     {
@@ -281,7 +281,7 @@ public sealed class RegistrationViewModel : ViewModelBase
             CatalogNotice = changes.Count > 0 ? string.Join("\n", changes) : "Danh mục đã được tải lại. Kiểm tra giá/thành phần từng dòng rồi xác nhận lại.";
         }
         _catalogReady = true; OnPropertyChanged(nameof(FilteredCatalog)); Refresh();
-        Feedback = "Đã tải Catalog SQL. Chọn lại dịch vụ nếu cần.";
+        Feedback = "Đã tải danh mục dịch vụ. Chọn lại dịch vụ nếu cần.";
     }
     private void AddLine()
     {
@@ -302,7 +302,7 @@ public sealed class RegistrationViewModel : ViewModelBase
     {
         var detail = await _service.GetDetailAsync(id);
         if (!IsCurrent) return;
-        Detail = detail; Feedback = $"Đã đọc đăng ký #{id} từ API / SQL. Giá là giá đã chốt lúc đăng ký.";
+        Detail = detail; Feedback = $"Đã tải chi tiết đăng ký #{id}. Giá và ưu đãi được xác nhận tại thời điểm tạo đăng ký.";
     }
     public Task SaveAsync()
     {
@@ -317,7 +317,7 @@ public sealed class RegistrationViewModel : ViewModelBase
             catch (RegistrationApiException e) when (e.Code == "catalogChanged") {
                 if (!IsCurrent) return;
                 _catalogReviewRequired = true; _catalogReady = false; CatalogConfirmed = false;
-                CatalogNotice = "Danh mục đã thay đổi. Tải lại Catalog, xem thay đổi và xác nhận trước khi lưu.";
+                CatalogNotice = "Danh mục đã thay đổi. Tải lại danh mục, xem thay đổi và xác nhận trước khi lưu.";
                 await ReloadCatalogCoreAsync();
                 Feedback = "Chưa tạo đăng ký. Danh mục đã đổi; cần xác nhận lại giá và thành phần.";
                 return;

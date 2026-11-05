@@ -7,7 +7,7 @@
  <Grid Margin="24">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <StackPanel>
-   <TextBlock Text="TIẾP NHẬN / A07 · API / SQL" Style="{StaticResource CE.Caption}"/>
+   <TextBlock Text="TIẾP NHẬN / A07" Style="{StaticResource CE.Caption}"/>
    <TextBlock Text="Đăng ký dịch vụ" Style="{StaticResource CE.Heading}" Margin="0,4,0,8"/>
   </StackPanel>
   <WrapPanel Grid.Row="1" Margin="0,0,0,12" Visibility="{Binding HasAccess, Converter={StaticResource Visible}}">
@@ -86,7 +86,7 @@
       </Grid>
      </StackPanel></Border>
      <Border Style="{StaticResource CE.Card}" Margin="0,0,0,12"><StackPanel>
-      <DockPanel><TextBlock Text="2. Dịch vụ và số lượng" Style="{StaticResource CE.SectionHeading}"/><Button Content="Tải lại Catalog" Command="{Binding ReloadCatalogCommand}" Style="{StaticResource CE.Button.Ghost}" HorizontalAlignment="Right"/></DockPanel>
+      <DockPanel><TextBlock Text="2. Dịch vụ và số lượng" Style="{StaticResource CE.SectionHeading}"/><Button Content="Tải lại danh mục" Command="{Binding ReloadCatalogCommand}" Style="{StaticResource CE.Button.Ghost}" HorizontalAlignment="Right"/></DockPanel>
       <TextBlock Text="Tìm tên vắc xin hoặc gói" Style="{StaticResource CE.Caption}" Margin="0,8,0,4"/>
       <TextBox Text="{Binding CatalogSearch, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Tìm dịch vụ"/>
       <TextBlock Text="Dịch vụ *" Style="{StaticResource CE.Caption}" Margin="0,8,0,4"/>
@@ -150,7 +150,7 @@
       <TextBlock Text="{Binding PromotionNotice}" TextWrapping="Wrap"/>
       <TextBlock Text="{Binding DiscountPreview, StringFormat=Ưu đãi: {0:N0} đ}"/>
       <TextBlock Text="{Binding TotalDuePreview, StringFormat=Tổng thanh toán: {0:N0} đ}" Style="{StaticResource CE.SectionHeading}" Margin="0,12,0,4"/>
-      <TextBlock Text="Giá do API quyết định và lưu tại thời điểm đăng ký." Style="{StaticResource CE.Caption}"/>
+      <TextBlock Text="Giá và ưu đãi được xác nhận tại thời điểm tạo đăng ký." Style="{StaticResource CE.Caption}"/>
       <TextBlock Text="{Binding FormError}" Foreground="{StaticResource CE.Danger.Foreground}" Margin="0,8"/>
       <Button Content="Xác nhận tạo đăng ký" Command="{Binding SaveCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" Margin="0,4"/>
      </StackPanel></Border>

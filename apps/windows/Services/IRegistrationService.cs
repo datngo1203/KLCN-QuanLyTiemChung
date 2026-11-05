@@ -19,7 +19,7 @@ public sealed record RegistrationLine(int ServiceId, string Name, string Kind, i
     public decimal LineTotal => Quantity * UnitPrice;
     public string KindLabel => Kind == "package" ? "Gói" : "Vắc xin lẻ";
     public string ComponentLabel => string.Join("; ", Components?.Select(x => $"{x.VaccineName ?? $"Vắc xin #{x.VaccineId}"} × {x.Quantity} / gói") ?? []);
-    public string AvailabilityLabel => Available ? "" : "Dịch vụ không còn trong Catalog SQL. Hãy xóa dòng này.";
+    public string AvailabilityLabel => Available ? "" : "Dịch vụ không còn trong danh mục. Hãy xóa dòng này.";
 }
 public sealed record RegistrationSummary(int Id, DateTimeOffset CreatedAt, string Status, RegistrationPerson Customer,
     RegistrationPerson Recipient, int? EmployeeId, decimal Subtotal, string Currency, DateOnly? PreferredDate, decimal? ConsultationFee,
@@ -150,7 +150,7 @@ public sealed class RegistrationApiService(IdentityApiService? identity = null) 
         async Task<T[]> Catalog<T>(string resource) {
             using var response = await SendAsync(HttpMethod.Get, "catalog/" + resource);
             var list = await response.Content.ReadFromJsonAsync<CatalogList<T>>();
-            if (list?.Source != "database") throw new RegistrationApiException("catalogUnavailable", "Đăng ký yêu cầu Catalog SQL thật. Không thể dùng danh mục Sample.");
+            if (list?.Source != "database") throw new RegistrationApiException("catalogUnavailable", "Chưa tải được danh mục dịch vụ. Vui lòng tải lại.");
             return list.Items;
         }
         var vaccines = await Catalog<CatalogVaccine>("vaccines");

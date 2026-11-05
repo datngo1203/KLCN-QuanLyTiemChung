@@ -24,11 +24,11 @@ public static class PromotionApiClient
 {
     private sealed record ProblemPayload(string? Code);
 
-    public static async Task<(bool Ok, IReadOnlyList<PromotionRecord> Items, string Error)> LoadAsync(int sessionRevision)
+    public static async Task<(bool Ok, IReadOnlyList<PromotionRecord> Items, string Error)> LoadAsync(int sessionRevision, IdentityApiService? identity = null)
     {
         try
         {
-            using var response = await IdentityApiService.Current.SendCatalogAsync(
+            using var response = await (identity ?? IdentityApiService.Current).SendCatalogAsync(
                 HttpMethod.Get, "api/v1/promotions", expectedSessionRevision: sessionRevision);
 
             if (!response.IsSuccessStatusCode)
@@ -47,7 +47,7 @@ public static class PromotionApiClient
         }
         catch (OperationCanceledException)
         {
-            return (false, [], "");
+            return (false, [], "Quá thời gian chờ. Vui lòng tải lại danh sách.");
         }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
         {
@@ -56,18 +56,18 @@ public static class PromotionApiClient
     }
 
     public static async Task<(bool Ok, PromotionRecord? Item, string Error)> SaveAsync(
-        int? id, string name, string description, DateTime start, DateTime end, decimal discount, bool enabled, int sessionRevision)
+        int? id, string name, string description, DateTime start, DateTime end, decimal discount, bool enabled, int sessionRevision, IdentityApiService? identity = null)
     {
         try
         {
-            var startUtc = new DateTimeOffset(start.Date, TimeSpan.FromHours(7));
-            var endUtc = new DateTimeOffset(end.Date.AddDays(1).AddSeconds(-1), TimeSpan.FromHours(7));
+            var startUtc = new DateTimeOffset(DateTime.SpecifyKind(start.Date, DateTimeKind.Unspecified), TimeSpan.FromHours(7));
+            var endUtc = new DateTimeOffset(DateTime.SpecifyKind(end.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Unspecified), TimeSpan.FromHours(7));
             var req = new UpsertPromotionRequest(name.Trim(), description.Trim(), startUtc, endUtc, discount, enabled);
 
             var method = id is null ? HttpMethod.Post : HttpMethod.Put;
             var path = id is null ? "api/v1/promotions" : $"api/v1/promotions/{id.Value}";
 
-            using var response = await IdentityApiService.Current.SendCatalogAsync(
+            using var response = await (identity ?? IdentityApiService.Current).SendCatalogAsync(
                 method, path, req, expectedSessionRevision: sessionRevision);
 
             if (!response.IsSuccessStatusCode)
@@ -80,7 +80,7 @@ public static class PromotionApiClient
         }
         catch (OperationCanceledException)
         {
-            return (false, null, "");
+            return (false, null, "Chưa xác định kết quả lưu. Vui lòng tải lại danh sách trước khi thao tác tiếp.");
         }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
         {
@@ -88,11 +88,11 @@ public static class PromotionApiClient
         }
     }
 
-    public static async Task<(bool Ok, string Error)> DeleteAsync(int id, int sessionRevision)
+    public static async Task<(bool Ok, string Error)> DeleteAsync(int id, int sessionRevision, IdentityApiService? identity = null)
     {
         try
         {
-            using var response = await IdentityApiService.Current.SendCatalogAsync(
+            using var response = await (identity ?? IdentityApiService.Current).SendCatalogAsync(
                 HttpMethod.Delete, $"api/v1/promotions/{id}", expectedSessionRevision: sessionRevision);
 
             if (response.StatusCode == HttpStatusCode.NoContent || response.IsSuccessStatusCode)
@@ -102,7 +102,7 @@ public static class PromotionApiClient
         }
         catch (OperationCanceledException)
         {
-            return (false, "");
+            return (false, "Chưa xác định kết quả xóa. Vui lòng tải lại danh sách.");
         }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
         {

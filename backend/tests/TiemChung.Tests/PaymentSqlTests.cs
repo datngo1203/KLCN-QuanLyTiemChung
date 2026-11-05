@@ -138,6 +138,10 @@ public sealed partial class PaymentSqlTests
                 : await f.Cashier.Client.PostAsJsonAsync(path, Cash(50000m));
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var receipt = (await response.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
+            Assert.Equal(pendingTransfer ? "Đang chờ Thu ngân xác nhận chuyển khoản." : "Đã ghi nhận thanh toán toàn bộ.", receipt.Message);
+            var settings = (await f.Customer.Client.GetFromJsonAsync<PaymentSettingsDto>("/api/v1/payment/settings"))!;
+            Assert.Equal("Trung tâm tiêm chủng VNVC", settings.ReceiverAccountName);
+            Assert.Equal("Đơn vị nhận chuyển khoản", settings.ReceiverBankName);
             if (pendingTransfer) {
                 Assert.Equal(50000m, receipt.RemainingAmount);
                 Assert.Equal(0m, receipt.PaidAmount);

@@ -68,7 +68,8 @@ public sealed partial class PaymentSqlTests
             Assert.Equal(registration.Contact, before.RegistrationContact);
             var settings = await f.Customer.Client.GetFromJsonAsync<PaymentSettingsDto>("/api/v1/payment/settings");
             Assert.NotNull(settings);
-            Assert.Equal("Ngân hàng VAC", settings.ReceiverBankName);
+            Assert.Equal("Đơn vị nhận chuyển khoản", settings.ReceiverBankName);
+            Assert.Equal("Trung tâm tiêm chủng VNVC", settings.ReceiverAccountName);
             Assert.DoesNotContain("Ngân hàng thử nghiệm", settings.ReceiverBankName);
             Assert.Equal("0000000402", settings.ReceiverAccountNumber);
             Assert.Empty(await f.Db.Payments.ToArrayAsync());
