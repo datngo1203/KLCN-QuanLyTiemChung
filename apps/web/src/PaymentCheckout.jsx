@@ -92,9 +92,9 @@ function TransferGateway({ detail, onReady }) {
     let active = true
     identity.getPaymentSettings().then(settings => {
       if (!active) return
-      const content = `VAC ${registrationCode(detail.registrationId)}`
+      const content = `VNVC ${registrationCode(detail.registrationId)}`
       const qr = qrcode(0, 'M')
-      qr.addData(`VAC|${settings.receiverAccountNumber}|${detail.totalDue}|${content}`)
+      qr.addData(`VNVC|${settings.receiverAccountNumber}|${detail.totalDue}|${content}`)
       qr.make()
       setState({ settings, content, src: qr.createDataURL(4) })
       onReady(true)
@@ -111,7 +111,7 @@ function TransferGateway({ detail, onReady }) {
     </div>}
     {state.settings && <>
       <div className="payment-transfer">
-        <img src={state.src} alt="Mã QR chứa thông tin nhận chuyển khoản VAC" width="172" height="172" />
+        <img src={state.src} alt="Mã QR chứa thông tin nhận chuyển khoản VNVC" width="172" height="172" />
         <dl className="payment-transaction">
           <div><dt>Ngân hàng nhận</dt><dd>{state.settings.receiverBankName}</dd></div>
           <div><dt>Chủ tài khoản nhận</dt><dd>{state.settings.receiverAccountName}</dd></div>

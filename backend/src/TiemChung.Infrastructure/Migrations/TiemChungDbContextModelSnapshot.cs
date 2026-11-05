@@ -405,6 +405,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int?>("MaNhanVien")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("MucGiamSnapshot")
+                        .HasColumnType("decimal(18,0)");
+
                     b.Property<DateTime>("NgayDangKy")
                         .HasColumnType("datetime2");
 
@@ -421,6 +424,10 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.Property<string>("SoDienThoaiLienHe")
                         .HasColumnType("varchar(11)");
+
+                    b.Property<string>("TenKhuyenMaiSnapshot")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("TenNguoiLienHe")
                         .HasColumnType("nvarchar(150)");
@@ -816,8 +823,11 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKhuyenMai"));
 
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("MucUuDai")
-                        .HasColumnType("decimal(8,2)");
+                        .HasColumnType("decimal(18,0)");
 
                     b.Property<string>("NoiDung")
                         .IsRequired()

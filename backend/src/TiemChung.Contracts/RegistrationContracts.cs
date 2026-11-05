@@ -4,7 +4,7 @@ namespace TiemChung.Contracts;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CreateRegistrationRequest(int CustomerId, int RecipientId, RegistrationItemRequest[] Items,
-    [property: JsonRequired] DateOnly? PreferredDate, [property: JsonRequired] RegistrationContactRequest? Contact);
+    [property: JsonRequired] DateOnly? PreferredDate, [property: JsonRequired] RegistrationContactRequest? Contact, int? PromotionId = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RegistrationContactRequest(string? FullName, string? PhoneNumber, string? Email,
@@ -27,15 +27,19 @@ public sealed record RegistrationItemDto(int Id, string Kind, int ServiceId, str
     decimal UnitPrice, decimal LineTotal, RegistrationComponentDto[]? Components);
 public sealed record RegistrationSummaryDto(int Id, DateTimeOffset CreatedAt, string Status,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, int? EmployeeId, decimal Subtotal, string Currency,
-    DateOnly? PreferredDate, decimal? ConsultationFee, string? ExpectedChannel = null)
+    DateOnly? PreferredDate, decimal? ConsultationFee, string? ExpectedChannel = null,
+    string? PromotionName = null, decimal DiscountAmount = 0)
 {
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+    public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }
 public sealed record RegistrationDto(int Id, DateTimeOffset CreatedAt, string Status,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, int? EmployeeId,
     RegistrationItemDto[] Items, decimal Subtotal, string Currency,
-    DateOnly? PreferredDate, RegistrationContactDto? Contact, decimal? ConsultationFee, string? ExpectedChannel = null)
+    DateOnly? PreferredDate, RegistrationContactDto? Contact, decimal? ConsultationFee, string? ExpectedChannel = null,
+    string? PromotionName = null, decimal DiscountAmount = 0)
 {
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+    public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }
 public sealed record RegistrationListResponse(RegistrationSummaryDto[] Items);

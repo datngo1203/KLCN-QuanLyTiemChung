@@ -40,7 +40,7 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   }
   identity.registrations = async () => ({ items: [{ id: 7, customer, recipient, totalBeforeDiscount: '550000' }] })
   identity.getPaymentSettings = async () => ({
-    receiverBankName: 'Ngân hàng VAC', receiverAccountName: 'VAC', receiverAccountNumber: '0000000402',
+    receiverBankName: 'Đơn vị nhận chuyển khoản', receiverAccountName: 'Trung tâm tiêm chủng VNVC', receiverAccountNumber: '0000000402',
   })
   const pending = Promise.withResolvers()
   const posted = []
@@ -62,7 +62,7 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   assert.equal(field('fullName').value, 'Liên hệ đã chốt')
   assert.equal(host.querySelectorAll('[name=method]').length, 4)
   await act(async () => host.querySelector('[value=TheNoiDia]').click())
-  field('bankName').value = 'Ngân hàng VAC'
+  field('bankName').value = 'Ngân hàng gửi'
   field('accountHolderName').value = 'Chủ tài khoản'
   field('cardOrAccountNumber').value = '1122334455'
   await act(async () => submit())
@@ -79,8 +79,10 @@ test('checkout keeps the registration snapshot, opens a local QR without writing
   assert.equal(field('cvv'), null)
   assert.equal(field('terms').checked, false)
   assert.match(host.querySelector('img').getAttribute('src'), /^data:image\/gif/)
-  assert.match(host.textContent, /Ngân hàng VAC/)
-  assert.doesNotMatch(host.textContent, /Ngân hàng thử nghiệm/)
+  assert.match(host.textContent, /Đơn vị nhận chuyển khoản/)
+  assert.doesNotMatch(host.textContent, /Trung tâm tiêm chủng VAC|mô phỏng|không xử lý tiền thật/)
+  assert.match(host.textContent, /Trung tâm tiêm chủng VNVC/)
+  assert.match(host.textContent, /VNVC DK-0007/)
   assert.equal(posted.length, 0)
   field('fullName').value = 'Người trả tiền'
   field('sourceBankOrWallet').value = 'Ngân hàng thử'

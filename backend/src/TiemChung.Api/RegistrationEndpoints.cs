@@ -86,6 +86,15 @@ public static class RegistrationEndpoints
             }
             var total = RegistrationRules.CalculateTotal(lines);
             if (total + fee > MaxMoney) throw new IdentityFailure(400, "validation");
+            KhuyenMai? promotion = null;
+            if (req.PromotionId is int promotionId) {
+                if (promotionId <= 0) throw new IdentityFailure(400, "validation");
+                promotion = await db.Promotions.AsNoTracking().SingleOrDefaultAsync(x => x.MaKhuyenMai == promotionId, ct);
+                var checkedAt = DateTime.UtcNow;
+                if (promotion is null || !promotion.IsEnabled || promotion.ThoiGianBatDau > checkedAt ||
+                    promotion.ThoiGianKetThuc < checkedAt || promotion.MucUuDai is < 0 or > MaxMoney)
+                    throw new IdentityFailure(409, "promotionUnavailable");
+            }
             var row = new DangKyDichVu {
                 MaKhachHang = req.CustomerId, MaNguoiDuocTiem = req.RecipientId,
                 MaNhanVien = actor.Employee?.MaNhanVien, NgayDangKy = now.UtcDateTime, TrangThai = "DaDangKy",
@@ -93,7 +102,9 @@ public static class RegistrationEndpoints
                 ThoiGianDuKien = req.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue),
                 TenNguoiLienHe = contact.FullName, SoDienThoaiLienHe = contact.PhoneNumber, EmailLienHe = contact.Email,
                 TinhThanhLienHe = contact.ProvinceCity, PhuongXaLienHe = contact.WardCommune,
-                DiaChiLienHe = contact.AddressLine, PhiKhamTuVan = fee
+                DiaChiLienHe = contact.AddressLine, PhiKhamTuVan = fee,
+                MaKhuyenMai = promotion?.MaKhuyenMai, TenKhuyenMaiSnapshot = promotion?.TenKhuyenMai,
+                MucGiamSnapshot = promotion is null ? null : Math.Min(promotion.MucUuDai, total)
             };
             db.Registrations.Add(row);
             await db.SaveChangesAsync(ct);
@@ -137,7 +148,7 @@ public static class RegistrationEndpoints
                 new(x.MaKhachHang, customers[x.MaKhachHang].HoTen), new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen), x.MaNhanVien,
                 singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
                 packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND",
-                PreferredDate(x), x.PhiKhamTuVan, x.KenhThanhToanDuKien)).ToArray();
+                PreferredDate(x), x.PhiKhamTuVan, x.KenhThanhToanDuKien, x.TenKhuyenMaiSnapshot, x.MucGiamSnapshot ?? 0)).ToArray();
             await tx.CommitAsync(ct);
             return Results.Ok(new RegistrationListResponse(items));
         }).WithName("ListRegistrations").Produces<RegistrationListResponse>();
@@ -252,6 +263,6 @@ public static class RegistrationEndpoints
                 row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe);
         return new(row.MaDangKy, Utc(row.NgayDangKy), row.TrangThai, new(customer.MaKhachHang, customer.HoTen),
             new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND",
-            PreferredDate(row), contact, row.PhiKhamTuVan, row.KenhThanhToanDuKien);
+            PreferredDate(row), contact, row.PhiKhamTuVan, row.KenhThanhToanDuKien, row.TenKhuyenMaiSnapshot, row.MucGiamSnapshot ?? 0);
     }
 }

@@ -448,3 +448,11 @@ Chỉ nhân viên `ThuKho` Active có grant `XemKho`, account/session Active the
 - Mỗi mục có `registrationId, createdAt, preferredDate, payment, appointments, nextAppointment, shots, shotCount`. `payment` dùng `RegistrationPaymentDto` hiện hành gồm contact, hồ sơ, dòng dịch vụ, tiền VND, kênh dự kiến và giao dịch. Lỗi bất nhất tài chính trả 409 cho response. Số tiền dùng cùng quy ước VND chính xác như Payment.
 - Bỏ lịch sai người hoặc sai dòng nguồn trong cùng đăng ký. `nextAppointment` là lịch tương lai gần nhất, thời gian bằng nhau phân định theo ID. `shots` chỉ gồm mũi thuộc chuỗi đã xác thực của S5.7A, mới nhất trước, phân định theo ID. Lịch/mũi sai nguồn không đưa vào projection.
 - Chỉ đọc SQL. Trạng thái trình bày được suy ra từ facts, không có Journey state lưu trong SQL.
+
+## S6 — Ưu đãi giảm tiền cố định
+
+- `GET /api/v1/promotions/valid` công khai, trả ưu đãi đã bật và đang trong khoảng hiệu lực UTC (gồm hai đầu mốc). Windows A10 dùng `GET/POST /api/v1/promotions`, `PUT/DELETE /api/v1/promotions/{id}` với phiên nhân viên có quyền `QuanLyKhuyenMai`. POST/PUT nhận `name`, `description`, `startsAt`, `endsAt`, `discountAmount` (VND nguyên, 0–9.999.999.999.999.999) và `isEnabled`. DELETE trả 409 `promotionReferenced` khi đã có đăng ký tham chiếu.
+- POST đăng ký nhận thêm `promotionId` nullable. Server kiểm trạng thái/thời gian trong cùng transaction với đăng ký; nếu ưu đãi không còn dùng được, trả 409 `promotionUnavailable`. Tên và khoản giảm được chốt khi tạo. Khoản giảm tối đa bằng tiền dịch vụ, phí khám/tư vấn giữ nguyên.
+- Danh sách/chi tiết đăng ký trả `promotionName`, `discountAmount`, `totalDue`. Payment và Journey dùng số tiền từ snapshot, với `totalDue = subtotal + consultationFee - discountAmount`. Các điều kiện thanh toán pending, xác nhận thu và ghi mũi tiếp tục dùng cùng payment summary. Các đăng ký cũ chưa có snapshot và có tham chiếu ưu đãi tiếp tục bị chặn ở cổng kiểm tiền.
+
+S6 migration kiểm trước khi thay schema. Nếu đăng ký cũ đã có `MaKhuyenMai`, migration dừng để đối chiếu lịch sử rõ ràng, không suy snapshot từ danh mục ưu đãi hiện tại. Mức ưu đãi cũ có phần lẻ VND cũng bị từ chối trước khi đổi precision.

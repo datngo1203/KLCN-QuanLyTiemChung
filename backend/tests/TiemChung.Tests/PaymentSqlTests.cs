@@ -85,6 +85,88 @@ public sealed partial class PaymentSqlTests
         });
     }
 
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PromotionCapsAtServiceSubtotalAndPaymentUsesImmutableSnapshot(bool pendingTransfer)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(consultationFee: "50000"), async f => {
+            var manager = await f.Actor("LeTan", "QuanLyKhuyenMai");
+            const string promotions = "/api/v1/promotions";
+            var request = new UpsertPromotionRequest("Ưu đãi kiểm thử", "Chương trình tổng hợp",
+                DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1),
+                9_999_999_999_999_999m, true);
+            using var forbidden = await f.Customer.Client.PostAsJsonAsync(promotions, request);
+            Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+            using var created = await manager.Client.PostAsJsonAsync(promotions, request);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var promotion = (await created.Content.ReadFromJsonAsync<PromotionDto>())!;
+            var offers = (await f.Customer.Client.GetFromJsonAsync<PromotionListResponse>(promotions + "/valid"))!;
+            Assert.Equal(request.DiscountAmount, Assert.Single(offers.Items).DiscountAmount);
+
+            var registration = await f.Register(promotionId: promotion.Id);
+            Assert.True(registration.Subtotal > 0);
+            Assert.Equal(registration.Subtotal, registration.DiscountAmount);
+            Assert.Equal(50000m, registration.TotalDue);
+            Assert.Equal(promotion.Name, registration.PromotionName);
+
+            using var updated = await manager.Client.PutAsJsonAsync($"{promotions}/{promotion.Id}",
+                request with { IsEnabled = false, DiscountAmount = 1, Name = "Tên đã đổi" });
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+            Assert.Empty((await f.Customer.Client.GetFromJsonAsync<PromotionListResponse>(promotions + "/valid"))!.Items);
+            var vaccine = registration.Items.First(i => i.Kind == "vaccine");
+            var rejected = RegistrationSqlTests.SyntheticRequest(f.CustomerProfile.MaKhachHang, f.Recipient.MaNguoiDuocTiem,
+                [new("vaccine", vaccine.ServiceId, 1, vaccine.UnitPrice)]) with { PromotionId = promotion.Id };
+            using var conflict = await f.Customer.Client.PostAsJsonAsync("/api/v1/registrations", rejected);
+            await Problem(conflict, 409, "promotionUnavailable");
+            var path = Path(registration.Id);
+            var before = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(path))!;
+            Assert.Equal(registration.DiscountAmount, before.DiscountAmount);
+            Assert.Equal(50000m, before.TotalDue);
+            var reception = await f.Actor("LeTan", "QuanLyLichHen");
+            var sourcePath = $"/api/v1/appointments/sources/{registration.Id}";
+            async Task<string> Readiness() =>
+                (await reception.Client.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcePath))!.Source.ReadinessCode;
+            Assert.Equal("unpaid", await Readiness());
+            var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).ToString("yyyy-MM-dd");
+            var report = $"/api/v1/reports/monthly-revenue?from={today[..7]}&to={today}";
+            async Task<decimal> Revenue() =>
+                (await f.Base.Client.GetFromJsonAsync<MonthlyRevenueReportDto>(report))!.TotalRevenue;
+
+            using var response = pendingTransfer
+                ? await f.Customer.Client.PostAsJsonAsync(path + "/online", Online("ChuyenKhoanOnline"))
+                : await f.Cashier.Client.PostAsJsonAsync(path, Cash(50000m));
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var receipt = (await response.Content.ReadFromJsonAsync<RegistrationPaymentDto>())!;
+            Assert.Equal(pendingTransfer ? "Đang chờ Thu ngân xác nhận chuyển khoản." : "Đã ghi nhận thanh toán toàn bộ.", receipt.Message);
+            var settings = (await f.Customer.Client.GetFromJsonAsync<PaymentSettingsDto>("/api/v1/payment/settings"))!;
+            Assert.Equal("Trung tâm tiêm chủng VNVC", settings.ReceiverAccountName);
+            Assert.Equal("Đơn vị nhận chuyển khoản", settings.ReceiverBankName);
+            if (pendingTransfer) {
+                Assert.Equal(50000m, receipt.RemainingAmount);
+                Assert.Equal(0m, receipt.PaidAmount);
+                Assert.Equal(0m, await Revenue());
+                Assert.Equal("pending", await Readiness());
+                using var confirmed = await f.Cashier.Client.PostAsync(path + "/confirm", null);
+                Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+            }
+
+            var journey = (await f.Customer.Client.GetFromJsonAsync<VaccinationJourneyDto>(
+                $"/api/v1/vaccination-journeys/{registration.Id}"))!;
+            Assert.Equal(receipt.Payment!.Id, journey.Payment.Payment!.Id);
+            Assert.Equal(registration.DiscountAmount, journey.Payment.DiscountAmount);
+            Assert.Equal(50000m, journey.Payment.PaidAmount);
+            Assert.Equal(0m, journey.Payment.RemainingAmount);
+            Assert.Equal("paid", await Readiness());
+            Assert.Equal(50000m, await Revenue());
+
+            await using var readback = f.NewDb();
+            var snapshot = await readback.Registrations.AsNoTracking().SingleAsync();
+            Assert.Equal(registration.PromotionName, snapshot.TenKhuyenMaiSnapshot);
+            Assert.Equal(registration.DiscountAmount, snapshot.MucGiamSnapshot);
+        });
+    }
+
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task CashierRecordsServiceSubtotalPlusSnapshottedConsultationFee()
     {
@@ -667,8 +749,11 @@ public sealed partial class PaymentSqlTests
             var before = await LegacySnapshot(f.Db);
             await migrator.MigrateAsync(current);
             Assert.Equal(before, await LegacySnapshot(f.Db));
-            // The B1 guard needs the B1 schema, while the current API reads recipient codes.
-            await f.Db.Database.ExecuteSqlRawAsync("ALTER TABLE dbo.NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL DEFAULT 'VAC-000000000000'");
+            // Keep the B1 guard on its historical schema while enabling the current API readback.
+            await f.Db.Database.ExecuteSqlRawAsync("""
+                ALTER TABLE dbo.NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL DEFAULT 'VAC-000000000000';
+                ALTER TABLE dbo.DangKyDichVu ADD TenKhuyenMaiSnapshot nvarchar(150) NULL, MucGiamSnapshot decimal(18,0) NULL;
+                """);
             var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
             Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
             Assert.Null(legacy.TransactionCode); Assert.Null(legacy.Payer);
@@ -799,7 +884,7 @@ public sealed partial class PaymentSqlTests
             client.DefaultRequestHeaders.Authorization = new("Bearer", new IdentityTokens(Base.Config).Issue(account.MaTaiKhoan, session.Id, DateTimeOffset.UtcNow));
             return new(account, employee, session, client);
         }
-        public async Task<RegistrationDto> Register(string kind = "mixed")
+        public async Task<RegistrationDto> Register(string kind = "mixed", int? promotionId = null)
         {
             var vaccine = await Db.Vaccines.AsNoTracking().OrderBy(v => v.MaVacXin).FirstAsync();
             var package = await Db.Set<GoiVacXin>().AsNoTracking().SingleAsync();
@@ -808,7 +893,7 @@ public sealed partial class PaymentSqlTests
             var bundled = new RegistrationItemRequest("package", package.MaGoi, 2, package.GiaGoi, components);
             var request = RegistrationSqlTests.SyntheticRequest(CustomerProfile.MaKhachHang, Recipient.MaNguoiDuocTiem,
                 kind == "single" ? [single] : kind == "package" ? [bundled] : [single, bundled]);
-            using var response = await Customer.Client.PostAsJsonAsync("/api/v1/registrations", request);
+            using var response = await Customer.Client.PostAsJsonAsync("/api/v1/registrations", request with { PromotionId = promotionId });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }

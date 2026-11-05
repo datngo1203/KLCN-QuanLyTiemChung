@@ -42,7 +42,10 @@ public sealed record PaymentDto(int Id, int RegistrationId, decimal Amount, int?
 public sealed record PaymentRegistrationSummaryDto(int Id, DateTimeOffset CreatedAt,
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, decimal Subtotal, decimal TotalDue,
     decimal PaidAmount, decimal RemainingAmount, int? PaymentId, string Currency, decimal? ConsultationFee,
-    string PaymentState, string? ExpectedChannel);
+    string PaymentState, string? ExpectedChannel, decimal DiscountAmount = 0)
+{
+    public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+}
 
 public sealed record PaymentRegistrationListResponse(PaymentRegistrationSummaryDto[] Items);
 
@@ -50,4 +53,8 @@ public sealed record RegistrationPaymentDto(int RegistrationId, string Registrat
     RegistrationProfileDto Customer, RegistrationProfileDto Recipient, RegistrationItemDto[] Items,
     decimal Subtotal, decimal TotalDue, decimal PaidAmount, decimal RemainingAmount, string Currency,
     bool RequiresPayment, bool CanRecordPayment, bool IsSimulation, string Message, PaymentDto? Payment, decimal? ConsultationFee,
-    string PaymentState, string? ExpectedChannel, bool CanConfirmPendingPayment, RegistrationContactDto? RegistrationContact);
+    string PaymentState, string? ExpectedChannel, bool CanConfirmPendingPayment, RegistrationContactDto? RegistrationContact,
+    decimal DiscountAmount = 0)
+{
+    public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
+}
