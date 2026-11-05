@@ -13,7 +13,15 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   window.scrollTo = () => {}
   const originalFetch = globalThis.fetch
-  globalThis.fetch = async () => Response.json({ items: [] })
+  const catalogRequests = []
+  globalThis.fetch = async url => {
+    const path = new URL(url).pathname
+    catalogRequests.push(path)
+    const items = path.endsWith('/vaccines')
+      ? [{ id: 42, name: 'Vắc xin kiểm thử API', price: 150000 }]
+      : [{ id: 43, name: 'Gói tiêm kiểm thử API', price: 300000, items: [] }]
+    return Response.json({ source: 'database', items })
+  }
   const server = await createServer({ root: fileURLToPath(new URL('../..', import.meta.url)),
     server: { middlewareMode: true, hmr: false }, logLevel: 'silent' })
   const { createRoot } = await import('react-dom/client')
@@ -47,8 +55,31 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   await act(async () => header.querySelector('.account-button').click())
   assert.equal(window.location.hash, '#account')
   assert.ok([...document.querySelectorAll('main button')].some(button => button.textContent === 'Tạo tài khoản khách hàng'))
-  // Start login from the profile route without a return-after-login destination.
   await act(async () => header.querySelector('.brand').click())
+  const home = document.querySelector('main')
+  const footer = document.querySelector('footer')
+  const heroButton = label => [...home.querySelectorAll('.center-hero button')].find(button => button.textContent === label)
+  assert.equal(home.querySelector('h1').textContent, 'VNVC Hoàng Văn Thụ')
+  assert.match(home.textContent, /198 Hoàng Văn Thụ, P\. Đức Nhuận, TP\.HCM/)
+  assert.match(home.textContent, /07:30 – 17:00/)
+  assert.match(footer.textContent, /07:30 – 17:00.*Thứ Hai – Chủ nhật · Xuyên trưa/)
+  for (const area of [home, footer]) {
+    assert.equal(area.querySelector('a[href="tel:02871026595"]').textContent, '028 7102 6595')
+    assert.equal(new URL(area.querySelector('a[href*="google.com/maps"]').href).searchParams.get('query'),
+      '198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM')
+  }
+  assert.doesNotMatch(home.textContent, /Tra cứu vắc xin|Tìm hiểu gói tiêm|Quản lý hồ sơ gia đình|Chủ động chăm sóc sức khỏe/)
+  assert.doesNotMatch(footer.textContent, /example@email\.com|Giờ làm việc dự kiến/)
+  assert.ok(catalogRequests.includes('/api/v1/catalog/vaccines'))
+  assert.ok(catalogRequests.includes('/api/v1/catalog/packages'))
+  assert.match(home.textContent, /Vắc xin kiểm thử API/)
+  assert.match(home.textContent, /Gói tiêm kiểm thử API/)
+  await act(async () => heroButton('Đăng ký tiêm').click())
+  assert.equal(window.location.hash, '#register')
+  await act(async () => header.querySelector('.brand').click())
+  await act(async () => heroButton('Xem danh mục vắc xin').click())
+  assert.equal(window.location.hash, '#catalog')
+  // Start login from the profile route without a return-after-login destination.
   await act(async () => profileEntries()[0].click())
   await act(async () => {
     const fields = document.querySelectorAll('main form input')

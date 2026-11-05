@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Search, Menu, X, Info, Clock3, Mail, MapPin, Tag, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, Search, Menu, X, Info, Clock3, MapPin, Tag, ArrowUpRight } from 'lucide-react'
 import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
 import Registrations from './Registrations'
 import VaccinationJourneys from './VaccinationJourneys'
-import Home from './Home'
+import Home, { centerName, centerAddress, centerHours, centerDays, centerHotline, centerTel, centerMap } from './Home'
 import './theme.css'
 import './Catalog.css'
 
 const brandName = 'Trung tâm tiêm chủng VNVC'
-const facilityAddress = '198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM'
 
 const pages = [
   ['home', 'Trang chủ'], ['catalog', 'Danh mục'], ['account', 'Hồ sơ tiêm chủng'], ['promotions', 'Ưu đãi'], ['register', 'Đăng ký tiêm'],
@@ -91,7 +90,7 @@ function App() {
       <main ref={mainRef} tabIndex={-1}>
         {page === 'promotions' && <div className="wrap registration-message warning" role="status">Mô phỏng · Chức năng này chưa nối nghiệp vụ API/SQL. Không thể hiện kết quả của đăng ký dịch vụ đã lưu.</div>}
         {page === 'account' && <Account account={account} setAccount={setAccount} sessionBusy={sessionBusy} onSessionBusyChange={setSessionBusy} go={go} />}
-        {page === 'home' && <Home go={go} query={query} setQuery={setQuery} />}
+        {page === 'home' && <Home go={go} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
@@ -106,15 +105,15 @@ function App() {
             <p>Đồng hành cùng bạn trong việc tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe gia đình.</p>
           </div>
           <div className="footer-location">
-            <h2><MapPin aria-hidden="true" />VNVC Hoàng Văn Thụ</h2>
-            <address>{facilityAddress}</address>
-            <a className="footer-map" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(facilityAddress)}`} target="_blank" rel="noreferrer">Xem đường đi trên bản đồ <ArrowUpRight aria-hidden="true" /></a>
+            <h2><MapPin aria-hidden="true" />{centerName}</h2>
+            <address>{centerAddress}</address>
+            <a className="footer-map" href={centerMap} target="_blank" rel="noreferrer">Xem đường đi trên bản đồ <ArrowUpRight aria-hidden="true" /></a>
           </div>
           <div className="footer-contact">
-            <h2><Clock3 aria-hidden="true" />Giờ làm việc dự kiến</h2>
-            <strong className="footer-hours">07:30 – 17:00</strong>
-            <p>Thứ Hai – Chủ nhật · Không nghỉ trưa</p>
-            <p className="footer-email"><Mail aria-hidden="true" /><span>Email</span>example@email.com</p>
+            <h2><Clock3 aria-hidden="true" />Giờ làm việc</h2>
+            <strong className="footer-hours">{centerHours}</strong>
+            <p>{centerDays}</p>
+            <p className="footer-hotline">Hotline <a href={centerTel}>{centerHotline}</a></p>
           </div>
         </div>
         <div className="footer-bottom wrap"><span>© {brandName}</span><span>Chủ động hôm nay, an tâm ngày mai.</span></div>

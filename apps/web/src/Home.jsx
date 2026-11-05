@@ -1,69 +1,70 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, ArrowRight, ArrowDown, Search, ChevronDown } from 'lucide-react'
+import { Armchair, ArrowUpRight, Baby, Clock3, MapPin, Phone, Stethoscope, Syringe } from 'lucide-react'
 import { getVaccines, getPackages } from './api/client'
 import { ProductPlaceholder } from './VaccineDetail'
 import { money } from './registrationForm'
 
-export default function Home({ go, query, setQuery }) {
+export const centerName = 'VNVC Hoàng Văn Thụ'
+export const centerAddress = '198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM'
+export const centerHours = '07:30 – 17:00'
+export const centerDays = 'Thứ Hai – Chủ nhật · Xuyên trưa'
+export const centerHotline = '028 7102 6595'
+export const centerTel = 'tel:02871026595'
+export const centerMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(centerAddress)}`
+
+const facilities = [
+  [Armchair, 'Sảnh chờ', 'Có chỗ ngồi, nước uống và Wi-Fi trong thời gian chờ.'],
+  [Stethoscope, 'Phòng khám', 'Có khu vực riêng để khám sàng lọc và tư vấn trước tiêm.'],
+  [Syringe, 'Phòng tiêm', 'Không gian riêng dành cho việc thực hiện mũi tiêm.'],
+  [Baby, 'Tiện ích cho gia đình', 'Có khu vui chơi cho trẻ và phòng pha sữa, thay tã.'],
+]
+
+function HomeActions({ go, setQuery }) {
+  return <div className="hero-actions">
+    <button className="button primary" onClick={() => go('register')}>Đăng ký tiêm</button>
+    <button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem danh mục vắc xin</button>
+  </div>
+}
+
+export default function Home({ go, setQuery }) {
   return <>
-    <section className="vac-home" aria-labelledby="home-title">
-      <div className="vac-cover">
-        <img src="/images/vaccination.jpg" alt="Bác sĩ thực hiện tiêm chủng cho người trưởng thành" fetchPriority="high" width="1920" height="1280" />
-        <div className="wrap cover-caption"><span>Trung tâm tiêm chủng VNVC</span><p>Chăm sóc hôm nay.<br />An tâm ngày mai.</p></div>
-      </div>
-      <div className="vac-intro wrap">
-        <div className="vac-intro-copy">
-          <span className="vac-label">Trung tâm tiêm chủng VNVC</span>
-          <h1 id="home-title">Chủ động tiêm chủng.<br /><em>Vững tâm mỗi ngày.</em></h1>
-          <p>Thông tin rõ ràng, lựa chọn dễ dàng. Cùng VNVC tìm hiểu dịch vụ tiêm chủng và chăm sóc sức khỏe cho bạn, cho gia đình.</p>
-          <div className="hero-actions">
-            <button className="button primary" onClick={() => go('catalog')}>Khám phá vắc xin <ArrowUpRight aria-hidden="true" /></button>
-            <a className="button outline" href="#lien-he">Thông tin trung tâm <ArrowDown aria-hidden="true" /></a>
-          </div>
-          <form className="search-box" onSubmit={event => { event.preventDefault(); go('catalog') }}>
-            <span><Search aria-hidden="true" /></span><input value={query} onChange={event => setQuery(event.target.value)} maxLength={150} placeholder="Tìm loại tiêm chủng hoặc vắc xin" aria-label="Tìm loại tiêm chủng hoặc vắc xin" />
-            <button type="submit" className="button primary">Tìm kiếm</button>
-          </form>
+    <section className="center-hero" aria-labelledby="home-title">
+      <div className="wrap center-hero-layout">
+        <div>
+          <h1 id="home-title">{centerName}</h1>
+          <p>Trung tâm tiêm chủng cho trẻ em và người lớn</p>
+          <HomeActions go={go} setQuery={setQuery} />
         </div>
-        <aside className="vac-stories" aria-label="Khám phá dịch vụ VNVC">
-          <button className="vac-story" onClick={() => go('catalog')}><img src="/images/vaccine-care.jpg" alt="Nhân viên y tế chuẩn bị vắc xin tại phòng khám" width="800" height="533" /><span><small>TÌM HIỂU DỊCH VỤ</small><b>Vắc xin & gói tiêm chủng</b><i><ArrowUpRight aria-hidden="true" /></i></span></button>
-          <button className="vac-story" onClick={() => go('account')}><img src="/images/clinical-care.jpg" alt="Nhân viên y tế chăm sóc người được tiêm" width="800" height="533" /><span><small>ĐỒNG HÀNH CÙNG BẠN</small><b>Quản lý hồ sơ gia đình</b><i><ArrowUpRight aria-hidden="true" /></i></span></button>
-        </aside>
+        <img src="/images/vaccination.jpg" alt="" width="1920" height="1280" fetchPriority="high" />
       </div>
-      <div className="vac-pillars wrap"><span>Tra cứu vắc xin</span><span>Tìm hiểu gói tiêm</span><span>Quản lý hồ sơ</span><span>Chủ động chăm sóc sức khỏe</span></div>
+      <dl className="wrap center-facts">
+        <div><dt><MapPin aria-hidden="true" />Địa chỉ</dt><dd>{centerAddress}<a href={centerMap} target="_blank" rel="noreferrer">Xem bản đồ <ArrowUpRight aria-hidden="true" /></a></dd></div>
+        <div><dt><Clock3 aria-hidden="true" />Giờ làm việc</dt><dd>{centerHours}<span>{centerDays}</span></dd></div>
+        <div><dt><Phone aria-hidden="true" />Hotline</dt><dd><a href={centerTel}>{centerHotline}</a></dd></div>
+      </dl>
     </section>
 
-    <section className="vac-about section wrap" aria-labelledby="about-title">
-      <div><div className="eyebrow">VỀ VNVC</div><h2 id="about-title">Thông tin trong tầm tay.<br />An tâm cho cả gia đình.</h2></div>
-      <div className="vac-about-content"><p>Cổng thông tin VNVC giúp bạn tìm hiểu vắc xin, tham khảo gói tiêm chủng và chuẩn bị hồ sơ trước khi đến trung tâm. Từ thông tin của bản thân đến hồ sơ của bé, bạn có thể quản lý tập trung trong tài khoản khách hàng.</p>
-        <ul><li>Tra cứu tên, nguồn gốc và giá dịch vụ trong danh mục.</li><li>Tìm hiểu thành phần của từng gói tiêm chủng.</li><li>Lưu và cập nhật hồ sơ của bạn cùng người thân.</li></ul>
-        <button className="button outline" onClick={() => go('account')}>Quản lý hồ sơ gia đình <ArrowUpRight aria-hidden="true" /></button>
+    <section className="section wrap center-about" aria-labelledby="center-about-title">
+      <div className="section-heading">
+        <div>
+          <h2 id="center-about-title">Giới thiệu VNVC Hoàng Văn Thụ</h2>
+          <p>Khai trương ngày 06/12/2017, đây là cơ sở VNVC đầu tiên tại khu vực phía Nam. Trung tâm phục vụ trẻ em và người lớn, với các khu vực chờ, khám và tiêm được bố trí riêng.</p>
+        </div>
       </div>
+      <h3 id="center-facilities-title">Cơ sở vật chất và tiện ích</h3>
+      <ul className="center-facilities" aria-labelledby="center-facilities-title">
+        {facilities.map(([Icon, title, description]) => <li key={title}>
+          <Icon aria-hidden="true" /><h4>{title}</h4><p>{description}</p>
+        </li>)}
+      </ul>
     </section>
 
     <HomeCatalog go={go} setQuery={setQuery} />
 
-    <section className="vac-preparation section wrap" aria-labelledby="preparation-title">
-      <div className="section-heading"><div><div className="eyebrow">TRƯỚC KHI ĐẾN TRUNG TÂM</div><h2 id="preparation-title">Chuẩn bị chu đáo, thăm khám thuận tiện.</h2><p>Một vài việc đơn giản giúp bạn sẵn sàng cho buổi tiêm chủng.</p></div></div>
-      <div className="vac-preparation-grid">
-        <article><span className="vac-step">01</span><h3>Kiểm tra thông tin cá nhân</h3><p>Chuẩn bị họ tên, ngày sinh, thông tin liên hệ và kiểm tra hồ sơ của người được tiêm trên tài khoản.</p><button className="button text-button" onClick={() => go('account')}>Đến hồ sơ của bạn <ArrowRight aria-hidden="true" /></button></article>
-        <article><span className="vac-step">02</span><h3>Mang theo lịch sử tiêm</h3><p>Nếu có, mang theo sổ hoặc giấy ghi nhận các mũi đã tiêm để nhân viên y tế có thêm thông tin khi tư vấn.</p></article>
-        <article><span className="vac-step">03</span><h3>Chuẩn bị câu hỏi cần tư vấn</h3><p>Ghi lại những điều bạn muốn hỏi và trao đổi với nhân viên y tế trước khi tiêm. Việc chỉ định tiêm được thực hiện sau khám sàng lọc.</p></article>
-      </div>
-      <p className="vac-reference">Tìm hiểu thêm về việc chuẩn bị sổ tiêm và câu hỏi cho nhân viên y tế trong <a href="https://www.cdc.gov/vaccines-adults/recommended-vaccines/keeping-vaccine-records-up-to-date.html" target="_blank" rel="noreferrer">hướng dẫn của CDC</a> và <a href="https://www.canada.ca/en/public-health/services/publications/vaccines-immunization/childhood-vaccinations-appointment-checklist.html" target="_blank" rel="noreferrer">Cơ quan Y tế Công cộng Canada</a>.</p>
+    <section className="wrap center-cta" aria-labelledby="center-cta-title">
+      <h2 id="center-cta-title">Đăng ký tiêm tại VNVC Hoàng Văn Thụ</h2>
+      <HomeActions go={go} setQuery={setQuery} />
     </section>
-
-    <section className="vac-faq section" aria-labelledby="faq-title"><div className="wrap vac-faq-layout">
-      <div><div className="eyebrow">GIẢI ĐÁP NHANH</div><h2 id="faq-title">Bạn đang cần<br />tìm hiểu điều gì?</h2><p>Những thông tin hữu ích khi sử dụng cổng tiêm chủng VNVC.</p><a className="button outline" href="#lien-he">Thông tin liên hệ <ArrowDown aria-hidden="true" /></a></div>
-      <div className="vac-faq-list">
-        <details><summary>Tôi xem thông tin và giá vắc xin ở đâu?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Mở Danh mục để tra cứu theo tên, loại vắc xin, loại tiêm chủng hoặc khoảng giá. Mỗi mục hiển thị thông tin và giá đang được niêm yết trong danh mục.</p><button className="button text-button" onClick={() => go('catalog')}>Tra cứu danh mục <ArrowRight aria-hidden="true" /></button></div></details>
-        <details><summary>Tôi có thể quản lý hồ sơ cho bé và người thân không?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Có. Sau khi đăng nhập và đăng ký hồ sơ khách hàng, bạn có thể thêm người được tiêm, nhập thông tin của bé hoặc người thân và cập nhật khi cần.</p><button className="button text-button" onClick={() => go('account')}>Mở tài khoản và hồ sơ <ArrowRight aria-hidden="true" /></button></div></details>
-        <details><summary>Làm thế nào để tạo tài khoản VNVC?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Chọn Đăng nhập, sau đó chọn Tạo tài khoản khách hàng. Nhập email và mật khẩu, hoàn tất xác minh email rồi đăng nhập để quản lý hồ sơ.</p></div></details>
-        <details><summary>Gói tiêm chủng gồm những vắc xin nào?<ChevronDown className="faq-chevron" aria-hidden="true" /></summary><div><p>Trong Danh mục, chọn Gói vắc xin để xem tên gói, giá và danh sách vắc xin cùng số lượng tương ứng. Trao đổi với nhân viên y tế để được tư vấn phù hợp.</p></div></details>
-      </div>
-    </div></section>
-
-
   </>
 }
 
@@ -87,7 +88,7 @@ function HomeCatalog({ go, setQuery }) {
     ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', description: item.items?.map(vaccine => `${vaccine.vaccineName} × ${vaccine.quantity}`).join(', ') })),
   ]
   return <section className="vac-discover section" aria-labelledby="home-catalog-title"><div className="wrap">
-    <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2 id="home-catalog-title">Khám phá vắc xin và gói tiêm chủng.</h2><p>Tham khảo thông tin và giá dịch vụ để chuẩn bị cho lần đến trung tâm.</p></div><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
+    <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2 id="home-catalog-title">Danh mục vắc xin và gói tiêm</h2><p>Tham khảo thông tin và giá dịch vụ để chuẩn bị cho lần đến trung tâm.</p></div><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
     {loading && <div className="vac-catalog-state" role="status">Đang tải danh mục dịch vụ…</div>}
     {error && <div className="vac-catalog-state" role="alert"><p>{error}</p><button className="button outline" onClick={() => { setLoading(true); setError(''); setReload(value => value + 1) }}>Thử lại</button></div>}
     {!loading && !error && <>
