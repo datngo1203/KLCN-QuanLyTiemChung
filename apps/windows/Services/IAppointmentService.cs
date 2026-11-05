@@ -88,7 +88,7 @@ public sealed class AppointmentApiService(IdentityApiService? identity = null) :
                 "appointmentPaymentRequired" => "Đăng ký chưa đủ điều kiện xếp lịch do thanh toán chưa hoàn tất hoặc đang chờ xác nhận.",
                 "paymentDataConflict" => "Dữ liệu thanh toán cần được đối chiếu trước khi xếp lịch.",
                 "reminderSourceConflict" => "Lịch không còn đủ điều kiện ghi nhắc tham dự. Hãy kiểm tra nguồn, thời gian và mũi đã ghi.",
-                "reminderAlreadyRecorded" => "Lịch đã có log mô phỏng. Hãy GET đối chiếu, không ghi thêm.",
+                "reminderAlreadyRecorded" => "Lịch đã được ghi nhận nhắc lịch. Hãy đối chiếu kết quả, không ghi thêm.",
                 _ => "Không tải được thông tin. Bản nháp được giữ lại. Hãy thử lại."
             });
         }

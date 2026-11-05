@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using TiemChung.Desktop.Services;
 
 namespace TiemChung.Desktop.ViewModels;
@@ -11,16 +12,22 @@ public sealed class ReminderViewModel:ViewModelBase
     private bool _busy,_pending,_committed,_reconciled,_confirming,_denied;
     private ReminderDetail? _detail;
     private string _feedback="";
+    private string _search="", _queueFeedback="";
+    private int _page=1;
+    private AppointmentRecord? _selected;
     public event Action? Changed;
     public ReminderViewModel(IReminderService? service=null,IdentityApiService? identity=null)
     {
         _identity=identity??IdentityApiService.Current;_revision=_identity.SessionRevision;_service=service??new ReminderApiService(_identity);
-        _identity.SessionCleared+=(_,_)=>{_id=null;_detail=null;_pending=false;_committed=false;_reconciled=false;_confirming=false;Refresh();};
+        _identity.SessionCleared+=(_,_)=>{_id=null;_detail=null;_pending=false;_committed=false;_reconciled=false;_confirming=false;ClearQueue();_feedback="";Refresh();};
         LoadCommand=new(async _=>await LoadAsync(),_=>HasAccess&&!_busy&&!_confirming&&_id.HasValue);
         ConfirmCommand=new(_=>{_confirming=true;Refresh();},_=>CanRecord);
         CancelCommand=new(_=>{_confirming=false;Refresh();},_=>IsConfirming&&!_busy);
         RecordCommand=new(async _=>await RecordAsync(),_=>IsConfirming&&!_busy);
-        RetryCommand=new(async _=>await PostAsync(),_=>HasPending&&!_busy&&_reconciled&&!_committed);
+        RetryCommand=new(async _=>await PostAsync(),_=>HasPending&&!_busy&&_reconciled&&!_committed&&_detail?.CanRecord==true);
+        SearchCommand=new(async _=>await LoadQueueAsync(),_=>CanBrowse);
+        PreviousCommand=new(async _=>await LoadQueueAsync(Page-1),_=>CanBrowse&&Page>1);
+        NextCommand=new(async _=>await LoadQueueAsync(Page+1),_=>CanBrowse&&Queue.Count==AppointmentApiService.PageSize);
     }
     private bool IsCurrent=>_identity.IsSignedIn&&_identity.SessionRevision==_revision;
     public bool HasAccess=>IsCurrent&&_identity.CanUseAppointments&&!_denied;
@@ -31,6 +38,19 @@ public sealed class ReminderViewModel:ViewModelBase
     public bool CanRecord=>HasDetail&&!_busy&&!_pending&&!_confirming&&_detail!.CanRecord&&_detail.Reminder==null;
     public bool IsConfirming=>HasAccess&&_confirming;
     public bool IsBusy=>_busy;
+    public bool CanBrowse=>HasAccess&&!BlocksNavigation;
+    public bool NoAccess=>!HasAccess;
+    public bool NoResults=>HasAccess&&!_busy&&Queue.Count==0;
+    public int Page=>_page;
+    public ObservableCollection<AppointmentRecord> Queue{get;}=[];
+    public string Search{get=>_search;set{if(CanBrowse)Set(ref _search,value);}}
+    public string QueueFeedback=>_queueFeedback;
+    public AppointmentRecord? Appointment=>HasAccess?_detail?.Appointment:null;
+    public AppointmentRecord? Selected
+    {
+        get=>_selected;
+        set{if(CanBrowse&&Set(ref _selected,value))Select(value?.Id);}
+    }
     public string Content=>HasDetail?(_detail!.Reminder?.Content??_detail.Preview??"Không có nội dung mô phỏng đã lưu hoặc lịch không đủ điều kiện ghi mới."):"";
     public string Feedback=>_feedback;
     public ReminderRecord? Result=>HasAccess?_detail?.Reminder:null;
@@ -39,6 +59,27 @@ public sealed class ReminderViewModel:ViewModelBase
     public RelayCommand CancelCommand{get;}
     public RelayCommand RecordCommand{get;}
     public RelayCommand RetryCommand{get;}
+    public RelayCommand SearchCommand{get;}
+    public RelayCommand PreviousCommand{get;}
+    public RelayCommand NextCommand{get;}
+    private void ClearQueue(){Queue.Clear();_selected=null;_search="";_queueFeedback="";_page=1;OnPropertyChanged(nameof(Selected));OnPropertyChanged(nameof(Search));}
+    private void RemoveRecorded()
+    {
+        if(_detail?.Reminder==null)return;
+        foreach(var row in Queue.Where(a=>a.Id==_detail.Appointment.Id).ToArray())Queue.Remove(row);
+        if(Queue.Count==0)_queueFeedback="Không còn lịch cần nhắc trong trang này. Tải lại để kiểm tra.";
+    }
+    public async Task LoadQueueAsync(int page=1)
+    {
+        if(!CanBrowse||page<1)return;
+        _busy=true;_queueFeedback="Đang tải lịch cần nhắc…";Queue.Clear();Refresh();
+        try{
+            var rows=await _service.ListAsync(_search,page);if(!IsCurrent||_denied)return;
+            _page=page;foreach(var row in rows)Queue.Add(row);
+            _queueFeedback=rows.Length==0?"Không có lịch cần nhắc phù hợp.":"Chọn lịch để xem nội dung nhắc.";
+        }catch(Exception e){Error(e);if(HasAccess)_queueFeedback="Không tải được danh sách. Hãy thử lại.";}
+        finally{_busy=false;Refresh();}
+    }
     public void Select(int? id)
     {
         if(BlocksNavigation||_id==id)return;
@@ -46,37 +87,38 @@ public sealed class ReminderViewModel:ViewModelBase
     }
     private void Refresh()
     {
-        foreach(var p in new[]{nameof(HasAccess),nameof(HasSelection),nameof(HasDetail),nameof(HasPending),nameof(BlocksNavigation),nameof(CanRecord),nameof(IsConfirming),nameof(IsBusy),nameof(Content),nameof(Feedback),nameof(Result)})OnPropertyChanged(p);
-        foreach(var c in new[]{LoadCommand,ConfirmCommand,CancelCommand,RecordCommand,RetryCommand})c?.NotifyCanExecuteChanged();
+        foreach(var p in new[]{nameof(HasAccess),nameof(HasSelection),nameof(HasDetail),nameof(HasPending),nameof(BlocksNavigation),nameof(CanRecord),nameof(IsConfirming),nameof(IsBusy),nameof(Content),nameof(Feedback),nameof(Result),nameof(CanBrowse),nameof(NoAccess),nameof(NoResults),nameof(Page),nameof(QueueFeedback),nameof(Appointment)})OnPropertyChanged(p);
+        foreach(var c in new[]{LoadCommand,ConfirmCommand,CancelCommand,RecordCommand,RetryCommand,SearchCommand,PreviousCommand,NextCommand})c?.NotifyCanExecuteChanged();
         Changed?.Invoke();
     }
     private void Error(Exception e)
     {
         if(!IsCurrent)return;
-        if(e is AppointmentApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;_detail=null;_pending=false;_confirming=false;}
-        _feedback=e is AppointmentApiException?e.Message:"Không đọc được API. Hãy GET đối chiếu; không gửi lại tự động.";
+        if(e is AppointmentApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;_id=null;_detail=null;_pending=false;_confirming=false;ClearQueue();}
+        _feedback=e is AppointmentApiException?e.Message:"Không tải được thông tin. Hãy đối chiếu kết quả trước khi thử lại.";
     }
     public async Task LoadAsync()
     {
         if(!LoadCommand.CanExecute(null)||_id is not{} id)return;
         if(!_pending)_detail=null;
-        _busy=true;_reconciled=false;_feedback="Đang GET nhắc lịch…";Refresh();
+        _busy=true;_reconciled=false;_feedback="Đang đối chiếu nhắc lịch…";Refresh();
         try{
             var detail=await _service.GetAsync(id);if(!IsCurrent||_denied)return;
             _detail=detail;
-            if(detail.Reminder!=null){_pending=false;_committed=false;_feedback="Đã ghi log mô phỏng; chưa gửi email hoặc SMS.";}
-            else{_reconciled=true;_feedback=_pending?(_committed?"Đã nhận 201; tiếp tục GET, không POST lại.":"GET chưa có log. Có thể thử lại thủ công trên cùng lịch."):
-                detail.CanRecord?"Chưa có log. Xem nội dung trước khi xác nhận.":"Lịch không đủ điều kiện ghi nhắc tham dự.";}
+            if(detail.Reminder!=null){_pending=false;_committed=false;RemoveRecorded();_feedback="Đã ghi nhận nhắc lịch. Nội dung chưa được gửi đến khách hàng.";}
+            else{_reconciled=true;if(_pending&&!_committed&&!detail.CanRecord)_pending=false;
+                _feedback=_pending?(_committed?"Đã nhận xác nhận lưu; tiếp tục đối chiếu, không ghi lại.":"Chưa có ghi nhận. Có thể thử lại thủ công trên cùng lịch."):
+                detail.CanRecord?"Chưa ghi nhận nhắc lịch. Xem nội dung trước khi xác nhận.":"Lịch không đủ điều kiện ghi nhận nhắc lịch.";}
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public async Task RecordAsync(){if(RecordCommand.CanExecute(null))await PostAsync();}
     private async Task PostAsync()
     {
         if(!HasAccess||_busy||_id is not{} id)return;
-        _busy=true;_confirming=false;_pending=true;_reconciled=false;_feedback="Đang ghi log mô phỏng…";Refresh();
+        _busy=true;_confirming=false;_pending=true;_reconciled=false;_feedback="Đang ghi nhận nhắc lịch…";Refresh();
         try{
             var saved=await _service.RecordAsync(id);if(!IsCurrent||_denied)return;
-            _detail=_detail! with{Reminder=saved,Preview=null,CanRecord=false};_pending=false;_committed=false;_feedback="Đã ghi log mô phỏng. Nội dung chưa được gửi đến khách hàng.";
+            _detail=_detail! with{Reminder=saved,Preview=null,CanRecord=false};_pending=false;_committed=false;RemoveRecorded();_feedback="Đã ghi nhận nhắc lịch. Nội dung chưa được gửi đến khách hàng.";
         }catch(Exception e){
             if(!IsCurrent)return;
             if(e is AppointmentApiException{Code:"recordedUnreadable"})_committed=true;

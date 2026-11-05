@@ -47,6 +47,31 @@ public static class ReminderEndpoints
     }
     public static void MapReminderEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/v1/reminders/queue", async (HttpContext context, IdentityAuthorization auth,
+            TiemChungDbContext db, string? search, int? page, int? pageSize, CancellationToken ct) => {
+            await RequireReception(context, auth, false, ct);
+            search = search?.Trim();
+            if (search?.Length > 100 || page is <= 0 || pageSize is <= 0 or > 100 ||
+                (long)((page ?? 1) - 1) * (pageSize ?? 25) > int.MaxValue)
+                throw new IdentityFailure(400, "validation");
+            var now = DateTime.UtcNow;
+            var shots = from m in db.Set<MuiTiem>()
+                        join i in db.Set<ChiDinhTiem>() on m.MaChiDinh equals i.MaChiDinh
+                        join p in db.Set<PhieuKhamSangLoc>() on i.MaPhieuKham equals p.MaPhieuKham
+                        where m.TrangThai == "DaTiem"
+                        select p.MaLichHen;
+            var rows = ClinicalEndpoints.Sources(db).Where(a => a.TrangThai == "DaXepLich" && a.ThoiGianHen > now &&
+                !shots.Contains(a.MaLichHen) && !db.Set<NhacLich>().Any(r => r.MaLichHen == a.MaLichHen && r.KenhGui == Channel));
+            if (!string.IsNullOrEmpty(search)) {
+                var code = search.StartsWith("LH-", StringComparison.OrdinalIgnoreCase) ? search[3..] : search;
+                int.TryParse(code, out var id);
+                rows = rows.Where(a => a.MaLichHen == id || db.Recipients.Any(p =>
+                    p.MaNguoiDuocTiem == a.MaNguoiDuocTiem && p.HoTen.Contains(search)));
+            }
+            var items = await AppointmentEndpoints.Query(db, rows.OrderBy(a => a.ThoiGianHen).ThenBy(a => a.MaLichHen)
+                .Skip(((page ?? 1) - 1) * (pageSize ?? 25)).Take(pageSize ?? 25)).ToArrayAsync(ct);
+            return Results.Ok(new AppointmentListResponse(items));
+        }).WithTags("Reminders");
         var group = app.MapGroup("/api/v1/appointments/{id:int}/reminders").WithTags("Reminders");
         group.AddEndpointFilter(async (invocation, next) => {
             try { return await next(invocation); }

@@ -59,8 +59,35 @@ public sealed class ReminderClientTests
         var fake=new Fake();var vm=await Ready(fake);fake.GetError="dependencyUnavailable";await vm.LoadAsync();Assert.False(vm.CanRecord);Assert.Equal("",vm.Content);
         fake.GetError=null;await vm.LoadAsync();fake.Error="permissionDenied";vm.ConfirmCommand.Execute(null);await vm.RecordAsync();Assert.False(vm.HasAccess);Assert.Equal("",vm.Content);Assert.False(vm.HasPending);
     }
+    [Fact] public async Task QueueSearchSelectCancelSuccessAndRetry() {
+        var fake=new Fake();var vm=new ReminderViewModel(fake,await Login(new Handler()));
+        vm.Search="Nguyễn";await vm.LoadQueueAsync();Assert.Single(vm.Queue);Assert.False(vm.NoResults);
+        vm.Selected=vm.Queue[0];await vm.LoadAsync();Assert.Equal(Appointment,vm.Appointment);
+        vm.ConfirmCommand.Execute(null);Assert.False(vm.CanBrowse);vm.CancelCommand.Execute(null);Assert.Equal(0,fake.Posts);
+        vm.ConfirmCommand.Execute(null);await vm.RecordAsync();Assert.Empty(vm.Queue);Assert.Equal(Saved,vm.Result);
+        fake.GetError="dependencyUnavailable";await vm.LoadQueueAsync();Assert.Empty(vm.Queue);Assert.Contains("thử lại",vm.QueueFeedback);
+        fake.GetError=null;await vm.LoadQueueAsync();Assert.True(vm.NoResults);
+    }
+    [Fact] public async Task QueueClearsOnPermissionFailureAndLogout() {
+        var fake=new Fake();var identity=await Login(new Handler());var vm=new ReminderViewModel(fake,identity);
+        await vm.LoadQueueAsync();vm.Selected=vm.Queue[0];await vm.LoadAsync();fake.GetError="permissionDenied";
+        await vm.LoadQueueAsync();Assert.Empty(vm.Queue);Assert.Null(vm.Selected);Assert.Null(vm.Appointment);Assert.Empty(vm.Content);Assert.False(vm.HasAccess);
+        fake.GetError=null;vm=new ReminderViewModel(fake,identity);await vm.LoadQueueAsync();vm.Search="Nguyễn";
+        await identity.LogoutAsync();Assert.Empty(vm.Queue);Assert.Empty(vm.Search);Assert.Null(vm.Selected);Assert.False(vm.HasAccess);
+    }
+    [Fact] public async Task QueueServiceEscapesSearchAndUsesPaging() {
+        var handler=new Handler();var service=new ReminderApiService(await Login(handler));
+        Assert.Single(await service.ListAsync(" A&B ",2));Assert.Contains("search=A%26B&page=2&pageSize=25",handler.LastPath);
+    }
+    [Fact] public async Task LateQueueCannotRestoreDataAfterSessionChange() {
+        var fake=new Fake{ListGate=new()};var identity=await Login(new Handler());var vm=new ReminderViewModel(fake,identity);
+        var work=vm.LoadQueueAsync();await identity.LogoutAsync();await identity.LoginAsync("other","synthetic");
+        fake.ListGate.SetResult([Appointment]);await work;Assert.Empty(vm.Queue);Assert.False(vm.HasAccess);
+    }
     private sealed class Fake:IReminderService
     {
+        public TaskCompletionSource<AppointmentRecord[]>? ListGate;
+        public Task<AppointmentRecord[]> ListAsync(string search,int page){if(ListGate!=null)return ListGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Persisted?Array.Empty<AppointmentRecord>():new[]{Appointment});}
         public int Gets,Posts;public bool Persisted;public string? Error,GetError;public List<int> PostedIds=[];
         public TaskCompletionSource<ReminderDetail>? GetGate;public TaskCompletionSource<ReminderRecord>? PostGate;
         public Task<ReminderDetail> GetAsync(int id){Gets++;if(GetGate!=null)return GetGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Detail(Persisted));}
@@ -76,6 +103,7 @@ public sealed class ReminderClientTests
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
             if(request.Method==HttpMethod.Post){Posts++;LastPath=path;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="bad201")return Json(new{},HttpStatusCode.Created);
                 return Status==HttpStatusCode.Created?Json(Saved,Status):Json(new{code=Status==HttpStatusCode.Conflict?"reminderAlreadyRecorded":"validation",detail="SQL PRIVATE"},Status);}
+            if(path.EndsWith("/reminders/queue")){LastPath=request.RequestUri.PathAndQuery;return Json(new{items=new[]{Appointment}});}
             return Json(Detail());
         }
         private static HttpResponseMessage Json(object value,HttpStatusCode status=HttpStatusCode.OK)=>new(status){Content=JsonContent.Create(value)};
