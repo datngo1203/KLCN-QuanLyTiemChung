@@ -256,6 +256,8 @@ public sealed partial class PaymentSqlTests
             const string b2 = "20261104134233_RF04B2WebCheckout";
             var legacy = await f.Register();
             var online = await f.Register();
+            // This fixture represents registrations predating preferred-time provenance.
+            await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(r => r.CoGioDuKien, false));
             var migrator = f.Db.GetService<IMigrator>();
             await InsertLegacy(f.Db, f.Payment(legacy));
             var snapshot = await LegacySnapshot(f.Db);

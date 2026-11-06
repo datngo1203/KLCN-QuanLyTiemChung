@@ -20,6 +20,7 @@ builder.Services.AddHostedService<IdentityMailDispatcher>();
 builder.Services.AddSingleton<SyntheticReminderEmailTransport>();
 builder.Services.AddSingleton<IReminderEmailTransport, ReminderEmailTransport>();
 builder.Services.AddScoped<ReminderEmailDelivery>();
+builder.Services.AddScoped<AppointmentNotifications>();
 builder.Services.AddHostedService<ReminderEmailDispatcher>();
 builder.Services.AddDbContext<TiemChungDbContext>((services, options) =>
     options.UseSqlServer(services.GetRequiredService<IConfiguration>().GetConnectionString("TiemChung")

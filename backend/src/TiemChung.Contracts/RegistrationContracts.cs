@@ -4,7 +4,8 @@ namespace TiemChung.Contracts;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CreateRegistrationRequest(int CustomerId, int RecipientId, RegistrationItemRequest[] Items,
-    [property: JsonRequired] DateOnly? PreferredDate, [property: JsonRequired] RegistrationContactRequest? Contact, int? PromotionId = null);
+    [property: JsonRequired] DateOnly? PreferredDate, [property: JsonRequired] RegistrationContactRequest? Contact, int? PromotionId = null,
+    TimeOnly? PreferredTime = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RegistrationContactRequest(string? FullName, string? PhoneNumber, string? Email,
@@ -30,6 +31,8 @@ public sealed record RegistrationSummaryDto(int Id, DateTimeOffset CreatedAt, st
     DateOnly? PreferredDate, decimal? ConsultationFee, string? ExpectedChannel = null,
     string? PromotionName = null, decimal DiscountAmount = 0)
 {
+    public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }
@@ -39,6 +42,8 @@ public sealed record RegistrationDto(int Id, DateTimeOffset CreatedAt, string St
     DateOnly? PreferredDate, RegistrationContactDto? Contact, decimal? ConsultationFee, string? ExpectedChannel = null,
     string? PromotionName = null, decimal DiscountAmount = 0)
 {
+    public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }

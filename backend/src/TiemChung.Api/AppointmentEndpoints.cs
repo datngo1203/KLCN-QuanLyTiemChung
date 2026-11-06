@@ -108,6 +108,7 @@ public static partial class AppointmentEndpoints
             audit.ResourceType = "Appointment"; audit.ResourceId = row.MaLichHen.ToString(CultureInfo.InvariantCulture);
             await db.SaveChangesAsync(ct);
             var dto = await Query(db, db.Set<LichHenTiem>().Where(x => x.MaLichHen == row.MaLichHen)).SingleAsync(ct);
+            await AppointmentNotifications.Enqueue(db, dto, "AppointmentConfirmed", actor, context.TraceIdentifier, ct);
             await tx.CommitAsync(ct);
             return Results.Created($"/api/v1/appointments/{row.MaLichHen}", dto);
         }).WithName("CreateAppointment").Produces<AppointmentDto>(201);
@@ -197,7 +198,7 @@ public static partial class AppointmentEndpoints
         };
         return new(row.MaDangKy, row.TrangThai, payment.Customer, payment.Recipient,
             RegistrationEndpoints.PreferredDate(row), payment.PaymentState, payment.ExpectedChannel,
-            readiness is "zero" or "paid" or "center", readiness, facility);
+            readiness is "zero" or "paid" or "center", readiness, facility) { PreferredAt = row.ThoiGianDuKien, PreferredTimeSpecified = row.CoGioDuKien };
     }
 
     internal static IQueryable<AppointmentDto> Query(TiemChungDbContext db, IQueryable<LichHenTiem> rows) =>
@@ -259,6 +260,7 @@ public static partial class AppointmentEndpoints
         audit.ResourceType = "Appointment"; audit.ResourceId = id.ToString(CultureInfo.InvariantCulture);
         await db.SaveChangesAsync(ct);
         var result = await Query(db, db.Set<LichHenTiem>().Where(a => a.MaLichHen == id)).SingleAsync(ct);
+        await AppointmentNotifications.Enqueue(db, result, time.HasValue ? "AppointmentRescheduled" : "AppointmentCancelled", actor, context.TraceIdentifier, ct);
         await tx.CommitAsync(ct);
         return result;
     }

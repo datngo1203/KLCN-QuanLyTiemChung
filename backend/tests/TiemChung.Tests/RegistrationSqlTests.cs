@@ -27,7 +27,7 @@ public sealed class RegistrationSqlTests
 
     internal static CreateRegistrationRequest SyntheticRequest(int customerId, int recipientId, RegistrationItemRequest[] items) =>
         new(customerId, recipientId, items, VaccinationEndpoints.FacilityDate(DateTimeOffset.UtcNow).AddDays(1),
-            new("[DEMO] Liên hệ đăng ký", "09123456789", "contact@example.invalid", "Tỉnh thử", "Phường thử", "01 Đường thử"));
+            new("[DEMO] Liên hệ đăng ký", "09123456789", "contact@example.invalid", "Tỉnh thử", "Phường thử", "01 Đường thử"), PreferredTime: new(10, 30));
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SinglesPackagesAndMixedPersistSnapshotsAndAuditAndAllowPriceUpdates()
@@ -45,7 +45,7 @@ public sealed class RegistrationSqlTests
             Assert.All(saved.Items, x => Assert.Equal(x.Quantity * x.UnitPrice, x.LineTotal));
             var row = await f.Db.Registrations.AsNoTracking().SingleAsync(x => x.MaDangKy == saved.Id);
             Assert.Null(row.HinhThucTiem); Assert.Null(row.MaKhuyenMai);
-            Assert.Equal(request.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue), row.ThoiGianDuKien);
+            Assert.Equal(request.PreferredDate!.Value.ToDateTime(request.PreferredTime!.Value), row.ThoiGianDuKien);
             Assert.Equal(0, row.PhiKhamTuVan);
             var audit = await f.Db.Set<SecurityAudit>().AsNoTracking().SingleAsync(x => x.Action == "registrations.created" && x.ResourceId == saved.Id.ToString());
             Assert.Equal(f.CustomerAccount.MaTaiKhoan, audit.ActorAccountId);
@@ -362,7 +362,7 @@ public sealed class RegistrationSqlTests
         Assert.Equal("get", Assert.Single(paths.GetProperty(Route + "/settings").EnumerateObject()).Name);
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("CreateRegistrationRequest").GetProperty("properties");
-        Assert.Equal(new[] { "contact", "customerId", "items", "preferredDate", "promotionId", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
+        Assert.Equal(new[] { "contact", "customerId", "items", "preferredDate", "preferredTime", "promotionId", "recipientId" }, request.EnumerateObject().Select(x => x.Name).Order().ToArray());
         Assert.Contains("expectedUnitPrice", schemas.GetProperty("RegistrationItemRequest").GetProperty("required").EnumerateArray().Select(x => x.GetString()));
         Assert.True(schemas.GetProperty("RegistrationDto").GetProperty("properties").TryGetProperty("subtotal", out _));
         });
@@ -410,7 +410,7 @@ public sealed class RegistrationSqlTests
         Assert.Equal(300000m + fee, dto.TotalBeforeDiscount);
 
         var row = await f.Db.Registrations.AsNoTracking().SingleAsync();
-        Assert.Equal(date.ToDateTime(TimeOnly.MinValue), row.ThoiGianDuKien);
+        Assert.Equal(date.ToDateTime(req.PreferredTime!.Value), row.ThoiGianDuKien);
         Assert.Equal(snapshot, new(row.TenNguoiLienHe, row.SoDienThoaiLienHe, row.EmailLienHe,
             row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe));
         Assert.Equal(fee, row.PhiKhamTuVan);

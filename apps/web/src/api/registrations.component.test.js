@@ -49,7 +49,7 @@ async function render(t, fee, fail) {
     }
     if (path === '/7') return {
       customer: { ...customer, phoneNumber: '0909999999' }, recipient, createdAt: '2026-11-04T00:00:00Z',
-      contact: { ...posted.at(-1).contact, fullName: 'Tên đọc từ snapshot' }, preferredDate,
+      contact: { ...posted.at(-1).contact, fullName: 'Tên đọc từ snapshot' }, preferredDate, preferredAt: `${preferredDate}T10:30:00`, preferredTimeSpecified: true,
       items: [{ kind: 'vaccine', serviceId: 1, name: 'Vắc xin thử', unitPrice: price, quantity: 1 }],
       subtotal: price, consultationFee: fee, totalBeforeDiscount: price + fee,
     }
@@ -83,7 +83,7 @@ async function render(t, fee, fail) {
   assert.match(host.textContent, /Tỉnh \/ Thành phố là bắt buộc/)
   await fill('Họ tên', 'Liên hệ riêng'); await fill('Số điện thoại', '09123456789')
   await fill('Email', 'contact@example.invalid'); await fill('Tỉnh', 'Tỉnh thử')
-  await fill('Phường', 'Phường thử'); await fill('Địa chỉ', 'Đường thử'); await fill('Ngày mong muốn', preferredDate)
+  await fill('Phường', 'Phường thử'); await fill('Địa chỉ', 'Đường thử'); await fill('Ngày mong muốn', preferredDate); await fill('Giờ mong muốn', '10:30')
   await click('Quay lại'); await submit()
   assert.equal(field('Địa chỉ').value, 'Đường thử')
   assert.equal(field('Ngày mong muốn').type, 'date')
@@ -119,6 +119,8 @@ async function render(t, fee, fail) {
   assert.equal(posted.length, 2)
   assert.equal(posted[1].contact.phoneNumber, '09123456789')
   assert.equal(posted[1].preferredDate, preferredDate)
+  assert.equal(posted[1].preferredTime, '10:30:00')
+  assert.match(host.textContent, /10:30/)
   assert.equal(posted[1].consultationFee, undefined)
   assert.equal(customer.phoneNumber, '0900000000')
   assert.match(host.textContent, /Tên đọc từ snapshot/)
@@ -189,4 +191,21 @@ test('navigation is blocked during profile loading and account change removes th
   await act(async () => root.render(createElement(Registrations, { key: 'guest', account: null, active: true, navigationRef: nav, go() {}, onSavingChange() {} })))
   assert.doesNotMatch(host.textContent, /Người tiêm thử|Hồ sơ gốc/)
   assert.equal(host.querySelector('select'), null)
+})
+
+
+for (const supplied of [true, false]) test(`registration list and detail respect midnight provenance ${supplied}`, async t => {
+  const snapshot = { id: 7, customer, recipient, status: 'DaDangKy', createdAt: '2026-11-04T00:00:00Z',
+    preferredDate: '2026-12-01', preferredAt: '2026-12-01T00:00:00', preferredTimeSpecified: supplied,
+    contact: {}, items: [], subtotal: '0', consultationFee: '0', totalDue: '0' }
+  identity.registrations = async path => path === '/7' ? snapshot : { items: [snapshot] }
+  const host = document.createElement('div'); document.body.append(host)
+  const root = createRoot(host)
+  t.after(async () => { await act(async () => root.unmount()); host.remove() })
+  await act(async () => root.render(createElement(Registrations, { account: customer, active: true, go() {} })))
+  const expected = supplied ? /01\/12\/2026 00:00 \(giờ Việt Nam\)/ : /01\/12\/2026 · Chưa ghi nhận giờ mong muốn/
+  assert.match(host.querySelector('.registration-record').textContent, expected)
+  await act(async () => [...host.querySelectorAll('button')].find(b => b.textContent === 'Xem chi tiết DK-0007').click())
+  assert.match(host.querySelector('.registration-contact-summary').textContent, expected)
+  if (!supplied) assert.doesNotMatch(host.querySelector('.registration-contact-summary').textContent, /00:00/)
 })

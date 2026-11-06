@@ -58,10 +58,10 @@ public sealed partial class ComboBoxTemplateTests
         }
     }
 
-    [Fact]
-    public async Task AppointmentPickerRendersReadinessAndKeepsSaveOutsideTheFormScroll()
+    [Theory][InlineData(true)][InlineData(false)]
+    public async Task AppointmentPickerRendersReadinessAndKeepsSaveOutsideTheFormScroll(bool supplied)
     {
-        using var http = new HttpClient(new AppointmentResponses()) { BaseAddress = new Uri("http://localhost") };
+        using var http = new HttpClient(new AppointmentResponses(supplied)) { BaseAddress = new Uri("http://localhost") };
         var identity = new IdentityApiService(http);
         Assert.True((await identity.LoginAsync("synthetic", "synthetic")).Succeeded);
 
@@ -85,6 +85,9 @@ public sealed partial class ComboBoxTemplateTests
             Assert.Contains(VisualChildren<TextBlock>(view), t => t.Text == AppointmentResponses.Facility);
             Assert.DoesNotContain(VisualChildren<TextBox>(view), t => t.Text == AppointmentResponses.Facility);
             model.SelectedItem = Assert.Single(model.Items);
+            Assert.Contains(VisualChildren<TextBlock>(view), t => t.Text.Contains(supplied ? "14:45 giờ Việt Nam" : "Chưa ghi nhận giờ mong muốn"));
+            var local = new DateTimeOffset(DateTime.SpecifyKind(DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45), DateTimeKind.Unspecified), TimeSpan.FromHours(7)).ToLocalTime();
+            Assert.Equal(supplied ? local.ToString("HH:mm") : "09:00", model.Time);
             var save = Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content, "Lưu lịch hẹn"));
             Assert.True(save.IsVisible);
             Assert.False(save.IsEnabled);
@@ -93,20 +96,21 @@ public sealed partial class ComboBoxTemplateTests
         });
     }
 
-    private sealed class AppointmentResponses : HttpMessageHandler
+    private sealed class AppointmentResponses(bool supplied = true) : HttpMessageHandler
     {
         public const string Facility = "Trung tâm tiêm chủng VAC · Địa chỉ thử nghiệm";
         private static readonly AppointmentSourceOption Row = new(7, "DaDangKy", new(1, "Khách hàng thử"),
             new(2, "Người được tiêm thử"), DateOnly.FromDateTime(DateTime.Today.AddDays(2)), "ChoXacNhan",
-            "TrucTuyen", false, "pending", Facility);
+            "TrucTuyen", false, "pending", Facility, DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45), true);
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            var row = supplied ? Row : Row with { PreferredAt = Row.PreferredAt!.Value.Date, PreferredTimeSpecified = false };
             object body = request.RequestUri!.AbsolutePath switch {
                 "/api/v1/auth/login" => new { accessToken = "synthetic", refreshToken = "synthetic" },
                 "/api/v1/auth/me" => new { accountType = "employee", employee = new { title = "LeTan" }, permissions = new[] { "QuanLyLichHen" }, capabilities=new { appointments=true } },
-                "/api/v1/appointments/sources" => new { items = new[] { Row } },
-                "/api/v1/appointments/sources/7" => new AppointmentSource(Row, [new(12, "vaccine", 99, "Vắc xin thử", 1)]),
+                "/api/v1/appointments/sources" => new { items = new[] { row } },
+                "/api/v1/appointments/sources/7" => new AppointmentSource(row, [new(12, "vaccine", 99, "Vắc xin thử", 1)]),
                 _ => throw new InvalidOperationException("Unexpected appointment test route.")
             };
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(body) });

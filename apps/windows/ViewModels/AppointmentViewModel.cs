@@ -230,7 +230,12 @@ public sealed class AppointmentViewModel : ViewModelBase
             Items.Clear();
             foreach (var item in source.Items) Items.Add(item);
             _item = source.Items.FirstOrDefault(i => i.Id == previousItem?.Id && i.Kind == previousItem.Kind);
-            if (_defaultDatePending && source.Source.PreferredDate is { } preferred && preferred >= DateOnly.FromDateTime(DateTime.Today)) {
+            if (_defaultDatePending && source.Source.PreferredTimeSpecified && source.Source.PreferredAt is { } preferredAt) {
+                // PreferredAt has no offset; confirmed appointments use an explicit instant.
+                var local = new DateTimeOffset(DateTime.SpecifyKind(preferredAt, DateTimeKind.Unspecified), TimeSpan.FromHours(7)).ToLocalTime();
+                _date = local.Date; _time = local.ToString("HH:mm", CultureInfo.InvariantCulture);
+                OnPropertyChanged(nameof(AppointmentDate)); OnPropertyChanged(nameof(Time));
+            } else if (_defaultDatePending && source.Source.PreferredDate is { } preferred && preferred >= DateOnly.FromDateTime(DateTime.Today)) {
                 var fallback = _date;
                 _date = preferred.ToDateTime(TimeOnly.MinValue);
                 if (!TryTime(out _)) _date = fallback;

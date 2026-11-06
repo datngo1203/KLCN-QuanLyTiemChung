@@ -82,6 +82,93 @@ namespace TiemChung.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TiemChung.Domain.Entities.AppointmentNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AppointmentVersion")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("CreatedByAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("DispatchStarted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int?>("RecipientAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByAccountId");
+
+                    b.HasIndex("RecipientAccountId");
+
+                    b.HasIndex("AppointmentId", "AppointmentVersion")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "Id");
+
+                    b.ToTable("AppointmentNotification", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AppointmentNotification_Event", "[EventType] IN ('AppointmentConfirmed','AppointmentRescheduled','AppointmentCancelled') AND [Channel]='Email'");
+
+                            t.HasCheckConstraint("CK_AppointmentNotification_Status", "[Status] IN ('ChoGui','DaGui','GuiLoi') AND [Attempts]>=0 AND (([Status]='DaGui' AND [DeliveredAt] IS NOT NULL) OR ([Status]<>'DaGui' AND [DeliveredAt] IS NULL))");
+                        });
+                });
+
             modelBuilder.Entity("TiemChung.Domain.Entities.Benh", b =>
                 {
                     b.Property<int>("MaBenh")
@@ -381,6 +468,11 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDangKy"));
 
+                    b.Property<bool>("CoGioDuKien")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("DiaChiLienHe")
                         .HasColumnType("nvarchar(250)");
 
@@ -455,6 +547,8 @@ namespace TiemChung.Infrastructure.Migrations
                     b.ToTable("DangKyDichVu", null, t =>
                         {
                             t.HasCheckConstraint("CK_DangKyDichVu_KenhThanhToanDuKien", "[KenhThanhToanDuKien] IS NULL OR [KenhThanhToanDuKien] IN ('TaiTrungTam','TrucTuyen')");
+
+                            t.HasCheckConstraint("CK_DangKyDichVu_PreferredTimeSpecified", "[CoGioDuKien]=0 OR [ThoiGianDuKien] IS NOT NULL");
                         });
                 });
 
@@ -1889,6 +1983,26 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasOne("TiemChung.Domain.Entities.NguoiDuocTiem", null)
                         .WithMany()
                         .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TiemChung.Domain.Entities.AppointmentNotification", b =>
+                {
+                    b.HasOne("TiemChung.Domain.Entities.LichHenTiem", null)
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

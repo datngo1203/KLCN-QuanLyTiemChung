@@ -4,6 +4,8 @@ public sealed record VaccinationJourneyDto(int RegistrationId, DateTimeOffset Cr
     RegistrationPaymentDto Payment, AppointmentDto[] Appointments, AppointmentDto? NextAppointment,
     VaccinationHistoryDto[] Shots)
 {
+    public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
     public int ShotCount => Shots.Length;
     public VaccinationProgressDto[] Progress { get; init; } = [];
 }
