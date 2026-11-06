@@ -744,6 +744,8 @@ public sealed partial class PaymentSqlTests
             var first = await f.Register();
             var second = await f.Register();
             var pendingRegistration = await f.Register();
+            // This fixture represents registrations predating preferred-time provenance.
+            await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(r => r.CoGioDuKien, false));
             var migrator = f.Db.GetService<IMigrator>();
             await migrator.MigrateAsync(previous);
             await InsertLegacy(f.Db, f.Payment(first));
@@ -755,6 +757,7 @@ public sealed partial class PaymentSqlTests
             await f.Db.Database.ExecuteSqlRawAsync("""
                 ALTER TABLE dbo.NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL DEFAULT 'VAC-000000000000';
                 ALTER TABLE dbo.DangKyDichVu ADD TenKhuyenMaiSnapshot nvarchar(150) NULL, MucGiamSnapshot decimal(18,0) NULL;
+                ALTER TABLE dbo.DangKyDichVu ADD CoGioDuKien bit NOT NULL DEFAULT 0;
                 """);
             var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
             Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
