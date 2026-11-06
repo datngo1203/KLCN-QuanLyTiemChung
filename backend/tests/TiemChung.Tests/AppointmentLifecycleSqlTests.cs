@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -139,29 +140,45 @@ public sealed class AppointmentLifecycleSqlTests
     }
 
     [Theory][InlineData(false, "queued")][InlineData(true, "queued")]
-    [InlineData(false, "failed")][InlineData(true, "failed")]
-    [InlineData(false, "uncertain")][InlineData(true, "uncertain")]
+    [InlineData(false, "providerUnavailable")][InlineData(true, "providerUnavailable")]
+    [InlineData(false, "providerRejected")][InlineData(true, "providerRejected")]
+    [InlineData(false, "deliveryUncertain")][InlineData(true, "deliveryUncertain")]
     [InlineData(false, "delivered")][InlineData(true, "delivered")]
-    public async Task ReminderSnapshotsInvalidateOrKeepDeliveredHistoryAndNewTimeIsEligible(bool cancel, string state)
+    public async Task QueuedSnapshotsInvalidateWhileProviderOutcomesRemainHistoricalAndCannotRetry(bool cancel, string state)
     {
         await Run(async f => {
             var a = await Appointment(f); using var owner = await Owner(f);
             using (var legacy = await f.Reception.PostAsJsonAsync(Route(a.Id) + "/reminders", new { })) Assert.Equal(HttpStatusCode.Created, legacy.StatusCode);
             var log = await f.Db.Set<NhacLich>().AsNoTracking().SingleAsync();
             using (var enqueue = await f.Reception.PostAsJsonAsync(Email(a.Id), new { })) Assert.Equal(HttpStatusCode.Created, enqueue.StatusCode);
-            var sink = new GateTransport { Error = state == "failed" ? "providerRejected" : state == "uncertain" ? "deliveryUncertain" : null };
+            var sink = new GateTransport { Error = state is "providerUnavailable" or "providerRejected" or "deliveryUncertain" ? state : null };
             if (state != "queued") { await using var db = NewDb(f); await new ReminderEmailDelivery(db, sink).DrainAsync(default); }
+            var wasRetryable = state is "providerUnavailable" or "providerRejected";
+            if (wasRetryable) {
+                // Make retry available before mutation so the test exercises source/eligibility gates, not cooldown.
+                await f.Db.Set<ReminderEmail>().ExecuteUpdateAsync(s => s.SetProperty(r => r.NextAttemptAt, DateTimeOffset.UtcNow.AddMinutes(-1)));
+                Assert.True((await f.Reception.GetFromJsonAsync<ReminderEmailDetailDto>(Email(a.Id)))!.Reminder!.CanRetry);
+            }
             var snapshot = await f.Db.Set<ReminderEmail>().AsNoTracking().SingleAsync();
             var changed = await Changed(await Change(f.Reception, a, cancel));
             var stored = await f.Db.Set<ReminderEmail>().AsNoTracking().SingleAsync();
-            Assert.Equal(snapshot.Body, stored.Body); Assert.Equal(snapshot.ScheduledAt, stored.ScheduledAt);
-            Assert.Equal(snapshot.DeliveredAt, stored.DeliveredAt);
-            if (state == "delivered") Assert.Equal("DaGui", stored.Status);
-            else { Assert.Equal("GuiLoi", stored.Status); Assert.Equal("reminderSourceConflict", stored.LastErrorCode); Assert.Null(stored.NextAttemptAt); }
+            if (state == "queued") {
+                Assert.Equal("ChoGui", snapshot.Status);
+                snapshot.Status = "GuiLoi"; snapshot.LastErrorCode = "reminderSourceConflict"; snapshot.NextAttemptAt = null;
+            } else {
+                Assert.Equal(state == "delivered" ? "DaGui" : "GuiLoi", stored.Status);
+                Assert.Equal(state == "delivered" ? null : state, stored.LastErrorCode);
+            }
+            // Compare every persisted field, including provider outcome, claim state, attempts/times and content.
+            Assert.Equal(JsonSerializer.Serialize(snapshot), JsonSerializer.Serialize(stored));
             var after = new GateTransport(); await using (var db = NewDb(f)) await new ReminderEmailDelivery(db, after).DrainAsync(default);
             Assert.Equal(0, after.Calls);
-            await Problem(await f.Reception.PostAsJsonAsync(Email(a.Id) + "/retry", new { expectedAttempts = stored.Attempts }), 409, "reminderRetryUnavailable");
+            await Problem(await f.Reception.PostAsJsonAsync(Email(a.Id) + "/retry", new { expectedAttempts = stored.Attempts }), 409,
+                cancel && wasRetryable ? "reminderSourceConflict" : "reminderRetryUnavailable");
             var detail = (await f.Reception.GetFromJsonAsync<ReminderEmailDetailDto>(Email(a.Id)))!;
+            Assert.False(detail.Reminder?.CanRetry ?? false);
+            Assert.All(detail.History!, old => Assert.False(old.CanRetry));
+            Assert.Equal(JsonSerializer.Serialize(snapshot), JsonSerializer.Serialize(await f.Db.Set<ReminderEmail>().AsNoTracking().SingleAsync()));
             if (!cancel) {
                 Assert.True(detail.CanRecord); Assert.Null(detail.Reminder); Assert.Single(detail.History!);
                 using var enqueue = await f.Reception.PostAsJsonAsync(Email(a.Id), new { }); Assert.Equal(HttpStatusCode.Created, enqueue.StatusCode);

@@ -250,7 +250,7 @@ public static partial class AppointmentEndpoints
             row.ThoiGianHen = time.Value;
         } else row.TrangThai = "DaHuy";
         // The session lock excludes dispatch through provider acceptance and final status persistence.
-        var pending = await db.Set<ReminderEmail>().Where(r => r.AppointmentId == id && r.Status != "DaGui").ToArrayAsync(ct);
+        var pending = await db.Set<ReminderEmail>().Where(r => r.AppointmentId == id && r.Status == "ChoGui").ToArrayAsync(ct);
         foreach (var reminder in pending) {
             reminder.Status = "GuiLoi"; reminder.LastErrorCode = "reminderSourceConflict"; reminder.NextAttemptAt = null;
         }
