@@ -31,18 +31,6 @@ function Find-Repository {
     throw 'VAC repository with infra/.env was not found.'
 }
 
-function Role-Label([string]$Role) {
-    switch ($Role) {
-        'Admin' { 'Admin' }
-        'LeTan' { 'Receptionist' }
-        'BacSi' { 'Doctor' }
-        'DieuDuong' { 'Nurse' }
-        'ThuNgan' { 'Cashier' }
-        'ThuKho' { 'Warehouse' }
-        default { $Role }
-    }
-}
-
 $root = Find-Repository
 Set-Location $root
 
@@ -60,60 +48,53 @@ if ($LASTEXITCODE -ne 0 -or -not $containerId) {
 
 $query = @"
 SET NOCOUNT ON;
-SELECT
-    e.ChucDanh,
-    ISNULL(a.TenDangNhap, N''),
-    e.TrangThai,
-    ISNULL(a.TrangThai, N'')
-FROM NhanVien e
-LEFT JOIN TaiKhoan a
-    ON a.MaNhanVien = e.MaNhanVien
-    AND a.AccountType = N'Employee'
-WHERE e.ChucDanh IN (N'Admin',N'LeTan',N'BacSi',N'DieuDuong',N'ThuNgan',N'ThuKho')
-ORDER BY CASE e.ChucDanh
-    WHEN N'Admin' THEN 1
-    WHEN N'LeTan' THEN 2
-    WHEN N'BacSi' THEN 3
-    WHEN N'DieuDuong' THEN 4
-    WHEN N'ThuNgan' THEN 5
-    WHEN N'ThuKho' THEN 6
-    ELSE 99 END, e.MaNhanVien;
 
-SELECT COUNT(*)
+WITH Roles(RoleCode, RoleLabel, SortOrder) AS (
+    SELECT N'Admin', N'Admin', 1 UNION ALL
+    SELECT N'LeTan', N'Receptionist', 2 UNION ALL
+    SELECT N'BacSi', N'Doctor', 3 UNION ALL
+    SELECT N'DieuDuong', N'Nurse', 4 UNION ALL
+    SELECT N'ThuNgan', N'Cashier', 5 UNION ALL
+    SELECT N'ThuKho', N'Warehouse', 6
+)
+SELECT
+    N'[' + r.RoleCode + N'] ' + r.RoleLabel + N' | ' +
+    CASE
+        WHEN x.MaNhanVien IS NULL THEN N'MISSING_EMPLOYEE'
+        WHEN x.TenDangNhap IS NULL THEN N'NO_ACCOUNT'
+        WHEN x.EmployeeStatus = N'Active' AND x.AccountStatus = N'Active'
+            THEN N'OK | ' + x.TenDangNhap + N' | Employee=Active; Account=Active'
+        ELSE N'NOT_READY | ' + ISNULL(x.TenDangNhap, N'(no account)') +
+             N' | Employee=' + ISNULL(x.EmployeeStatus, N'-') +
+             N'; Account=' + ISNULL(x.AccountStatus, N'-')
+    END
+FROM Roles r
+OUTER APPLY (
+    SELECT TOP (1)
+        e.MaNhanVien,
+        a.TenDangNhap,
+        e.TrangThai AS EmployeeStatus,
+        a.TrangThai AS AccountStatus
+    FROM NhanVien e
+    LEFT JOIN TaiKhoan a
+        ON a.MaNhanVien = e.MaNhanVien
+        AND a.AccountType = N'Employee'
+    WHERE e.ChucDanh = r.RoleCode
+    ORDER BY
+        CASE WHEN e.TrangThai = N'Active' AND a.TrangThai = N'Active' THEN 0 ELSE 1 END,
+        CASE WHEN a.TenDangNhap IS NULL THEN 1 ELSE 0 END,
+        e.MaNhanVien
+) x
+ORDER BY r.SortOrder;
+
+SELECT
+    N'Verified Active Customer accounts: ' +
+    CONVERT(nvarchar(20), COUNT(*))
 FROM TaiKhoan
 WHERE AccountType = N'Customer'
   AND TrangThai = N'Active'
   AND EmailVerifiedAt IS NOT NULL;
 "@
-
-$raw = $query | & docker exec -i $containerId sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W -s ~'
-if ($LASTEXITCODE -ne 0) {
-    throw 'Could not read demo account readiness from SQL. No data was changed.'
-}
-
-$roles = @('Admin','LeTan','BacSi','DieuDuong','ThuNgan','ThuKho')
-$rows = @()
-$verifiedCustomerCount = $null
-
-foreach ($line in @($raw)) {
-    $text = [string]$line
-    if ([string]::IsNullOrWhiteSpace($text)) { continue }
-
-    if ($text -match '^\s*\d+\s*$' -and $text -notmatch '~') {
-        $verifiedCustomerCount = [int]$text.Trim()
-        continue
-    }
-
-    $parts = $text -split '~', 4
-    if ($parts.Count -ne 4) { continue }
-
-    $rows += [pscustomobject]@{
-        Role = $parts[0].Trim()
-        Username = $parts[1].Trim()
-        EmployeeStatus = $parts[2].Trim()
-        AccountStatus = $parts[3].Trim()
-    }
-}
 
 Write-Host ''
 Write-Host '=== VAC DEMO ACCOUNT READINESS ===' -ForegroundColor Cyan
@@ -121,42 +102,12 @@ Write-Host "Compose project: $ComposeProject"
 Write-Host 'READ-ONLY: no account/password/data is created, reset, or deleted.'
 Write-Host ''
 
-foreach ($role in $roles) {
-    $items = @($rows | Where-Object Role -eq $role)
-    $active = @($items | Where-Object {
-        $_.Username -and
-        $_.EmployeeStatus -eq 'Active' -and
-        $_.AccountStatus -eq 'Active'
-    })
+$query | & docker exec -i $containerId sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W'
 
-    Write-Host ("[{0}] {1}" -f $role, (Role-Label $role)) -ForegroundColor White
-
-    if (-not $items.Count) {
-        Write-Host '  MISSING: no employee exists for this role.' -ForegroundColor Red
-        continue
-    }
-
-    foreach ($item in $items) {
-        $username = if ($item.Username) { $item.Username } else { '(no account)' }
-        $accountState = if ($item.AccountStatus) { $item.AccountStatus } else { '-' }
-        $state = "Employee=$($item.EmployeeStatus); Account=$accountState"
-        $marker = if (
-            $item.Username -and
-            $item.EmployeeStatus -eq 'Active' -and
-            $item.AccountStatus -eq 'Active'
-        ) { 'OK' } else { 'NOT_READY' }
-
-        Write-Host ("  {0} | {1} | {2}" -f $marker, $username, $state)
-    }
-
-    if (-not $active.Count) {
-        Write-Host '  => No Active account is ready for this role.' -ForegroundColor Yellow
-    }
+if ($LASTEXITCODE -ne 0) {
+    throw 'Could not read demo account readiness from SQL. No data was changed.'
 }
 
 Write-Host ''
-$customerText = if ($null -ne $verifiedCustomerCount) { $verifiedCustomerCount } else { 'unknown' }
-Write-Host ("Verified Active Customer accounts: {0}" -f $customerText)
-Write-Host ''
 Write-Host 'Demo rule: reuse an existing OK username. Do not create another account unless a role is truly missing.'
-Write-Host 'Passwords remain in your local VAC_TEST_ACCOUNTS_FILE outside Git. This script never reads credentials.'
+Write-Host 'This script never reads or writes passwords.'
