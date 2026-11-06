@@ -86,7 +86,7 @@ public sealed partial class ComboBoxTemplateTests
             Assert.DoesNotContain(VisualChildren<TextBox>(view), t => t.Text == AppointmentResponses.Facility);
             model.SelectedItem = Assert.Single(model.Items);
             Assert.Contains(VisualChildren<TextBlock>(view), t => t.Text.Contains("14:45 giờ Việt Nam"));
-            var local = new DateTimeOffset(DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45), TimeSpan.FromHours(7)).ToLocalTime();
+            var local = new DateTimeOffset(DateTime.SpecifyKind(DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45), DateTimeKind.Unspecified), TimeSpan.FromHours(7)).ToLocalTime();
             Assert.Equal(local.ToString("HH:mm"), model.Time);
             var save = Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content, "Lưu lịch hẹn"));
             Assert.True(save.IsVisible);
