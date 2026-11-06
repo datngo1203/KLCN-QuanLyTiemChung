@@ -5,13 +5,13 @@ description: "Use in the KLCN-QuanLyTiemChung repository when implementing, fixi
 
 # KLCN — One active slice, minimal context
 
-This is a lightweight workflow, **not** a new authority or a test-skip shortcut. If any rule conflicts, follow `AGENTS.md`, `SCOPE.md`, the active issue, and the approved source material in that order. Codex implements; the ChatGPT coordinator reviews and merges. Do not spawn planning/review subagents just to run this skill.
+This is a lightweight workflow, **not** a new authority or a test-skip shortcut. `AGENTS.md` defines workflow/safety rules; for business scope/state conflicts use `SCOPE.md` → the ACTIVE issue → relevant contract/code/test evidence. Approved thesis/medical sources govern academic or medical facts. Codex implements; the ChatGPT coordinator reviews and merges. Do not spawn planning/review subagents just to run this skill.
 
 ## 1. Resume without re-auditing
 
 1. Run `git status --short --branch` and `git fetch origin main`; preserve uncommitted work. Never reset, clean, or switch branches over user work.
-2. Read **only** `AGENTS.md`, the relevant part of `SCOPE.md`, and the one ACTIVE issue. If resuming a PR, compare its exact remote HEAD and diff; continue there instead of creating another branch.
-3. Read `backend/contracts/README.md` only if the slice touches contracts. Read the thesis/source only for business facts actually relevant to the acceptance criteria.
+2. Read **only** root `AGENTS.md`, the relevant Current State/Core Scope/Queue in `SCOPE.md`, and the one ACTIVE issue. Then read the nested `AGENTS.md` only for directories the slice will actually modify (for example `backend/AGENTS.md`, `apps/web/AGENTS.md`, `apps/windows/AGENTS.md`). If resuming a PR, compare its exact remote HEAD and diff; continue there instead of creating another branch.
+3. Audit the relevant code/tests next. Read only the relevant section of `backend/contracts/README.md` when the slice touches contracts; read `README.md` only for launcher/seed/runtime instructions; read issue #76, #64, closed issues/PRs or old chat history only when the current sources are insufficient. Read the thesis/source only for business facts actually relevant to the acceptance criteria.
 4. State in at most five brief lines: ACTIVE issue, acceptance, affected files, forbidden scope, and validation. If already unambiguous, proceed directly.
 
 ## 2. Keep work narrow
