@@ -14,4 +14,5 @@ public sealed record ReminderEmailDto(int Id, int AppointmentId, string Channel,
     DateTimeOffset RecordedAt, RegistrationProfileDto RecordedBy, string MaskedRecipient, string Subject,
     int Attempts, DateTimeOffset? DeliveredAt, DateTimeOffset? NextAttemptAt, string? LastErrorCode, bool CanRetry);
 public sealed record ReminderEmailDetailDto(AppointmentDto Appointment, string? Preview, bool CanRecord,
-    ReminderEmailDto? Reminder, string? MaskedRecipient, string? Subject, string? UnavailableReason);
+    ReminderEmailDto? Reminder, string? MaskedRecipient, string? Subject, string? UnavailableReason,
+    ReminderEmailDto[]? History = null);

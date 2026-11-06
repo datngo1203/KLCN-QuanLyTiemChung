@@ -96,12 +96,18 @@ public static class ReminderEmailEndpoints
             if (!await db.Set<LichHenTiem>().AnyAsync(x => x.MaLichHen == id, ct)) throw new IdentityFailure(404, "resourceNotFound");
             var a = await Source(db, id, ct);
             var row = await Snapshot(db, a).AsNoTracking().SingleOrDefaultAsync(ct);
-            if (row != null) return Results.Ok(new ReminderEmailDetailDto(a, null, false, await Result(db, row, ct), Mask(row.RecipientEmail), row.Subject, null));
+            var historyRows = await db.Set<ReminderEmail>().AsNoTracking().Where(r => r.AppointmentId == id && (row == null || r.Id != row.Id))
+                .OrderByDescending(r => r.Id).ToArrayAsync(ct);
+            var history = new List<ReminderEmailDto>();
+            foreach (var old in historyRows) history.Add((await Result(db, old, ct)) with { CanRetry = false });
+            if (row != null) return Results.Ok(new ReminderEmailDetailDto(a, null, false,
+                (await Result(db, row, ct)) with { CanRetry = await Eligible(db, a, ct) && Retryable(row) },
+                Mask(row.RecipientEmail), row.Subject, null, history.ToArray()));
             var eligible = await Eligible(db, a, ct);
             var recipient = eligible ? await Recipient(db, a, ct) : null;
             var content = recipient == null ? default : Content(a, config);
             return Results.Ok(new ReminderEmailDetailDto(a, content.Body, recipient != null, null,
-                recipient == null ? null : Mask(recipient.LoginEmail!), content.Subject, eligible ? recipient == null ? "reminderRecipientUnavailable" : null : "reminderSourceConflict"));
+                recipient == null ? null : Mask(recipient.LoginEmail!), content.Subject, eligible ? recipient == null ? "reminderRecipientUnavailable" : null : "reminderSourceConflict", history.ToArray()));
         });
         group.MapPost("", async (int id, CreateReminderRequest req, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, IConfiguration config, CancellationToken ct) => {
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);

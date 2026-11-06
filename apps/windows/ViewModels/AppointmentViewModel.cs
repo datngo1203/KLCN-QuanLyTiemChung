@@ -19,6 +19,9 @@ public sealed class AppointmentViewModel : ViewModelBase
     private AppointmentItem? _item;
     private AppointmentRecord? _selected, _detail;
     private AppointmentRequest? _pending;
+    private bool _rescheduling, _mutationPending, _mustReload;
+    private int? _mutationId;
+    public Func<string, bool> Confirm { get; set; } = _ => false;
 
     public AppointmentViewModel(IAppointmentService? service = null, IdentityApiService? identity = null)
     {
@@ -39,6 +42,14 @@ public sealed class AppointmentViewModel : ViewModelBase
         SaveCommand = new(async _ => await SaveAsync(), _ => CanSave);
         ReconcileCommand = new(async _ => await ReconcileAsync(), _ => HasAccess && !_busy && _pending is not null);
         RetryCommand = new(async _ => await RetryAsync(), _ => HasAccess && !_busy && _pending is not null && _reconciled && !_committed);
+        BeginRescheduleCommand = new(_ => {
+            _rescheduling = true; _date = Detail!.ScheduledAt.LocalDateTime.Date; _time = Detail.ScheduledAt.ToLocalTime().ToString("HH:mm");
+            OnPropertyChanged(nameof(AppointmentDate)); OnPropertyChanged(nameof(Time)); Refresh();
+        }, _ => CanManage);
+        SaveRescheduleCommand = new(async _ => await MutateAsync(false), parameter => CanChangeTime && TryTime(out _));
+        CancelAppointmentCommand = new(async _ => await MutateAsync(true), _ => CanManage);
+        DiscardRescheduleCommand = new(_ => { _rescheduling = false; Refresh(); }, _ => IsRescheduling && !_busy && !_mutationPending);
+        ReconcileMutationCommand = new(async _ => await ReconcileMutationAsync(), _ => HasAccess && !_busy && (_mutationPending || _mustReload));
     }
     public ObservableCollection<AppointmentRecord> Appointments { get; } = [];
     public ObservableCollection<AppointmentSourceOption> Sources { get; } = [];
@@ -55,13 +66,23 @@ public sealed class AppointmentViewModel : ViewModelBase
     public RelayCommand SaveCommand { get; }
     public RelayCommand ReconcileCommand { get; }
     public RelayCommand RetryCommand { get; }
+    public RelayCommand BeginRescheduleCommand { get; }
+    public RelayCommand SaveRescheduleCommand { get; }
+    public RelayCommand CancelAppointmentCommand { get; }
+    public RelayCommand DiscardRescheduleCommand { get; }
+    public RelayCommand ReconcileMutationCommand { get; }
+    public bool CanManage => CanBrowse && !_rescheduling && !_mustReload && Detail is { CanManage: true, Status: "DaXepLich", Version: not null };
+    public bool IsRescheduling => HasAccess && _rescheduling;
+    public bool CanChangeTime => IsRescheduling && !_busy && !_mutationPending && !_mustReload;
+    public bool NeedsMutationReload => HasAccess && (_mutationPending || _mustReload);
+    public bool CanUseReminder => HasAccess && !_busy && !_rescheduling && !_mutationPending && !_mustReload;
     private bool IsCurrent => _identity.IsSignedIn && _identity.SessionRevision == _revision;
     public bool HasAccess => IsCurrent && _identity.CanUseAppointments && !_denied;
     public bool NoAccess => !HasAccess;
     public bool IsBusy => _busy;
     public bool IsCreating => _creating && HasAccess;
     public bool IsViewing => !_creating && HasAccess;
-    public bool CanBrowse => HasAccess && !_busy && _pending is null && !Reminder.BlocksNavigation;
+    public bool CanBrowse => HasAccess && !_busy && _pending is null && !_mutationPending && !_rescheduling && !Reminder.BlocksNavigation;
     public ReminderViewModel Reminder { get; }
     public bool CanEdit => HasAccess && _creating && !_busy && _pending is null;
     public bool HasPending => HasAccess && _pending is not null;
@@ -73,11 +94,11 @@ public sealed class AppointmentViewModel : ViewModelBase
     public bool NoDetail => IsViewing && Detail is null;
     public string Feedback { get => _feedback; private set => Set(ref _feedback, value); }
     public string SourceCode { get => _sourceCode; set { if (CanEdit) Set(ref _sourceCode, value); } }
-    public string Time { get => _time; set { if (CanEdit) { Set(ref _time, value); Refresh(); } } }
+    public string Time { get => _time; set { if (CanEdit || CanChangeTime) { Set(ref _time, value); Refresh(); } } }
     public DateTime? AppointmentDate
     {
         get => _date;
-        set { if (CanEdit && Set(ref _date, value)) { _defaultDatePending = false; Refresh(); } }
+        set { if ((CanEdit || CanChangeTime) && Set(ref _date, value)) { _defaultDatePending = false; Refresh(); } }
     }
     public AppointmentSourceOption? Source => _source?.Source;
     public bool HasSource => _source is not null;
@@ -104,6 +125,8 @@ public sealed class AppointmentViewModel : ViewModelBase
     }
     private void Refresh()
     {
+        foreach (var name in new[] { nameof(CanManage), nameof(IsRescheduling), nameof(CanChangeTime), nameof(NeedsMutationReload), nameof(CanUseReminder) }) OnPropertyChanged(name);
+        foreach (var command in new[] { BeginRescheduleCommand, SaveRescheduleCommand, CancelAppointmentCommand, DiscardRescheduleCommand, ReconcileMutationCommand }) command?.NotifyCanExecuteChanged();
         foreach (var name in new[] { nameof(HasAccess), nameof(NoAccess), nameof(IsBusy), nameof(IsCreating), nameof(IsViewing), nameof(CanBrowse), nameof(CanEdit), nameof(HasPending), nameof(HasSource), nameof(CanSave), nameof(Page), nameof(SourcePage), nameof(NoResults), nameof(NoDetail) }) OnPropertyChanged(name);
         foreach (var command in new[] { ReloadCommand, PreviousCommand, NextCommand, NewCommand, CancelCommand, FindSourceCommand, RefreshSourceCommand, PreviousSourceCommand, NextSourceCommand, SaveCommand, ReconcileCommand, RetryCommand }) command?.NotifyCanExecuteChanged();
     }
@@ -121,6 +144,7 @@ public sealed class AppointmentViewModel : ViewModelBase
     }
     private void ClearSessionData()
     {
+        _rescheduling = false; _mutationPending = false; _mustReload = false; _mutationId = null;
         _creating = false; _pending = null; _committed = false; _reconciled = false;
         _selected = null; OnPropertyChanged(nameof(Selected)); Detail = null; Appointments.Clear(); ClearDraft();
         Feedback = "Phiên đã thay đổi. Đăng nhập và mở lại màn lịch hẹn."; Refresh();
@@ -148,7 +172,7 @@ public sealed class AppointmentViewModel : ViewModelBase
     {
         if (!CanBrowse || Selected is not { } selected) return;
         _busy = true; Detail = null; Feedback = "Đang tải chi tiết…"; Refresh();
-        try { var row = await _service.GetAsync(selected.Id); if (IsCurrent && !_denied) { Detail = row; Feedback = "Đang xem lịch; thông tin chỉ đọc."; } }
+        try { var row = await _service.GetAsync(selected.Id); if (IsCurrent && !_denied) { _mustReload = false; Detail = row; Feedback = "Đang xem lịch hẹn."; } }
         catch (Exception e) { Error(e); }
         finally { _busy = false; Refresh(); }
     }
@@ -250,7 +274,8 @@ public sealed class AppointmentViewModel : ViewModelBase
     private void Accept(AppointmentRecord saved)
     {
         _pending = null; _committed = false; _reconciled = false; _creating = false;
-        if (!Appointments.Any(x => x.Id == saved.Id)) Appointments.Insert(0, saved);
+        var old = Appointments.FirstOrDefault(x => x.Id == saved.Id);
+        if (old is null) Appointments.Insert(0, saved); else Appointments[Appointments.IndexOf(old)] = saved;
         _selected = saved; OnPropertyChanged(nameof(Selected)); Detail = saved; ClearDraft();
     }
     public async Task ReconcileAsync()
@@ -263,6 +288,50 @@ public sealed class AppointmentViewModel : ViewModelBase
             var saved = rows.SingleOrDefault(x => AppointmentApiService.Matches(x, request));
             if (saved is not null) { Accept(saved); Feedback = "Đã tìm thấy lịch đã lưu."; }
             else { _reconciled = true; Feedback = _committed ? "Chưa mở được chi tiết lịch đã lưu. Hãy đối chiếu lại." : "Chưa tìm thấy lịch. Có thể thử lưu lại đúng yêu cầu cũ."; }
+        } catch (Exception e) { Error(e); }
+        finally { _busy = false; Refresh(); }
+    }
+
+    public async Task MutateAsync(bool cancel)
+    {
+        if (cancel ? !CanManage : !CanChangeTime) return;
+        var original = Detail!;
+        DateTimeOffset time = default;
+        if (!cancel && !TryTime(out time)) return;
+        if (!Confirm(cancel ? $"Hủy lịch {original.Label} lúc {original.TimeLabel}? Lịch đã hủy không thể khôi phục tại đây."
+            : $"Đổi lịch {original.Label}\nHiện tại: {original.TimeLabel}\nThời gian mới: {time.LocalDateTime:dd/MM/yyyy HH:mm}\nDịch vụ và địa điểm giữ nguyên.")) return;
+        _busy = true; _mutationPending = true; _mutationId = original.Id; Refresh();
+        try {
+            var saved = cancel ? await _service.CancelAsync(original.Id, original.Version!)
+                : await _service.RescheduleAsync(original.Id, time, original.Version!);
+            if (!IsCurrent || _denied) return;
+            _mutationPending = false; _rescheduling = false; _mustReload = false;
+            Reminder.Select(null); Accept(saved);
+            await Reminder.LoadAsync();
+            await Reminder.LoadQueueAsync(Reminder.Page);
+            Feedback = cancel ? "Đã hủy lịch hẹn." : "Đã đổi thời gian lịch hẹn.";
+        } catch (Exception e) {
+            if (!IsCurrent) return;
+            if (e is AppointmentApiException { Code: not "outcomeUnknown" }) {
+                _mutationPending = false;
+                if (e is AppointmentApiException { Code: "concurrencyConflict" or "clinicalAlreadyStarted" or "appointmentNotActive" or "appointmentBusy" }) {
+                    _mustReload = true; _rescheduling = false;
+                }
+            }
+            Error(e);
+        } finally { _busy = false; Refresh(); }
+    }
+
+    public async Task ReconcileMutationAsync()
+    {
+        if (!ReconcileMutationCommand.CanExecute(null) || _mutationId is not { } id) return;
+        _busy = true; Refresh();
+        try {
+            var current = await _service.GetAsync(id);
+            if (!IsCurrent || _denied) return;
+            _mutationPending = false; _mustReload = false; _rescheduling = false;
+            Reminder.Select(null); Accept(current); await Reminder.LoadAsync(); await Reminder.LoadQueueAsync(Reminder.Page);
+            Feedback = "Đã đối chiếu trạng thái hiện tại. Kiểm tra lịch trước khi quyết định thao tác tiếp.";
         } catch (Exception e) { Error(e); }
         finally { _busy = false; Refresh(); }
     }

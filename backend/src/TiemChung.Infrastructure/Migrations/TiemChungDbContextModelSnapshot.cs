@@ -875,6 +875,12 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<int>("MaNguoiDuocTiem")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime>("ThoiGianHen")
                         .HasColumnType("datetime2");
 
@@ -1067,6 +1073,9 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<string>("NoiDungMoPhong")
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("ThoiDiemGui")
                         .HasColumnType("datetime2");
 
@@ -1076,12 +1085,12 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasKey("MaNhacLich");
 
-                    b.HasIndex("MaLichHen")
+                    b.HasIndex("MaNhanVien");
+
+                    b.HasIndex("MaLichHen", "ScheduledAt")
                         .IsUnique()
                         .HasDatabaseName("IX_NhacLich_Simulation")
                         .HasFilter("[KenhGui] = N'LogMoPhong'");
-
-                    b.HasIndex("MaNhanVien");
 
                     b.ToTable("NhacLich", (string)null);
                 });

@@ -59,6 +59,7 @@ public sealed class ReminderViewModel:ViewModelBase
     public string DeliveryError=>Result?.ErrorLabel??"";
     public string Feedback=>_feedback;
     public ReminderRecord? Result=>HasAccess?_detail?.Reminder:null;
+    public ReminderRecord[] History=>HasAccess?_detail?.History??[]:[];
     public RelayCommand LoadCommand{get;}
     public RelayCommand ConfirmCommand{get;}
     public RelayCommand CancelCommand{get;}
@@ -87,6 +88,7 @@ public sealed class ReminderViewModel:ViewModelBase
     }
     private void Refresh()
     {
+        OnPropertyChanged(nameof(History));
         foreach(var p in new[]{nameof(HasAccess),nameof(HasSelection),nameof(HasDetail),nameof(HasPending),nameof(BlocksNavigation),nameof(CanRecord),nameof(IsConfirming),nameof(IsBusy),nameof(Content),nameof(Feedback),nameof(Result),nameof(CanBrowse),nameof(NoAccess),nameof(NoResults),nameof(Page),nameof(QueueFeedback),nameof(Appointment),nameof(StatusLabel),nameof(MaskedRecipient),nameof(Subject),nameof(DeliveryError)})OnPropertyChanged(p);
         foreach(var c in new[]{LoadCommand,ConfirmCommand,CancelCommand,RecordCommand,RetryCommand,DeliveryRetryCommand,SearchCommand,PreviousCommand,NextCommand})c?.NotifyCanExecuteChanged();
         Changed?.Invoke();

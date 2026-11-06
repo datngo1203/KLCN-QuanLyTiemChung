@@ -1,5 +1,6 @@
 export const appointmentCode = id => `LH-${String(id).padStart(4, '0')}`
 export const appointmentTime = value => new Date(value).toLocaleString('vi-VN')
+export const appointmentStatus = value => ({ DaXepLich: 'Đã xếp lịch', DaHuy: 'Đã hủy' })[value] ?? 'Chưa xác định'
 
 export function scheduleError(error) {
   if (error.status === 401) return 'Phiên đã hết hạn. Vui lòng đăng nhập lại.'

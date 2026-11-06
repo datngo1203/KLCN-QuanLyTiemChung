@@ -20,7 +20,7 @@ public static class ReminderEndpoints
         (from r in db.Set<NhacLich>().AsNoTracking()
          join n in db.Set<NhanVien>() on r.MaNhanVien equals n.MaNhanVien into staff
          from n in staff.DefaultIfEmpty()
-         where r.MaLichHen == id && r.KenhGui == Channel
+         where r.MaLichHen == id && r.KenhGui == Channel && db.Set<LichHenTiem>().Any(a => a.MaLichHen == id && a.ThoiGianHen == r.ScheduledAt)
          select new ReminderDto(r.MaNhacLich, id, r.KenhGui, r.TrangThai, r.NoiDungMoPhong,
              new DateTimeOffset(DateTime.SpecifyKind(r.ThoiDiemGui, DateTimeKind.Utc)),
              n == null ? null : new RegistrationProfileDto(n.MaNhanVien, n.HoTen))).SingleOrDefaultAsync(ct);
@@ -61,7 +61,7 @@ public static class ReminderEndpoints
                         where m.TrangThai == "DaTiem"
                         select p.MaLichHen;
             var rows = ClinicalEndpoints.Sources(db).Where(a => a.TrangThai == "DaXepLich" && a.ThoiGianHen > now &&
-                !shots.Contains(a.MaLichHen) && !db.Set<NhacLich>().Any(r => r.MaLichHen == a.MaLichHen && r.KenhGui == Channel));
+                !shots.Contains(a.MaLichHen) && !db.Set<NhacLich>().Any(r => r.MaLichHen == a.MaLichHen && r.KenhGui == Channel && r.ScheduledAt == a.ThoiGianHen));
             if (!string.IsNullOrEmpty(search)) {
                 var code = search.StartsWith("LH-", StringComparison.OrdinalIgnoreCase) ? search[3..] : search;
                 int.TryParse(code, out var id);
@@ -96,7 +96,7 @@ public static class ReminderEndpoints
             if (id <= 0) throw new IdentityFailure(400, "validation");
             var row = await db.Set<LichHenTiem>().FromSqlInterpolated($"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={id}")
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
-            if (await db.Set<NhacLich>().AnyAsync(r => r.MaLichHen == id && r.KenhGui == Channel, ct)) throw new IdentityFailure(409, "reminderAlreadyRecorded");
+            if (await db.Set<NhacLich>().AnyAsync(r => r.MaLichHen == id && r.KenhGui == Channel && r.ScheduledAt == row.ThoiGianHen, ct)) throw new IdentityFailure(409, "reminderAlreadyRecorded");
             var source = await Source(db, id, ct);
             if (row.TrangThai != "DaXepLich" || row.ThoiGianHen <= DateTime.UtcNow || await HasShot(db, id, ct))
                 throw new IdentityFailure(409, "reminderSourceConflict");
@@ -104,7 +104,7 @@ public static class ReminderEndpoints
             var now = DateTime.UtcNow;
             if (row.ThoiGianHen <= now) throw new IdentityFailure(409, "reminderSourceConflict");
             var reminder = new NhacLich { MaLichHen = id, MaNhanVien = actor.Employee!.MaNhanVien, KenhGui = Channel,
-                TrangThai = "DaGhiLogMoPhong", NoiDungMoPhong = content, ThoiDiemGui = now };
+                TrangThai = "DaGhiLogMoPhong", NoiDungMoPhong = content, ThoiDiemGui = now, ScheduledAt = row.ThoiGianHen };
             db.Add(reminder); await db.SaveChangesAsync(ct);
             var audit = IdentityTransactions.Audit(db, "reminders.simulated", context.TraceIdentifier, actor.Account.MaTaiKhoan, session: actor.Session.Id);
             audit.ResourceType = "Reminder"; audit.ResourceId = reminder.MaNhacLich.ToString(CultureInfo.InvariantCulture);

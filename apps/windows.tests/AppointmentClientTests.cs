@@ -183,15 +183,74 @@ public sealed class AppointmentClientTests
     private static async Task<IdentityApiService> Login(Handler handler){var identity=new IdentityApiService(new HttpClient(handler){BaseAddress=new Uri("http://localhost/")});Assert.True((await identity.LoginAsync("synthetic","synthetic")).Succeeded);return identity;}
     private static async Task<AppointmentViewModel> Ready(Fake fake,IdentityApiService? identity=null){var vm=new AppointmentViewModel(fake,identity??await Login(new Handler()));await vm.NewAsync();vm.SelectedSource=Assert.Single(vm.Sources);await vm.LoadSourceDetailAsync();return vm;}
     private static void Fill(AppointmentViewModel vm){vm.SelectedItem=vm.Items[0];vm.AppointmentDate=When.LocalDateTime.Date;vm.Time=When.LocalDateTime.ToString("HH:mm");}
+    [Theory][InlineData(false)][InlineData(true)]
+    public async Task LifecycleConfirmsPersistsAndReplacesListRow(bool cancel)
+    {
+        var fake = new Fake { Persisted = true, Current = Saved with { Version = "AAAAAAAAAAE=", CanManage = true } };
+        var vm = new AppointmentViewModel(fake, await Login(new Handler()));
+        await vm.LoadAsync(); vm.Selected = vm.Appointments.Single(); await vm.LoadDetailAsync();
+        Assert.True(vm.CanManage); string? preview = null;
+        vm.Confirm = message => { preview = message; return false; };
+        if (!cancel) { vm.BeginRescheduleCommand.Execute(null); vm.AppointmentDate = When.LocalDateTime.Date.AddDays(1); vm.Time = "10:30"; }
+        await vm.MutateAsync(cancel); Assert.Equal(0, fake.MutationCalls);
+        vm.Confirm = message => { preview = message; return true; };
+        await vm.MutateAsync(cancel);
+        Assert.Equal(1, fake.MutationCalls); Assert.NotNull(preview);
+        Assert.Equal(vm.Detail, Assert.Single(vm.Appointments));
+        if (cancel) { Assert.Equal("Đã hủy", vm.Detail!.StatusLabel); Assert.False(vm.CanManage); }
+        else { Assert.Equal("10:30", vm.Detail!.ScheduledAt.ToLocalTime().ToString("HH:mm")); Assert.Contains("Hiện tại:", preview); Assert.Contains("Thời gian mới:", preview); }
+        Assert.False(vm.NeedsMutationReload); Assert.False(vm.IsRescheduling);
+    }
+
+    [Theory][InlineData("outcomeUnknown")][InlineData("concurrencyConflict")][InlineData("clinicalAlreadyStarted")]
+    public async Task LifecycleRequiresGetAfterUnknownOrStaleAndDoesNotBlindlyPostAgain(string code)
+    {
+        var fake = new Fake { Persisted = true, MutationError = code, Current = Saved with { Version = "AAAAAAAAAAE=", CanManage = true } };
+        var vm = new AppointmentViewModel(fake, await Login(new Handler())) { Confirm = _ => true };
+        await vm.LoadAsync(); vm.Selected = vm.Appointments.Single(); await vm.LoadDetailAsync();
+        await vm.MutateAsync(true); Assert.True(vm.NeedsMutationReload); Assert.False(vm.CanManage);
+        await vm.MutateAsync(true); Assert.Equal(1, fake.MutationCalls);
+        fake.Current = fake.Current with { Status = "DaHuy", CanManage = false };
+        await vm.ReconcileMutationAsync(); Assert.Equal(1, fake.MutationCalls);
+        Assert.False(vm.NeedsMutationReload); Assert.Equal("Đã hủy", vm.Detail!.StatusLabel);
+    }
+
+    [Theory][InlineData("invalidSession")][InlineData("permissionDenied")]
+    public async Task LifecycleClearsSessionDeniedState(string code)
+    {
+        var fake = new Fake { Persisted = true, MutationError = code, Current = Saved with { Version = "AAAAAAAAAAE=", CanManage = true } };
+        var vm = new AppointmentViewModel(fake, await Login(new Handler())) { Confirm = _ => true };
+        await vm.LoadAsync(); vm.Selected = vm.Appointments.Single(); await vm.LoadDetailAsync();
+        await vm.MutateAsync(true); Assert.False(vm.HasAccess); Assert.Null(vm.Detail); Assert.Empty(vm.Appointments);
+    }
+
+    [Theory][InlineData(false)][InlineData(true)]
+    public async Task MutationTransportSendsOnlyVersionAndNewTimeAndNeverReplays(bool cancel)
+    {
+        var handler = new Handler { Failure = "network" }; var api = new AppointmentApiService(await Login(handler));
+        var error = await Assert.ThrowsAsync<AppointmentApiException>(() => cancel ? api.CancelAsync(1, "AAAAAAAAAAE=") : api.RescheduleAsync(1, When, "AAAAAAAAAAE="));
+        Assert.Equal("outcomeUnknown", error.Code); Assert.Equal(1, handler.PostCount); Assert.Equal(0, handler.RefreshCount);
+        Assert.Contains("version", handler.Body); Assert.Equal(!cancel, handler.Body.Contains("scheduledAt"));
+        Assert.DoesNotContain("registration", handler.Body); Assert.DoesNotContain("location", handler.Body);
+    }
+
     private sealed class Fake : IAppointmentService
     {
+        public AppointmentRecord Current = Saved;
+        public string? MutationError; public int MutationCalls;
+        public Task<AppointmentRecord> RescheduleAsync(int id, DateTimeOffset scheduledAt, string version) => Mutate(Current with { ScheduledAt = scheduledAt });
+        public Task<AppointmentRecord> CancelAsync(int id, string version) => Mutate(Current with { Status = "DaHuy", CanManage = false });
+        private Task<AppointmentRecord> Mutate(AppointmentRecord changed) {
+            MutationCalls++; if (MutationError != null) throw new AppointmentApiException(MutationError, "Thông báo nghiệp vụ");
+            Current = changed with { Version = "AAAAAAAAAAI=" }; return Task.FromResult(Current);
+        }
         public AppointmentSourceOption Option = Summary;
         public int PostCalls,ListCalls;public string? Error;public bool Persisted,FailGet,SourceError;public List<AppointmentRequest> Requests=[];
         public TaskCompletionSource<AppointmentRecord>? PostGate;public TaskCompletionSource<AppointmentRecord[]>? ListGate;
         public Task<AppointmentSourceOption[]> GetSourcesAsync(int page)=>Task.FromResult(new[]{Option});
         public Task<AppointmentSource> GetSourceAsync(int id){if(SourceError)throw new HttpRequestException();return Task.FromResult(Source with { Source = Option with { RegistrationId = id, PreferredDate = Option.PreferredDate?.AddDays(id - 7) } });}
         public Task<AppointmentRecord[]> ListAsync(int page,AppointmentRequest? match=null){ListCalls++;if(FailGet)throw new HttpRequestException();if(ListGate!=null)return ListGate.Task;return Task.FromResult(Persisted?new[]{Saved with {ScheduledAt=Requests.LastOrDefault()?.ScheduledAt??When}}:Array.Empty<AppointmentRecord>());}
-        public Task<AppointmentRecord> GetAsync(int id)=>Task.FromResult(Saved);
+        public Task<AppointmentRecord> GetAsync(int id)=>Task.FromResult(Current);
         public Task<AppointmentRecord> CreateAsync(AppointmentRequest request){PostCalls++;Requests.Add(request);if(PostGate!=null)return PostGate.Task;if(Error!=null)throw new AppointmentApiException(Error,"Safe message");Persisted=true;return Task.FromResult(Saved with {ScheduledAt=request.ScheduledAt});}
     }
     private sealed class Handler : HttpMessageHandler

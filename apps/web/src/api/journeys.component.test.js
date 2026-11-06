@@ -6,16 +6,54 @@ import { createServer } from 'vite'
 import { createElement, act } from 'react'
 import { createRoot } from 'react-dom/client'
 
-let server, App, Journeys, identity
+let server, App, Journeys, Schedule, identity
 
 before(async () => {
   server = await createServer({ root: fileURLToPath(new URL('../..', import.meta.url)),
     server: { middlewareMode: true, ws: false }, logLevel: 'silent' })
   App = (await server.ssrLoadModule('/src/App.jsx')).default
   Journeys = (await server.ssrLoadModule('/src/VaccinationJourneys.jsx')).default
+  Schedule = (await server.ssrLoadModule('/src/Schedule.jsx')).default
   identity = (await server.ssrLoadModule('/src/api/identity.js')).identity
 })
 after(async () => { await server?.close() })
+
+test('cancelled journey history is labelled and refresh shows rescheduled time without customer actions', async t => {
+  const { host, render } = mount(t)
+  const appointment = { id: 8, status: 'DaHuy', scheduledAt: '2026-12-01T01:30:00Z', location: 'Trung tâm tiêm chủng', serviceName: 'Dịch vụ đã đăng ký' }
+  const facts = { registrationId: 42, createdAt: '2026-11-04T00:00:00Z',
+    payment: { registrationId: 42, recipient: { fullName: 'Nguyễn Test A' }, customer: { fullName: 'Nguyễn Test A' },
+      items: [], totalDue: '0', subtotal: '0', payment: null }, appointments: [appointment], nextAppointment: null, shots: [], progress: [] }
+  identity.getVaccinationJourney = async () => facts
+  await render(Journeys, { account: { accountType: 'customer' }, page: 'vaccinations/42' })
+  assert.match(host.textContent, /Đã hủy/)
+  assert.match(host.textContent, /Chờ trung tâm xếp lịch mới/)
+  assert.doesNotMatch(host.textContent, /Lịch hẹn đã qua|DaHuy|DaXepLich/)
+  assert.ok(![...host.querySelectorAll('button')].some(b => /Đổi lịch|Hủy lịch/.test(b.textContent)))
+  facts.appointments = [{ ...appointment, status: 'DaXepLich', scheduledAt: '2026-12-03T03:30:00Z' }]
+  facts.nextAppointment = facts.appointments[0]
+  await act(async () => host.querySelector('.payment-reload').click())
+  assert.match(host.textContent, /3\/12\/2026/)
+  assert.match(host.textContent, /Đã xếp lịch/)
+})
+
+test('schedule list and owned detail show cancelled status and reload the current instant', async t => {
+  const { host, render } = mount(t)
+  const person = { id: 1, fullName: 'Nguyễn Test A' }
+  let row = { id: 7, registrationId: 42, customer: person, recipient: person, itemKind: 'vaccine', serviceName: 'Dịch vụ đã đăng ký',
+    status: 'DaHuy', scheduledAt: '2026-12-01T01:30:00Z', location: 'Trung tâm' }
+  identity.appointments = async () => ({ items: [row] })
+  identity.getAppointment = async () => row
+  await render(Schedule, { account: { accountType: 'customer', accountId: 1 }, go: () => {} })
+  await act(async () => host.querySelector('.payment-select').click())
+  assert.match(host.querySelector('#schedule-detail').textContent, /Đã hủy/)
+  assert.doesNotMatch(host.textContent, /DaHuy|DaXepLich/)
+  assert.ok(![...host.querySelectorAll('button')].some(b => /Đổi lịch|Hủy lịch/.test(b.textContent)))
+  row = { ...row, status: 'DaXepLich', scheduledAt: '2026-12-03T03:30:00Z' }
+  await act(async () => [...host.querySelectorAll('button')].find(b => b.textContent.includes('Tải lại chi tiết')).click())
+  assert.match(host.querySelector('#schedule-detail').textContent, /3\/12\/2026/)
+  assert.match(host.querySelector('#schedule-detail').textContent, /Đã xếp lịch/)
+})
 
 function mount(t, path = '') {
   const window = new Window({ url: 'http://localhost/' + path })

@@ -33,6 +33,18 @@ A12 bỏ các thao tác Sample và checkbox quyền rời rạc, chỉ đổi m�
 - Migration `20261103115754_RF01CustomerPasswordReset`: thêm bảng reset, FK/index/expiry constraint; bổ sung `IdentityMailOutbox.PasswordResetId`, cho `VerificationId` nullable và constraint đúng một loại thư. Thư xác minh cũ được giữ nguyên; outbox reset tái dùng mã hóa AES-GCM, retry/TTL và pickup JSON `{email,token}` hiện có. Down từ chối khi đã có lịch sử reset, không xóa để downgrade.
 - Web: Đăng nhập → Quên mật khẩu → yêu cầu email → nhập token + mật khẩu mới + xác nhận → quay lại đăng nhập. Đăng ký thêm xác nhận mật khẩu chỉ ở client, body register vẫn `{email,password}`. Hiện/ẩn không mất giá trị; lỗi giữ bản nháp; các token/session chỉ ở bộ nhớ. Windows không thêm reset tự phục vụ; login/refresh/logout/change-password hiện hành giữ nguyên.
 
+## RF-05F — Đổi/hủy lịch và đồng bộ nhắc lịch (#167)
+
+- Chỉ Employee Active có `QuanLyLichHen` (LeTan). Customer vẫn chỉ GET theo ownership hiện hành; không self-service.
+- `POST /api/v1/appointments/{id}/reschedule`: đúng `{scheduledAt,version}`; scheduledAt là instant có offset, ở tương lai và khác giờ hiện tại. `POST /api/v1/appointments/{id}/cancel`: đúng `{version}`. Trả 200 AppointmentDto cập nhật; không nhận source/item/recipient/facility hoặc lý do hủy.
+- AppointmentDto thêm `version` (SQL RowVersion 8 byte, base64), `canManage` (điều kiện vòng đời, không thay quyền actor), `managementUnavailableReason`. Chỉ `DaXepLich` được mutate; hủy thành `DaHuy`. Bất kỳ PhieuKhamSangLoc gắn lịch đều khóa cả hai thao tác. Giữ nguyên row/registration/recipient/item/service/fixed facility; không đổi registration/payment/promotion hoặc refund.
+- Lỗi: 400 `validation`; 401 `invalidSession`; 403 `permissionDenied`; 404 `resourceNotFound`; 409 `concurrencyConflict`, `appointmentNotActive`, `clinicalAlreadyStarted`, `appointmentAlreadyExists`, `appointmentSourceConflict`, `appointmentBusy`; 503 `dependencyUnavailable`. Client xem mất phản hồi/5xx/body thành công không đọc được là outcome unknown: GET đúng appointment trước khi quyết định tiếp, không tự replay POST. Stale version yêu cầu tải lại.
+- Khóa SQL session theo appointment, dùng chung dispatcher và mutation, giữ xuyên qua provider call và ghi kết quả. Mutation chỉ commit sau khi in-flight provider call kết thúc; dispatcher sau mutation phải re-check nguồn trước gửi. SMTP vẫn ngoài transaction. Đây là thứ tự gửi/provider acceptance; không thể kiểm soát thời điểm thư đã được provider chấp nhận đến inbox.
+- Serializable + khóa actor/session → registration → appointment: mutation, invalidation và audit `appointments.rescheduled`/`appointments.cancelled` cùng transaction. Email `DaGui` giữ nguyên mọi trường; email cũ chưa gửi chuyển `GuiLoi/reminderSourceConflict`, không còn retry. Snapshot body/time/recipient giữ nguyên. Giờ mới có snapshot riêng theo RF-05E. GET email-reminder thêm `history` (các snapshot giờ cũ, `canRetry=false`); reminder hiện hành và history phân biệt rõ.
+- Migration `20261106144715_RF05FAppointmentLifecycle`: thêm RowVersion cho LichHenTiem và ScheduledAt nullable cho NhacLich; backfill giờ của log LogMoPhong trước khi có API đổi lịch, giữ nội dung/người/thời điểm ghi. Unique log đổi thành appointment + ScheduledAt, log giờ cũ không loại lịch mới khỏi queue. Không siết status legacy chưa biết, không xóa/reseed. Down từ chối khi có lịch hủy/audit mutation hoặc nhiều snapshot log trên cùng lịch.
+- Clinical queue loại lịch hủy; create assessment re-check trạng thái sau khóa. Journey/progress chỉ chọn lịch tương lai `DaXepLich` làm next; lịch hủy vẫn đọc được trong lịch sử thuộc quyền. Web hiển thị “Đã xếp lịch” / “Đã hủy”, Windows A09 thêm form giờ mới + confirmation đổi/hủy, refresh reminder sau thay đổi/đối chiếu.
+- Không SMS, scheduler, lý do hủy, customer self-service, refund, no-show hay regimen automation.
+
 ## RF-05E — Email nhắc lịch (Windows A09, #166)
 
 - Chuẩn bị recipient SMTP qua flow hiện có: opt-in `Identity:AllowRealDevelopmentVerificationRecipients=true` chỉ trong Development + MailMode Synthetic + DevelopmentMailDirectory local tuyệt đối. Register/resend chấp nhận email hợp lệ ngoài `example.invalid`, nhưng token chỉ ghi local; confirm token hiện hành mới set EmailVerifiedAt. Default false/missing giữ synthetic-only; Production/Test không mở real recipient; password reset không mở rộng. Tắt flag sau smoke. Không có verification SMTP, OTP, seed verified hoặc SQL bypass; hướng dẫn trong README gốc.
@@ -47,11 +59,11 @@ A12 bỏ các thao tác Sample và checkbox quyền rời rạc, chỉ đổi m�
 - SMTP không có giao dịch phân tán/exactly-once với SQL. Claim bị gián đoạn hoặc SQL/audit lỗi sau provider acceptance chuyển `GuiLoi/deliveryUncertain` ở lần drain sau, **không gửi lại**; phải đối chiếu thủ công. Không tự lease-expire rồi gửi lại vì có thể gửi trùng.
 - Migration `RF05EReminderEmail` thêm bảng/index/FK/check riêng, không sửa `NhacLich`/log cũ; Down chỉ cho phép khi bảng email rỗng. Chỉ kiểm migrate trên DB disposable, không tự migrate DB demo.
 - Windows giữ queue/detail hiện có, email masked, `Chưa gửi / Đang gửi / Đã gửi / Gửi lỗi`; xác nhận gửi, refresh/đối chiếu, retry theo `canRetry`; không hiển thị enum/debug/provider raw. Phiên đổi/thu hồi xóa dữ liệu và bỏ response trễ.
-- Không SMS, OTP, scheduler, sửa/hủy lịch hay thay đổi clinical/payment. Cấu hình local SMTP và giới hạn smoke trong README gốc.
+- Không SMS, OTP, scheduler; đổi/hủy lịch do RF-05F bổ sung ở trên. Cấu hình local SMTP và giới hạn smoke trong README gốc.
 
 ## S5.7B — Log nhắc lịch mô phỏng (Windows A09)
 
-Chỉ Employee/Account/NhanVien Active, LeTan + QuanLyLichHen; dùng Identity hiện hành, không thêm quyền. Không gửi email/SMS, không scheduler. Một lịch tối đa một log LogMoPhong; các kênh legacy giữ nguyên.
+Chỉ Employee/Account/NhanVien Active, LeTan + QuanLyLichHen; dùng Identity hiện hành, không thêm quyền. Không gửi email/SMS, không scheduler. RF-05F: một snapshot giờ hẹn tối đa một log LogMoPhong; các kênh legacy giữ nguyên.
 
 - RF-05D GET `/api/v1/reminders/queue?search=&page=1&pageSize=25`: `{items: AppointmentDto[]}`, Lễ tân/quyền nhắc lịch như detail. Chỉ nguồn Clinical hợp lệ, DaXepLich ở tương lai, chưa có mũi DaTiem và chưa có LogMoPhong (Email legacy không loại lịch). Search tên người được tiêm hoặc mã LH-id, trim/tối đa 100 ký tự; page ≥1, pageSize 1–100, chặn overflow. Sắp thời gian hẹn rồi id tăng dần. GET không ghi; chọn row phải đọc preview hiện tại, POST kiểm lại nguồn trong transaction. Không schema/migration mới.
 - GET `/api/v1/appointments/{id}/reminders`: `{ appointment: AppointmentDto, preview: string|null, canRecord: boolean, reminder: ReminderDto|null }`. Preview từ SQL khi lịch đủ điều kiện; đã ghi thì trả snapshot cũ, không tạo lại nội dung. GET không ghi dữ liệu.
@@ -120,7 +132,7 @@ Các mục đã triển khai được mô tả chi tiết ở phần bên dướ
 |---|---|---|
 | Identity | Quản lý accounts/permissions (hoãn ngoài S1) | Đạt |
 | Promotions | GET/POST promotions; giảm tiền VND không âm trong thời gian hiệu lực, một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng âm | Bảo |
-| Appointments/Reminders | S5.1/S5.2 lịch hẹn, S5.7A lịch sử Customer, S5.7B log nhắc lịch mô phỏng đã có; không bổ sung đổi/hủy lịch hoặc kênh gửi thật | Đạt |
+| Appointments/Reminders | S5.1/S5.2 lịch hẹn, S5.7A lịch sử Customer, S5.7B log legacy; RF-05E email và RF-05F đổi/hủy + reconciliation | Đạt |
 | Aftercare | GET/POST vaccinations/{id}/follow-ups đã có trong S5.6 bên dưới | Đạt |
 | Clinical — ghi tiêm | POST vaccinations; kết luận/chỉ định S5.3, ghi tiêm S5.5; không khám chi tiết | Đạt |
 | Lô/tồn tối thiểu | Đọc lô phù hợp, trừ tồn và ghi biến động cùng thao tác ghi tiêm; nguồn seed Development/Test dự kiến trong G5, không mở module nhập kho | Đạt |

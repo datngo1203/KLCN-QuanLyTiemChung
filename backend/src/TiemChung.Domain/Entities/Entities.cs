@@ -311,6 +311,7 @@ public sealed class TheoDoiSauTiem
 
 public sealed class LichHenTiem
 {
+    public byte[] RowVersion { get; set; } = [];
     public int MaLichHen { get; set; }
     public int? MaDangKy { get; set; }
     public int? MaChiTietVacXin { get; set; }
@@ -323,6 +324,7 @@ public sealed class LichHenTiem
 
 public sealed class NhacLich
 {
+    public DateTime? ScheduledAt { get; set; }
     public int? MaNhanVien { get; set; }
     public string? NoiDungMoPhong { get; set; }
     public int MaNhacLich { get; set; }

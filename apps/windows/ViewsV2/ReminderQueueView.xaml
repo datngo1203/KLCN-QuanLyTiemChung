@@ -41,6 +41,12 @@
     <TextBlock Text="{Binding Subject}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0"/>
     <TextBlock Text="{Binding DeliveryError}" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Margin="0,12"/>
+    <ItemsControl ItemsSource="{Binding History}"><ItemsControl.ItemTemplate><DataTemplate>
+     <Expander Header="Email của thời gian hẹn trước" Margin="0,10,0,0"><StackPanel>
+      <TextBlock Text="{Binding StatusLabel}" FontWeight="SemiBold"/><TextBlock Text="{Binding TimeLabel}"/>
+      <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+     </StackPanel></Expander>
+    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     <TextBlock Text="{Binding Result.RecorderLabel,StringFormat=Người ghi: {0}}" TextWrapping="Wrap"/>
     <TextBlock Text="{Binding Result.TimeLabel,StringFormat=Thời điểm ghi nhận: {0}}" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="Tải lại để cập nhật kết quả gửi email." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8"/>

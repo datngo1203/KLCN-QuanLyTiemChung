@@ -4,7 +4,7 @@ import { HistoryWorkspace } from './VaccinationHistory'
 import { PaymentDetail } from './Payments'
 import { paymentError, registrationCode } from './paymentView'
 import { preferredDateLabel } from './registrationForm'
-import { appointmentCode, appointmentTime } from './scheduleView'
+import { appointmentCode, appointmentTime, appointmentStatus } from './scheduleView'
 import { vaccinationCode, vaccinationTime } from './historyView'
 import { journeyState } from './journeyView'
 import { customerDisplayName } from './customerDisplayName'
@@ -146,7 +146,7 @@ function JourneyDetail({ id, go }) {
           <h3>Lịch hẹn</h3>
           {journey.appointments.length === 0 ? <p>Trung tâm chưa xác nhận lịch hẹn.</p> : <ul className="journey-events">
             {journey.appointments.map(item => <li key={item.id}><strong>{appointmentCode(item.id)} · {item.serviceName}</strong>
-              <span>{appointmentTime(item.scheduledAt)} · {item.location}</span></li>)}
+              <span>{appointmentTime(item.scheduledAt)} · {item.location}</span><span>{appointmentStatus(item.status)}</span></li>)}
           </ul>}
         </section>
         <section className="registration-panel">
