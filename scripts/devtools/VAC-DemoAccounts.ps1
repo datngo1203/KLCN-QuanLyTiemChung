@@ -86,7 +86,7 @@ WHERE AccountType = N'Customer'
   AND EmailVerifiedAt IS NOT NULL;
 "@
 
-$raw = $query | & docker exec -i $containerId sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W -s "|"'
+$raw = $query | & docker exec -i $containerId sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W -s ~'
 if ($LASTEXITCODE -ne 0) {
     throw 'Could not read demo account readiness from SQL. No data was changed.'
 }
@@ -99,12 +99,12 @@ foreach ($line in @($raw)) {
     $text = [string]$line
     if ([string]::IsNullOrWhiteSpace($text)) { continue }
 
-    if ($text -match '^\s*\d+\s*$' -and $text -notmatch '\|') {
+    if ($text -match '^\s*\d+\s*$' -and $text -notmatch '~') {
         $verifiedCustomerCount = [int]$text.Trim()
         continue
     }
 
-    $parts = $text -split '\|', 4
+    $parts = $text -split '~', 4
     if ($parts.Count -ne 4) { continue }
 
     $rows += [pscustomobject]@{
