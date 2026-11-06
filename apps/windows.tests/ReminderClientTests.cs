@@ -9,8 +9,8 @@ namespace TiemChung.Windows.Tests;
 public sealed class ReminderClientTests
 {
     private static readonly AppointmentRecord Appointment=new(3,1,new(1,"[DEMO] customer"),new(2,"[DEMO] recipient"),"vaccine",1,1,"[DEMO] vaccine",DateTimeOffset.UtcNow.AddDays(1),"[DEMO] room","DaXepLich");
-    private static readonly ReminderRecord Saved=new(7,3,"LogMoPhong","DaGhiLogMoPhong","[DEMO] snapshot",DateTimeOffset.UtcNow,new(4,"[DEMO] reception"));
-    private static ReminderDetail Detail(bool saved=false)=>new(Appointment,saved?null:"[DEMO] preview",!saved,saved?Saved:null);
+    private static readonly ReminderRecord Saved=new(7,3,"Email","ChoGui","[DEMO] snapshot",DateTimeOffset.UtcNow,new(4,"[DEMO] reception"),"k***@example.invalid","[VNVC] Nhắc lịch tiêm chủng LH-0003");
+    private static ReminderDetail Detail(bool saved=false)=>new(Appointment,saved?null:"[DEMO] preview",!saved,saved?Saved:null,"k***@example.invalid","[VNVC] Nhắc lịch tiêm chủng LH-0003");
     private static async Task<IdentityApiService> Login(Handler handler){var identity=new IdentityApiService(new HttpClient(handler){BaseAddress=new Uri("http://localhost/")});Assert.True((await identity.LoginAsync("synthetic","synthetic")).Succeeded);return identity;}
     private static async Task<ReminderViewModel> Ready(Fake fake,IdentityApiService? identity=null){var vm=new ReminderViewModel(fake,identity??await Login(new Handler()));vm.Select(3);await vm.LoadAsync();return vm;}
     [Fact] public async Task PreviewConfirmationCancelAndReadOnlyResultUseOnePost() {
@@ -49,7 +49,7 @@ public sealed class ReminderClientTests
     public async Task ServicePostsOnlyEmptyObjectAndNeverReplays(int status,string code) {
         var handler=new Handler{Status=(HttpStatusCode)status};var service=new ReminderApiService(await Login(handler));
         var error=await Assert.ThrowsAsync<AppointmentApiException>(()=>service.RecordAsync(3));Assert.Equal(code,error.Code);Assert.DoesNotContain("PRIVATE",error.Message);
-        Assert.Equal(1,handler.Posts);Assert.Equal("{}",handler.Body);Assert.EndsWith("/appointments/3/reminders",handler.LastPath);Assert.Equal(0,handler.Refreshes);
+        Assert.Equal(1,handler.Posts);Assert.Equal("{}",handler.Body);Assert.EndsWith("/appointments/3/email-reminder",handler.LastPath);Assert.Equal(0,handler.Refreshes);
     }
     [Theory][InlineData("network","outcomeUnknown")][InlineData("bad201","recordedUnreadable")]
     public async Task LostOrUnreadableResponseRequiresGet(string failure,string code) {
@@ -64,7 +64,7 @@ public sealed class ReminderClientTests
         vm.Search="Nguyễn";await vm.LoadQueueAsync();Assert.Single(vm.Queue);Assert.False(vm.NoResults);
         vm.Selected=vm.Queue[0];await vm.LoadAsync();Assert.Equal(Appointment,vm.Appointment);
         vm.ConfirmCommand.Execute(null);Assert.False(vm.CanBrowse);vm.CancelCommand.Execute(null);Assert.Equal(0,fake.Posts);
-        vm.ConfirmCommand.Execute(null);await vm.RecordAsync();Assert.Empty(vm.Queue);Assert.Equal(Saved,vm.Result);
+        vm.ConfirmCommand.Execute(null);await vm.RecordAsync();Assert.Single(vm.Queue);Assert.Equal(Saved,vm.Result);
         fake.GetError="dependencyUnavailable";await vm.LoadQueueAsync();Assert.Empty(vm.Queue);Assert.Contains("thử lại",vm.QueueFeedback);
         fake.GetError=null;await vm.LoadQueueAsync();Assert.True(vm.NoResults);
     }
@@ -84,13 +84,28 @@ public sealed class ReminderClientTests
         var work=vm.LoadQueueAsync();await identity.LogoutAsync();await identity.LoginAsync("other","synthetic");
         fake.ListGate.SetResult([Appointment]);await work;Assert.Empty(vm.Queue);Assert.False(vm.HasAccess);
     }
+    [Theory][InlineData("ChoGui","Đang gửi")][InlineData("DaGui","Đã gửi")][InlineData("GuiLoi","Gửi lỗi")]
+    public async Task EmailStatesAndMaskedRecipientNeverClaimDeliveredOnEnqueue(string status,string label) {
+        var fake=new Fake{Persisted=true,Current=Saved with{Status=status,DeliveredAt=status=="DaGui"?DateTimeOffset.UtcNow:null,
+            Attempts=1,LastErrorCode=status=="GuiLoi"?"providerUnavailable":null,CanRetry=status=="GuiLoi"}};
+        var vm=await Ready(fake);Assert.Equal(label,vm.StatusLabel);Assert.Equal("k***@example.invalid",vm.MaskedRecipient);
+        Assert.Equal(status=="GuiLoi",vm.DeliveryRetryCommand.CanExecute(null));
+        if(status=="ChoGui")Assert.DoesNotContain("Đã gửi",vm.Feedback);
+        if(status=="GuiLoi"){fake.Current=null;vm.DeliveryRetryCommand.Execute(null);await Task.Yield();Assert.Equal(1,fake.Posts);Assert.Equal("Đang gửi",vm.StatusLabel);Assert.Equal(1,fake.ExpectedAttempts);}
+    }
+    [Fact] public async Task UncertainDeliveryCannotRetryAndHidesRawError() {
+        var fake=new Fake{Persisted=true,Current=Saved with{Status="GuiLoi",LastErrorCode="deliveryUncertain"}};
+        var vm=await Ready(fake);Assert.False(vm.DeliveryRetryCommand.CanExecute(null));Assert.DoesNotContain("deliveryUncertain",vm.DeliveryError);
+    }
     private sealed class Fake:IReminderService
     {
         public TaskCompletionSource<AppointmentRecord[]>? ListGate;
         public Task<AppointmentRecord[]> ListAsync(string search,int page){if(ListGate!=null)return ListGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Persisted?Array.Empty<AppointmentRecord>():new[]{Appointment});}
+        public ReminderRecord? Current;public int ExpectedAttempts;
+        public Task<ReminderRecord> RetryAsync(int id,int expectedAttempts){ExpectedAttempts=expectedAttempts;return RecordAsync(id);}
         public int Gets,Posts;public bool Persisted;public string? Error,GetError;public List<int> PostedIds=[];
         public TaskCompletionSource<ReminderDetail>? GetGate;public TaskCompletionSource<ReminderRecord>? PostGate;
-        public Task<ReminderDetail> GetAsync(int id){Gets++;if(GetGate!=null)return GetGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Detail(Persisted));}
+        public Task<ReminderDetail> GetAsync(int id){Gets++;if(GetGate!=null)return GetGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Current==null?Detail(Persisted):Detail(true) with{Reminder=Current});}
         public Task<ReminderRecord> RecordAsync(int id){Posts++;PostedIds.Add(id);if(PostGate!=null)return PostGate.Task;if(Error!=null)throw new AppointmentApiException(Error,"Safe error");Persisted=true;return Task.FromResult(Saved);}
     }
     private sealed class Handler:HttpMessageHandler
@@ -103,7 +118,7 @@ public sealed class ReminderClientTests
             if(path.EndsWith("/logout"))return new(HttpStatusCode.NoContent);
             if(request.Method==HttpMethod.Post){Posts++;LastPath=path;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="bad201")return Json(new{},HttpStatusCode.Created);
                 return Status==HttpStatusCode.Created?Json(Saved,Status):Json(new{code=Status==HttpStatusCode.Conflict?"reminderAlreadyRecorded":"validation",detail="SQL PRIVATE"},Status);}
-            if(path.EndsWith("/reminders/queue")){LastPath=request.RequestUri.PathAndQuery;return Json(new{items=new[]{Appointment}});}
+            if(path.EndsWith("/reminders/email-queue")){LastPath=request.RequestUri.PathAndQuery;return Json(new{items=new[]{Appointment}});}
             return Json(Detail());
         }
         private static HttpResponseMessage Json(object value,HttpStatusCode status=HttpStatusCode.OK)=>new(status){Content=JsonContent.Create(value)};

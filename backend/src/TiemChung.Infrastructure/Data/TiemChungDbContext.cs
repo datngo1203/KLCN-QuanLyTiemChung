@@ -19,6 +19,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
     protected override void OnModelCreating(ModelBuilder model)
     {
         IdentityModel.Configure(model);
+        ReminderEmailModel.Configure(model);
         InventoryReceiptModel.Configure(model);
         var nhanvien = model.Entity<NhanVien>();
         nhanvien.ToTable("NhanVien");

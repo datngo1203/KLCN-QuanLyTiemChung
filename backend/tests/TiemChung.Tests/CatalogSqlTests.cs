@@ -442,7 +442,7 @@ public sealed class CatalogSqlTests
             try {
                 var connection = owner.ConnectionString;
                 var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> {
-                    ["ConnectionStrings:TiemChung"]=connection,["Identity:MailMode"]="Disabled",
+                    ["ConnectionStrings:TiemChung"]=connection,["Identity:MailMode"]="Disabled",["ReminderMail:Mode"]="Disabled",
                     ["Identity:SigningKey"]=Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
                     ["DevelopmentSeed:Username"]="s2.seed",["DevelopmentSeed:Password"]=Guid.NewGuid().ToString("N")
                 }).Build();

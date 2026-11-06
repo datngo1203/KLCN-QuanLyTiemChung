@@ -154,6 +154,33 @@ dotnet run --project apps/windows/TiemChung.Desktop.csproj
 
 Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục và xem hồ sơ; thêm/sửa/xóa hồ sơ bằng tài khoản nhân viên yêu cầu chức danh Lễ tân (`LeTan`) tại API. Lệnh `--seed-admin` không tạo tài khoản Lễ tân; không nới quyền Admin để thay thế. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website và chỉ thao tác hồ sơ thuộc phạm vi liên kết của mình.
 
+### RF-05E — email nhắc lịch
+
+Windows A09 → **Nhắc lịch**: Lễ tân chọn lịch, xem nội dung/người nhận masked rồi **Gửi email nhắc lịch**. Sau xác nhận là yêu cầu chờ gửi; dùng **Đối chiếu / Xem lại** để đọc trạng thái. `Đã gửi` chỉ xác nhận provider đã chấp nhận. Khi lỗi và đủ điều kiện, **Gửi lại email** dùng chính delivery cũ. Log mô phỏng S5.7B cũ vẫn đọc qua contract legacy, không tính là email delivered.
+
+Mặc định `ReminderMail:Mode=Disabled`; không tự gửi ra Internet. Test/CI dùng fake provider; local Development có thể bật `ReminderMail__Mode=Synthetic` để kiểm trạng thái với email `example.invalid` (không gửi thư thật). Dispatcher chỉ xử lý yêu cầu Lễ tân đã xác nhận, không tự tìm lịch để nhắc.
+
+Để smoke SMTP thật, cấu hình **ngoài Git** bằng environment hoặc `dotnet user-secrets --project backend/src/TiemChung.Api`. Các key cần có (environment dùng `__` thay `:`):
+
+| Key | Giá trị local |
+|---|---|
+| `ASPNETCORE_ENVIRONMENT` | `Development` |
+| `ReminderMail:Mode` | `Smtp` |
+| `ReminderMail:Host` | Host SMTP của nhà cung cấp, ví dụ `smtp.gmail.com` |
+| `ReminderMail:Port` | `587` (STARTTLS bắt buộc) hoặc `465` (TLS trực tiếp) |
+| `ReminderMail:Username` | Gmail chính dùng xác thực, do người dùng cấu hình |
+| `ReminderMail:Password` | App Password local; không đưa vào lệnh/log chia sẻ |
+| `ReminderMail:SenderAddress` | Địa chỉ sở hữu, hoặc alias đã cấu hình Send mail as |
+| `ReminderMail:SenderName` | Mặc định `Trung tâm tiêm chủng VNVC - KLCN` |
+
+Gmail App Password cần 2-Step Verification theo [hướng dẫn Google](https://support.google.com/accounts/answer/185833). Không dùng plus-address tùy ý làm sender. Các cấu hình Identity mail/token hiện hành không đổi. MailKit dùng kiểm TLS/chứng thư mặc định; không bỏ kiểm chứng thư. Không cấu hình SMTP thật trong CI.
+
+Recipient phải là **LoginEmail đã xác minh** của đúng Customer account Active với cả hai liên kết hồ sơ Active, duy nhất. Chuẩn bị account test thật bằng luồng xác minh được hỗ trợ của môi trường; không sửa SQL/verified flag trên DB demo để vượt gate. Hiện Identity vẫn dùng token synthetic, nên nếu chưa có recipient thật đã xác minh thì real SMTP smoke còn phụ thuộc bước chuẩn bị account hợp lệ. Không lấy email contact đăng ký làm thay thế.
+
+Chạy smoke trên môi trường Development riêng đã được phép migrate: enqueue một lịch hợp lệ, chờ dispatcher, refresh xem `Đã gửi`, đọc lại SQL/audit và **kiểm hộp thư đích thực sự nhận email**. Không đưa email/account/secret thật vào ảnh, artifact, PR hoặc test output. Thiếu credential thì báo `REAL SMTP SMOKE: UNVERIFIED — local credential unavailable`.
+
+SMTP không hỗ trợ atomic commit cùng SQL: khi mất kết nối sau gửi hoặc tiến trình dừng giữa provider acceptance và ghi SQL, hệ thống giữ lỗi cần đối chiếu và không tự gửi lại. Chỉ retry lỗi chưa gửi/đã bị từ chối rõ, sau tối thiểu một phút. Cấu trúc/API cụ thể tại [contract RF-05E](backend/contracts/README.md#rf-05e--email-nhắc-lịch-windows-a09-166). Hotline email lấy `Appointments:Hotline`, cùng số công khai đang dùng ở Web; đối chiếu [VNVC](https://vnvc.vn/) và [đặt mua](https://vax.vnvc.vn/vaccine) ngày 06/11/2026. Nội dung không thêm chỉ định hay quy tắc y khoa.
+
 ## 4. Cấu trúc dự án
 
 | Thư mục / file | Vai trò |

@@ -9,7 +9,7 @@
    <Grid.ColumnDefinitions><ColumnDefinition Width="*" MinWidth="240"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.3*" MinWidth="340"/></Grid.ColumnDefinitions>
    <Border Style="{StaticResource CE.Card}" Padding="16"><Grid>
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <TextBlock Text="Lịch cần nhắc" Style="{StaticResource CE.SectionHeading}"/>
+    <TextBlock Text="Email nhắc lịch" Style="{StaticResource CE.SectionHeading}"/>
     <StackPanel Grid.Row="1" Margin="0,12,0,8"><TextBlock Text="Mã lịch hoặc tên người được tiêm" Style="{StaticResource CE.Caption}" Margin="0,0,0,4"/><DockPanel IsEnabled="{Binding CanBrowse}">
      <Button DockPanel.Dock="Right" Content="Tìm / Tải lại" Command="{Binding SearchCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="8,0,0,0"/>
      <TextBox Text="{Binding Search,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã lịch hoặc tên người được tiêm">
@@ -18,34 +18,39 @@
     </DockPanel></StackPanel>
     <TextBlock Grid.Row="2" Text="{Binding QueueFeedback}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite"/>
     <ListView Grid.Row="3" ItemsSource="{Binding Queue}" SelectedItem="{Binding Selected,Mode=OneWay}" SelectionChanged="QueueSelectionChanged" IsEnabled="{Binding CanBrowse}"
-      Style="{StaticResource CE.ListView}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Danh sách lịch cần nhắc">
+      Style="{StaticResource CE.ListView}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Danh sách lịch hẹn">
      <ListView.ItemContainerStyle><Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Label}"/></Style></ListView.ItemContainerStyle>
      <ListView.ItemTemplate><DataTemplate><StackPanel Margin="6">
       <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap"/>
       <TextBlock Text="{Binding TimeLabel}" Margin="0,4,0,0"/>
       <TextBlock Text="{Binding SourceLabel}" TextWrapping="Wrap"/>
       <TextBlock Text="{Binding Location}" TextWrapping="Wrap"/>
-      <TextBlock Text="Chưa ghi nhận nhắc lịch" Style="{StaticResource CE.Caption}"/>
+      <TextBlock Text="Chọn để xem trạng thái email" Style="{StaticResource CE.Caption}"/>
      </StackPanel></DataTemplate></ListView.ItemTemplate>
     </ListView>
     <WrapPanel Grid.Row="4" Margin="0,10,0,0"><Button Content="Trang trước" Command="{Binding PreviousCommand}" Style="{StaticResource CE.Button.Secondary}"/><TextBlock Text="{Binding Page,StringFormat=Trang {0}}" Margin="10,0" VerticalAlignment="Center"/><Button Content="Trang sau" Command="{Binding NextCommand}" Style="{StaticResource CE.Button.Secondary}"/></WrapPanel>
    </Grid></Border>
    <Border Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,12,0">
     <TextBlock Text="Nội dung nhắc lịch" Style="{StaticResource CE.SectionHeading}"/>
-    <TextBlock Text="Chọn lịch cần nhắc để xem nội dung và xác nhận ghi nhận." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8,0,12"/>
+    <TextBlock Text="Chọn lịch để xem email, người nhận và trạng thái gửi." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8,0,12"/>
     <TextBlock Text="{Binding Appointment.Label}" TextWrapping="Wrap" FontWeight="SemiBold"/>
     <TextBlock Text="{Binding Feedback}" TextWrapping="Wrap" Margin="0,10" AutomationProperties.LiveSetting="Polite"/>
     <Button Content="Đối chiếu / Xem lại" Command="{Binding LoadCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left"/>
+    <TextBlock Text="{Binding StatusLabel}" FontWeight="SemiBold" Margin="0,12,0,4"/>
+    <TextBlock Text="{Binding MaskedRecipient,StringFormat=Email nhận: {0}}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding Subject}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,8,0,0"/>
+    <TextBlock Text="{Binding DeliveryError}" TextWrapping="Wrap" Margin="0,8"/>
     <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Margin="0,12"/>
     <TextBlock Text="{Binding Result.RecorderLabel,StringFormat=Người ghi: {0}}" TextWrapping="Wrap"/>
     <TextBlock Text="{Binding Result.TimeLabel,StringFormat=Thời điểm ghi nhận: {0}}" TextWrapping="Wrap" Margin="0,8"/>
-    <TextBlock Text="Nội dung chưa được gửi đến khách hàng." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8"/>
-    <Button Content="Ghi nhận nhắc lịch mô phỏng" Command="{Binding ConfirmCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left"/>
+    <TextBlock Text="Tải lại để cập nhật kết quả gửi email." TextWrapping="Wrap" Style="{StaticResource CE.Caption}" Margin="0,8"/>
+    <Button Content="Gửi email nhắc lịch" Command="{Binding ConfirmCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left"/>
     <StackPanel Visibility="{Binding IsConfirming,Converter={StaticResource ReminderVis}}" Margin="0,12,0,0">
-     <TextBlock Text="Xác nhận ghi nhận nội dung cho lịch đang chọn? Mỗi lịch chỉ ghi nhận một lần." TextWrapping="Wrap"/>
-     <WrapPanel Margin="0,8,0,0"><Button Content="Hủy xác nhận" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/><Button Content="Xác nhận ghi nhận" Command="{Binding RecordCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,0,8"/></WrapPanel>
+     <TextBlock Text="Gửi email nhắc lịch đến người nhận hiển thị ở trên?" TextWrapping="Wrap"/>
+     <WrapPanel Margin="0,8,0,0"><Button Content="Hủy xác nhận" Command="{Binding CancelCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/><Button Content="Xác nhận gửi email" Command="{Binding RecordCommand}" Style="{StaticResource CE.Button.Primary}" Margin="0,0,0,8"/></WrapPanel>
     </StackPanel>
-    <Button Content="Thử lại trên cùng lịch" Command="{Binding RetryCommand}" Visibility="{Binding HasPending,Converter={StaticResource ReminderVis}}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+    <Button Content="Gửi lại email" Command="{Binding DeliveryRetryCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+    <Button Content="Thử lại yêu cầu đã đối chiếu" Command="{Binding RetryCommand}" Visibility="{Binding HasPending,Converter={StaticResource ReminderVis}}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
    </StackPanel></ScrollViewer></Border>
   </Grid>
  </Grid>
