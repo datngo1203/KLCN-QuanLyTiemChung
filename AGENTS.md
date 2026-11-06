@@ -61,7 +61,7 @@ Mỗi prompt Codex đáng kể ghi rõ model + effort:
 Prompt feature dùng thứ tự:
 **Source of Truth → Skill Gate → Scope/Acceptance → Audit → Implementation → Test → Visual/Runtime → PR/Handoff**.
 
-Kiểm skill có sẵn trước khi dùng và đọc `SKILL.md`. Skill không được tự mở rộng nghiệp vụ.
+Kiểm skill có sẵn trước khi dùng và đọc `SKILL.md`. Với code/refactor/review, dùng **Ponytail** nếu environment có skill phù hợp; nếu không có thì tiếp tục theo các rule tối giản ở repo. Skill không được tự mở rộng nghiệp vụ.
 
 ## 5. Context & change budget
 
@@ -103,7 +103,7 @@ Mục tiêu là **progressive disclosure**, không phải nhét toàn repo vào 
 
 ## 9. Test/dev accounts
 
-Synthetic dev/test accounts được phép. Tái sử dụng account local đang hoạt động trước khi tạo mới; không reset password chỉ để đẹp mẫu. Credential test manual nằm ngoài Git trong local ledger hiện hành; credential thật/production không được đưa vào đó hoặc repo.
+Synthetic dev/test accounts được phép. Tái sử dụng account local đang hoạt động trước khi tạo mới; không reset password chỉ để đẹp mẫu. Manual test ledger hiện hành: `C:/Users/DAT/Documents/Codex/KLCN090-Coordination/TEST-ACCOUNTS.local.md` (ngoài Git). Credential thật/production không được đưa vào ledger hoặc repo.
 
 ## 10. Nested rules
 
