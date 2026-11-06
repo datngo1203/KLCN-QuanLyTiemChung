@@ -7,28 +7,14 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 ## Current State
 
 ### DONE gần nhất
+- **RF-05F.1 #175 / PR #178** — Customer Web lưu ngày+giờ mong muốn với provenance `CoGioDuKien`; A09 dùng preference làm gợi ý nhưng `LichHenTiem` xác nhận độc lập; confirm/reschedule/cancel tự enqueue lifecycle Email. CI #377 và Web/WPF runtime gates PASS. Squash main: `90873bbf42853ad9f00810d600ae96da9705e3bb`.
 - **RF-05E #166 / PR #172** — email reminder thật, outbox/dispatcher, Windows A09; real Development SMTP acceptance đã PASS.
 - **RF-05F #167 / PR #174** — reschedule/cancel cùng `LichHenTiem`, RowVersion, clinical lock, reminder reconciliation, Customer Web `DaHuy`, outcome-unknown reconcile. Squash main: `bfd6ac0be813e549d15ff799ba7d9c972547c0c1`.
 
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
-### ACTIVE — duy nhất
-**#175 RF-05F.1: thời gian mong muốn của khách + xác nhận lịch đến trung tâm**
-
-Semantics khóa:
-- Customer Web đăng ký dịch vụ với **ngày + giờ mong muốn**.
-- Preference thuộc `DangKyDichVu`; không phải confirmed vaccination slot.
-- `LichHenTiem.ScheduledAt` là **lịch đến trung tâm đã được lễ tân xác nhận**, có thể khác preference.
-- Lịch hẹn không chứng minh đủ điều kiện tiêm.
-- Khách mới: tạo/hoàn thiện hồ sơ trước khi đăng ký.
-- Khách cũ: dùng hồ sơ hiện có.
-- **Cả khách mới và khách cũ**, mỗi lượt chuẩn bị tiêm đều tiếp tục qua screening → bác sĩ tư vấn/chỉ định → payment nếu cần → vaccination.
-- Không tạo hệ thống song song `LichTuVan` / `LichKham`.
-- Confirm/schedule, reschedule và cancel `DaHuy` phải **auto-enqueue notification**; lễ tân không cần bấm nút gửi.
-- Core ưu tiên Email; SMS provider thật không thuộc #175.
-- Audit field preferred-date/time hiện có trước khi thêm schema; reuse source-of-truth nếu đã đủ.
-
-Issue #175 là feature spec/acceptance đầy đủ. Không mở #170 cho đến khi #175 merge/checkpoint và người dùng xác nhận.
+### ACTIVE
+**Chưa có business slice ACTIVE.** #175 đã merge/checkpoint. Chờ người dùng xác nhận trước khi kích hoạt một mục trong NEXT.
 
 ### NEXT
 1. **#170 RF-05G** — automation reminder T−48/T−24 + no-show recall D+3/D+7 trên source appointment hiện hành.
@@ -87,7 +73,7 @@ Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 | S2 Catalog | Core/Windows refinement DONE; RF-02C Web còn NEXT |
 | S3 Customer/Recipient profiles | DONE |
 | S4 Registration/Payment core | DONE; PAY-R1 NEXT |
-| S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F DONE; #175 ACTIVE; #170 NEXT |
+| S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1 DONE; #170 NEXT |
 | S6 Promotion | DONE |
 | S7 Reports | DONE |
 | S8 Integration | NOT STARTED |
