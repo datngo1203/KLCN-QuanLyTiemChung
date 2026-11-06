@@ -50,16 +50,12 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker command was not found.'
 }
 
-$compose = @(
-    'compose',
-    '--env-file', "$root/infra/.env",
-    '-p', $ComposeProject,
-    '-f', "$root/infra/compose.yaml"
-)
+$containerId = @(
+    & docker ps --filter "label=com.docker.compose.project=$ComposeProject" --filter "label=com.docker.compose.service=sqlserver" --filter "status=running" --format '{{.ID}}' 2>$null
+) | Select-Object -First 1
 
-$containerId = (& docker @compose ps -q sqlserver 2>$null | Select-Object -First 1)
 if ($LASTEXITCODE -ne 0 -or -not $containerId) {
-    throw "SQL Server container for Compose project '$ComposeProject' was not found. Run VAC-Start first."
+    throw "Running SQL Server container for Compose project '$ComposeProject' was not found."
 }
 
 $query = @"
@@ -90,7 +86,7 @@ WHERE AccountType = N'Customer'
   AND EmailVerifiedAt IS NOT NULL;
 "@
 
-$raw = $query | & docker @compose exec -T sqlserver sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W -s "|"'
+$raw = $query | & docker exec -i $containerId sh -c '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d TiemChung -h -1 -W -s "|"'
 if ($LASTEXITCODE -ne 0) {
     throw 'Could not read demo account readiness from SQL. No data was changed.'
 }
