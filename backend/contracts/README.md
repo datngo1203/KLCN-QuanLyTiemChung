@@ -35,6 +35,8 @@ A12 bỏ các thao tác Sample và checkbox quyền rời rạc, chỉ đổi m�
 
 ## RF-05E — Email nhắc lịch (Windows A09, #166)
 
+- Chuẩn bị recipient SMTP qua flow hiện có: opt-in `Identity:AllowRealDevelopmentVerificationRecipients=true` chỉ trong Development + MailMode Synthetic + DevelopmentMailDirectory local tuyệt đối. Register/resend chấp nhận email hợp lệ ngoài `example.invalid`, nhưng token chỉ ghi local; confirm token hiện hành mới set EmailVerifiedAt. Default false/missing giữ synthetic-only; Production/Test không mở real recipient; password reset không mở rộng. Tắt flag sau smoke. Không có verification SMTP, OTP, seed verified hoặc SQL bypass; hướng dẫn trong README gốc.
+
 - Lễ tân Active / `GuiNhacLich` theo quyền backend hiện hành; kiểm lại account/session/role mỗi thao tác. Các route cũ S5.7B bên dưới giữ nguyên để đọc/ghi log legacy; `LogMoPhong` không chứng minh email đã gửi.
 - GET `/api/v1/reminders/email-queue?search=&page=1&pageSize=25`: `{items: AppointmentDto[]}`, nguồn Clinical hợp lệ, lịch tương lai `DaXepLich`, chưa ghi mũi. Giữ cả lịch đã enqueue để mở lại/đối chiếu/retry; không loại lịch vì log cũ. Search tên hoặc LH-code, paging/validation như queue RF-05D. GET queue/detail không ghi dữ liệu.
 - GET `/api/v1/appointments/{id}/email-reminder`: `{appointment, preview, canRecord, reminder, maskedRecipient, subject, unavailableReason}`. Preview subject/body do server tạo; chỉ hiện khi nguồn đủ điều kiện và có đúng một liên kết Customer cùng một liên kết Recipient Active thuộc cùng Customer account Active, email đăng nhập hợp lệ/đã xác minh. Thiếu/trùng/khác owner → `reminderRecipientUnavailable`, không preview/enqueue/provider. Không fallback email đăng ký/nhân viên.
