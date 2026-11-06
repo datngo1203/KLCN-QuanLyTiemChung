@@ -13,7 +13,8 @@ public sealed class SyntheticVerificationSink(IHostEnvironment? environment = nu
     public async Task DeliverAsync(Guid deliveryId,string syntheticAddress,string token,CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        if(!IdentityMailReadiness.IsSynthetic(syntheticAddress)) throw new InvalidOperationException("Synthetic recipient required.");
+        if(!IdentityMailReadiness.AllowsLocalRecipient(environment,config,syntheticAddress,verification:true))
+            throw new InvalidOperationException("Local verification recipient unavailable.");
         if (environment?.IsDevelopment() == true && config?["Identity:DevelopmentMailDirectory"] is { Length: > 0 } directory) {
             if (!Path.IsPathFullyQualified(directory)) throw new InvalidOperationException("Absolute mail directory required.");
             Directory.CreateDirectory(directory);
@@ -36,11 +37,16 @@ public sealed class IdentityMailReadiness(IHostEnvironment env,IConfiguration co
     }
     public static bool IsSynthetic(string email)=>MailAddress.TryCreate(email,out var address) &&
         address.Address==email && address.Host.Equals("example.invalid",StringComparison.OrdinalIgnoreCase);
-    public async Task RequireAsync(TiemChungDbContext db,string email,CancellationToken ct)
+    internal static bool AllowsLocalRecipient(IHostEnvironment? environment,IConfiguration? config,string email,bool verification) =>
+        IsSynthetic(email) || (verification && environment?.IsDevelopment()==true &&
+            bool.TryParse(config?["Identity:AllowRealDevelopmentVerificationRecipients"],out var enabled) && enabled &&
+            config?["Identity:DevelopmentMailDirectory"] is { Length: > 0 } directory && Path.IsPathFullyQualified(directory) &&
+            email.Length<=254 && !email.Any(char.IsControl) && MailAddress.TryCreate(email,out var address) && address.Address==email);
+    public async Task RequireAsync(TiemChungDbContext db,string email,CancellationToken ct,bool verification=false)
     {
         if(!Running || !Configured) throw new IdentityFailure(503,"dependencyUnavailable");
         if (env.IsDevelopment() && config["Identity:DevelopmentMailDirectory"] is { Length: > 0 } directory && Path.IsPathFullyQualified(directory)) {
-            if (!IsSynthetic(email)) throw new IdentityFailure(400, "validation");
+            if (!AllowsLocalRecipient(env,config,email,verification)) throw new IdentityFailure(400, "validation");
             return;
         }
         try {

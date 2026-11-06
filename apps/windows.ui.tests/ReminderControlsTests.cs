@@ -39,10 +39,10 @@ public sealed partial class ComboBoxTemplateTests
             model.ConfirmCommand.Execute(null);Assert.False(list.IsEnabled);
             model.CancelCommand.Execute(null);Assert.Null(model.Result);
             model.ConfirmCommand.Execute(null);model.RecordAsync().GetAwaiter().GetResult();
-            view.UpdateLayout();Assert.Empty(model.Queue);Assert.NotNull(model.Result);
+            view.UpdateLayout();Assert.Single(model.Queue);Assert.NotNull(model.Result);
             Assert.Equal("Nội dung nhắc lịch thử nghiệm",model.Content);
             Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text=="Người ghi: Nguyễn Test B");
-            Assert.False(Assert.Single(VisualChildren<Button>(view),b=>Equals(b.Content,"Ghi nhận nhắc lịch mô phỏng")).IsEnabled);
+            Assert.False(Assert.Single(VisualChildren<Button>(view),b=>Equals(b.Content,"Gửi email nhắc lịch")).IsEnabled);
         });
     }
     private sealed class ReminderResponses:HttpMessageHandler
@@ -51,15 +51,15 @@ public sealed partial class ComboBoxTemplateTests
         private bool _saved;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
         {
-            var record=new ReminderRecord(7,3,"LogMoPhong","DaGhiLogMoPhong","Nội dung nhắc lịch thử nghiệm",DateTimeOffset.UtcNow,new(4,"Nguyễn Test B"));
+            var record=new ReminderRecord(7,3,"Email","ChoGui","Nội dung nhắc lịch thử nghiệm",DateTimeOffset.UtcNow,new(4,"Nguyễn Test B"),"k***@example.invalid","[VNVC] Nhắc lịch tiêm chủng LH-0003");
             var path=request.RequestUri!.AbsolutePath;
             object body;
             var status=HttpStatusCode.OK;
             if(path.EndsWith("/login"))body=new{accessToken="test",refreshToken="test"};
             else if(path.EndsWith("/me"))body=new{accountType="employee",employee=new{title="LeTan"},permissions=new[]{"QuanLyLichHen"},capabilities=new{appointments=true}};
-            else if(path.EndsWith("/queue"))body=new{items=_saved?Array.Empty<AppointmentRecord>():new[]{Row}};
+            else if(path.EndsWith("/email-queue"))body=new{items=_saved?Array.Empty<AppointmentRecord>():new[]{Row}};
             else if(request.Method==HttpMethod.Post){_saved=true;body=record;status=HttpStatusCode.Created;}
-            else body=new ReminderDetail(Row,_saved?null:record.Content,!_saved,_saved?record:null);
+            else body=new ReminderDetail(Row,_saved?null:record.Content,!_saved,_saved?record:null,record.MaskedRecipient,record.Subject);
             return Task.FromResult(new HttpResponseMessage(status){Content=JsonContent.Create(body)});
         }
     }

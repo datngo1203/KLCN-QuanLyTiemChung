@@ -52,8 +52,9 @@ public sealed class IdentityMailSink(TiemChungDbContext db,IConfiguration config
                 using(var aes=new AesGcm(key,16)) aes.Decrypt(bytes.AsSpan(0,12),bytes.AsSpan(28),bytes.AsSpan(12,16),plaintext);
                 using var doc=JsonDocument.Parse(plaintext);
                 var email=doc.RootElement.GetProperty("email").GetString()!;
-                if(!IdentityMailReadiness.IsSynthetic(email))
-                    throw new InvalidOperationException("Synthetic recipient required.");
+                // The opt-in covers verification only; password-reset intake/delivery stay synthetic-only.
+                if(!IdentityMailReadiness.AllowsLocalRecipient(environment,config,email,row.VerificationId!=null))
+                    throw new InvalidOperationException("Local mail recipient unavailable.");
                 await sink.DeliverAsync(row.Id,email,doc.RootElement.GetProperty("token").GetString()!,ct);
                 row.SentAt=DateTimeOffset.UtcNow; row.EncryptedPayload=null; row.LastErrorCode=null;
             } catch(Exception e) when(e is not OperationCanceledException) {

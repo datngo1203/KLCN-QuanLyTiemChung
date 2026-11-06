@@ -5,33 +5,46 @@ using System.Text.Json;
 
 namespace TiemChung.Desktop.Services;
 
-public sealed record ReminderRecord(int Id,int AppointmentId,string Channel,string Status,string? Content,DateTimeOffset RecordedAt,RegistrationPerson? RecordedBy)
+public sealed record ReminderRecord(int Id,int AppointmentId,string Channel,string Status,string? Content,DateTimeOffset RecordedAt,RegistrationPerson? RecordedBy,
+    string? MaskedRecipient=null,string? Subject=null,int Attempts=0,DateTimeOffset? DeliveredAt=null,DateTimeOffset? NextAttemptAt=null,string? LastErrorCode=null,bool CanRetry=false)
 {
     public string TimeLabel => RecordedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
     public string RecorderLabel => RecordedBy?.FullName ?? "Chưa có liên kết người ghi (dữ liệu cũ)";
+    public string StatusLabel => Status switch { "ChoGui"=>"Đang gửi", "DaGui"=>"Đã gửi", "GuiLoi"=>"Gửi lỗi", _=>"Chưa gửi" };
+    public string ErrorLabel => LastErrorCode switch {
+        "deliveryUncertain"=>"Chưa xác định được kết quả gửi. Cần đối chiếu trước khi gửi lại.",
+        "reminderRecipientUnavailable"=>"Chưa có email đủ điều kiện nhận nhắc.",
+        "reminderSourceConflict"=>"Lịch không còn đủ điều kiện gửi nhắc.",
+        "providerUnavailable" or "providerRejected"=>"Chưa gửi được email. Tải lại để kiểm tra và thử lại khi được phép.", _=>"" };
 }
-public sealed record ReminderDetail(AppointmentRecord Appointment,string? Preview,bool CanRecord,ReminderRecord? Reminder);
+public sealed record ReminderDetail(AppointmentRecord Appointment,string? Preview,bool CanRecord,ReminderRecord? Reminder,
+    string? MaskedRecipient=null,string? Subject=null,string? UnavailableReason=null);
 public interface IReminderService
 {
     Task<AppointmentRecord[]> ListAsync(string search, int page);
     Task<ReminderDetail> GetAsync(int id);
     Task<ReminderRecord> RecordAsync(int id);
+    Task<ReminderRecord> RetryAsync(int id,int expectedAttempts);
 }
 public sealed class ReminderApiService(IdentityApiService? identity=null):IReminderService
 {
     private readonly AppointmentApiService _api=new(identity);
-    private static string Path(int id)=>$"appointments/{id}/reminders";
+    private static string Path(int id)=>$"appointments/{id}/email-reminder";
     private sealed record QueueResponse(AppointmentRecord[] Items);
     public async Task<AppointmentRecord[]> ListAsync(string search, int page)
     {
         using var response = await _api.SendAsync(HttpMethod.Get,
-            $"reminders/queue?search={Uri.EscapeDataString(search.Trim())}&page={page}&pageSize={AppointmentApiService.PageSize}");
+            $"reminders/email-queue?search={Uri.EscapeDataString(search.Trim())}&page={page}&pageSize={AppointmentApiService.PageSize}");
         var result = await response.Content.ReadFromJsonAsync<QueueResponse>() ?? throw new JsonException();
         if (result.Items is null || result.Items.Any(a => a is null || a.Id <= 0 || a.Recipient is null || a.Status != "DaXepLich") ||
             result.Items.Select(a => a.Id).Distinct().Count() != result.Items.Length) throw new JsonException();
         return result.Items;
     }
-    private static bool Valid(ReminderRecord r,int id)=>r.Id>0 && r.AppointmentId==id && r.Channel=="LogMoPhong" && r.RecordedAt!=default && r.RecordedAt.Offset==TimeSpan.Zero;
+    private static bool Masked(string? value)=>value is {Length:>5} && value.Contains("***@") && !value.Any(char.IsControl);
+    private static bool Valid(ReminderRecord r,int id)=>r.Id>0 && r.AppointmentId==id && r.Channel=="Email" &&
+        r.Status is "ChoGui" or "DaGui" or "GuiLoi" && r.RecordedAt!=default && r.RecordedAt.Offset==TimeSpan.Zero &&
+        Masked(r.MaskedRecipient) && !string.IsNullOrWhiteSpace(r.Subject) && r.Attempts>=0 &&
+        (r.Status=="DaGui")==r.DeliveredAt.HasValue && (!r.CanRetry || r.Status=="GuiLoi");
     public async Task<ReminderDetail> GetAsync(int id)
     {
         using var response=await _api.SendAsync(HttpMethod.Get,Path(id));
@@ -39,16 +52,18 @@ public sealed class ReminderApiService(IdentityApiService? identity=null):IRemin
         if(!json.RootElement.TryGetProperty("reminder",out _))throw new JsonException();
         var result=json.RootElement.Deserialize<ReminderDetail>(new JsonSerializerOptions(JsonSerializerDefaults.Web))??throw new JsonException();
         if(result.Appointment is null || result.Appointment.Id!=id || (result.Reminder is{} r && !Valid(r,id)) ||
-            (result.CanRecord && (result.Reminder!=null || string.IsNullOrWhiteSpace(result.Preview))))throw new JsonException();
+            (result.CanRecord && (result.Reminder!=null || string.IsNullOrWhiteSpace(result.Preview) || !Masked(result.MaskedRecipient) || string.IsNullOrWhiteSpace(result.Subject))))throw new JsonException();
         return result;
     }
-    public async Task<ReminderRecord> RecordAsync(int id)
+    public Task<ReminderRecord> RecordAsync(int id)=>PostAsync(id,false,0);
+    public Task<ReminderRecord> RetryAsync(int id,int expectedAttempts)=>PostAsync(id,true,expectedAttempts);
+    private async Task<ReminderRecord> PostAsync(int id,bool retry,int expectedAttempts)
     {
-        using var response=await _api.SendAsync(HttpMethod.Post,Path(id),new{});
+        using var response=await _api.SendAsync(HttpMethod.Post,Path(id)+(retry?"/retry":""),retry?(object)new{expectedAttempts}:new{});
         if(response.StatusCode!=HttpStatusCode.Created)throw new AppointmentApiException("outcomeUnknown","Kết quả ghi nhận chưa xác định. Hãy đối chiếu trước khi thử lại.");
         try {
             var result=await response.Content.ReadFromJsonAsync<ReminderRecord>()??throw new JsonException();
-            if(!Valid(result,id)||result.Status!="DaGhiLogMoPhong"||result.RecordedBy is not{Id:>0}||string.IsNullOrWhiteSpace(result.Content))throw new JsonException();
+            if(!Valid(result,id)||result.RecordedBy is not{Id:>0}||string.IsNullOrWhiteSpace(result.Content))throw new JsonException();
             return result;
         }catch(Exception e)when(e is JsonException or HttpRequestException or OperationCanceledException){
             throw new AppointmentApiException("recordedUnreadable","Đã nhận xác nhận lưu. Hãy đối chiếu kết quả, không ghi lại.");

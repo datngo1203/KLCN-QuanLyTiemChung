@@ -250,8 +250,8 @@ function Start-Demo {
         & npm.cmd --prefix "$script:Root/apps/web" ci *> $null
         if ($LASTEXITCODE) { throw 'Không cài được dependencies Web. Kiểm tra mạng/npm registry rồi thử lại.' }
     }
-    Write-Host 'Đang khởi động SQL/API bằng image có sẵn (không build, không tạo lại container)...'
-    try { $null = Compose @('up','-d','--no-build','--pull','never','--no-recreate','api') }
+    Write-Host 'Đang khởi động SQL/API bằng image có sẵn (không build; Compose chỉ tạo lại container khi cấu hình đổi)...'
+    try { $null = Compose @('up','-d','--no-build','--pull','never','api') }
     finally {
         # Record partially started containers too, so Stop can clean up after an error.
         foreach ($c in @(Containers)) {

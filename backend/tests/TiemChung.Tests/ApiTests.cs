@@ -53,6 +53,7 @@ public sealed class ApiTests
         Assert.Contains("CREATE TABLE [InventoryReceipt]", script);
         Assert.Contains("MatKhauHash", script);
         Assert.Contains("CREATE TABLE [CustomerPasswordReset]", script);
-        Assert.Equal(39, context.Model.GetEntityTypes().Count());
+        Assert.Contains("CREATE TABLE [ReminderEmail]", script);
+        Assert.Equal(40, context.Model.GetEntityTypes().Count());
     }
 }

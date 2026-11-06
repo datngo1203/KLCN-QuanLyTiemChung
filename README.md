@@ -154,6 +154,46 @@ dotnet run --project apps/windows/TiemChung.Desktop.csproj
 
 Đăng nhập bằng `demo.admin` và mật khẩu đã chọn ở bước tạo Admin. Có thể mở Danh mục và xem hồ sơ; thêm/sửa/xóa hồ sơ bằng tài khoản nhân viên yêu cầu chức danh Lễ tân (`LeTan`) tại API. Lệnh `--seed-admin` không tạo tài khoản Lễ tân; không nới quyền Admin để thay thế. Tài khoản nhân viên dùng cho Windows; tài khoản khách hàng dùng cho Website và chỉ thao tác hồ sơ thuộc phạm vi liên kết của mình.
 
+### RF-05E — email nhắc lịch
+
+Windows A09 → **Nhắc lịch**: Lễ tân chọn lịch, xem nội dung/người nhận masked rồi **Gửi email nhắc lịch**. Sau xác nhận là yêu cầu chờ gửi; dùng **Đối chiếu / Xem lại** để đọc trạng thái. `Đã gửi` chỉ xác nhận provider đã chấp nhận. Khi lỗi và đủ điều kiện, **Gửi lại email** dùng chính delivery cũ. Log mô phỏng S5.7B cũ vẫn đọc qua contract legacy, không tính là email delivered.
+
+Mặc định `ReminderMail:Mode=Disabled`; không tự gửi ra Internet. Test/CI dùng fake provider; local Development có thể bật `ReminderMail__Mode=Synthetic` để kiểm trạng thái với email `example.invalid` (không gửi thư thật). Dispatcher chỉ xử lý yêu cầu Lễ tân đã xác nhận, không tự tìm lịch để nhắc.
+
+SMTP thật dùng chính môi trường Compose `klcn-s0`; không cần tự đặt một danh sách biến `$env:`. Sau khi checkout/update source, chạy từ repository root:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC-MailSetup.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC-MailCheck.ps1
+scripts\devtools\VAC-Start.cmd
+```
+
+Setup hỏi Gmail sender, đọc Gmail App Password bằng input ẩn, và hỏi có bật tạm real Development verification recipient hay không. Nó ghi cấu hình local vào `infra/.env` đã được Git ignore, tự tạo `IDENTITY_MAIL_DIRECTORY` nếu thiếu, dùng `smtp.gmail.com:587`, sender name `Trung tâm tiêm chủng VNVC - KLCN`, rồi đặt reminder mail sang `Smtp`. Chạy lại cùng script để đổi sender/App Password; các key SQL/Identity khác được giữ nguyên và key mail không bị nhân đôi. `VAC-MailCheck.ps1` chỉ báo mode/host/port/sender đã mask, trạng thái opt-in/thư mục token và container API có nhận cấu hình hay chưa; không gửi mail, không in token hoặc App Password. Nếu image API đang dùng được build trước source RF-05E hiện tại, dùng **VAC-Check → Rebuild API** một lần, sau đó Start bình thường; Compose giữ SQL volume và chỉ tạo lại container ứng dụng khi cấu hình đổi.
+
+Gmail App Password cần người dùng tự bật 2-Step Verification và tạo một lần theo [hướng dẫn Google](https://support.google.com/accounts/answer/185833). Tooling không đăng nhập Google, không tạo App Password và không lưu Gmail password chính. Không dùng plus-address tùy ý làm sender. MailKit giữ kiểm TLS/chứng thư mặc định; SMTP thật không được cấu hình trong CI.
+
+Recipient vẫn phải là **LoginEmail đã xác minh** của đúng Customer account Active với cả hai liên kết hồ sơ Active, duy nhất. Khi setup đã bật opt-in, đăng ký Customer bằng email thật qua Website hoặc `/api/v1/auth/register`. Verification token **chỉ được ghi vào file JSON local** `{email,token}` trong `IDENTITY_MAIL_DIRECTORY`; đây **không phải verification email thật** và token không đi qua SMTP. Nhập token bằng flow hiện có (`/api/v1/auth/email-verifications/confirm`); chỉ endpoint confirm thành công mới đặt `EmailVerifiedAt`. Không seed verified=true, không sửa SQL để vượt gate. Password reset vẫn synthetic-only; auth/session không đổi.
+
+Sau khi confirm Customer, có thể đóng riêng opt-in nhưng vẫn giữ SMTP để gửi reminder:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC-MailSetup.ps1 -DisableVerificationRecipients
+scripts\devtools\VAC-Stop.cmd
+scripts\devtools\VAC-Start.cmd
+```
+
+Đăng nhập Windows bằng tài khoản Lễ tân cũ, mở **Nhắc lịch**, chọn lịch, gửi email, đối chiếu trạng thái rồi kiểm inbox thật. `Đã gửi` chỉ xác nhận provider chấp nhận; inbox thật mới hoàn tất smoke. Không đưa Gmail, Customer email, token hoặc App Password vào Git/ảnh/log/PR. Kết thúc smoke có thể tắt SMTP và opt-in nhưng giữ credential local, hoặc xóa cả sender/App Password local:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC-MailSetup.ps1 -Disable
+# Hoặc xóa credential local:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC-MailSetup.ps1 -Disable -RemoveCredentials
+```
+
+Khởi động lại VAC sau khi disable; không xóa Customer/email đã xác minh. Có thể thu hồi App Password tại Google. Thiếu credential hoặc chưa kiểm inbox thì báo `REAL SMTP SMOKE: UNVERIFIED`.
+
+SMTP không hỗ trợ atomic commit cùng SQL: khi mất kết nối sau gửi hoặc tiến trình dừng giữa provider acceptance và ghi SQL, hệ thống giữ lỗi cần đối chiếu và không tự gửi lại. Chỉ retry lỗi chưa gửi/đã bị từ chối rõ, sau tối thiểu một phút. Cấu trúc/API cụ thể tại [contract RF-05E](backend/contracts/README.md#rf-05e--email-nhắc-lịch-windows-a09-166). Hotline email lấy `Appointments:Hotline`, cùng số công khai đang dùng ở Web; đối chiếu [VNVC](https://vnvc.vn/) và [đặt mua](https://vax.vnvc.vn/vaccine) ngày 06/11/2026. Nội dung không thêm chỉ định hay quy tắc y khoa.
+
 ## 4. Cấu trúc dự án
 
 | Thư mục / file | Vai trò |

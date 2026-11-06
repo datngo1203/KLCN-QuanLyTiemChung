@@ -17,6 +17,10 @@ builder.Services.AddSingleton<SyntheticVerificationSink>();
 builder.Services.AddSingleton<IVerificationMailSink>(s=>s.GetRequiredService<SyntheticVerificationSink>());
 builder.Services.AddScoped<IdentityMailSink>();
 builder.Services.AddHostedService<IdentityMailDispatcher>();
+builder.Services.AddSingleton<SyntheticReminderEmailTransport>();
+builder.Services.AddSingleton<IReminderEmailTransport, ReminderEmailTransport>();
+builder.Services.AddScoped<ReminderEmailDelivery>();
+builder.Services.AddHostedService<ReminderEmailDispatcher>();
 builder.Services.AddDbContext<TiemChungDbContext>((services, options) =>
     options.UseSqlServer(services.GetRequiredService<IConfiguration>().GetConnectionString("TiemChung")
         ?? "Server=localhost;Database=TiemChung;Integrated Security=True;TrustServerCertificate=True"));
@@ -109,6 +113,7 @@ if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "TiemChung.Api" }))
     .WithName("Health").WithDescription("Liveness: API chạy; không xác nhận SQL Server sẵn sàng.");
 app.MapCatalogEndpoints();
+app.MapReminderEmailEndpoints();
 
 app.MapGet("/api/v1/modules", () => new ModuleDto[] {
     new("reception", "Hồ sơ, đăng ký, thanh toán, ưu đãi", "Bảo", "in_progress"),

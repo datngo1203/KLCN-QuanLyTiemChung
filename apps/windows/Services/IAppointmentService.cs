@@ -89,6 +89,8 @@ public sealed class AppointmentApiService(IdentityApiService? identity = null) :
                 "paymentDataConflict" => "Dữ liệu thanh toán cần được đối chiếu trước khi xếp lịch.",
                 "reminderSourceConflict" => "Lịch không còn đủ điều kiện ghi nhắc tham dự. Hãy kiểm tra nguồn, thời gian và mũi đã ghi.",
                 "reminderAlreadyRecorded" => "Lịch đã được ghi nhận nhắc lịch. Hãy đối chiếu kết quả, không ghi thêm.",
+                "reminderRecipientUnavailable" => "Chưa có email đủ điều kiện nhận nhắc. Cần một tài khoản khách hàng đã xác minh email và liên kết hợp lệ.",
+                "reminderRetryUnavailable" => "Chưa thể gửi lại email. Hãy tải lại để đối chiếu trạng thái hiện tại.",
                 _ => "Không tải được thông tin. Bản nháp được giữ lại. Hãy thử lại."
             });
         }
