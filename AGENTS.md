@@ -17,6 +17,7 @@
 - Không reset/reseed/xóa DB hoặc rewrite migration đã áp dụng nếu chưa có chỉ định rõ. Migration additive/backward-compatible khi có thể.
 - Một migration/schema writer tại một thời điểm. Các vùng dùng chung phải giữ diff nhỏ nhất cần thiết.
 - Không force-push branch của người khác, không giả review/APPROVE. Giữ attribution lịch sử.
+- Trong refinement/integration hiện tại, Đạt/Codex được sửa các phần S6/S7 đã tích hợp qua branch/PR mới; không cần owner review hình thức, nhưng vẫn bắt buộc exact-head review + regression/CI/runtime gate theo rủi ro.
 
 ## 2. Context routing — đọc ít nhất đủ dùng
 
