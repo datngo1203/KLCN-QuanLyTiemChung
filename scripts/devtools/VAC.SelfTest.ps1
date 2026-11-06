@@ -16,11 +16,23 @@ function Assert-Throws($body,$pattern,$label) {
 }
 $fixture=Join-Path $env:TEMP ('VAC Launcher Test '+[guid]::NewGuid().ToString('N'))
 $originalLocation=(Get-Location).Path
-$own=$null; $other=$null; $listener=$null; $testProcesses=@()
+$own=$null; $other=$null; $listener=$null; $testProcesses=@(); $mailFixture=$null
 try {
     Set-Location $PSScriptRoot
     $realRoot=Find-Repository
     Assert (Test-Path "$realRoot/infra/compose.yaml") 'repository discovered from scripts/devtools without machine configuration'
+    $composeSource=Get-Content "$realRoot/infra/compose.yaml" -Raw
+    foreach ($mapping in @(
+        'Identity__AllowRealDevelopmentVerificationRecipients: ${IDENTITY_ALLOW_REAL_DEVELOPMENT_VERIFICATION_RECIPIENTS:-false}',
+        'ReminderMail__Mode: ${REMINDER_MAIL_MODE:-Disabled}',
+        'ReminderMail__Host: ${REMINDER_MAIL_HOST:-}',
+        'ReminderMail__Port: ${REMINDER_MAIL_PORT:-}',
+        'ReminderMail__Username: ${REMINDER_MAIL_USERNAME:-}',
+        'ReminderMail__Password: ${REMINDER_MAIL_PASSWORD:-}',
+        'ReminderMail__SenderAddress: ${REMINDER_MAIL_SENDER_ADDRESS:-}',
+        'ReminderMail__SenderName: ${REMINDER_MAIL_SENDER_NAME:-}'
+    )) { Assert ($composeSource.Contains($mapping)) "Compose mapping: $($mapping.Split(':')[0])" }
+    Assert (-not ((Get-Content "$realRoot/scripts/devtools/VAC.ps1" -Raw).Contains('--no-recreate'))) 'Start lets Compose apply changed mail configuration'
     Assert ((State-Key $realRoot 'klcn-s0') -ne (State-Key $realRoot 'vac-test')) 'Compose projects have separate ownership state'
     Assert ((State-Key $realRoot 'klcn-s0') -eq (State-Key ($realRoot.ToUpperInvariant()) 'klcn-s0')) 'repository casing does not change ownership state'
     $null=New-Item -ItemType Directory -Force "$fixture/infra","$fixture/apps/windows"
@@ -148,10 +160,53 @@ while ($true) { Start-Sleep -Seconds 1 }
     Assert-Throws { Open-Accounts } 'đường dẫn tuyệt đối' 'account book cannot be a remote URL'
     $AccountsFile=Join-Path $script:Root 'account-book.md'
     Assert-Throws { Open-Accounts } 'phải nằm ngoài repository' 'account book must remain outside the repository'
+    $mailFixture=Join-Path $env:TEMP ('VAC Mail Sink '+[guid]::NewGuid().ToString('N'))
+    @(
+        'MSSQL_SA_PASSWORD=PreserveSqlValue'
+        'IDENTITY_SIGNING_KEY=PreserveSigningValue'
+        'IDENTITY_MAIL_ENCRYPTION_KEY=PreserveEncryptionValue'
+        "IDENTITY_MAIL_DIRECTORY=$($mailFixture.Replace('\','/'))"
+        'CUSTOM_SETTING=preserve-me'
+        'REMINDER_MAIL_MODE=Disabled'
+    ) | Set-Content -LiteralPath "$fixture/infra/.env" -Encoding UTF8
+    $mailSetup="$realRoot/scripts/devtools/VAC-MailSetup.ps1"
+    $mailCheck="$realRoot/scripts/devtools/VAC-MailCheck.ps1"
+    Assert-Throws { & $mailSetup -RepositoryRoot $fixture -RemoveCredentials } 'chỉ dùng cùng -Disable' 'credential removal requires explicit disable mode'
+    Assert-Throws { & $mailSetup -RepositoryRoot $fixture -Disable -DisableVerificationRecipients } 'Chỉ chọn một chế độ' 'mail setup rejects conflicting disable modes'
+    $canary=[guid]::NewGuid().ToString('N').Substring(0,16)
+    $secure=ConvertTo-SecureString $canary -AsPlainText -Force
+    $setupOutput=(& $mailSetup -RepositoryRoot $fixture -SenderAddress 'mail.tooling@example.invalid' -AppPassword $secure -VerificationRecipients On *>&1 | Out-String)
+    $mailEnv=Get-Content "$fixture/infra/.env" -Raw
+    Assert ($setupOutput -notmatch [regex]::Escape($canary)) 'mail setup never prints App Password'
+    Assert (Test-Path -LiteralPath $mailFixture -PathType Container) 'mail setup creates local verification directory'
+    Assert ($mailEnv -match '(?m)^MSSQL_SA_PASSWORD=PreserveSqlValue\r?$' -and $mailEnv -match '(?m)^IDENTITY_SIGNING_KEY=PreserveSigningValue\r?$' -and $mailEnv -match '(?m)^IDENTITY_MAIL_ENCRYPTION_KEY=PreserveEncryptionValue\r?$') 'mail setup preserves SQL and Identity keys'
+    Assert ($mailEnv -match '(?m)^REMINDER_MAIL_MODE=Smtp\r?$' -and $mailEnv -match '(?m)^IDENTITY_ALLOW_REAL_DEVELOPMENT_VERIFICATION_RECIPIENTS=true\r?$') 'mail setup enables SMTP and explicit verification opt-in'
+    $null=& $mailSetup -RepositoryRoot $fixture -DisableVerificationRecipients
+    $mailEnv=Get-Content "$fixture/infra/.env" -Raw
+    Assert ($mailEnv -match '(?m)^REMINDER_MAIL_MODE=Smtp\r?$' -and $mailEnv.Contains("REMINDER_MAIL_PASSWORD=$canary") -and $mailEnv -match '(?m)^IDENTITY_ALLOW_REAL_DEVELOPMENT_VERIFICATION_RECIPIENTS=false\r?$') 'verification opt-in closes without disabling SMTP'
+    $nextCanary=[guid]::NewGuid().ToString('N').Substring(0,16)
+    $nextSecure=ConvertTo-SecureString $nextCanary -AsPlainText -Force
+    $null=& $mailSetup -RepositoryRoot $fixture -SenderAddress 'mail.tooling@example.invalid' -AppPassword $nextSecure -VerificationRecipients Off
+    $mailEnv=Get-Content "$fixture/infra/.env" -Raw
+    foreach ($key in @('REMINDER_MAIL_MODE','REMINDER_MAIL_HOST','REMINDER_MAIL_PORT','REMINDER_MAIL_USERNAME','REMINDER_MAIL_PASSWORD','REMINDER_MAIL_SENDER_ADDRESS','REMINDER_MAIL_SENDER_NAME','IDENTITY_ALLOW_REAL_DEVELOPMENT_VERIFICATION_RECIPIENTS')) {
+        Assert (@([regex]::Matches($mailEnv,"(?m)^$key=")).Count -eq 1) "mail setup rerun has one $key"
+    }
+    Assert ($mailEnv.Contains("REMINDER_MAIL_PASSWORD=$nextCanary") -and -not $mailEnv.Contains($canary)) 'mail setup rerun replaces App Password'
+    $null=& $mailSetup -RepositoryRoot $fixture -Disable
+    $mailEnv=Get-Content "$fixture/infra/.env" -Raw
+    Assert ($mailEnv -match '(?m)^REMINDER_MAIL_MODE=Disabled\r?$' -and $mailEnv -match '(?m)^IDENTITY_ALLOW_REAL_DEVELOPMENT_VERIFICATION_RECIPIENTS=false\r?$') 'mail disable closes delivery and real-recipient opt-in'
+    Assert ($mailEnv.Contains("REMINDER_MAIL_PASSWORD=$nextCanary")) 'mail disable keeps local credential by default'
+    $null=& $mailSetup -RepositoryRoot $fixture -Disable -RemoveCredentials
+    $mailEnv=Get-Content "$fixture/infra/.env" -Raw
+    Assert ($mailEnv -match '(?m)^REMINDER_MAIL_PASSWORD=\r?$' -and $mailEnv -match '(?m)^REMINDER_MAIL_USERNAME=\r?$' -and $mailEnv -match '(?m)^REMINDER_MAIL_SENDER_ADDRESS=\r?$') 'mail disable can remove local credential fields'
+    Assert ($mailEnv -match '(?m)^CUSTOM_SETTING=preserve-me\r?$' -and $mailEnv -match '(?m)^MSSQL_SA_PASSWORD=PreserveSqlValue\r?$') 'mail disable preserves unrelated configuration'
+    $checkOutput=(& $mailCheck -RepositoryRoot $fixture *>&1 | Out-String)
+    Assert ($checkOutput -notmatch [regex]::Escape($nextCanary)) 'mail readiness never prints App Password'
     Write-Host "SELF-TEST: $passed assertions passed. Registry error was simulated, not a real outage."
 } finally {
     foreach ($identity in $testProcesses) { $p=Owned-Process $identity; if ($p) { Stop-Process -InputObject $p -Force -ErrorAction SilentlyContinue } }
     if ($listener) { $listener.Stop() }
+    if ($mailFixture -and (Test-Path -LiteralPath $mailFixture)) { Remove-Item -LiteralPath $mailFixture -Recurse -Force }
     # Only the unique test fixture created above is removed.
     $resolved=[IO.Path]::GetFullPath($fixture)
     if ($resolved.StartsWith([IO.Path]::GetFullPath($env:TEMP),[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'VAC Launcher Test *' -and (Test-Path -LiteralPath $resolved)) {
