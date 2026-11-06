@@ -21,12 +21,15 @@ after(async () => { await server?.close() })
 test('cancelled journey history is labelled and refresh shows rescheduled time without customer actions', async t => {
   const { host, render } = mount(t)
   const appointment = { id: 8, status: 'DaHuy', scheduledAt: '2026-12-01T01:30:00Z', location: 'Trung tâm tiêm chủng', serviceName: 'Dịch vụ đã đăng ký' }
-  const facts = { registrationId: 42, createdAt: '2026-11-04T00:00:00Z',
+  const facts = { registrationId: 42, createdAt: '2026-11-04T00:00:00Z', preferredAt: '2026-12-01T14:45:00',
     payment: { registrationId: 42, recipient: { fullName: 'Nguyễn Test A' }, customer: { fullName: 'Nguyễn Test A' },
       items: [], totalDue: '0', subtotal: '0', payment: null }, appointments: [appointment], nextAppointment: null, shots: [], progress: [] }
   identity.getVaccinationJourney = async () => facts
   await render(Journeys, { account: { accountType: 'customer' }, page: 'vaccinations/42' })
   assert.match(host.textContent, /Đã hủy/)
+  assert.match(host.textContent, /Thời gian mong muốn 01\/12\/2026 14:45 \(giờ Việt Nam\)/)
+  assert.match(host.textContent, /Lịch hẹn đã xác nhận/)
+  assert.match(host.textContent, /khám sàng lọc/)
   assert.match(host.textContent, /Chờ trung tâm xếp lịch mới/)
   assert.doesNotMatch(host.textContent, /Lịch hẹn đã qua|DaHuy|DaXepLich/)
   assert.ok(![...host.querySelectorAll('button')].some(b => /Đổi lịch|Hủy lịch/.test(b.textContent)))

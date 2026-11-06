@@ -3,7 +3,7 @@ import { identity } from './api/identity'
 import { HistoryWorkspace } from './VaccinationHistory'
 import { PaymentDetail } from './Payments'
 import { paymentError, registrationCode } from './paymentView'
-import { preferredDateLabel } from './registrationForm'
+import { preferredTimeLabel } from './registrationForm'
 import { appointmentCode, appointmentTime, appointmentStatus } from './scheduleView'
 import { vaccinationCode, vaccinationTime } from './historyView'
 import { journeyState } from './journeyView'
@@ -17,7 +17,7 @@ export default function VaccinationJourneys({ account, sessionBusy, page, go }) 
   return <section className="registration-page payments-page checkout-page journey-page wrap">
     <div className="page-intro">
       <h1>Tiêm chủng của tôi</h1>
-      <p>Theo dõi đăng ký, thanh toán, lịch hẹn và các mũi tiêm đã ghi nhận.</p>
+      <p>Theo dõi đăng ký, thanh toán, lịch hẹn và các mũi tiêm đã ghi nhận. Lịch hẹn không thay thế khám sàng lọc và chỉ định của bác sĩ.</p>
     </div>
     <nav className="journey-tabs" aria-label="Tiêm chủng của tôi">
       <button className="button outline" aria-current={page !== history ? 'page' : undefined} onClick={() => go(hub)}>Đang thực hiện</button>
@@ -71,7 +71,7 @@ function JourneyList({ go }) {
         {page === 1 && <button className="button primary" onClick={() => go('register')}>Đăng ký tiêm</button>}
       </div>}
       <div className="journey-grid">{state.items.map(journey => {
-        const { registrationId, createdAt, preferredDate, payment, nextAppointment } = journey
+        const { registrationId, createdAt, preferredDate, preferredAt, payment, nextAppointment } = journey
         const { action, paymentLabel, schedule } = journeyState(journey)
         return <article key={registrationId} className="registration-panel journey-card">
           <span className="registration-status">{registrationCode(registrationId)}</span>
@@ -80,9 +80,9 @@ function JourneyList({ go }) {
             {payment.items.length > 2 && ` · Và ${payment.items.length - 2} dịch vụ khác`}</p>
           <dl className="registration-review-profiles">
             <div><dt>Ngày đăng ký</dt><dd>{appointmentTime(createdAt)}</dd></div>
-            <div><dt>Ngày mong muốn</dt><dd>{preferredDateLabel(preferredDate)}</dd></div>
+            <div><dt>Thời gian mong muốn</dt><dd>{preferredTimeLabel(preferredAt, preferredDate)}</dd></div>
             <div><dt>Thanh toán</dt><dd>{paymentLabel}</dd></div>
-            <div><dt>Lịch hẹn</dt><dd>{schedule}{nextAppointment && <><br />{appointmentTime(nextAppointment.scheduledAt)}<br />{nextAppointment.location} · {nextAppointment.serviceName}</>}</dd></div>
+            <div><dt>Lịch hẹn đã xác nhận</dt><dd>{schedule}{nextAppointment && <><br />{appointmentTime(nextAppointment.scheduledAt)}<br />{nextAppointment.location} · {nextAppointment.serviceName}</>}</dd></div>
           </dl>
           <JourneyProgress progress={journey.progress} />
           <p className="journey-action"><small>Việc cần làm tiếp theo</small><strong>{action}</strong></p>
@@ -125,7 +125,7 @@ function JourneyDetail({ id, go }) {
     {error && <JourneyError error={error} go={go} retry={() => { setState({ loading: true }); setReload(value => value + 1) }} />}
     {journey && <>
       <h2>{registrationCode(id)} · {journey.payment.recipient.fullName}</h2>
-      <p>Đăng ký {appointmentTime(journey.createdAt)} · Ngày mong muốn {preferredDateLabel(journey.preferredDate)}</p>
+      <p>Đăng ký {appointmentTime(journey.createdAt)} · Thời gian mong muốn {preferredTimeLabel(journey.preferredAt, journey.preferredDate)}</p>
       <section className="registration-panel journey-next">
         <h3>Việc cần làm tiếp theo</h3>
         <p><strong>{next.action}</strong></p>
@@ -143,7 +143,7 @@ function JourneyDetail({ id, go }) {
       </section>
       <div className="journey-grid">
         <section className="registration-panel">
-          <h3>Lịch hẹn</h3>
+          <h3>Lịch hẹn đã xác nhận</h3>
           {journey.appointments.length === 0 ? <p>Trung tâm chưa xác nhận lịch hẹn.</p> : <ul className="journey-events">
             {journey.appointments.map(item => <li key={item.id}><strong>{appointmentCode(item.id)} · {item.serviceName}</strong>
               <span>{appointmentTime(item.scheduledAt)} · {item.location}</span><span>{appointmentStatus(item.status)}</span></li>)}

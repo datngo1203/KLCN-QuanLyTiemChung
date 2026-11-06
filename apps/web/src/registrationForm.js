@@ -20,6 +20,9 @@ const positiveId = value => Number.isSafeInteger(value) && value > 0
 
 export const vietnamToday = (now = new Date()) => new Date(now.getTime() + 7 * 3600000).toISOString().slice(0, 10)
 export const preferredDateLabel = value => value ? value.split('-').reverse().join('/') : 'Chưa cập nhật'
+// Preference is facility wall-clock time, never parsed as an instant in the device timezone.
+export const preferredTimeLabel = (value, date) => value
+  ? `${preferredDateLabel(value.slice(0, 10))} ${value.slice(11, 16)} (giờ Việt Nam)` : preferredDateLabel(date)
 export const consultationFeeLabel = fee => fee == null ? 'Chưa cập nhật'
   : BigInt(fee) === 0n ? 'Đã bao gồm / không thu riêng' : money(fee)
 
@@ -77,9 +80,11 @@ export function registrationPayload(draft, customers, recipients, fee, today = v
   const preferredDate = draft.preferredDate
   if (!/^\d{4}-\d{2}-\d{2}$/.test(preferredDate || '') || preferredDate < today)
     throw new Error('Chọn ngày mong muốn tiêm từ hôm nay theo giờ Việt Nam.')
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.preferredTime || ''))
+    throw new Error('Chọn giờ mong muốn hợp lệ theo giờ Việt Nam.')
   if (fee == null) throw new Error('Chưa tải được phí khám/tư vấn.')
   if (total(draft.items) + BigInt(fee) > maxMoney) throw new Error('Tổng tiền vượt giới hạn đăng ký. Hãy giảm số lượng dịch vụ.')
-  return { ...services, contact, preferredDate, ...(draft.promotionId ? { promotionId: Number(draft.promotionId) } : {}) }
+  return { ...services, contact, preferredDate, preferredTime: draft.preferredTime + ':00', ...(draft.promotionId ? { promotionId: Number(draft.promotionId) } : {}) }
 }
 
 export function registrationBody(payload) {

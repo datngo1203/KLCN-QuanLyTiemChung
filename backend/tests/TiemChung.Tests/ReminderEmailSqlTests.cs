@@ -254,7 +254,14 @@ public sealed class ReminderEmailSqlTests
     [Fact] public async Task ChangedAppointmentTimeAllowsNewSnapshotAndMigrationPreservesLegacy()
     {
         await Run(async f => {
-            var a = await Appointment(f); await Link(f);
+            // Bootstrap a pre-lifecycle appointment, whose history has no RF-05F.1 event to protect.
+            var registration = await f.Register();
+            var historical = new LichHenTiem { MaDangKy = registration.Id, MaNguoiDuocTiem = registration.Recipient.Id,
+                MaChiTietVacXin = registration.Items[0].Id, ThoiGianHen = DateTime.UtcNow.AddDays(2),
+                DiemTiem = "Trung tâm thử nghiệm", TrangThai = "DaXepLich" };
+            f.Db.Add(historical); await f.Db.SaveChangesAsync();
+            var a = (await f.Reception.GetFromJsonAsync<AppointmentDto>($"/api/v1/appointments/{historical.MaLichHen}"))!;
+            await Link(f);
             await f.Reception.PostAsJsonAsync($"/api/v1/appointments/{a.Id}/reminders", new { });
             var legacy = await f.Db.Set<NhacLich>().AsNoTracking().SingleAsync();
             var migrator = f.Db.GetService<IMigrator>();

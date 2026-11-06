@@ -8,6 +8,21 @@ namespace TiemChung.Windows.Tests;
 
 public sealed class AppointmentClientTests
 {
+    [Fact]
+    public async Task PreferredFacilityWallClockPrefillsBothFieldsAndReceptionCanChangeIt()
+    {
+        var preferred = DateTime.Today.AddDays(5).AddHours(14).AddMinutes(45);
+        var fake = new Fake { Option = Summary with { PreferredAt = preferred } };
+        var vm = await Ready(fake);
+        var local = new DateTimeOffset(DateTime.SpecifyKind(preferred, DateTimeKind.Unspecified), TimeSpan.FromHours(7)).ToLocalTime();
+        Assert.Equal(local.Date, vm.AppointmentDate); Assert.Equal(local.ToString("HH:mm"), vm.Time);
+        Assert.Contains("14:45", vm.Source!.PreferredDateLabel);
+        vm.SelectedItem = vm.Items[0]; vm.Time = "16:20";
+        await vm.SaveAsync();
+        Assert.Equal("16:20", fake.Requests.Single().ScheduledAt.ToLocalTime().ToString("HH:mm"));
+        Assert.Equal(preferred, fake.Option.PreferredAt);
+    }
+
     [Theory]
     [InlineData("LeTan",true,true)]
     [InlineData("LeTan",false,false)]

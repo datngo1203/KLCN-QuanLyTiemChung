@@ -37,7 +37,8 @@ public static class RegistrationEndpoints
             var actor = await RequireActor(context, auth, true, ct);
             Validate(req);
             var now = DateTimeOffset.UtcNow;
-            if (!IsPreferredDateValid(req.PreferredDate, now)) throw new IdentityFailure(400, "validation");
+            if (!IsPreferredDateValid(req.PreferredDate, now) || actor.IsCustomer && req.PreferredTime is null)
+                throw new IdentityFailure(400, "validation");
             var contact = ValidateContact(req.Contact);
             var fee = ReadConsultationFee(configuredFee);
             if (actor.IsCustomer && (!await HasLink(db, actor, req.CustomerId, null, ct) ||
@@ -98,8 +99,8 @@ public static class RegistrationEndpoints
             var row = new DangKyDichVu {
                 MaKhachHang = req.CustomerId, MaNguoiDuocTiem = req.RecipientId,
                 MaNhanVien = actor.Employee?.MaNhanVien, NgayDangKy = now.UtcDateTime, TrangThai = "DaDangKy",
-                // Store Vietnam's calendar date at midnight, without a timezone conversion.
-                ThoiGianDuKien = req.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue),
+                // Store the customer's facility wall-clock preference without a timezone conversion.
+                ThoiGianDuKien = req.PreferredDate!.Value.ToDateTime(req.PreferredTime ?? TimeOnly.MinValue),
                 TenNguoiLienHe = contact.FullName, SoDienThoaiLienHe = contact.PhoneNumber, EmailLienHe = contact.Email,
                 TinhThanhLienHe = contact.ProvinceCity, PhuongXaLienHe = contact.WardCommune,
                 DiaChiLienHe = contact.AddressLine, PhiKhamTuVan = fee,
@@ -148,7 +149,7 @@ public static class RegistrationEndpoints
                 new(x.MaKhachHang, customers[x.MaKhachHang].HoTen), new(x.MaNguoiDuocTiem, recipients[x.MaNguoiDuocTiem].HoTen), x.MaNhanVien,
                 singles.Where(s => s.MaDangKy == x.MaDangKy).Sum(s => s.SoLuong * s.GiaTaiThoiDiemDangKy) +
                 packages.Where(p => p.MaDangKy == x.MaDangKy).Sum(p => p.SoLuongGoi * p.GiaTaiThoiDiemDangKy), "VND",
-                PreferredDate(x), x.PhiKhamTuVan, x.KenhThanhToanDuKien, x.TenKhuyenMaiSnapshot, x.MucGiamSnapshot ?? 0)).ToArray();
+                PreferredDate(x), x.PhiKhamTuVan, x.KenhThanhToanDuKien, x.TenKhuyenMaiSnapshot, x.MucGiamSnapshot ?? 0) { PreferredAt = x.ThoiGianDuKien }).ToArray();
             await tx.CommitAsync(ct);
             return Results.Ok(new RegistrationListResponse(items));
         }).WithName("ListRegistrations").Produces<RegistrationListResponse>();
@@ -263,6 +264,6 @@ public static class RegistrationEndpoints
                 row.TinhThanhLienHe, row.PhuongXaLienHe, row.DiaChiLienHe);
         return new(row.MaDangKy, Utc(row.NgayDangKy), row.TrangThai, new(customer.MaKhachHang, customer.HoTen),
             new(recipient.MaNguoiDuocTiem, recipient.HoTen), row.MaNhanVien, items, items.Sum(x => x.LineTotal), "VND",
-            PreferredDate(row), contact, row.PhiKhamTuVan, row.KenhThanhToanDuKien, row.TenKhuyenMaiSnapshot, row.MucGiamSnapshot ?? 0);
+            PreferredDate(row), contact, row.PhiKhamTuVan, row.KenhThanhToanDuKien, row.TenKhuyenMaiSnapshot, row.MucGiamSnapshot ?? 0) { PreferredAt = row.ThoiGianDuKien };
     }
 }

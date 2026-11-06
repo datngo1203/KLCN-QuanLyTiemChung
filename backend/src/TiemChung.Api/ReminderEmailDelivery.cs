@@ -9,7 +9,7 @@ using TiemChung.Infrastructure.Data;
 
 namespace TiemChung.Api;
 
-public sealed record ReminderEmailMessage(int DeliveryId, string Recipient, string Subject, string Body);
+public sealed record ReminderEmailMessage(int DeliveryId, string Recipient, string Subject, string Body, string Purpose = "reminder");
 public interface IReminderEmailTransport
 {
     Task DeliverAsync(ReminderEmailMessage message, CancellationToken ct);
@@ -21,13 +21,13 @@ public sealed class ReminderDeliveryFailure(string code) : Exception(code)
 
 public sealed class SyntheticReminderEmailTransport : IReminderEmailTransport
 {
-    private readonly ConcurrentDictionary<int, ReminderEmailMessage> messages = new();
-    public IReadOnlyDictionary<int, ReminderEmailMessage> Messages => messages;
+    private readonly ConcurrentDictionary<string, ReminderEmailMessage> messages = new();
+    public IReadOnlyDictionary<string, ReminderEmailMessage> Messages => messages;
     public Task DeliverAsync(ReminderEmailMessage message, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!IdentityMailReadiness.IsSynthetic(message.Recipient)) throw new ReminderDeliveryFailure("providerRejected");
-        messages.TryAdd(message.DeliveryId, message);
+        messages.TryAdd($"{message.Purpose}-{message.DeliveryId}", message);
         return Task.CompletedTask;
     }
 }
@@ -53,7 +53,7 @@ public sealed class ReminderEmailTransport(IConfiguration config, IHostEnvironme
         mail.Subject = message.Subject;
         mail.Body = new TextPart("plain") { Text = message.Body };
         // Stable across safe retries, without exposing a recipient or credential.
-        mail.MessageId = $"reminder-{message.DeliveryId}@{sender!.Split('@')[1]}";
+        mail.MessageId = $"{message.Purpose}-{message.DeliveryId}@{sender!.Split('@')[1]}";
         using var smtp = new SmtpClient { Timeout = 30000 };
         try {
             await smtp.ConnectAsync(host, port, port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls, ct);
@@ -151,6 +151,7 @@ public sealed class ReminderEmailDispatcher(IServiceScopeFactory scopes, IConfig
                 try {
                     using var scope = scopes.CreateScope();
                     await scope.ServiceProvider.GetRequiredService<ReminderEmailDelivery>().DrainAsync(stoppingToken);
+                    await scope.ServiceProvider.GetRequiredService<AppointmentNotifications>().DrainAsync(stoppingToken);
                 } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
                 catch (Exception) { /* Never log payloads or raw provider exceptions. */ }
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);

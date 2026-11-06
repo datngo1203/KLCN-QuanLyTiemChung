@@ -5,10 +5,10 @@ import { identity } from './api/identity'
 import { registrationCode } from './paymentView'
 import { getRegistrationCatalog } from './api/client'
 import { allProfiles, money, total, serviceKey, registrationItems, registrationPayload, refreshDraft, registrationError,
-  contactFields, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel } from './registrationForm'
+  contactFields, prefillContact, vietnamToday, preferredTimeLabel, consultationFeeLabel } from './registrationForm'
 import './Registrations.css'
 
-const emptyDraft = () => ({ customerId: '', recipientId: '', items: [], contact: prefillContact(), preferredDate: '' })
+const emptyDraft = () => ({ customerId: '', recipientId: '', items: [], contact: prefillContact(), preferredDate: '', preferredTime: '' })
 const dateTime = value => new Date(value).toLocaleString('vi-VN')
 const kindName = kind => kind === 'package' ? 'Gói vắc xin' : 'Vắc xin lẻ'
 
@@ -23,10 +23,10 @@ function Lines({ items, onChange, onRemove }) {
   </li>)}</ul>
 }
 
-function ContactSnapshot({ contact, preferredDate }) {
+function ContactSnapshot({ contact, preferredDate, preferredAt }) {
   return <dl className="registration-review-profiles registration-contact-summary">
     {contactFields.map(([field, label]) => <div key={field}><dt>{label}</dt><dd>{contact?.[field] ?? 'Chưa cập nhật'}</dd></div>)}
-    <div><dt>Ngày mong muốn tiêm</dt><dd>{preferredDateLabel(preferredDate)}</dd></div>
+    <div><dt>Thời gian mong muốn</dt><dd>{preferredTimeLabel(preferredAt, preferredDate)}</dd></div>
   </dl>
 }
 
@@ -212,7 +212,7 @@ export default function Registrations({ account, active, recipientLink = null, n
   const recipient = recipients.find(item => item.id === Number(draft.recipientId) && item.customerId === Number(draft.customerId))
   const people = recipients.filter(item => customers.some(owner => owner.id === item.customerId))
   const filtered = catalog.filter(item => (!kind || item.kind === kind) && `${item.name} ${item.description || ''} ${(item.components || []).map(x => x.vaccineName).join(' ')}`.toLocaleLowerCase('vi').includes(query.trim().toLocaleLowerCase('vi')))
-  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký ${registrationCode(detailId)}` : ['Chọn người được tiêm', 'Chọn dịch vụ', 'Thông tin liên hệ & ngày mong muốn tiêm', 'Xem lại đăng ký'][step]
+  const title = view === 'list' ? 'Đăng ký của tôi' : view === 'detail' ? `Chi tiết đăng ký ${registrationCode(detailId)}` : ['Chọn người được tiêm', 'Chọn dịch vụ', 'Thông tin liên hệ & thời gian mong muốn', 'Xem lại đăng ký'][step]
 
   return <section className="registration-page wrap" aria-busy={busy}>
     <div className="page-intro"><div className="eyebrow">ĐĂNG KÝ DỊCH VỤ</div><h1 ref={heading} tabIndex={-1}>{title}</h1><p>Chọn dịch vụ và lưu đăng ký cho người được tiêm trong hồ sơ của bạn. </p></div>
@@ -229,7 +229,7 @@ export default function Registrations({ account, active, recipientLink = null, n
       <div className="registration-actions"><button className="button primary" disabled={busy || uncertain || draftOpen} onClick={() => start()}><Plus aria-hidden="true" />{busy ? 'Đang tải hồ sơ và dịch vụ…' : 'Tạo đăng ký'}</button>{draftOpen && !uncertain && <button className="button outline" disabled={busy} onClick={() => { setError(''); setView('form') }}>Tiếp tục bản nháp</button>}<button className="button outline" disabled={busy || listLoading} onClick={() => setReload(value => value + 1)}><RefreshCw aria-hidden="true" />Tải lại</button></div>
       {listLoading && <p role="status">Đang tải danh sách đăng ký…</p>}
       {listError && <p className="registration-message error" role="alert">{listError} <button className="button outline" onClick={() => setReload(value => value + 1)}>Thử lại</button></p>}
-      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>{registrationCode(row.id)} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Ngày mong muốn tiêm: {preferredDateLabel(row.preferredDate)}</small><strong>{money(row.totalDue ?? row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết {registrationCode(row.id)}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
+      {!listLoading && listReady && <><div className="registration-list">{rows.map(row => <article className="registration-record" key={row.id}><div><small>{registrationCode(row.id)} · {dateTime(row.createdAt)}</small><h2>{row.recipient.fullName}</h2><p>Khách hàng: {row.customer.fullName}</p><span className="registration-status">{row.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span></div><div><small>Thời gian mong muốn: {preferredTimeLabel(row.preferredAt, row.preferredDate)}</small><strong>{money(row.totalDue ?? row.totalBeforeDiscount)}</strong><button className="button outline" disabled={busy} onClick={() => run(() => readDetail(row.id))}>Xem chi tiết {registrationCode(row.id)}</button></div></article>)}</div>{rows.length === 0 && <div className="empty-state">{page === 1 ? 'Bạn chưa có đăng ký nào. Chọn Tạo đăng ký để bắt đầu.' : 'Không còn đăng ký trên trang này.'}</div>}<nav className="registration-actions" aria-label="Trang danh sách đăng ký"><button className="button outline" disabled={busy || page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={busy || rows.length < 25} onClick={() => setPage(value => value + 1)}>Trang sau</button></nav></>}
     </>}
 
     {view === 'detail' && <>
@@ -241,12 +241,12 @@ export default function Registrations({ account, active, recipientLink = null, n
           setNotice(`Bạn đã xác nhận tìm thấy đăng ký ${registrationCode(detail.id)}. Bản nháp được kết thúc, không gửi thêm yêu cầu tạo.`)
         }
       }}>Đã tìm thấy đăng ký, kết thúc bản nháp</button>}
-      {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} /><Lines items={detail.items} />
+      {detail && <div className="registration-panel"><div className="registration-detail-info"><div><small>Người được tiêm</small><h2>{detail.recipient.fullName}</h2><p>Khách hàng: {detail.customer.fullName}</p></div><div><span className="registration-status">{detail.status === 'DaDangKy' ? 'Đã đăng ký' : 'Trạng thái chưa xác định'}</span><p>{dateTime(detail.createdAt)}</p></div></div><ContactSnapshot contact={detail.contact} preferredDate={detail.preferredDate} preferredAt={detail.preferredAt} /><Lines items={detail.items} />
         <MoneyBreakdown subtotal={detail.subtotal} fee={detail.consultationFee} discount={detail.discountAmount} promotionName={detail.promotionName} totalDue={detail.totalDue ?? detail.totalBeforeDiscount} />{!uncertain && <button className="button primary" disabled={busy} onClick={() => go(`vaccinations/${detailId}`)}>{BigInt(detail.totalDue ?? detail.totalBeforeDiscount) > 0n ? 'Tiếp tục thanh toán' : 'Xem hành trình'}</button>}</div>}
     </>}
 
     {view === 'form' && <>
-      <ol className="registration-steps" aria-label="Các bước đăng ký">{['Hồ sơ', 'Dịch vụ', 'Liên hệ & ngày mong muốn', 'Xem lại'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
+      <ol className="registration-steps" aria-label="Các bước đăng ký">{['Hồ sơ', 'Dịch vụ', 'Liên hệ & thời gian', 'Xem lại'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
       <form onSubmit={event => { event.preventDefault(); if (step === 0) { if (!customer || !recipient) setError('Chọn người được tiêm.'); else { setError(''); setStep(1) } } else if (step < 3) {
         try {
           if (step === 1) registrationItems(draft, customers, recipients)
@@ -288,9 +288,12 @@ export default function Registrations({ account, active, recipientLink = null, n
                 setDraft(current => ({ ...current, preferredDate: value }))
               }} />
             </label>
-            <p className="muted">Cơ sở sẽ xác nhận lịch ở bước sau.</p>
+            <label className="demo-field"><span>Giờ mong muốn (giờ Việt Nam) *</span>
+              <input type="time" required value={draft.preferredTime} onChange={event => setDraft(current => ({ ...current, preferredTime: event.target.value }))} />
+            </label>
+            <p className="muted">Đây là thời gian mong muốn. Trung tâm sẽ xác nhận lịch hẹn chính thức sau khi tiếp nhận đăng ký.</p>
           </div>}
-          {step === 3 && <div className="registration-panel"><h2>Kiểm tra trước khi xác nhận</h2><dl className="registration-review-profiles"><div><dt>Khách hàng</dt><dd>{customer?.fullName}</dd></div><div><dt>Người được tiêm</dt><dd>{recipient?.fullName}</dd></div></dl><ContactSnapshot contact={draft.contact} preferredDate={draft.preferredDate} /><Lines items={draft.items} />
+          {step === 3 && <div className="registration-panel"><h2>Kiểm tra trước khi xác nhận</h2><dl className="registration-review-profiles"><div><dt>Khách hàng</dt><dd>{customer?.fullName}</dd></div><div><dt>Người được tiêm</dt><dd>{recipient?.fullName}</dd></div></dl><ContactSnapshot contact={draft.contact} preferredDate={draft.preferredDate} preferredAt={draft.preferredDate && draft.preferredTime ? `${draft.preferredDate}T${draft.preferredTime}` : null} /><Lines items={draft.items} />
             <label>Ưu đãi<select value={draft.promotionId ?? ''} onChange={event => setDraft(current => ({ ...current, promotionId: event.target.value }))}>
               <option value="">Không áp dụng ưu đãi</option>
               {promotions?.items.map(item => <option key={item.id} value={item.id}>{item.name} · {money(item.discountAmount)}</option>)}

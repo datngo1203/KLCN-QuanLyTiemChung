@@ -20,6 +20,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
     {
         IdentityModel.Configure(model);
         ReminderEmailModel.Configure(model);
+        AppointmentNotificationModel.Configure(model);
         InventoryReceiptModel.Configure(model);
         var nhanvien = model.Entity<NhanVien>();
         nhanvien.ToTable("NhanVien");

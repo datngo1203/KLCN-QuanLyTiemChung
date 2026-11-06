@@ -13,7 +13,10 @@ public sealed record CancelAppointmentRequest(string Version);
 
 public sealed record AppointmentSourceDto(int RegistrationId, string Status, RegistrationProfileDto Customer,
     RegistrationProfileDto Recipient, DateOnly? PreferredDate, string PaymentState, string? ExpectedChannel,
-    bool CanSchedule, string ReadinessCode, string Facility);
+    bool CanSchedule, string ReadinessCode, string Facility)
+{
+    public DateTime? PreferredAt { get; init; }
+}
 public sealed record AppointmentSourceListResponse(AppointmentSourceDto[] Items);
 public sealed record AppointmentSourceDetailDto(AppointmentSourceDto Source, AppointmentSourceItemDto[] Items);
 public sealed record AppointmentSourceItemDto(int Id, string Kind, int ServiceId, string Name, int Quantity);

@@ -92,7 +92,7 @@
         <ComboBox.ItemTemplate><DataTemplate>
          <StackPanel Margin="0,5">
           <TextBlock Text="{Binding Display}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-          <TextBlock Text="{Binding PreferredDateLabel,StringFormat=Ngày mong muốn: {0}}" Style="{StaticResource CE.Caption}"/>
+          <TextBlock Text="{Binding PreferredDateLabel,StringFormat=Thời gian mong muốn: {0}}" Style="{StaticResource CE.Caption}"/>
           <TextBlock Text="{Binding ReadinessLabel}" TextWrapping="Wrap"/>
          </StackPanel>
         </DataTemplate></ComboBox.ItemTemplate>
@@ -101,7 +101,7 @@
        <StackPanel Visibility="{Binding HasSource,Converter={StaticResource Vis}}" Margin="0,12,0,0">
         <TextBlock Text="{Binding Source.Customer.FullName,StringFormat=Khách hàng: {0}}" TextWrapping="Wrap"/>
         <TextBlock Text="{Binding Source.Recipient.FullName,StringFormat=Người được tiêm: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
-        <TextBlock Text="{Binding Source.PreferredDateLabel,StringFormat=Ngày khách hàng mong muốn: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <TextBlock Text="{Binding Source.PreferredDateLabel,StringFormat=Thời gian khách hàng mong muốn: {0}}" TextWrapping="Wrap" Margin="0,6,0,0"/>
         <Border DataContext="{Binding Source}" Style="{StaticResource A09.SchedulingReadinessBadge}" Margin="0,8,0,0">
          <TextBlock Text="{Binding ReadinessLabel}" TextWrapping="Wrap"/>
         </Border>

@@ -49,7 +49,7 @@ async function render(t, fee, fail) {
     }
     if (path === '/7') return {
       customer: { ...customer, phoneNumber: '0909999999' }, recipient, createdAt: '2026-11-04T00:00:00Z',
-      contact: { ...posted.at(-1).contact, fullName: 'Tên đọc từ snapshot' }, preferredDate,
+      contact: { ...posted.at(-1).contact, fullName: 'Tên đọc từ snapshot' }, preferredDate, preferredAt: `${preferredDate}T10:30:00`,
       items: [{ kind: 'vaccine', serviceId: 1, name: 'Vắc xin thử', unitPrice: price, quantity: 1 }],
       subtotal: price, consultationFee: fee, totalBeforeDiscount: price + fee,
     }
@@ -83,7 +83,7 @@ async function render(t, fee, fail) {
   assert.match(host.textContent, /Tỉnh \/ Thành phố là bắt buộc/)
   await fill('Họ tên', 'Liên hệ riêng'); await fill('Số điện thoại', '09123456789')
   await fill('Email', 'contact@example.invalid'); await fill('Tỉnh', 'Tỉnh thử')
-  await fill('Phường', 'Phường thử'); await fill('Địa chỉ', 'Đường thử'); await fill('Ngày mong muốn', preferredDate)
+  await fill('Phường', 'Phường thử'); await fill('Địa chỉ', 'Đường thử'); await fill('Ngày mong muốn', preferredDate); await fill('Giờ mong muốn', '10:30')
   await click('Quay lại'); await submit()
   assert.equal(field('Địa chỉ').value, 'Đường thử')
   assert.equal(field('Ngày mong muốn').type, 'date')
@@ -119,6 +119,8 @@ async function render(t, fee, fail) {
   assert.equal(posted.length, 2)
   assert.equal(posted[1].contact.phoneNumber, '09123456789')
   assert.equal(posted[1].preferredDate, preferredDate)
+  assert.equal(posted[1].preferredTime, '10:30:00')
+  assert.match(host.textContent, /10:30/)
   assert.equal(posted[1].consultationFee, undefined)
   assert.equal(customer.phoneNumber, '0900000000')
   assert.match(host.textContent, /Tên đọc từ snapshot/)

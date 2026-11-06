@@ -115,7 +115,7 @@ async function registration(t, price, offeredAmount, unavailable = false) {
   await ui.click('Chọn'); await ui.submit()
   await ui.fill('Tỉnh', 'Tỉnh thử'); await ui.fill('Phường', 'Phường thử'); await ui.fill('Địa chỉ', 'Đường thử')
   const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
-  await ui.fill('Ngày mong muốn', date); await ui.submit()
+  await ui.fill('Ngày mong muốn', date); await ui.fill('Giờ mong muốn', '10:30'); await ui.submit()
   return { ...ui, posted, calls, offersRead: () => offersRead, date, saved }
 }
 function amount(host, label) {

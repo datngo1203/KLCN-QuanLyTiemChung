@@ -65,7 +65,7 @@ public sealed class AppointmentSqlTests
             } else {
                 var summary = Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentSourceListResponse>(sourcesPath + "?page=1&pageSize=1"))!.Items);
                 Assert.Equal(new AppointmentSourceDto(id, registration.Status, registration.Customer, registration.Recipient,
-                    registration.PreferredDate, state, channel, ready, readiness, Facility), summary);
+                    registration.PreferredDate, state, channel, ready, readiness, Facility) { PreferredAt = registration.PreferredAt }, summary);
                 var detail = (await f.Reception.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcesPath + "/" + id))!;
                 Assert.Equal(summary, detail.Source);
                 Assert.Equal(registration.Items.Select(i => new AppointmentSourceItemDto(i.Id, i.Kind, i.ServiceId, i.Name, i.Quantity)), detail.Items);

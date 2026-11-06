@@ -10,13 +10,13 @@ const pack = { kind: 'package', serviceId: 5, name: 'Package', quantity: 1, pric
 const contact = { fullName: 'Liên hệ thử', phoneNumber: '09123456789', email: 'snapshot@example.invalid',
   provinceCity: 'Tỉnh thử', wardCommune: 'Phường thử', addressLine: 'Địa chỉ thử' }
 const today = '2026-11-05'
-const draft = items => ({ customerId: '12', recipientId: '34', items, contact, preferredDate: today })
+const draft = items => ({ customerId: '12', recipientId: '34', items, contact, preferredDate: today, preferredTime: '10:30' })
 const payloadOf = (draft, owners, people, fee = '0') => registrationPayload(draft, owners, people, fee, today)
 
 test('vaccine/package/mixed payloads carry only contract fields, package price and components', () => {
   for (const items of [[vaccine], [pack], [vaccine, pack]]) {
     const payload = payloadOf({ ...draft(items), status: 'fake', employeeId: 100 }, customers, recipients)
-    assert.deepEqual(Object.keys(payload), ['customerId', 'recipientId', 'items', 'contact', 'preferredDate'])
+    assert.deepEqual(Object.keys(payload), ['customerId', 'recipientId', 'items', 'contact', 'preferredDate', 'preferredTime'])
     assert.deepEqual(Object.keys(payload.items[0]), items[0].kind === 'vaccine'
       ? ['kind', 'serviceId', 'quantity', 'expectedUnitPrice'] : ['kind', 'serviceId', 'quantity', 'expectedUnitPrice', 'expectedComponents'])
     assert.equal(payload.customerId, 12)
@@ -61,9 +61,9 @@ test('prefill is independent, and contact, preferred date and money are validate
   assert.equal(prefilled.fullName, 'Hồ sơ gốc')
   for (const [field, value] of Object.entries({ fullName: ' ', phoneNumber: '０９１２３４５６７８', email: 'invalid',
     provinceCity: '', wardCommune: 'a'.repeat(101), addressLine: '' }))
-    assert.throws(() => payloadOf({ ...edited, contact: { ...edited.contact, [field]: value } }, [customer], recipients))
+    assert.throws(() => payloadOf({ ...edited, contact: { ...edited.contact, [field]: value } }, customers, recipients))
   for (const preferredDate of ['', '2026-11-04'])
-    assert.throws(() => payloadOf({ ...edited, preferredDate }, [customer], recipients), /ngày mong muốn/)
+    assert.throws(() => payloadOf({ ...edited, preferredDate }, customers, recipients), /ngày mong muốn/)
   assert.equal(vietnamToday(new Date('2026-11-04T16:59:59.999Z')), '2026-11-04')
   assert.equal(vietnamToday(new Date('2026-11-04T17:00:00.000Z')), today)
   assert.equal(preferredDateLabel(today), '05/11/2026')
@@ -141,4 +141,12 @@ test('registrations use in-memory bearer refresh, strict 201, safe structured 40
 test('registration errors do not expose technical transport messages', () => {
   assert.equal(registrationError({ status: 401 }), 'Phiên đã hết hạn. Vui lòng đăng nhập lại.')
   assert.doesNotMatch(registrationError(new Error('API trả HTTP 500')), /API|HTTP|SQL/)
+})
+
+
+test('preferred time requires a valid wall-clock hour without inventing operating hours', () => {
+  const valid = draft([{ kind: 'vaccine', serviceId: 1, name: 'Dịch vụ', price: '100', quantity: 1 }])
+  for (const preferredTime of ['', '24:00', '12:60', '9:00', '10:30Z'])
+    assert.throws(() => payloadOf({ ...valid, preferredTime }, customers, recipients), /giờ mong muốn/)
+  assert.equal(payloadOf({ ...valid, preferredTime: '00:00' }, customers, recipients).preferredTime, '00:00:00')
 })

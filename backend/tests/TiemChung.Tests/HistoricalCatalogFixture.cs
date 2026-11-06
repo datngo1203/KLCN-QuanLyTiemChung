@@ -16,6 +16,13 @@ internal static class HistoricalCatalogFixture
         -- Current appointment/log readers also run against this pinned pre-retirement schema.
         ALTER TABLE LichHenTiem ADD RowVersion rowversion NOT NULL;
         ALTER TABLE NhacLich ADD ScheduledAt datetime2 NULL;
+        -- Current appointment mutations always persist lifecycle outbox, even in historical migration tests.
+        CREATE TABLE AppointmentNotification (
+            Id int IDENTITY PRIMARY KEY, AppointmentId int NOT NULL, AppointmentVersion nvarchar(12) NOT NULL,
+            EventType nvarchar(30) NOT NULL, Channel nvarchar(10) NOT NULL, RecipientAccountId int NULL,
+            RecipientEmail nvarchar(254) NOT NULL, Subject nvarchar(150) NOT NULL, Body nvarchar(4000) NOT NULL,
+            CreatedByAccountId int NOT NULL, CreatedAt datetimeoffset NOT NULL, Status nvarchar(10) NOT NULL,
+            DispatchStarted bit NOT NULL, Attempts int NOT NULL, DeliveredAt datetimeoffset NULL, LastErrorCode nvarchar(40) NULL);
         ALTER TABLE DangKyDichVu ADD TenNguoiLienHe nvarchar(150) NULL, SoDienThoaiLienHe varchar(11) NULL,
             EmailLienHe nvarchar(254) NULL, TinhThanhLienHe nvarchar(100) NULL, PhuongXaLienHe nvarchar(100) NULL,
             DiaChiLienHe nvarchar(250) NULL, PhiKhamTuVan decimal(18,0) NULL, KenhThanhToanDuKien nvarchar(30) NULL,

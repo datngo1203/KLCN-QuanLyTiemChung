@@ -65,7 +65,7 @@ public static class VaccinationJourneyEndpoints
             result.Add(new(row.MaDangKy, new DateTimeOffset(DateTime.SpecifyKind(row.NgayDangKy, DateTimeKind.Utc)),
                 row.ThoiGianDuKien is { } preferred ? DateOnly.FromDateTime(preferred) : null,
                 payment, schedule, confirmed.FirstOrDefault(),
-                shots.Where(s => s.RegistrationId == row.MaDangKy).ToArray()) { Progress = progress });
+                shots.Where(s => s.RegistrationId == row.MaDangKy).ToArray()) { Progress = progress, PreferredAt = row.ThoiGianDuKien });
         }
         return result.ToArray();
     }

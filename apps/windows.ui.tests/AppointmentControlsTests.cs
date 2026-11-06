@@ -85,6 +85,9 @@ public sealed partial class ComboBoxTemplateTests
             Assert.Contains(VisualChildren<TextBlock>(view), t => t.Text == AppointmentResponses.Facility);
             Assert.DoesNotContain(VisualChildren<TextBox>(view), t => t.Text == AppointmentResponses.Facility);
             model.SelectedItem = Assert.Single(model.Items);
+            Assert.Contains(VisualChildren<TextBlock>(view), t => t.Text.Contains("14:45 giờ Việt Nam"));
+            var local = new DateTimeOffset(DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45), TimeSpan.FromHours(7)).ToLocalTime();
+            Assert.Equal(local.ToString("HH:mm"), model.Time);
             var save = Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content, "Lưu lịch hẹn"));
             Assert.True(save.IsVisible);
             Assert.False(save.IsEnabled);
@@ -98,7 +101,7 @@ public sealed partial class ComboBoxTemplateTests
         public const string Facility = "Trung tâm tiêm chủng VAC · Địa chỉ thử nghiệm";
         private static readonly AppointmentSourceOption Row = new(7, "DaDangKy", new(1, "Khách hàng thử"),
             new(2, "Người được tiêm thử"), DateOnly.FromDateTime(DateTime.Today.AddDays(2)), "ChoXacNhan",
-            "TrucTuyen", false, "pending", Facility);
+            "TrucTuyen", false, "pending", Facility, DateTime.Today.AddDays(2).AddHours(14).AddMinutes(45));
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
