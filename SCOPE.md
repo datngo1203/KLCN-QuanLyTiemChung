@@ -1,76 +1,131 @@
-# SCOPE: KLCN090 – Hệ thống quản lý tiêm chủng
+# SCOPE — KLCN090: Hệ thống quản lý tiêm chủng
 
-Nguồn sự thật duy nhất về phạm vi. Cập nhật phân công: 02/11/2026 (giữ quyết định phạm vi R00 ngày 27/10/2026). Phạm vi nền tảng: Website React và Windows WPF, dùng chung ASP.NET Core API và SQL Server. Hạn nộp: 08/11/2026 theo yêu cầu R01.
+**Nguồn sự thật hiện hành về phạm vi và trạng thái.** Chi tiết acceptance/test/CI nằm ở active issue, PR và Git history; không lưu lại toàn bộ lịch sử ở đây.
 
-## Nguyên tắc
+Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
-- Chỉ làm các lát bên dưới. Muốn thêm gì phải được nhóm đồng ý.
-- Mỗi lát nghiệp vụ đi trọn đường DB → API → client phù hợp vai trò: Web cho khách hàng, Windows cho nhân viên. Hai client dùng chung dữ liệu SQL; không dùng Sample cho chức năng mới. Gói thuần tài liệu như R00 chỉ kiểm tài liệu, không triển khai nghiệp vụ.
-- Giữ luồng ở mức tối thiểu theo đề cương: không thêm trạng thái, bước hay ngoại lệ ngoài phạm vi này.
-- Phân quyền: dùng mô hình phân quyền có sẵn ở backend, không làm thêm UI quản trị quyền. Kiểm tra tại API, không chỉ ẩn nút trên UI.
+## Current State
 
-## Các lát (triển khai theo phụ thuộc)
+### DONE gần nhất
+- **RF-05E #166 / PR #172** — email reminder thật, outbox/dispatcher, Windows A09; real Development SMTP acceptance đã PASS.
+- **RF-05F #167 / PR #174** — reschedule/cancel cùng `LichHenTiem`, RowVersion, clinical lock, reminder reconciliation, Customer Web `DaHuy`, outcome-unknown reconcile. Squash main: `bfd6ac0be813e549d15ff799ba7d9c972547c0c1`.
 
-| # | Lát | Phụ trách | Xong khi | Trạng thái |
-|---|-----|-----------|----------|------------|
-| S0 | Nền: SQL Server thật, áp dụng migration, CI xanh | Đạt | API đọc/ghi được DB thật; migration chạy sạch | ☑ 25/10: Compose SQL/API thật, 2 migrations, SQL/HTTP 42/42; CI xanh |
-| S1 | Đăng nhập, đăng xuất, đổi mật khẩu, phân quyền (F01) | Đạt | Mật khẩu có hash; đăng nhập/đăng xuất/đổi mật khẩu thật trên Web và Windows; dùng mô hình phân quyền có sẵn ở backend, không làm thêm UI quản trị quyền; test 401/403 | ◐ 27/10 G1 + UX: Web đổi mật khẩu qua form PASS theo người dùng; UX mới mở/Hủy/hiện-ẩn, xóa bản nháp, bàn phím và desktop/mobile đã kiểm browser. WPF Profiles: sửa PropertyChanged/reset, chỉ xem và Lưu và tạo tiếp; cửa sổ test dùng control thật đã kiểm read-only/reset, tạo liên tiếp kiểm qua SQL test riêng. Backend 64/64, Web 11/11 + lint/build, Windows build đạt. Chưa gửi form Web bản UX mới, chưa lưu qua cửa sổ WPF/full shell; capabilities chờ review chéo; **03/11 RF-01 #77 ☑**: thêm xác nhận/hiện mật khẩu và quên mật khẩu Customer Web, token hash SQL 30 phút một lần, transaction reset/revoke/audit; migration mới kiểm DB disposable, mail Development/Synthetic. Backend Identity hồi quy 33/33, RF-01 + mail mới nhất 16/16 (8 ca RF-01); Web 74/74 + lint/build, Windows Identity/session/password 24/24 và WPF Release 0 warning/error. Browser desktop 1280×900 đã kiểm register/verify/login/logout/reset/change-password; mobile 390×844 kiểm form register/reset, keyboard/focus/overflow; SQL đọc lại một reset đã dùng/audit và 3 phiên thu hồi. PR #78 squash-merged vào main ecc5578; coordinator self-review đạt và CI #200 đúng head xanh (backend 335 pass, 5 skip). RF-01 #77 DONE về code/test; mail vẫn Development/Synthetic, chưa migrate DB demo; chưa kiểm thiết bị thật/screen reader/WPF full-shell/S8. S1 tổng thể giữ ◐ theo các tiêu chí còn tồn; RF-02 PARKED chờ người dùng xác nhận khởi động. **05/11 AUTH-R2 #145 ☑ DONE qua PR #152 (squash `f030e782`):** Web có hai lối Đăng nhập/Tìm hồ sơ ngang hàng; public find chỉ trả `matched`, không cấp phiên/quyền/dữ liệu sức khỏe, dùng chung IP claim limiter; draft chỉ giữ trong memory của phiên trang, sau login/register+verify vẫn phải claim xác minh lại server-side với ownership/race hiện có. Backend 454 PASS/5 SKIP/0 FAIL, Web 115/115, Windows 360/360, WPF 19/19; CI #326 xanh exact head. Không migration/Windows UI; mobile thiết bị thật/screen reader chưa kiểm. |
-| S2 | Danh mục: phòng bệnh, công nghệ vắc xin, vắc xin, gói (D01) | Đạt | CRUD qua API; Windows quản lý; Web giới thiệu + tìm kiếm/lọc | ☑ 25/10: CRUD SQL/API, quyền/validation/chặn xóa tham chiếu; seed [DEMO] lặp lại; Windows command HTTP/SQL 4 danh mục; Web browser tìm/lọc/lỗi/thử lại; backend 53/53, Web 4/4, build/lint đạt. Chưa kiểm tương tác cửa sổ WPF; contract chờ review chéo. **04/11 RF-02A #81 ☑ DONE**, chưa nghiệm thu RF-02 tổng: Code cho 5 danh mục, bệnh/phác đồ/metadata SQL, API graph/detail/search/status, bỏ fallback; migration chỉ DB disposable. Theo bổ sung trực tiếp của người dùng, Windows giữ CRUD Active bằng input Code/bệnh/đối tượng/đường dùng tối thiểu; không làm RF-02B đầy đủ. Backend 347 PASS/5 SKIP opt-in/0 FAIL, Catalog+API lượt cuối 20/20, Windows 279/279, Web 74/74+lint/build, WPF Release 0 warning/error; EF không pending model. Smoke full shell tạo/đổi tên vaccine Active qua API/SQL, Code chỉ đọc/không đổi, 1 link bệnh mới+2 audit; đã đọc lại và thu hồi DB theo ownership. Chưa kiểm toàn bộ lỗi mạng/quyền qua UI, screen reader, mọi DPI hoặc S8; không migrate/reset/reseed demo. **04/11 follow-up coordinator PR #82:** đã sửa payload Windows preserve metadata legacy thiếu, explicit clear vẫn bị chặn; khóa invariant gói Active chỉ chứa vaccine Active, 409 khi ngừng vaccine còn trong gói Active; preflight mới chỉ báo ID vi phạm, không đổi legacy. Backend mới 354 PASS/5 SKIP opt-in/0 FAIL; Catalog 23/23, Windows Catalog HTTP/SQL 5/5, Windows 279/279 + build 0 warning/error, Web 74/74 + lint/build. Hai nhân viên tranh kích hoạt gói/ngừng vaccine giữ invariant và trả lỗi nghiệp vụ; seed không tạo gói Active từ vaccine Inactive. CI #205 đúng head `c4c1898` xanh; coordinator re-review đạt. PR #82 squash-merged vào main `376e0f7`; #81 closed. RF-02A DONE về schema/contract/test. **04/11 RF-02B1 #85 ☑ DONE:** shell Windows master/detail, 5 resource, CRUD lookup/bệnh, Code thật, search/status, dirty/discard/delete, feedback/error/retry và quyền; giữ editor vaccine/gói cũ cho B2/B3. Test mới 14 client cases + 1 SQL integration cho 3 resource; full backend 355 PASS/5 SKIP opt-in/0 FAIL, Windows 293/293, WPF Release 0 warning/error. Smoke full shell tạo/sửa/status cả 3 lookup/bệnh, search/Enter/filter, delete/reference failure, giữ bản nháp, network retry, revoked grant/read-only, 1100×760 và 1536×864; SQL đọc lại/audit trên DB GUID-owned. Follow-up UI foundation: shared CE.ComboBox đã sửa full-surface click + chevron geometry/Viewbox; WPF template 1/1, hit-test thật và DPI 96/120/144; CI #211 đúng head `88386b1` xanh. PR #86 squash-merged vào main `376607f`; #85 closed. Chưa screen reader/mọi DPI/S8. Không đổi schema/API, không migrate/reset/reseed demo; **B2 chưa mở cho tới khi khóa semantics `LoaiTiemChung`**; B3 và RF-02C/D PARKED. **04/11 RF-02B1.5 #88 ☑ DONE:** retire hai taxonomy mơ hồ; Phòng bệnh là taxonomy canonical và Công nghệ vắc xin là taxonomy chuyên môn N:N optional; metadata/nguồn/Active, API + Windows 4 resource + Web technologyId tương thích. Migration clean/repeat/no pending, snapshot Vaccine + 14 bảng core giữ nguyên; không suy mapping legacy; Down guard yêu cầu restore backup nếu phải quay về schema cũ. Backend 362 PASS/5 SKIP opt-in/0 FAIL; RF02B15 7/7, migration regression 27/27, Windows 293/293 + WPF template 1/1, WPF Release 0 warning/error, Web 74/74 + lint/build. CI #215 success cho head `4241cbcf`; coordinator review đạt. PR #89 squash-merged vào main `78f3eb3`; #88 closed. Chưa screen reader/mọi DPI/device thật/full S8/restore backup thực tế. Không migrate/reset/reseed demo, không clinical auto-rule. **04/11 RF-02B2 #91 ☑ DONE:** Windows Vaccine editor có cấu trúc theo 7 section; Phòng bệnh/Công nghệ searchable multi-select bảo toàn Inactive; manufacturer/origin autocomplete free-text; route label tiếng Việt giữ canonical payload; price/status/source/regimen+dose đầy đủ; dirty/read-only/error/retry giữ nguyên. Raw-object display blocker được sửa bằng local ItemTemplate + WPF render regression cho cả Disease/Technology; shared CE.ComboBox không đổi. Backend 363 PASS/5 SKIP/0 FAIL, Catalog client 20/20, Windows 299/299, WPF UI 3/3, Web 74/74 + lint/build, WPF Release 0 warning/error; CI #221 đúng head `c54b52a` xanh. PR #92 squash-merged vào main `cb3bddc`; #91 closed. Chưa screen reader/native interaction 100%/150%. **04/11 UI-F01 #94 ☑ DONE:** Windows theme alignment theo ngôn ngữ màu VNVC, giữ logo VAC và semantic states riêng; reference VNVC/VAX đo bằng computed style/CSSOM. Theme-only 3 file; runtime smoke shell/Catalog/Profiles/Reports ở 1100×760 và 1536×864, native 125%, render 100/125/150%; WPF Release 0 warning/error, WPF UI 3/3, Catalog client 20/20, Windows SQL client 299/299; CI #225 đúng head `2ae3547` xanh. PR #95 squash-merged vào main `8714fe5`; #94 closed. Known UI debt: validation adorner synthetic có thể chạm nhãn kế tiếp; chưa screen reader. **04/11 RF-02B3 #97 ☑ DONE:** Windows Package editor 5 section; component search code/name/manufacturer/disease, quantity 1..100, Active/Inactive đúng contract, summary số loại/tổng mũi/phòng bệnh, giá gói explicit không auto-sum; Windows client map Description/TargetAudience/Status/Items(VaccineName/Code)/TotalDoses/Diseases; package `catalogReferenced` có message riêng và giữ draft. VND money input reusable áp cho Vaccine + Package, live `300 000 000` nhưng request numeric; không backend runtime/API/schema/migration change. CI #231 đúng head `6c076c6`: backend 363 PASS/5 SKIP/0 FAIL, Catalog 41/41, WPF UI 4/4, Web 74/74 + lint/build, WPF Release 0 warning/error; handoff local Windows+SQL 320/320, full-shell 1100×760 & 1536×864, native 125%, render 100/125/150%. PR #99 squash-merged main `af22cc1`; #97 closed. Chưa screen reader/native 100%/150%. **RF-02C Web QUEUED sau RF-05B/C/D/E; RF-02D PARKED.** |
-| S3 | Hồ sơ khách hàng và người được tiêm/bé (B01) | Bảo | CRUD qua API; Web xem/đăng ký hồ sơ; Windows quản lý thông tin bé | ☑ 25/10: tái dùng Profiles M1, CRUD SQL/API + liên kết chủ hồ sơ, CCCD nullable/nhiều bé; Web browser tạo/sửa/tải lại/lỗi mạng/thử lại thật; Windows command HTTP/SQL CRUD; backend 55/55, Web 5/5, build/lint đạt. **04/11 RF-03 #101 ☑ DONE:** Customer thêm Danh xưng + Ngày sinh qua migration nullable/legacy-safe; Recipient relation controlled 12 giá trị + relation↔DOB; Web secure find-existing/self-claim với verified email, exact match, privacy/generic conflict; Windows find-existing/soft duplicate, dirty/discard, delete confirmation. Security re-review sửa claim limiter: IP 30/15m trước auth/transaction, account 6/15m sau auth, unauthenticated không ghi claim audit. CI #236 đúng head `aa0a209d`: backend 372 PASS/5 SKIP/0 FAIL, Web 77/77 + lint, WPF UI 5/5 + Release 0 warning/error; handoff local Windows 320/320, migration up/down + no pending model. PR #102 squash-merged main `5602d53`; #101 closed. Non-blocker: limiter process-local; chưa screen reader/mobile thật/SQL-principal acceptance. Contact/address/preferred date chuyển RF-04. |
-| S4 | Đăng ký dịch vụ (lẻ + gói) và thanh toán một lần (B02, B03) | Bảo | Tạo đăng ký, chọn vắc xin/gói, chốt giá lúc đăng ký, ghi thanh toán (mô phỏng); Web + Windows | ☑ 30/10 G3E trên main fb9d7230: Web → WPF thu 650.000đ, WPF → Web thu 250.000đ qua UI thật/API/SQL test riêng; mỗi đăng ký đúng một ThanhToan và audit Success. Ownership/thu hồi liên kết, tổng 0, giá snapshot, thu trùng, cạnh tranh và rollback đạt. Backend 64/64 (SQL + regression), Windows client 70/70 (2 SQL), Web 33/33 + lint/build, Windows Release build đạt; Web desktop/mobile, WPF shell/login/logout/cuộn/Tab/Enter đã kiểm. POST 503/timeout WPF kiểm bằng client test, mất phản hồi sau commit kiểm SQL integration; chưa tiêm lỗi trực tiếp full shell. **04/11 RF-04A #104 ☑ DONE:** PR #105 squash-merged main `4777017`; registration snapshot lưu contact/address lịch sử, PreferredDate reuse `ThoiGianDuKien` theo DateOnly/UTC+7, consultation fee server-config default 0/included snapshot `PhiKhamTuVan`; `Subtotal` giữ service-only, `TotalBeforeDiscount=Subtotal+fee`; cashier + S5 payment gate dùng total mới. Migration 7 cột nullable/legacy-safe, không backfill. CI #242 exact head `4cb47505`: backend 384 PASS/5 SKIP/0 FAIL, Web 80/80+lint, WPF UI 6/6+Release 0 warning/error; money regression fee 50k qua full API/SQL đã có. **04/11 RF-04B1 #107 ☑ DONE:** PR #108 squash-merged main `4ae203a`; Windows A08 hoàn chỉnh payer snapshot + `TienMat/TheTaiQuay/ChuyenKhoanQR`, state `ChuaThanhToan/ChoXacNhan/ThanhCong`, transaction code/receipt, pending transfer confirm trên cùng row; pending không tính PaidAmount và không qua S5, S7 chỉ tính `ThanhCong`. CI exact head `96bef83a`: backend 394 PASS/5 SKIP/0 FAIL, Windows Payment 55/55, WPF UI 8/8, Web 80/80, build/lint sạch; smoke full shell cho 3 method + pending-confirm đã đối chiếu GET/SQL. **04/11 RF-04B2 #111 ☑ DONE:** PR #113 squash-merged main `4741201`; final head `2d4ade0` đã coordinator exact-head review; CI #260 backend/web/windows success. Web checkout hỗ trợ `ChuyenKhoanOnline | TheQuocTe | TheNoiDia | TaiTrungTam`, payer snapshot, QR pending→Windows confirm cùng row, card/ATM success, pay-at-center không tạo payment; raw PAN/CVV/OTP không persist, race/reconcile/S5/S7 regression đạt. Hai wording blocker cuối đã đóng bằng regression assertion hẹp. **RF-04 DONE. 05/11 RF-05A0.1 #116 ☑ DONE qua PR #118 (squash `80477786`): Web lấy Hồ sơ tiêm chủng làm trung tâm, đăng ký chọn trực tiếp người được tiêm + deep-link/preselect/draft guard; final PR head `17e85f1`, CI #266 backend/web/windows success, visual smoke desktop/mobile đạt; không đổi backend/schema/migration/Windows. RF-05A0.2A #120 ☑ DONE qua PR #122 (squash `b8bf0959`): NguoiDuocTiem có mã hồ sơ public `VAC-` + 12 hex, migration backfill + unique index, Customer Web tìm/liên kết bằng mã hồ sơ + SĐT hoặc SĐT + Họ tên + Ngày sinh; ownership/race/rollback/generic-failure đạt; final PR head `4698c549`, CI #272 backend/web/windows success, visual smoke 1280/1440/390 đạt; không OTP/SMTP/phone auth/Windows redesign. #115 RF-05A1 Journey ☑ DONE qua PR #126 (squash `06088ac5`): Web “Tiêm chủng của tôi” theo đăng ký, read-model tổng hợp registration/payment/appointment/vaccination facts, payment/reconcile/exact-money reuse RF-04, mũi tiêm reuse chuỗi S5.7A; final PR head `ad25ec72`, CI #281 backend/web/windows success, visual smoke 1440/1280/390 đạt; không migration/schema/Windows UI. RF-05A2 #130 ☑ DONE qua PR #132 (squash `2a78effc`): fixed facility server-owned, payment readiness reuse RF-04, Windows scheduling source + PreferredDate/readiness/facility, cross-client Journey xác nhận lịch; final PR head `468908d2`, CI #287 backend/windows/web success; không migration/schema. UI-F02 #133 ☑ DONE qua PR #136 (squash `762d129f`): Web shell dùng nhận diện “Trung tâm tiêm chủng VNVC”, logo user-provided, facility VNVC Hoàng Văn Thụ · 198 Hoàng Văn Thụ, P. Đức Nhuận, TP.HCM; sửa date-picker native/global, bỏ CTA Hồ sơ trùng, Home information-first có facts/giới thiệu/tiện ích/quy trình 8 bước/hướng dẫn trước-sau tiêm, Catalog/detail ẩn prefix `[DEMO]` ở presentation bằng helper dùng chung nhưng giữ raw API value cho search/route. Final PR head `238a9fb3`, CI #297 backend/web/windows success; visual smoke Home/Catalog/detail 1440/1280/390 đạt, mobile thật/screen reader chưa kiểm. Không migration/schema/business-flow/S6/RF-02C. **S6 integration #138 ☑ DONE qua PR #139 (squash `a181dcca`): Promotion fixed-VND đã tích hợp vào Registration/Payment hiện hành, snapshot/discount/payment/readiness/S5/S7 regressions đạt, exact-head CI xanh; Windows full-shell smoke còn UNVERIFIED và được người dùng dời sang vòng S7/S8 runtime cuối. #142 AUTHZ-R1, #145 AUTH-R2, #143 DATA-R1, #157 RF-05B, #160 RF-05C và #163 RF-05D đã DONE. #166 RF-05E ☑ DONE qua PR #172 (squash `967436ac`): outbox email riêng + MailKit dispatcher + Windows preview/enqueue/status/retry; CI #355 xanh trên exact HEAD `bdcfc37`; real Development SMTP acceptance PASS ngày 06/11: Windows A09 báo `Đã gửi` và Gmail thực nhận reminder `LH-0002` / `DK-2009` (`Barycela`), không đưa địa chỉ thật/App Password/token/secret vào Git.** **#167 RF-05F ☑ DONE qua PR #174 (squash `bfd6ac0`):** đổi/hủy lịch trên cùng `LichHenTiem` với RowVersion fail-closed, khóa khi đã có screening, đồng bộ reminder snapshot/history, customer chỉ đọc; exact-head CI #362 xanh trên `38fd7c4`, Windows full-shell PASS cho confirmation No/Yes, reschedule + reload, cancel + reload, Web `Đã hủy` không còn `NextAppointment`, outcome-unknown reconcile không blind replay. **#175 RF-05F.1 ▶ ACTIVE:** Customer Web chọn ngày + giờ mong muốn ở `DangKyDichVu`; `LichHenTiem` chỉ là lịch đến trung tâm đã được lễ tân xác nhận, không đồng nghĩa đủ điều kiện tiêm; khách mới/cũ đều tiếp tục qua screening → tư vấn/chỉ định → tiêm; xác nhận/đổi/hủy lịch phải auto-enqueue notification, không manual-send. **#173 NOTIFY-R1 vẫn QUEUED/PARKED** đến sau core refinement + S8. Tiếp theo sau #175: #170 RF-05G → REGIMEN-R1 → #168 UI-F03 → RF-02C → PAY-R1 → DATA-R2 → S8; sau S8 mới xét NOTIFY-R1 / AUTH-PWLESS / ADDR-R1 / INV-R1 / WEB-IA-R1. |
-| S5 | Lịch tiêm, ghi nhận mũi đã tiêm, theo dõi sau tiêm, nhắc lịch (Q01–Q03) | Đạt | Tạo lịch theo dịch vụ đã chốt và thời gian nhân viên nhập, không tự suy phác đồ; ghi tiêm theo điều kiện an toàn tối thiểu bên dưới; theo dõi gắn mũi thật; nhắc qua Email hoặc log mô phỏng; Web xem lịch/lịch sử | ☑ 03/11/2026 — S5-CLOSEOUT nghiệm thu theo contract thanh toán S4 hiện hành; không phát hiện BLOCKER. S5.1–S5.7B đã merge PR #52–#59. Lượt test mới do Codex báo cáo: Backend SQL 55/55, Windows 206/206, Web S5 36/36 PASS, không fail/skip. Luồng synthetic trên SQL disposable: DK-0002 thanh toán toàn bộ mô phỏng 150.000đ; LH-0003 → CD-0004 → MT-0001, tồn 100→99, một biến động XuấtDoTiêm và audit; một theo dõi/audit; LH-0002 có một log nhắc lịch mô phỏng/audit và snapshot đọc lại; Customer khác không xem được lịch/lịch sử. Đã kiểm các ca thiếu/sai tiền và tổng 0, chỉ định/lô sai, ghi trùng, tranh tồn cuối, rollback, quyền, mất phản hồi → GET. Hạn chế NON-BLOCKER: chưa kiểm dialog đăng nhập WPF, screen reader và toàn bộ lỗi mạng qua full-shell UI; không tuyên bố các mục đó PASS. CI các PR #52–#59 success (bằng chứng hồi quy cũ, không tính test mới). Nghiệm thu S5 độc lập S6/S7 và chưa phải nghiệm thu S8; gói tương thích giá sau giảm S6→S5 phải kiểm riêng khi S6 có contract. Kết quả Codex chạy trên fb10076; đã đối chiếu 14 file S5 trọng yếu trùng SHA với main. **07/11 RF-05F #167 ☑ DONE:** [PR #174](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/174) squash-merged `bfd6ac0`; final exact PR HEAD `38fd7c4`, CI #362 success, không còn review thread/blocker. SQL migration đã áp Development sau backup; launcher smoke SQL/API/Web/Windows PASS. Manual full-shell Windows: reschedule confirmation No/Yes + reload PASS, reminder preview theo snapshot mới PASS, cancel No/Yes + reload PASS, Customer Web vẫn thấy lịch `Đã hủy` nhưng không chọn `NextAppointment`, outcome-unknown khi API down và reconcile sau recovery PASS, không blind replay. Không refund/customer self-service/SMS/regimen scheduler/no-show. |
-| S6 | Khuyến mãi, ưu đãi (B04) | Bảo | Giảm tiền cố định VND không âm + thời gian hiệu lực; một ưu đãi mỗi đăng ký, không cộng dồn; chốt khoản giảm lúc đăng ký, không làm tổng phải thu âm | ☑ **05/11 DONE qua #139** (squash `a181dcca`): cumulative S6 #128 đã được reconcile lên current RF-04/RF-05; fixed discount chỉ giảm Subtotal, không giảm ConsultationFee; snapshot immutable, Web/Windows apply thật, current Payment states/methods giữ nguyên, migration fail-fast legacy ambiguous assignment, S5/Appointment/Journey/S7 regressions pass. CI exact-head xanh. Windows full-shell A10/A07 manual smoke còn UNVERIFIED, dời sang S7/S8 final runtime sweep theo quyết định người dùng. |
-| S7 | Thống kê, báo cáo (D04) | Quý | 2–3 báo cáo: doanh thu theo tháng, số mũi theo vắc xin, đăng ký theo trạng thái | ☑ 03/11: đã merge [PR #67](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/67) vào `main` (merge commit `0641164`), bảo toàn 3 commit gốc của Quý; S7.1 doanh thu mô phỏng từ `ThanhToan.ThanhCong` theo tháng UTC+7, S7.2 mũi `DaTiem` theo vắc xin, S7.3 đăng ký theo trạng thái; API SQL chỉ đọc + quyền `XemBaoCao`, Windows A11 gọi API. [CI #179](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/41589040934) **backend/Windows/Web success** trên head tích hợp `7d3a829`; không migrations/S5/S6. Giao thoa X1 tại `Program.cs` và `IdentityApiService.cs` đã được giữ cả hai. Review kỹ thuật do điều phối thực hiện theo ủy quyền, **không nhận là review độc lập của Quý/Bảo**. Chưa xác minh thao tác báo cáo qua full-shell WPF sau merge hoặc S8 tổng thể; không coi CI Windows build là test tương tác WPF |
-| S8 | Tích hợp và kiểm thử (T01) | Cả nhóm | Chạy trọn luồng hồ sơ → đăng ký → ưu đãi → thanh toán → lịch → chỉ định → ghi tiêm → theo dõi → báo cáo trên máy sạch; kiểm quyền, lưu/đọc lại SQL, rollback và cạnh tranh tiền/tồn; test case/kết quả trong test source và PR, không tạo tài liệu mới | ☐ |
+Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
-## Mở rộng nghiệp vụ theo lát — 03/11/2026 (X1 đã tích hợp; các lát còn lại chờ chốt)
+### ACTIVE — duy nhất
+**#175 RF-05F.1: thời gian mong muốn của khách + xác nhận lịch đến trung tâm**
 
-Theo quyết định người dùng 03/11, **được mở rộng phạm vi từng lát nghiệp vụ có đầu ra chạy thật**. **Cập nhật 05/11/2026:** refinement/integration của S6 và S7 được Đạt/ChatGPT/Codex tiếp quản trực tiếp đến nghiệm thu cuối; không cần chờ Bảo/Quý review lại. Vẫn giữ attribution/lịch sử commit của owner, không giả nhận APPROVE; mọi thay đổi contract/schema/tiền/quyền/clinical phải exact-head coordinator review + regression + CI/runtime gate. Không hiểu là lệnh triển khai tất cả 7 quy trình một lượt. Nghiệm thu theo lát; S8 đầy đủ chạy trên bản đã tích hợp.
+Semantics khóa:
+- Customer Web đăng ký dịch vụ với **ngày + giờ mong muốn**.
+- Preference thuộc `DangKyDichVu`; không phải confirmed vaccination slot.
+- `LichHenTiem.ScheduledAt` là **lịch đến trung tâm đã được lễ tân xác nhận**, có thể khác preference.
+- Lịch hẹn không chứng minh đủ điều kiện tiêm.
+- Khách mới: tạo/hoàn thiện hồ sơ trước khi đăng ký.
+- Khách cũ: dùng hồ sơ hiện có.
+- **Cả khách mới và khách cũ**, mỗi lượt chuẩn bị tiêm đều tiếp tục qua screening → bác sĩ tư vấn/chỉ định → payment nếu cần → vaccination.
+- Không tạo hệ thống song song `LichTuVan` / `LichKham`.
+- Confirm/schedule, reschedule và cancel `DaHuy` phải **auto-enqueue notification**; lễ tân không cần bấm nút gửi.
+- Core ưu tiên Email; SMS provider thật không thuộc #175.
+- Audit field preferred-date/time hiện có trước khi thêm schema; reuse source-of-truth nếu đã đủ.
 
-| Mã | Lát được đề xuất | Chủ sở hữu | Hoàn thành khi | Trạng thái |
-|---|---|---|---|---|
-| X1 | **Kho vắc xin: thay màn Windows A05 dùng Sample bằng đọc lô/tồn và biến động qua API/SQL thật** | Đạt | Nhân viên có quyền xem đúng lô/tồn/biến động từ SQL, xử lý rỗng/lỗi/quyền, test backend + WPF, **không thay luồng S5 ghi tiêm/trừ tồn** | ☑ 03/11: **Đã merge [PR #66](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/66) vào main, squash `9ff1101`**. CI #171 backend/Windows/Web success trên head `831a721`; test local backend X1 + S5 57/57, Windows 228/228, WPF build 0 warning/error, full-shell/API/SQL kiểm được dữ liệu đọc. Technical self-review được ghi trên PR theo quyền người dùng, **không phải review độc lập của Bảo/Quý**. Non-blockers: chưa kiểm screen reader, dialog đăng nhập và mọi lỗi mạng qua full shell. Đã đóng phạm vi X1; X2 chưa bắt đầu |
-| X2 | **Nhập vắc xin từ nhà cung cấp** phục vụ quy trình (1), mở rộng theo từng lát: **X2.1 tiếp nhận và ghi một lô mới → X2.2 tra cứu/lịch sử nhập và hoàn thiện các trường còn thiếu nếu có căn cứ** | Đạt | **Lát X2.1 phải là chức năng dọc hoàn chỉnh**: đối chiếu biểu mẫu/nguồn nghiệp vụ, nhà cung cấp + vắc xin/lô/hạn dùng/số lượng; DB/migration nếu cần → API riêng có quyền Thủ kho, validate, transaction cập nhật tồn & biến động + audit → **Windows A05 thêm quy trình nhập lô và đọc lại SQL ngay trong cùng lát** → test SQL/API/WPF và hồi quy xem kho/ghi tiêm S5. Không sửa luồng xuất/trừ tồn của S5, không tác động S6/S7; khi chưa đủ thông tin biểu mẫu ghi CẦN BỔ SUNG, không bịa dữ liệu thực tế. UI Windows theo AGENTS, có thể khác Website VNVC. | ◐ **X2.1 ☑ đã merge [PR #71](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/71)** vào `main` ngày 03/11 (squash `9eba7ee`; sửa test model `6cb4917`). API/SQL nhận **một lô mới**, snapshot nhà cung cấp/chứng từ/vị trí, quyền `NhapKho` riêng cần cấp rõ ràng, lô+biến động `NhapKho`+receipt+audit một transaction; Windows A05 nhập thật/GET đối chiếu. **[CI #187](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/41603612694) success đúng head `6cb4917`**: backend **321 pass, 5 skip có chủ đích, 0 fail**, Windows/Web jobs success, migration lặp lại success. Local backend X2.1 + X1/S5 65/65, Windows 254/254, WPF build 0 warning/error; smoke full-shell nhận synthetic qty30 → một receipt/movement/audit, SQL đọc lại; giao dịch ghi tiêm S5, S6 và S7 không đổi. Technical self-review theo ủy quyền, không phải review độc lập Bảo/Quý. **X2.2.1 ☑ đã merge [PR #74](https://github.com/datngo1203/KLCN-QuanLyTiemChung/pull/74) (`c098155`)**; Codex tiếp quản, sửa và kiểm thử: query kiểm liên kết NhapKho đúng lô/số lượng, client đối chiếu chứng từ, phân trang theo bộ lọc, UI chi tiết cuộn được. Local SQL backend history + X1/X2.1 16/16, Windows 279/279 không skip; WPF Release 0 warning/error. Smoke full-shell SQL thật 26 phiếu 25+1, tìm/Enter/chi tiết/Ctrl+End ở 1100×700 và 800×560, loading/rỗng/network retry/thu hồi grant/đổi Admin; dữ liệu nghiệp vụ không đổi. **[CI #196](https://github.com/datngo1203/KLCN-QuanLyTiemChung/actions/runs/41612630573) success trên đúng head `792c653`**: backend 327 PASS / 5 SKIP chủ đích / 0 FAIL, history client 25/25 PASS, Windows/Web success; migration repeat success. Không có P0/P1 xác nhận qua review kỹ thuật; **người dùng cho phép bỏ review chéo dư thừa ở lát chỉ đọc độc lập**, đã rút review request Quý và ghi rõ điều phối self-review, không giả nhận người khác duyệt. X2.2.1 đóng. **X2.2.2 chưa giao/chưa làm, X2 toàn bộ chưa nghiệm thu**. CẦN BỔ SUNG biểu mẫu/quy định nội bộ VNVC; chưa kiểm screen reader, dialog login, mọi DPI/network variant/full S8 |
-| XA04 / XA02 | Danh mục chuyên môn và khám sàng lọc nâng cao theo sổ QD-001–017 | Đạt điều phối, phần dùng chung phải review | Chốt lần lượt lát nhỏ, dữ liệu có nguồn và cổng kiểm tra an toàn, không thay đổi mũi đã tiêm | ☐ Backlog, **không** là chỉ thị tự triển khai ngay |
+Issue #175 là feature spec/acceptance đầy đủ. Không mở #170 cho đến khi #175 merge/checkpoint và người dùng xác nhận.
 
-**Điều phối và chống xung đột:** theo [issue #64](https://github.com/datngo1203/KLCN-QuanLyTiemChung/issues/64). S6/S7 giữ attribution gốc cho Bảo/Quý, nhưng refinement/integration từ 05/11 do Đạt/ChatGPT/Codex tiếp quản. Mọi thay đổi API/DTO/schema/UI shell hoặc tác động số tiền/lô tồn phải có PR riêng từ latest main và regression rõ; chỉ một migration đang sửa; không sửa trực tiếp branch lịch sử của người khác. Không còn gate bắt buộc Bảo/Quý review lại; coordinator exact-head review + CI/runtime gate thay cho bước đó.
+### NEXT
+1. **#170 RF-05G** — automation reminder T−48/T−24 + no-show recall D+3/D+7 trên source appointment hiện hành.
+2. **REGIMEN-R1**.
+3. **#168 UI-F03**.
+4. **RF-02C**.
+5. **PAY-R1**.
+6. **DATA-R2**.
+7. **S8** final integration/end-to-end.
 
-**Thứ tự test:** test X1 độc lập + hồi quy đọc lô S5 có liên quan; test từng PR S6/S7; một PR tương thích S6→S5 sau chốt contract ưu đãi; cuối cùng mới S8 end-to-end. Không ghi PASS khi mới đọc code hoặc khi chỉ có branch.
+### PARKED sau core/S8
+- **#173 NOTIFY-R1** — shared Email/SMS delivery + provider SMS thật.
+- AUTH-PWLESS.
+- ADDR-R1.
+- INV-R1.
+- WEB-IA-R1.
+- Các expansion khác chỉ mở khi người dùng reprioritize.
 
-**Refinement queue cập nhật 07/11/2026:** S6-INT #138 / PR #139 ☑ DONE; #142 AUTHZ-R1 ☑ DONE; #145 AUTH-R2 ☑ DONE; #143 DATA-R1 ☑ DONE; #157 RF-05B ☑ DONE; #160 RF-05C ☑ DONE; #163 RF-05D ☑ DONE; #166 RF-05E ☑ DONE qua PR #172; **#167 RF-05F ☑ DONE qua PR #174 (`bfd6ac0`)**. **#175 RF-05F.1 ▶ ACTIVE duy nhất:** thời gian mong muốn Customer Web → lễ tân xác nhận `LichHenTiem`; không tách `LichTuVan/LichKham`; khách mới/cũ đều screening/tư vấn/chỉ định trước tiêm; appointment confirm/reschedule/cancel auto-enqueue notification. Sau #175 mới mở #170 RF-05G → REGIMEN-R1 → #168 UI-F03 → RF-02C → PAY-R1 → DATA-R2 → S8. **#173 NOTIFY-R1, AUTH-PWLESS, ADDR-R1, INV-R1, WEB-IA-R1 PARKED sau S8** trừ khi người dùng chủ động đổi ưu tiên. Một lát ACTIVE tại một thời điểm.
+## Core thesis scope
 
-## An toàn tối thiểu của S5 / G5 — đã nghiệm thu theo contract S4 (03/11/2026)
+### Nền tảng
+- Customer: **React Web**.
+- Nhân viên: **Windows WPF**.
+- Shared backend: **ASP.NET Core API**.
+- Database: **SQL Server**.
+- Kiến trúc: modular monolith; không microservice hóa nếu không có nhu cầu đã chốt.
 
-- Bác sĩ ghi kết luận/chỉ định chuyên môn cho đúng buổi tiêm; điều dưỡng ghi tiêm/theo dõi theo quyền. API không tự quyết định y khoa hoặc tin điều kiện đủ tiêm do client gửi.
-- Nguồn lô/tồn là lệnh seed riêng đã triển khai trong S5.4, chỉ cho Development/Test, ghi dữ liệu synthetic `[DEMO]` vào SQL qua backend. Lô gắn vắc xin tồn tại, có số lô, ngày sản xuất, hạn dùng, số lượng ban đầu/tồn và trạng thái rõ ràng.
-- Seed chạy lại không nhân bản, không bù tồn đã tiêu hao, không đổi hạn dùng hoặc ghi đè dữ liệu hiện hữu. DB test có fixture riêng cho lô hợp lệ, hết hạn và hết tồn. Không làm nhập hàng/nhà cung cấp hoặc UI chỉnh tồn thủ công.
-- Chỉ ghi tiêm thành công khi API kiểm chứng đúng lịch/người/vắc xin, kết luận/chỉ định hợp lệ cho buổi tiêm, nhân viên Active đúng quyền/chức danh, lô phù hợp được phép sử dụng/còn hạn/tồn dương và điều kiện thanh toán đã chốt.
-- Ghi mũi, trừ tồn, biến động và audit phải cùng transaction, chống ghi trùng và tranh liều cuối. Thiếu bằng chứng thì từ chối; không fallback Sample hoặc tự tạo chỉ định/lô để vượt kiểm tra.
-- R00 chỉ đồng bộ tài liệu tại thời điểm R00; các lát S5.3–S5.7B triển khai về sau. S5 đã nghiệm thu 03/11/2026 trên nguồn dữ liệu SQL test, quyền và luồng chính theo S4; hạn chế chưa kiểm ghi trong cột Trạng thái, không suy rằng đã nghiệm thu mọi tương tác UI hoặc toàn bộ S8.
+### 7 quy trình nghiệp vụ
+1. Nhập vắc xin từ nhà cung cấp.
+2. Đăng ký thông tin khách hàng/người được tiêm.
+3. Đăng ký dịch vụ tiêm chủng.
+4. Khám sàng lọc và chỉ định.
+5. Thanh toán dịch vụ.
+6. Thực hiện tiêm chủng và theo dõi sau tiêm.
+7. Quản lý lịch tiêm và nhắc lịch.
 
-## Không làm (hoặc chỉ nằm trong sơ đồ/báo cáo)
+### 6 actor nghiệp vụ
+Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 
-- Không xây lại 6 chức danh/12 mã quyền đã có ở backend; hoãn UI quản trị quyền và ma trận 78 ô.
-- Module nhập kho đầy đủ, nhà cung cấp và UI chỉnh tồn; chỉ làm lô/tồn/biến động tối thiểu phục vụ ghi tiêm theo S5.
-- Phiếu khám sàng lọc chi tiết, sinh tồn và thuật toán quyết định y khoa; vẫn bắt buộc ghi nhận kết luận/chỉ định chuyên môn tối thiểu theo S5.
-- Đặt cọc, trả góp và cơ chế idempotency tổng quát; vẫn bắt buộc transaction và chống ghi trùng tại nghiệp vụ tiền/tồn kho.
-- SMS, tích hợp ngân hàng, xuất file báo cáo.
-- Thiết kế lại UI ngoài yêu cầu trực tiếp 26/10/2026: chỉnh Web theo ảnh mẫu, responsive trên điện thoại, dùng ảnh thật và đồng bộ logo VAC Web/Windows; bổ sung nội dung trang chủ, danh mục đọc API, liên hệ do người dùng cung cấp và màu Web theo theme Windows. Không thêm tài liệu giai đoạn/ảnh review mới.
+### Invariant nghiệp vụ
+- Web/Windows dùng chung API + SQL, không có client-side source-of-truth riêng cho dữ liệu nghiệp vụ.
+- Customer ownership/privacy kiểm tại API.
+- Employee permission kiểm tại API theo actor/capability hiện hành.
+- Appointment, registration, clinical, payment, inventory và vaccination phải liên kết nguồn thật; không tạo dữ liệu giả để vượt gate.
+- Mọi lượt tiêm cần clinical evidence theo contract hiện hành; không tự quyết y khoa.
+- Tiền/tồn kho/multi-row critical write dùng transaction/concurrency phù hợp và audit.
+- Vaccine cấp/xuất từ kho có thể là bước tùy trường hợp trong mô tả nghiệp vụ; không ép nhân viên kho tham gia mọi ca nếu vaccine đã có sẵn tại khu vực tiêm.
+- Reminder/email đã gửi là historical evidence; reschedule/cancel không được rewrite provider outcome cũ.
 
-## Quy ước làm việc
+## Module summary
 
-- `backend/contracts/README.md` là chuẩn API; sửa contract phải nêu trong PR và có review chéo vì hai client Web/Windows phụ thuộc vào đó. Không tự gửi tin sang chat khác.
-- Mỗi gói phải được giao riêng và chốt phạm vi tệp, nghiệm thu, kiểm thử. Mỗi lát một nhánh (`feat/sN-ten-lat`) từ `main` sạch, PR nhỏ vào `main`, squash merge sau review; không tự merge. R00 dùng `feat/r00-scope-alignment`, chỉ sửa bốn tài liệu đã duyệt.
-- G1 (phiên/quyền client) và G2 (đăng ký) được phát triển song song khi contract, quyền, actor và schema liên quan đã thống nhất và được review chéo; không cần đợi toàn bộ G1. Tách vùng sửa, không tự quyết contract/schema mâu thuẫn.
-- Đạt điều phối schema/migration; chỉ một người sửa tại một thời điểm. Không viết lại migration đã áp dụng hoặc reset DB.
-- Ưu tiên nghiệp vụ trước 08/11/2026; không refactor diện rộng hoặc thêm tầng kiến trúc không cần thiết. Xong gói thì dừng bàn giao, không tự động làm gói tiếp theo trong R01/G1–G8. R00 không tự commit, push hoặc merge.
-- Trạng thái ghi một dòng vào bảng trên; không tạo file status mới.
+| Module | Trạng thái hiện hành |
+|---|---|
+| S0 nền SQL/API/CI | DONE |
+| S1 Identity/Auth | Core DONE; expansion parked |
+| S2 Catalog | Core/Windows refinement DONE; RF-02C Web còn NEXT |
+| S3 Customer/Recipient profiles | DONE |
+| S4 Registration/Payment core | DONE; PAY-R1 NEXT |
+| S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F DONE; #175 ACTIVE; #170 NEXT |
+| S6 Promotion | DONE |
+| S7 Reports | DONE |
+| S8 Integration | NOT STARTED |
+| X1 Inventory read | DONE |
+| X2.1 Receive new lot | DONE |
+| X2.2.1 Receive history | DONE |
+| X2.2.2 advanced receive/supplier | PARKED |
 
+## Scope limits
 
-### Quy tắc bàn giao 02/11/2026 (không mở rộng phạm vi)
+Mức đích là **khóa luận cử nhân chạy được và giải thích được**, không mặc định production hospital platform.
 
-- Phân công hiện hành: Đạt S5, Bảo S6, Quý S7, cả nhóm S8. S5/S6/S7 làm song song dựa trên S0–S4 đã có; không có phụ thuộc tuần tự bắt buộc giữa ba module.
-- Bảo sở hữu Promotion và phần tương thích Registration/Payment thuộc S6; Quý sở hữu Reports API/Windows (chỉ đọc SQL); Đạt sở hữu S5 và điều phối nền tảng/contract/migration. Mỗi PR một lát chức năng khép kín, không chia nửa backend/frontend cho hai thành viên.
-- S6 thay đổi số tiền phải thu nên phần kiểm tra thanh toán của S5 có điểm giao hợp đồng. Bảo không tự sửa Vaccination/Clinical; Đạt điều phối một PR tương thích riêng và chạy hồi quy S5 sau khi contract S6 được chốt. Trước thời điểm đó S5 vẫn nghiệm thu theo S4, không giảm kiểm tra an toàn hoặc mở đường cho tổng 0.
-- S7 tính doanh thu từ giao dịch thanh toán mô phỏng đã ghi thành công, đếm mũi đã ghi và trạng thái đăng ký thực có trong DB. Không chờ S6, không tạo dữ liệu giả để có biểu đồ; ghi rõ số liệu test synthetic và hạn chế. Không xây xuất file/SQL migration mới trong S7 nếu không được giao riêng.
-- File dùng chung/schema/migration/contract phải review, chỉ một migration đang chỉnh; các thành viên làm trên branch/DB test độc lập. Tiến độ vẫn chỉ ở cột Trạng thái bảng trên; không thêm file tiến độ.
+Không tự mở:
+- microservices, HA/DR, cloud/multi-region, production-scale ops;
+- medical advice engine/auto eligibility;
+- auto-create clinical indication or fake inventory;
+- customer self-service reschedule/cancel nếu chưa có slice riêng;
+- slot/capacity/room/staff scheduling engine trong #175;
+- refund/partial payment/installment ngoài slice đã chốt;
+- full supplier/warehouse ERP;
+- SMS/ZNS/push provider ngoài #173;
+- phone OTP/passwordless ngoài AUTH-PWLESS;
+- general-purpose permission matrix UI;
+- module/status/table mới chỉ để làm UI tiện hơn khi có thể derive từ dữ liệu thật.
+
+## Development / data rules
+
+- Synthetic personal data được phép cho test/dev; không dùng thông tin người thật.
+- Demo vaccine/medical content có ý nghĩa phải lấy từ nguồn công khai đáng tin cậy; unit/integration logic có thể dùng fixture synthetic tối giản nếu nội dung y khoa không phải đối tượng kiểm thử.
+- Secret/real credential ngoài Git.
+- Không reset/reseed/migrate demo DB tùy tiện; backup trước migration có rủi ro.
+- Demo hiện hành dùng launcher/scripts trong README; operational instructions chỉ đọc khi task cần runtime.
+
+## Status discipline
+
+- Chỉ một business slice ACTIVE.
+- `SCOPE.md` giữ trạng thái hiện hành, **không** lưu toàn bộ test transcript/CI history.
+- Active issue giữ acceptance/scope-stop.
+- PR giữ diff, test/runtime evidence và review.
+- #76 chỉ dùng checkpoint/recovery khi cần, không phải tài liệu bắt buộc phải đọc trong mọi task.
+- Sau mỗi merge: cập nhật DONE/ACTIVE/NEXT/PARKED rồi dừng chờ người dùng xác nhận.
