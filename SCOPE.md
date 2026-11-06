@@ -14,16 +14,15 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-**Chưa có business slice ACTIVE.** #175 đã merge/checkpoint. Chờ người dùng xác nhận trước khi kích hoạt một mục trong NEXT.
+**#170 RF-05G** — automation reminder T−48/T−24 + no-show recall D+3/D+7 trên source appointment hiện hành. Kích hoạt sau khi #175 / PR #178 đã merge/checkpoint và người dùng xác nhận tiếp tục.
 
 ### NEXT
-1. **#170 RF-05G** — automation reminder T−48/T−24 + no-show recall D+3/D+7 trên source appointment hiện hành.
-2. **REGIMEN-R1**.
-3. **#168 UI-F03**.
-4. **RF-02C**.
-5. **PAY-R1**.
-6. **DATA-R2**.
-7. **S8** final integration/end-to-end.
+1. **REGIMEN-R1**.
+2. **#168 UI-F03**.
+3. **RF-02C**.
+4. **PAY-R1**.
+5. **DATA-R2**.
+6. **S8** final integration/end-to-end.
 
 ### PARKED sau core/S8
 - **#173 NOTIFY-R1** — shared Email/SMS delivery + provider SMS thật.
@@ -73,7 +72,7 @@ Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 | S2 Catalog | Core/Windows refinement DONE; RF-02C Web còn NEXT |
 | S3 Customer/Recipient profiles | DONE |
 | S4 Registration/Payment core | DONE; PAY-R1 NEXT |
-| S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1 DONE; #170 NEXT |
+| S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1 DONE; #170 ACTIVE |
 | S6 Promotion | DONE |
 | S7 Reports | DONE |
 | S8 Integration | NOT STARTED |
