@@ -6,13 +6,13 @@
 - Web là customer-facing React client, gọi API thật; không đọc SQL, không thêm Sample fallback.
 - Khi task là UI/UX, tham khảo đúng trang công khai VNVC/vax.vnvc.vn tương ứng nghiệp vụ. Chỉ tái tạo ngôn ngữ thị giác/tương tác phù hợp KLCN; không copy nguyên code/assets không được phép và không bịa API/quy trình nội bộ.
 - Theo quyết định dự án, presentation có thể dùng tên “Trung tâm tiêm chủng VNVC” và logo người dùng cung cấp. Không tự chèn disclaimer runtime chỉ để tách thương hiệu.
-- Với UI task đáng kể, kiểm skill UI hiện có và dùng theo SKILL GATE của prompt; prototype không thay React thật.
+- Với UI task đáng kể, kiểm `.agents/skills/baoyu-design/SKILL.md`; **baoyu-design** là UI skill mặc định nếu khả dụng. Đọc skill trước khi dùng; nếu unavailable thì báo rõ và tiếp tục theo rules này. Prototype không thay React thật.
 
 ## UX
 - Ưu tiên task flow dễ hiểu, responsive, semantic status và wording nghiệp vụ; không lộ raw enum/provider/internal error.
 - Phân biệt rõ preference/yêu cầu của khách với state đã được trung tâm xác nhận khi active issue yêu cầu.
 - Không derive security/business permission chỉ từ UI; server là nguồn quyết định.
-- Dữ liệu tiền hiển thị VND nhất quán; input tiền theo convention dự án hiện hành.
+- Dữ liệu tiền hiển thị VND nhất quán; input tiền dùng phân cách hàng nghìn bằng **dấu cách** theo convention dự án.
 
 ## Gates
 - Test component/unit liên quan + lint/build.
