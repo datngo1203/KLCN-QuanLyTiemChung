@@ -8,11 +8,26 @@ namespace TiemChung.Windows.Tests;
 
 public sealed class AppointmentClientTests
 {
+    [Theory][InlineData(true)][InlineData(false)]
+    public async Task MidnightOnlyPrefillsHourWhenItWasExplicitlySupplied(bool supplied)
+    {
+        var date = DateTime.SpecifyKind(DateTime.Today.AddDays(5), DateTimeKind.Unspecified);
+        var fake = new Fake { Option = Summary with { PreferredDate = DateOnly.FromDateTime(date), PreferredAt = date, PreferredTimeSpecified = supplied } };
+        var vm = await Ready(fake);
+        var local = new DateTimeOffset(date, TimeSpan.FromHours(7)).ToLocalTime();
+        Assert.Equal(supplied ? local.Date : date, vm.AppointmentDate);
+        Assert.Equal(supplied ? local.ToString("HH:mm") : "09:00", vm.Time);
+        if (supplied) Assert.Contains("00:00 giờ Việt Nam", vm.Source!.PreferredDateLabel);
+        else { Assert.Contains("Chưa ghi nhận giờ", vm.Source!.PreferredDateLabel); Assert.DoesNotContain("00:00", vm.Source.PreferredDateLabel); }
+        vm.SelectedItem = vm.Items[0]; vm.Time = "16:20"; await vm.SaveAsync();
+        Assert.Equal("16:20", fake.Requests.Single().ScheduledAt.ToLocalTime().ToString("HH:mm"));
+    }
+
     [Fact]
     public async Task PreferredFacilityWallClockPrefillsBothFieldsAndReceptionCanChangeIt()
     {
         var preferred = DateTime.Today.AddDays(5).AddHours(14).AddMinutes(45);
-        var fake = new Fake { Option = Summary with { PreferredAt = preferred } };
+        var fake = new Fake { Option = Summary with { PreferredAt = preferred, PreferredTimeSpecified = true } };
         var vm = await Ready(fake);
         var local = new DateTimeOffset(DateTime.SpecifyKind(preferred, DateTimeKind.Unspecified), TimeSpan.FromHours(7)).ToLocalTime();
         Assert.Equal(local.Date, vm.AppointmentDate); Assert.Equal(local.ToString("HH:mm"), vm.Time);

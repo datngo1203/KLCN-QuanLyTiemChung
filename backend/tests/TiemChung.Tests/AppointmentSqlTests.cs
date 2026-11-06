@@ -65,7 +65,7 @@ public sealed class AppointmentSqlTests
             } else {
                 var summary = Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentSourceListResponse>(sourcesPath + "?page=1&pageSize=1"))!.Items);
                 Assert.Equal(new AppointmentSourceDto(id, registration.Status, registration.Customer, registration.Recipient,
-                    registration.PreferredDate, state, channel, ready, readiness, Facility) { PreferredAt = registration.PreferredAt }, summary);
+                    registration.PreferredDate, state, channel, ready, readiness, Facility) { PreferredAt = registration.PreferredAt, PreferredTimeSpecified = registration.PreferredTimeSpecified }, summary);
                 var detail = (await f.Reception.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcesPath + "/" + id))!;
                 Assert.Equal(summary, detail.Source);
                 Assert.Equal(registration.Items.Select(i => new AppointmentSourceItemDto(i.Id, i.Kind, i.ServiceId, i.Name, i.Quantity)), detail.Items);
@@ -458,10 +458,10 @@ public sealed class AppointmentSqlTests
             if(Reception==null && title=="LeTan" && grant){AccountId=account.MaTaiKhoan;EmployeeId=employee!.MaNhanVien;}
             return client;
         }
-        public async Task<RegistrationDto> Register(bool payAtCenter = true)
+        public async Task<RegistrationDto> Register(bool payAtCenter = true, bool dateOnly = false)
         {
             var v=await Db.Vaccines.AsNoTracking().FirstAsync();var p=await Db.Set<GoiVacXin>().AsNoTracking().FirstAsync();
-            using var response=await Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(CustomerId,RecipientId,[new("vaccine",v.MaVacXin,2,v.Gia),new("package",p.MaGoi,2,p.GiaGoi,[new(v.MaVacXin,2)])]));
+            using var response=await Reception.PostAsJsonAsync("/api/v1/registrations",RegistrationSqlTests.SyntheticRequest(CustomerId,RecipientId,[new("vaccine",v.MaVacXin,2,v.Gia),new("package",p.MaGoi,2,p.GiaGoi,[new(v.MaVacXin,2)])]) with { PreferredTime = dateOnly ? null : new(10, 30) });
             Assert.Equal(HttpStatusCode.Created,response.StatusCode);
             var registration = (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
             if (payAtCenter) await Db.Registrations.Where(r => r.MaDangKy == registration.Id)

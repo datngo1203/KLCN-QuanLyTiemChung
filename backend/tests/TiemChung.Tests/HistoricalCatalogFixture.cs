@@ -23,6 +23,7 @@ internal static class HistoricalCatalogFixture
             RecipientEmail nvarchar(254) NOT NULL, Subject nvarchar(150) NOT NULL, Body nvarchar(4000) NOT NULL,
             CreatedByAccountId int NOT NULL, CreatedAt datetimeoffset NOT NULL, Status nvarchar(10) NOT NULL,
             DispatchStarted bit NOT NULL, Attempts int NOT NULL, DeliveredAt datetimeoffset NULL, LastErrorCode nvarchar(40) NULL);
+        ALTER TABLE DangKyDichVu ADD CoGioDuKien bit NOT NULL DEFAULT 0;
         ALTER TABLE DangKyDichVu ADD TenNguoiLienHe nvarchar(150) NULL, SoDienThoaiLienHe varchar(11) NULL,
             EmailLienHe nvarchar(254) NULL, TinhThanhLienHe nvarchar(100) NULL, PhuongXaLienHe nvarchar(100) NULL,
             DiaChiLienHe nvarchar(250) NULL, PhiKhamTuVan decimal(18,0) NULL, KenhThanhToanDuKien nvarchar(30) NULL,

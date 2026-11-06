@@ -468,6 +468,11 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDangKy"));
 
+                    b.Property<bool>("CoGioDuKien")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("DiaChiLienHe")
                         .HasColumnType("nvarchar(250)");
 
@@ -542,6 +547,8 @@ namespace TiemChung.Infrastructure.Migrations
                     b.ToTable("DangKyDichVu", null, t =>
                         {
                             t.HasCheckConstraint("CK_DangKyDichVu_KenhThanhToanDuKien", "[KenhThanhToanDuKien] IS NULL OR [KenhThanhToanDuKien] IN ('TaiTrungTam','TrucTuyen')");
+
+                            t.HasCheckConstraint("CK_DangKyDichVu_PreferredTimeSpecified", "[CoGioDuKien]=0 OR [ThoiGianDuKien] IS NOT NULL");
                         });
                 });
 

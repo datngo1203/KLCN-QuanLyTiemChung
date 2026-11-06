@@ -255,7 +255,7 @@ public sealed class ReminderEmailSqlTests
     {
         await Run(async f => {
             // Bootstrap a pre-lifecycle appointment, whose history has no RF-05F.1 event to protect.
-            var registration = await f.Register();
+            var registration = await f.Register(dateOnly: true);
             var historical = new LichHenTiem { MaDangKy = registration.Id, MaNguoiDuocTiem = registration.Recipient.Id,
                 MaChiTietVacXin = registration.Items[0].Id, ThoiGianHen = DateTime.UtcNow.AddDays(2),
                 DiemTiem = "Trung tâm thử nghiệm", TrangThai = "DaXepLich" };

@@ -198,7 +198,7 @@ public static partial class AppointmentEndpoints
         };
         return new(row.MaDangKy, row.TrangThai, payment.Customer, payment.Recipient,
             RegistrationEndpoints.PreferredDate(row), payment.PaymentState, payment.ExpectedChannel,
-            readiness is "zero" or "paid" or "center", readiness, facility) { PreferredAt = row.ThoiGianDuKien };
+            readiness is "zero" or "paid" or "center", readiness, facility) { PreferredAt = row.ThoiGianDuKien, PreferredTimeSpecified = row.CoGioDuKien };
     }
 
     internal static IQueryable<AppointmentDto> Query(TiemChungDbContext db, IQueryable<LichHenTiem> rows) =>

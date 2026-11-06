@@ -41,13 +41,18 @@ public sealed class RF02B15CatalogSqlTests
     private static async Task<JsonElement[]> List(HttpClient client, string query) =>
         (await Read<JsonElement>(client.GetAsync(Root + query))).GetProperty("items").EnumerateArray().ToArray();
 
-    private static Task<string> Snapshot(TiemChung.Infrastructure.Data.TiemChungDbContext db, string table)
+    private static async Task<string> Snapshot(TiemChung.Infrastructure.Data.TiemChungDbContext db, string table)
     {
         // Only the fixed table list in the migration test supplies identifiers.
         var columns = table == "LichHenTiem"
             ? "MaLichHen,MaDangKy,MaChiTietVacXin,MaChiTietGoi,MaNguoiDuocTiem,ThoiGianHen,DiemTiem,TrangThai" : "*";
+        if (table == "DangKyDichVu") {
+            // Compare every historical column; the additive provenance default is asserted separately.
+            var names = await db.Database.SqlQueryRaw<string>("SELECT name AS Value FROM sys.columns WHERE object_id=OBJECT_ID('DangKyDichVu') AND name<>'CoGioDuKien' ORDER BY column_id").ToArrayAsync();
+            columns = string.Join(",", names.Select(n => new SqlCommandBuilder().QuoteIdentifier(n)));
+        }
         var sql = "SELECT (SELECT " + columns + " FROM [" + table + "] FOR JSON PATH) AS Value";
-        return db.Database.SqlQueryRaw<string>(sql).SingleAsync();
+        return await db.Database.SqlQueryRaw<string>(sql).SingleAsync();
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
@@ -241,6 +246,7 @@ public sealed class RF02B15CatalogSqlTests
         }), async f => {
             await f.Db.Database.MigrateAsync(); await f.Db.Database.MigrateAsync();
             foreach (var table in tables) Assert.Equal(snapshots[table], await Snapshot(f.Db, table));
+            Assert.All(await f.Db.Registrations.AsNoTracking().ToArrayAsync(), r => Assert.False(r.CoGioDuKien));
             Assert.Equal(snapshots["VacXin"], JsonSerializer.Serialize(await f.Db.Vaccines.AsNoTracking().SingleAsync()));
             var vaccine = await f.Db.Vaccines.SingleAsync(); Assert.Equal(1, vaccine.MaVacXin); Assert.Equal("VX-LEGACY", vaccine.Code);
             Assert.Equal("Legacy reaction", vaccine.PhanUngSauTiem); Assert.Equal("Legacy dose", vaccine.LieuLuong); Assert.Equal(100, vaccine.Gia); Assert.Equal(0.5m, vaccine.TheTich);

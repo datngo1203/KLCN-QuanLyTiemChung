@@ -8,11 +8,13 @@ namespace TiemChung.Desktop.Services;
 
 public sealed record AppointmentSourceOption(int RegistrationId, string Status, RegistrationPerson Customer,
     RegistrationPerson Recipient, DateOnly? PreferredDate, string PaymentState, string? ExpectedChannel,
-    bool CanSchedule, string ReadinessCode, string Facility, DateTime? PreferredAt = null)
+    bool CanSchedule, string ReadinessCode, string Facility, DateTime? PreferredAt = null, bool PreferredTimeSpecified = false)
 {
     public string Display => $"DK-{RegistrationId:0000} · {Recipient.FullName}";
-    public string PreferredDateLabel => PreferredAt?.ToString("dd/MM/yyyy HH:mm 'giờ Việt Nam'", CultureInfo.InvariantCulture)
-        ?? PreferredDate?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "Chưa có";
+    public string PreferredDateLabel => PreferredTimeSpecified && PreferredAt is { } time
+        ? time.ToString("dd/MM/yyyy HH:mm 'giờ Việt Nam'", CultureInfo.InvariantCulture)
+        : (PreferredDate ?? (PreferredAt is { } date ? DateOnly.FromDateTime(date) : null)) is { } day
+            ? day.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + " · Chưa ghi nhận giờ mong muốn" : "Chưa có";
     public string ReadinessLabel => ReadinessCode switch {
         "paid" => "Sẵn sàng xếp lịch · Đã thanh toán",
         "center" => "Sẵn sàng xếp lịch · Thanh toán tại trung tâm",

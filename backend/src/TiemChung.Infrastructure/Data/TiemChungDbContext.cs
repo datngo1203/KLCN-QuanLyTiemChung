@@ -124,6 +124,9 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dangkydichvu.Property(x => x.HinhThucTiem).HasColumnType("nvarchar(50)");
         dangkydichvu.Property(x => x.HinhThucTiem).IsRequired(false);
         dangkydichvu.Property(x => x.ThoiGianDuKien).HasColumnType("datetime2");
+        dangkydichvu.Property(x => x.CoGioDuKien).HasDefaultValue(false);
+        dangkydichvu.ToTable(t => t.HasCheckConstraint("CK_DangKyDichVu_PreferredTimeSpecified",
+            "[CoGioDuKien]=0 OR [ThoiGianDuKien] IS NOT NULL"));
         dangkydichvu.Property(x => x.TenNguoiLienHe).HasColumnType("nvarchar(150)");
         dangkydichvu.Property(x => x.SoDienThoaiLienHe).HasColumnType("varchar(11)");
         dangkydichvu.Property(x => x.EmailLienHe).HasColumnType("nvarchar(254)");

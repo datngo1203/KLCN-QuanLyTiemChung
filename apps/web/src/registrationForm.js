@@ -21,8 +21,9 @@ const positiveId = value => Number.isSafeInteger(value) && value > 0
 export const vietnamToday = (now = new Date()) => new Date(now.getTime() + 7 * 3600000).toISOString().slice(0, 10)
 export const preferredDateLabel = value => value ? value.split('-').reverse().join('/') : 'Chưa cập nhật'
 // Preference is facility wall-clock time, never parsed as an instant in the device timezone.
-export const preferredTimeLabel = (value, date) => value
-  ? `${preferredDateLabel(value.slice(0, 10))} ${value.slice(11, 16)} (giờ Việt Nam)` : preferredDateLabel(date)
+export const preferredTimeLabel = (value, date, timeSpecified = false) => timeSpecified && value
+  ? `${preferredDateLabel(value.slice(0, 10))} ${value.slice(11, 16)} (giờ Việt Nam)`
+  : value || date ? `${preferredDateLabel(date || value.slice(0, 10))} · Chưa ghi nhận giờ mong muốn` : 'Chưa cập nhật'
 export const consultationFeeLabel = fee => fee == null ? 'Chưa cập nhật'
   : BigInt(fee) === 0n ? 'Đã bao gồm / không thu riêng' : money(fee)
 

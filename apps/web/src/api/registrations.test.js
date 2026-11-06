@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createIdentityClient } from './identity.js'
-import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney, prefillContact, vietnamToday, preferredDateLabel, consultationFeeLabel, registrationError } from '../registrationForm.js'
+import { allProfiles, catalogServices, money, total, parseRegistrationJson, registrationBody, registrationPayload, refreshDraft, maxMoney, prefillContact, vietnamToday, preferredDateLabel, preferredTimeLabel, consultationFeeLabel, registrationError } from '../registrationForm.js'
 
 const customers = [{ id: 12 }, { id: 13 }]
 const recipients = [{ id: 34, customerId: 12 }, { id: 35, customerId: 13 }]
@@ -149,4 +149,13 @@ test('preferred time requires a valid wall-clock hour without inventing operatin
   for (const preferredTime of ['', '24:00', '12:60', '9:00', '10:30Z'])
     assert.throws(() => payloadOf({ ...valid, preferredTime }, customers, recipients), /giờ mong muốn/)
   assert.equal(payloadOf({ ...valid, preferredTime: '00:00' }, customers, recipients).preferredTime, '00:00:00')
+})
+
+
+test('legacy midnight never claims a chosen hour while explicit midnight is preserved', () => {
+  assert.equal(preferredTimeLabel('2026-11-10T00:00:00', '2026-11-10', true), '10/11/2026 00:00 (giờ Việt Nam)')
+  for (const flag of [false, undefined]) {
+    assert.equal(preferredTimeLabel('2026-11-10T00:00:00', '2026-11-10', flag), '10/11/2026 · Chưa ghi nhận giờ mong muốn')
+    assert.doesNotMatch(preferredTimeLabel('2026-11-10T14:45:00', '2026-11-10', flag), /14:45/)
+  }
 })

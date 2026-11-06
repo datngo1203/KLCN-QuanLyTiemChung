@@ -71,7 +71,7 @@ function JourneyList({ go }) {
         {page === 1 && <button className="button primary" onClick={() => go('register')}>Đăng ký tiêm</button>}
       </div>}
       <div className="journey-grid">{state.items.map(journey => {
-        const { registrationId, createdAt, preferredDate, preferredAt, payment, nextAppointment } = journey
+        const { registrationId, createdAt, preferredDate, preferredAt, preferredTimeSpecified, payment, nextAppointment } = journey
         const { action, paymentLabel, schedule } = journeyState(journey)
         return <article key={registrationId} className="registration-panel journey-card">
           <span className="registration-status">{registrationCode(registrationId)}</span>
@@ -80,7 +80,7 @@ function JourneyList({ go }) {
             {payment.items.length > 2 && ` · Và ${payment.items.length - 2} dịch vụ khác`}</p>
           <dl className="registration-review-profiles">
             <div><dt>Ngày đăng ký</dt><dd>{appointmentTime(createdAt)}</dd></div>
-            <div><dt>Thời gian mong muốn</dt><dd>{preferredTimeLabel(preferredAt, preferredDate)}</dd></div>
+            <div><dt>Thời gian mong muốn</dt><dd>{preferredTimeLabel(preferredAt, preferredDate, preferredTimeSpecified)}</dd></div>
             <div><dt>Thanh toán</dt><dd>{paymentLabel}</dd></div>
             <div><dt>Lịch hẹn đã xác nhận</dt><dd>{schedule}{nextAppointment && <><br />{appointmentTime(nextAppointment.scheduledAt)}<br />{nextAppointment.location} · {nextAppointment.serviceName}</>}</dd></div>
           </dl>
@@ -125,7 +125,7 @@ function JourneyDetail({ id, go }) {
     {error && <JourneyError error={error} go={go} retry={() => { setState({ loading: true }); setReload(value => value + 1) }} />}
     {journey && <>
       <h2>{registrationCode(id)} · {journey.payment.recipient.fullName}</h2>
-      <p>Đăng ký {appointmentTime(journey.createdAt)} · Thời gian mong muốn {preferredTimeLabel(journey.preferredAt, journey.preferredDate)}</p>
+      <p>Đăng ký {appointmentTime(journey.createdAt)} · Thời gian mong muốn {preferredTimeLabel(journey.preferredAt, journey.preferredDate, journey.preferredTimeSpecified)}</p>
       <section className="registration-panel journey-next">
         <h3>Việc cần làm tiếp theo</h3>
         <p><strong>{next.action}</strong></p>

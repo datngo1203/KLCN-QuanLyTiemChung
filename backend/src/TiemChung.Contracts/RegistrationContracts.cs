@@ -32,6 +32,7 @@ public sealed record RegistrationSummaryDto(int Id, DateTimeOffset CreatedAt, st
     string? PromotionName = null, decimal DiscountAmount = 0)
 {
     public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }
@@ -42,6 +43,7 @@ public sealed record RegistrationDto(int Id, DateTimeOffset CreatedAt, string St
     string? PromotionName = null, decimal DiscountAmount = 0)
 {
     public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
     public decimal TotalBeforeDiscount => Subtotal + (ConsultationFee ?? 0);
     public decimal TotalDue => TotalBeforeDiscount - DiscountAmount;
 }

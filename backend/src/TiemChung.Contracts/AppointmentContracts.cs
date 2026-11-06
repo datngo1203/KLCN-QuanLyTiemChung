@@ -16,6 +16,7 @@ public sealed record AppointmentSourceDto(int RegistrationId, string Status, Reg
     bool CanSchedule, string ReadinessCode, string Facility)
 {
     public DateTime? PreferredAt { get; init; }
+    public bool PreferredTimeSpecified { get; init; }
 }
 public sealed record AppointmentSourceListResponse(AppointmentSourceDto[] Items);
 public sealed record AppointmentSourceDetailDto(AppointmentSourceDto Source, AppointmentSourceItemDto[] Items);

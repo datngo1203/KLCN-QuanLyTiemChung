@@ -38,6 +38,60 @@ public sealed class AppointmentNotificationSqlTests
         return (await response.Content.ReadFromJsonAsync<AppointmentDto>())!;
     }
 
+    [Theory][InlineData(true, true)][InlineData(false, true)][InlineData(false, false)]
+    public async Task ExplicitMidnightAndDateOnlyRemainDistinctAcrossAllOwnedReadModels(bool customer, bool supplied)
+    {
+        await Run(async f => {
+            using var owner = await Owner(f);
+            var vaccine = await f.Db.Vaccines.FirstAsync();
+            var req = RegistrationSqlTests.SyntheticRequest(f.CustomerId, f.RecipientId, [new("vaccine", vaccine.MaVacXin, 1, vaccine.Gia)])
+                with { PreferredTime = supplied ? TimeOnly.MinValue : null };
+            using var response = await (customer ? owner : f.Reception).PostAsJsonAsync("/api/v1/registrations", req);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var registration = (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
+            Assert.Equal(supplied, registration.PreferredTimeSpecified);
+            Assert.Equal(req.PreferredDate!.Value.ToDateTime(TimeOnly.MinValue), registration.PreferredAt);
+            var row = await f.Db.Registrations.AsNoTracking().SingleAsync();
+            Assert.Equal(supplied, row.CoGioDuKien);
+            await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.KenhThanhToanDuKien, "TaiTrungTam"));
+            var appointment = await Create(f, registration);
+            var detail = (await owner.GetFromJsonAsync<RegistrationDto>($"/api/v1/registrations/{registration.Id}"))!;
+            var listed = Assert.Single((await owner.GetFromJsonAsync<RegistrationListResponse>("/api/v1/registrations"))!.Items);
+            var source = (await f.Reception.GetFromJsonAsync<AppointmentSourceDetailDto>($"/api/v1/appointments/sources/{registration.Id}"))!.Source;
+            var listedSource = Assert.Single((await f.Reception.GetFromJsonAsync<AppointmentSourceListResponse>("/api/v1/appointments/sources"))!.Items);
+            var journey = (await owner.GetFromJsonAsync<VaccinationJourneyDto>($"/api/v1/vaccination-journeys/{registration.Id}"))!;
+            Assert.Equal(supplied, detail.PreferredTimeSpecified); Assert.Equal(supplied, listed.PreferredTimeSpecified);
+            Assert.Equal(supplied, source.PreferredTimeSpecified); Assert.Equal(supplied, listedSource.PreferredTimeSpecified);
+            Assert.Equal(supplied, journey.PreferredTimeSpecified); Assert.Equal(registration.PreferredAt, journey.PreferredAt);
+            Assert.Equal(appointment.ScheduledAt, journey.NextAppointment!.ScheduledAt);
+            var after = await f.Db.Registrations.AsNoTracking().SingleAsync();
+            Assert.Equal(row.ThoiGianDuKien, after.ThoiGianDuKien); Assert.Equal(row.CoGioDuKien, after.CoGioDuKien);
+            using var other = await f.Actor(null, false);
+            using var denied = await other.GetAsync($"/api/v1/registrations/{registration.Id}");
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        });
+    }
+
+    [Fact]
+    public async Task ProvenanceMigrationBackfillsLegacyWithoutInferringTimeAndGuardsDown()
+    {
+        await Run(async f => {
+            var registration = await f.Register(dateOnly: true);
+            var migrator = f.Db.GetService<IMigrator>();
+            await migrator.MigrateAsync("20261106213250_RF05F1AppointmentNotifications");
+            // Both midnight and non-midnight legacy values lack reliable request provenance.
+            await f.Db.Database.ExecuteSqlInterpolatedAsync($"UPDATE DangKyDichVu SET ThoiGianDuKien={registration.PreferredAt!.Value.AddHours(11)}");
+            await migrator.MigrateAsync(); await migrator.MigrateAsync();
+            var legacy = await f.Db.Registrations.AsNoTracking().SingleAsync();
+            Assert.False(legacy.CoGioDuKien); Assert.Equal(registration.PreferredAt.Value.AddHours(11), legacy.ThoiGianDuKien);
+            Assert.False(f.Db.Database.HasPendingModelChanges());
+            await migrator.MigrateAsync("20261106213250_RF05F1AppointmentNotifications"); await migrator.MigrateAsync();
+            await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.CoGioDuKien, true));
+            await Assert.ThrowsAnyAsync<Exception>(() => migrator.MigrateAsync("20261106213250_RF05F1AppointmentNotifications"));
+            await Assert.ThrowsAnyAsync<Exception>(() => f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.ThoiGianDuKien, (DateTime?)null)));
+        });
+    }
+
     [Fact]
     public async Task PreferredWallClockPersistsAndConfirmedTimeNeverChangesIt()
     {
@@ -65,7 +119,7 @@ public sealed class AppointmentNotificationSqlTests
             using var denied = await other.GetAsync($"/api/v1/vaccination-journeys/{registration.Id}");
             Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
             foreach (var legacy in new DateTime?[] { preferred.Date, null }) {
-                await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.ThoiGianDuKien, legacy));
+                await f.Db.Registrations.ExecuteUpdateAsync(s => s.SetProperty(x => x.ThoiGianDuKien, legacy).SetProperty(x => x.CoGioDuKien, false));
                 var read = (await owner.GetFromJsonAsync<RegistrationDto>($"/api/v1/registrations/{registration.Id}"))!;
                 Assert.Equal(legacy, read.PreferredAt);
             }
@@ -141,7 +195,7 @@ public sealed class AppointmentNotificationSqlTests
     public async Task UnknownProviderOutcomeNeverAutomaticallyReplaysAndMigrationPreservesLegacy()
     {
         await Run(async f => {
-            var r = await f.Register();
+            var r = await f.Register(dateOnly: true);
             var preferred = (await f.Db.Registrations.AsNoTracking().SingleAsync()).ThoiGianDuKien;
             var migrator = f.Db.GetService<IMigrator>();
             await migrator.MigrateAsync("20261106144715_RF05FAppointmentLifecycle");
