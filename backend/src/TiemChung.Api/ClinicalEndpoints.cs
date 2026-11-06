@@ -75,7 +75,7 @@ public static class ClinicalEndpoints
                 (long)((page ?? 1)-1)*(pageSize ?? 25) > int.MaxValue) throw new IdentityFailure(400, "validation");
             var code = search?.StartsWith("LH-", StringComparison.OrdinalIgnoreCase) == true ? search[3..] : search;
             int.TryParse(code, out var id);
-            var rows = Sources(db);
+            var rows = Sources(db).Where(a => a.TrangThai == "DaXepLich");
             if (!string.IsNullOrEmpty(search)) rows = rows.Where(a => a.MaLichHen == id ||
                 db.Recipients.Any(p => p.MaNguoiDuocTiem == a.MaNguoiDuocTiem && p.HoTen.Contains(search)));
             var items = await AppointmentEndpoints.Query(db, rows.OrderByDescending(a => a.MaLichHen)
@@ -119,6 +119,7 @@ public static class ClinicalEndpoints
             await db.Registrations.FromSqlInterpolated($"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy=(SELECT MaDangKy FROM LichHenTiem WHERE MaLichHen={id})").SingleOrDefaultAsync(ct);
             await db.Set<LichHenTiem>().FromSqlInterpolated($"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={id}").SingleOrDefaultAsync(ct);
             var appointment = await Appointment(db, id, ct);
+            if (appointment.Status != "DaXepLich") throw new IdentityFailure(409, "appointmentNotActive");
             if (await db.Set<PhieuKhamSangLoc>().AnyAsync(x => x.MaLichHen == id, ct)) throw new IdentityFailure(409, "assessmentAlreadyRecorded");
             if (RegisteredDoseEntitlements.TimeBlock(appointment.ScheduledAt) is { } block) throw new IdentityFailure(409, block);
             var allowed = await Vaccines(db, appointment, ct);

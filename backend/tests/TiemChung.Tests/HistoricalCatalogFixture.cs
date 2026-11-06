@@ -13,6 +13,9 @@ internal static class HistoricalCatalogFixture
         -- Historical suites keep the catalog migration pinned but write customers with the current EF model.
         ALTER TABLE NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL;
         ALTER TABLE KhachHang ADD DanhXung nvarchar(10) NULL, NgaySinh date NULL;
+        -- Current appointment/log readers also run against this pinned pre-retirement schema.
+        ALTER TABLE LichHenTiem ADD RowVersion rowversion NOT NULL;
+        ALTER TABLE NhacLich ADD ScheduledAt datetime2 NULL;
         ALTER TABLE DangKyDichVu ADD TenNguoiLienHe nvarchar(150) NULL, SoDienThoaiLienHe varchar(11) NULL,
             EmailLienHe nvarchar(254) NULL, TinhThanhLienHe nvarchar(100) NULL, PhuongXaLienHe nvarchar(100) NULL,
             DiaChiLienHe nvarchar(250) NULL, PhiKhamTuVan decimal(18,0) NULL, KenhThanhToanDuKien nvarchar(30) NULL,

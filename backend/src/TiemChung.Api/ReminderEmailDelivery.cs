@@ -92,6 +92,8 @@ public sealed class ReminderEmailDelivery(TiemChungDbContext db, IReminderEmailT
                 .OrderBy(x => x.CreatedAt).Select(x => x.Id).Take(25).ToArrayAsync(ct);
             foreach (var id in ids) {
                 db.ChangeTracker.Clear();
+                var appointmentId = await db.Set<ReminderEmail>().Where(r => r.Id == id).Select(r => r.AppointmentId).SingleAsync(ct);
+                await using var appointmentLock = await AppointmentDeliveryLock.AcquireAsync(db, appointmentId, ct);
                 ReminderEmail row;
                 await using (var tx = await db.Database.BeginTransactionAsync(ct)) {
                     row = await db.Set<ReminderEmail>().FromSqlInterpolated($"SELECT * FROM ReminderEmail WITH (UPDLOCK,HOLDLOCK) WHERE Id={id}").SingleAsync(ct);

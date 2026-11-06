@@ -10,6 +10,11 @@ public partial class AppointmentView : UserControl
     public AppointmentView()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) => {
+            if (DataContext is AppointmentViewModel model) model.Confirm = message =>
+                MessageBox.Show(Window.GetWindow(this), message, "Xác nhận thay đổi lịch", MessageBoxButton.YesNo,
+                    MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+        };
         Loaded += async (_, _) => {
             if (DataContext is AppointmentViewModel vm && !vm.IsCreating && vm.Appointments.Count == 0) await vm.LoadAsync();
         };

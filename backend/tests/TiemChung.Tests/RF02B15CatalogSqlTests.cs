@@ -44,7 +44,9 @@ public sealed class RF02B15CatalogSqlTests
     private static Task<string> Snapshot(TiemChung.Infrastructure.Data.TiemChungDbContext db, string table)
     {
         // Only the fixed table list in the migration test supplies identifiers.
-        var sql = "SELECT (SELECT * FROM [" + table + "] FOR JSON PATH) AS Value";
+        var columns = table == "LichHenTiem"
+            ? "MaLichHen,MaDangKy,MaChiTietVacXin,MaChiTietGoi,MaNguoiDuocTiem,ThoiGianHen,DiemTiem,TrangThai" : "*";
+        var sql = "SELECT (SELECT " + columns + " FROM [" + table + "] FOR JSON PATH) AS Value";
         return db.Database.SqlQueryRaw<string>(sql).SingleAsync();
     }
 
@@ -226,8 +228,10 @@ public sealed class RF02B15CatalogSqlTests
             var item = new ChiTietVacXinLe { MaDangKy = registrationId, MaVacXin = 1, SoLuong = 1, GiaTaiThoiDiemDangKy = 100 };
             db.AddRange(item, new ChiTietGoiVacXin { MaDangKy = registrationId, MaGoi = 1, SoLuongGoi = 1, GiaTaiThoiDiemDangKy = 200 },
                 new LoVacXin { SoLo = "[DEMO] LEGACY", MaVacXin = 1, NgaySanXuat = new(2026,1,1), HanSuDung = new(2027,1,1), SoLuongBanDau = 10, SoLuongTon = 9, TrangThai = "Active" }); await db.SaveChangesAsync();
-            var appointment = new LichHenTiem { MaDangKy = registrationId, MaChiTietVacXin = item.MaChiTietVacXin, MaNguoiDuocTiem = recipientId, ThoiGianHen = DateTime.UtcNow, DiemTiem = "[DEMO]", TrangThai = "DaHen" }; db.Add(appointment); await db.SaveChangesAsync();
-            var clinical = new PhieuKhamSangLoc { MaLichHen = appointment.MaLichHen, MaDangKy = registrationId, MaNguoiDuocTiem = recipientId, MaNhanVien = employee.MaNhanVien, ThoiDiemKham = DateTimeOffset.UtcNow, KetLuan = "DuDieuKien" }; db.Add(clinical); await db.SaveChangesAsync();
+            // Historical schema predates the RowVersion returned by the current EF insert.
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT LichHenTiem(MaDangKy,MaChiTietVacXin,MaNguoiDuocTiem,ThoiGianHen,DiemTiem,TrangThai) VALUES({registrationId},{item.MaChiTietVacXin},{recipientId},{DateTime.UtcNow},{"[DEMO]"},{"DaHen"})");
+            var appointmentId = await db.Database.SqlQueryRaw<int>("SELECT MaLichHen AS Value FROM LichHenTiem").SingleAsync();
+            var clinical = new PhieuKhamSangLoc { MaLichHen = appointmentId, MaDangKy = registrationId, MaNguoiDuocTiem = recipientId, MaNhanVien = employee.MaNhanVien, ThoiDiemKham = DateTimeOffset.UtcNow, KetLuan = "DuDieuKien" }; db.Add(clinical); await db.SaveChangesAsync();
             var indication = new ChiDinhTiem { MaPhieuKham = clinical.MaPhieuKham, MaVacXin = 1, KetQuaChiDinh = "DuocTiem", ThoiGian = DateTime.UtcNow }; db.Add(indication); await db.SaveChangesAsync();
             var shot = new MuiTiem { MaChiDinh = indication.MaChiDinh, MaNguoiDuocTiem = recipientId, MaNhanVien = employee.MaNhanVien, SoLo = "[DEMO] LEGACY", ThoiDiemTiem = DateTime.UtcNow, ViTriTiem = "[DEMO]", TrangThai = "DaTiem" }; db.Add(shot); await db.SaveChangesAsync();
             db.AddRange(new BienDongKho { MaMuiTiem = shot.MaMuiTiem, MaNhanVien = employee.MaNhanVien, SoLo = shot.SoLo, LoaiBienDong = "XuatDoTiem", SoLuong = 1, ThoiDiem = shot.ThoiDiemTiem },

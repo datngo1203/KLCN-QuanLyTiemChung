@@ -18,7 +18,7 @@ public sealed record ReminderRecord(int Id,int AppointmentId,string Channel,stri
         "providerUnavailable" or "providerRejected"=>"Chưa gửi được email. Tải lại để kiểm tra và thử lại khi được phép.", _=>"" };
 }
 public sealed record ReminderDetail(AppointmentRecord Appointment,string? Preview,bool CanRecord,ReminderRecord? Reminder,
-    string? MaskedRecipient=null,string? Subject=null,string? UnavailableReason=null);
+    string? MaskedRecipient=null,string? Subject=null,string? UnavailableReason=null,ReminderRecord[]? History=null);
 public interface IReminderService
 {
     Task<AppointmentRecord[]> ListAsync(string search, int page);

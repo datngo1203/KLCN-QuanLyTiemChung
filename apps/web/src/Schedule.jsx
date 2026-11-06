@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { identity } from './api/identity'
-import { appointmentCode, appointmentTime, scheduleError } from './scheduleView'
+import { appointmentCode, appointmentTime, appointmentStatus, scheduleError } from './scheduleView'
 import './Registrations.css'
 import './Payments.css'
 
@@ -61,7 +61,7 @@ function ScheduleWorkspace({ go }) {
             <strong>{appointmentCode(row.id)}</strong><span>Người được tiêm: {row.recipient.fullName}</span>
             <span>{row.itemKind === 'package' ? 'Gói vắc xin' : 'Vắc xin lẻ'}: {row.serviceName}</span>
             <time dateTime={row.scheduledAt}>{appointmentTime(row.scheduledAt)}</time><span>Địa điểm: {row.location}</span>
-            <span>Trạng thái: {row.status}</span><span className="payment-select-hint">Xem chi tiết</span>
+            <span>Trạng thái: {appointmentStatus(row.status)}</span><span className="payment-select-hint">Xem chi tiết</span>
           </button>
         </li>)}</ul>
         <nav className="registration-actions" aria-label="Trang lịch hẹn"><button className="button outline" disabled={page === 1} onClick={() => loadList(page - 1)}>Trang trước</button><span>Trang {page}</span><button className="button outline" disabled={list.rows.length < 25} onClick={() => loadList(page + 1)}>Trang sau</button></nav>
@@ -103,7 +103,7 @@ function ScheduleDetail({ id, retry, accessDenied, go }) {
         <div><dt>{detail.itemKind === 'package' ? 'Gói vắc xin' : 'Vắc xin lẻ'}</dt><dd>{detail.serviceName}</dd></div>
         <div><dt>Thời gian (giờ địa phương)</dt><dd><time dateTime={detail.scheduledAt}>{appointmentTime(detail.scheduledAt)}</time></dd></div>
         <div><dt>Địa điểm</dt><dd>{detail.location}</dd></div>
-        <div><dt>Trạng thái</dt><dd>{detail.status}</dd></div>
+        <div><dt>Trạng thái</dt><dd>{appointmentStatus(detail.status)}</dd></div>
         <div><dt>Mã đăng ký nguồn</dt><dd>DK-{String(detail.registrationId).padStart(4, '0')}</dd></div>
       </dl>
       <p className="muted">Lịch hẹn không phải kết quả tiêm. Khi tải lại trang, bạn cần đăng nhập lại để xem lịch.</p>

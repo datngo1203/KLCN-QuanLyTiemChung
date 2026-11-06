@@ -18,6 +18,47 @@ namespace TiemChung.Windows.Ui.Tests;
 public sealed partial class ComboBoxTemplateTests
 {
     [Fact]
+    public async Task AppointmentLifecycleRendersDateFormAndBlocksClinicalActions()
+    {
+        using var http = new HttpClient(new LifecycleResponses()) { BaseAddress = new Uri("http://localhost") };
+        var identity = new IdentityApiService(http);
+        Assert.True((await identity.LoginAsync("synthetic", "synthetic")).Succeeded);
+        await host.Run(_ => {
+            var model = new AppointmentViewModel(identity: identity);
+            model.LoadAsync().GetAwaiter().GetResult(); model.Selected = model.Appointments[0]; model.LoadDetailAsync().GetAwaiter().GetResult();
+            var view = new AppointmentView { DataContext = model };
+            using var source = new HwndSource(new HwndSourceParameters("Appointment lifecycle regression") { Width = 1100, Height = 760, WindowStyle = 0 }) { RootVisual = view };
+            view.Measure(new Size(1100,760)); view.Arrange(new Rect(0,0,1100,760)); view.UpdateLayout();
+            Assert.True(Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content,"Đổi lịch")).IsEnabled);
+            Assert.True(Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content,"Hủy lịch")).IsEnabled);
+            model.BeginRescheduleCommand.Execute(null); view.UpdateLayout();
+            var date = Assert.Single(VisualChildren<DatePicker>(view), d => AutomationProperties.GetName(d)=="Ngày hẹn mới"); Assert.True(date.IsVisible);
+            Assert.True(Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content,"Xem và xác nhận đổi lịch")).IsVisible);
+            model.DiscardRescheduleCommand.Execute(null); model.Selected=model.Appointments[1];model.LoadDetailAsync().GetAwaiter().GetResult();view.UpdateLayout();
+            Assert.False(Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content,"Đổi lịch")).IsEnabled);
+            Assert.False(Assert.Single(VisualChildren<Button>(view), b => Equals(b.Content,"Hủy lịch")).IsEnabled);
+            Assert.Contains(VisualChildren<TextBlock>(view), t=>t.Text.Contains("đã bắt đầu khám sàng lọc"));
+        });
+    }
+
+    private sealed class LifecycleResponses : HttpMessageHandler
+    {
+        private static AppointmentRecord Row(int id) => new(id,7,new(1,"Nguyễn Test An"),new(2,"Nguyễn Test Bình"),"vaccine",12,99,"Avaxim 80U",DateTimeOffset.UtcNow.AddDays(2),AppointmentResponses.Facility,"DaXepLich","AAAAAAAAAAE=",id==1,id==1?null:"clinicalAlreadyStarted");
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var path=request.RequestUri!.AbsolutePath;
+            object body=path switch {
+                "/api/v1/auth/login"=>new{accessToken="synthetic",refreshToken="synthetic"},
+                "/api/v1/auth/me"=>new{accountType="employee",employee=new{title="LeTan"},permissions=new[]{"QuanLyLichHen"},capabilities=new{appointments=true}},
+                "/api/v1/appointments"=>new{items=new[]{Row(1),Row(2)}},
+                "/api/v1/appointments/1"=>Row(1), "/api/v1/appointments/2"=>Row(2),
+                _=>throw new InvalidOperationException("Unexpected lifecycle route.")
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=JsonContent.Create(body)});
+        }
+    }
+
+    [Fact]
     public async Task AppointmentPickerRendersReadinessAndKeepsSaveOutsideTheFormScroll()
     {
         using var http = new HttpClient(new AppointmentResponses()) { BaseAddress = new Uri("http://localhost") };

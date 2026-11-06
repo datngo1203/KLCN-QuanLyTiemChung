@@ -54,6 +54,7 @@ public static partial class AppointmentEndpoints
         var group = app.MapGroup("/api/v1/appointments").WithTags("Appointments");
         group.AddEndpointFilter(async (invocation, next) => {
             try { return await next(invocation); }
+            catch (DbUpdateConcurrencyException) { throw new IdentityFailure(409, "concurrencyConflict"); }
             catch (DbUpdateException e) when (e.InnerException is SqlException sql && sql.Number is 2601 or 2627 &&
                 (sql.Message.Contains("IX_LichHenTiem_VaccineTime", StringComparison.Ordinal) ||
                  sql.Message.Contains("IX_LichHenTiem_PackageTime", StringComparison.Ordinal))) {
@@ -61,6 +62,13 @@ public static partial class AppointmentEndpoints
             }
             catch (DbUpdateException) { throw new IdentityFailure(503, "dependencyUnavailable"); }
         });
+
+        group.MapPost("/{id:int}/reschedule", async (int id, RescheduleAppointmentRequest req, HttpContext context,
+            IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) =>
+            Results.Ok(await Mutate(id, req.Version, Utc(req.ScheduledAt), context, auth, db, ct)));
+        group.MapPost("/{id:int}/cancel", async (int id, CancelAppointmentRequest req, HttpContext context,
+            IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct) =>
+            Results.Ok(await Mutate(id, req.Version, null, context, auth, db, ct)));
 
         group.MapPost("", async (CreateAppointmentRequest req, HttpContext context, IdentityAuthorization auth,
             TiemChungDbContext db, CancellationToken ct) => {
@@ -208,5 +216,50 @@ public static partial class AppointmentEndpoints
         select new AppointmentDto(a.MaLichHen, r.MaDangKy, new(c.MaKhachHang, c.HoTen), new(p.MaNguoiDuocTiem, p.HoTen),
             a.MaChiTietVacXin != null ? "vaccine" : "package", a.MaChiTietVacXin ?? a.MaChiTietGoi!.Value,
             a.MaChiTietVacXin != null ? s.MaVacXin : b.MaGoi, a.MaChiTietVacXin != null ? v.TenVacXin : g.TenGoi,
-            new DateTimeOffset(DateTime.SpecifyKind(a.ThoiGianHen, DateTimeKind.Utc)), a.DiemTiem, a.TrangThai);
+            new DateTimeOffset(DateTime.SpecifyKind(a.ThoiGianHen, DateTimeKind.Utc)), a.DiemTiem, a.TrangThai,
+            Convert.ToBase64String(a.RowVersion),
+            a.TrangThai == "DaXepLich" && !db.Set<PhieuKhamSangLoc>().Any(p => p.MaLichHen == a.MaLichHen),
+            db.Set<PhieuKhamSangLoc>().Any(p => p.MaLichHen == a.MaLichHen) ? "clinicalAlreadyStarted" :
+                a.TrangThai != "DaXepLich" ? "appointmentNotActive" : null);
+
+    private static async Task<AppointmentDto> Mutate(int id, string version, DateTime? time, HttpContext context,
+        IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct)
+    {
+        // Reject unauthorized calls before waiting for an in-flight provider request.
+        await RequireReception(context, auth, false, ct);
+        byte[] expected;
+        try { expected = Convert.FromBase64String(version ?? ""); }
+        catch (FormatException) { throw new IdentityFailure(400, "validation"); }
+        if (id <= 0 || expected.Length != 8 || time <= DateTime.UtcNow) throw new IdentityFailure(400, "validation");
+        await using var deliveryLock = await AppointmentDeliveryLock.AcquireAsync(db, id, ct);
+        var registrationId = await db.Set<LichHenTiem>().Where(a => a.MaLichHen == id).Select(a => a.MaDangKy).SingleOrDefaultAsync(ct);
+        await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+        var actor = await RequireReception(context, auth, true, ct);
+        if (registrationId.HasValue)
+            await db.Registrations.FromSqlInterpolated($"SELECT * FROM DangKyDichVu WITH (UPDLOCK,HOLDLOCK) WHERE MaDangKy={registrationId.Value}").SingleOrDefaultAsync(ct);
+        var row = await db.Set<LichHenTiem>().FromSqlInterpolated(
+            $"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={id}").SingleOrDefaultAsync(ct)
+            ?? throw new IdentityFailure(404, "resourceNotFound");
+        if (!row.RowVersion.SequenceEqual(expected)) throw new IdentityFailure(409, "concurrencyConflict");
+        if (row.TrangThai != "DaXepLich") throw new IdentityFailure(409, "appointmentNotActive");
+        if (await db.Set<PhieuKhamSangLoc>().AnyAsync(p => p.MaLichHen == id, ct))
+            throw new IdentityFailure(409, "clinicalAlreadyStarted");
+        if (row.MaDangKy == null) throw new IdentityFailure(409, "appointmentSourceConflict");
+        if (time.HasValue) {
+            if (time <= DateTime.UtcNow || time == row.ThoiGianHen) throw new IdentityFailure(400, "validation");
+            row.ThoiGianHen = time.Value;
+        } else row.TrangThai = "DaHuy";
+        // The session lock excludes dispatch through provider acceptance and final status persistence.
+        var pending = await db.Set<ReminderEmail>().Where(r => r.AppointmentId == id && r.Status == "ChoGui").ToArrayAsync(ct);
+        foreach (var reminder in pending) {
+            reminder.Status = "GuiLoi"; reminder.LastErrorCode = "reminderSourceConflict"; reminder.NextAttemptAt = null;
+        }
+        var audit = IdentityTransactions.Audit(db, time.HasValue ? "appointments.rescheduled" : "appointments.cancelled",
+            context.TraceIdentifier, actor.Account.MaTaiKhoan, session: actor.Session.Id);
+        audit.ResourceType = "Appointment"; audit.ResourceId = id.ToString(CultureInfo.InvariantCulture);
+        await db.SaveChangesAsync(ct);
+        var result = await Query(db, db.Set<LichHenTiem>().Where(a => a.MaLichHen == id)).SingleAsync(ct);
+        await tx.CommitAsync(ct);
+        return result;
+    }
 }

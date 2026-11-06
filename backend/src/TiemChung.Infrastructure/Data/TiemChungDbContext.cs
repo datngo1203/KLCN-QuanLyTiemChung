@@ -450,6 +450,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         var lichhentiem = model.Entity<LichHenTiem>();
         lichhentiem.ToTable("LichHenTiem");
         lichhentiem.HasKey(x => x.MaLichHen);
+        lichhentiem.Property(x => x.RowVersion).IsRowVersion();
         // SQL composite FK in S5ClinicalAssessment preserves nullable legacy registration IDs.
         lichhentiem.HasIndex(x => new { x.MaLichHen, x.MaDangKy, x.MaNguoiDuocTiem }).IsUnique().HasFilter(null);
         lichhentiem.HasOne<DangKyDichVu>().WithMany()
@@ -483,7 +484,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         nhaclich.HasKey(x => x.MaNhacLich);
         nhaclich.Property(x => x.NoiDungMoPhong).HasColumnType("nvarchar(1000)");
         nhaclich.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
-        nhaclich.HasIndex(x => x.MaLichHen).IsUnique().HasDatabaseName("IX_NhacLich_Simulation")
+        nhaclich.HasIndex(x => new { x.MaLichHen, x.ScheduledAt }).IsUnique().HasDatabaseName("IX_NhacLich_Simulation")
             .HasFilter("[KenhGui] = N'LogMoPhong'");
         nhaclich.Property(x => x.MaNhacLich).HasColumnType("int");
         nhaclich.Property(x => x.MaLichHen).HasColumnType("int");
