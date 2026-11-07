@@ -452,6 +452,7 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         theodoisautiem.Property(x => x.ThoiDiem).HasColumnType("datetime2");
 
         var lichhentiem = model.Entity<LichHenTiem>();
+        lichhentiem.HasIndex(x => new { x.TrangThai, x.ThoiGianHen, x.MaLichHen });
         lichhentiem.ToTable("LichHenTiem");
         lichhentiem.HasKey(x => x.MaLichHen);
         lichhentiem.Property(x => x.RowVersion).IsRowVersion();

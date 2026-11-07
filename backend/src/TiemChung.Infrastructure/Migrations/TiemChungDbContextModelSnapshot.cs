@@ -1005,6 +1005,8 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasIndex("MaLichHen", "MaDangKy", "MaNguoiDuocTiem")
                         .IsUnique();
 
+                    b.HasIndex("TrangThai", "ThoiGianHen", "MaLichHen");
+
                     b.ToTable("LichHenTiem", null, t =>
                         {
                             t.HasCheckConstraint("CK_LichHenTiem_NguonDichVu", "([MaDangKy] IS NULL AND [MaChiTietVacXin] IS NULL AND [MaChiTietGoi] IS NULL) OR ([MaDangKy] IS NOT NULL AND (([MaChiTietVacXin] IS NOT NULL AND [MaChiTietGoi] IS NULL) OR ([MaChiTietVacXin] IS NULL AND [MaChiTietGoi] IS NOT NULL)))");
@@ -1385,10 +1387,10 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("CreatedByAccountId")
+                    b.Property<int?>("CreatedByAccountId")
                         .HasColumnType("int");
 
-                    b.Property<int>("CreatedByEmployeeId")
+                    b.Property<int?>("CreatedByEmployeeId")
                         .HasColumnType("int");
 
                     b.Property<int>("CustomerId")
@@ -1404,6 +1406,13 @@ namespace TiemChung.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("Manual");
 
                     b.Property<DateTimeOffset?>("LastAttemptAt")
                         .HasColumnType("datetimeoffset");
@@ -1470,11 +1479,14 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasIndex("Status", "CreatedAt");
 
-                    b.HasIndex("AppointmentId", "RegistrationId", "RecipientId", "ItemKind", "RegistrationItemId", "ScheduledAt")
-                        .IsUnique();
+                    b.HasIndex("AppointmentId", "RegistrationId", "RecipientId", "ItemKind", "RegistrationItemId", "ScheduledAt", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ReminderEmail_Snapshot_Kind");
 
                     b.ToTable("ReminderEmail", null, t =>
                         {
+                            t.HasCheckConstraint("CK_ReminderEmail_Kind", "([Kind]='Manual' AND [CreatedByAccountId] IS NOT NULL AND [CreatedByEmployeeId] IS NOT NULL) OR ([Kind] IN ('TMinus48','TMinus24','DPlus3','DPlus7') AND [CreatedByAccountId] IS NULL AND [CreatedByEmployeeId] IS NULL)");
+
                             t.HasCheckConstraint("CK_ReminderEmail_Status", "[Status] IN ('ChoGui','DaGui','GuiLoi') AND [Attempts]>=0 AND (([Status]='DaGui' AND [DeliveredAt] IS NOT NULL) OR ([Status]<>'DaGui' AND [DeliveredAt] IS NULL))");
                         });
                 });
@@ -2327,14 +2339,12 @@ namespace TiemChung.Infrastructure.Migrations
                     b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
                         .WithMany()
                         .HasForeignKey("CreatedByAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TiemChung.Domain.Entities.NhanVien", null)
                         .WithMany()
                         .HasForeignKey("CreatedByEmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TiemChung.Domain.Entities.TaiKhoan", null)
                         .WithMany()

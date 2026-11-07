@@ -253,7 +253,10 @@ public static partial class AppointmentEndpoints
         // The session lock excludes dispatch through provider acceptance and final status persistence.
         var pending = await db.Set<ReminderEmail>().Where(r => r.AppointmentId == id && r.Status == "ChoGui").ToArrayAsync(ct);
         foreach (var reminder in pending) {
-            reminder.Status = "GuiLoi"; reminder.LastErrorCode = "reminderSourceConflict"; reminder.NextAttemptAt = null;
+            reminder.Status = "GuiLoi";
+            // An interrupted provider claim is uncertain even when its appointment is later changed.
+            reminder.LastErrorCode = reminder.DispatchStarted ? "deliveryUncertain" : "reminderSourceConflict";
+            reminder.NextAttemptAt = null;
         }
         var audit = IdentityTransactions.Audit(db, time.HasValue ? "appointments.rescheduled" : "appointments.cancelled",
             context.TraceIdentifier, actor.Account.MaTaiKhoan, session: actor.Session.Id);

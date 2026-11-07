@@ -26,6 +26,8 @@ public sealed class ReminderViewModel:ViewModelBase
         RecordCommand=new(async _=>await RecordAsync(),_=>IsConfirming&&!_busy);
         RetryCommand=new(async _=>await PostAsync(),_=>HasPending&&!_busy&&_reconciled&&!_committed&&_detail?.CanRecord==true);
         DeliveryRetryCommand=new(async _=>await PostAsync(true),_=>HasDetail&&!_busy&&!_pending&&_detail!.Reminder?.CanRetry==true);
+        HistoryRetryCommand=new(async value=>{if(value is ReminderRecord r)await RetryHistoryAsync(r);},
+            value=>HasDetail&&!BlocksNavigation&&value is ReminderRecord {CanRetry:true});
         SearchCommand=new(async _=>await LoadQueueAsync(),_=>CanBrowse);
         PreviousCommand=new(async _=>await LoadQueueAsync(Page-1),_=>CanBrowse&&Page>1);
         NextCommand=new(async _=>await LoadQueueAsync(Page+1),_=>CanBrowse&&Queue.Count==AppointmentApiService.PageSize);
@@ -53,7 +55,7 @@ public sealed class ReminderViewModel:ViewModelBase
         set{if(CanBrowse&&Set(ref _selected,value))Select(value?.Id);}
     }
     public string Content=>HasDetail?(_detail!.Reminder?.Content??_detail.Preview??""):"";
-    public string StatusLabel=>Result?.StatusLabel??"Chưa gửi";
+    public string StatusLabel=>Result?.StatusLabel??(History.Length>0?"Lịch sử email bên dưới":"Chưa gửi");
     public string MaskedRecipient=>HasDetail?(_detail!.Reminder?.MaskedRecipient??_detail.MaskedRecipient??""):"";
     public string Subject=>HasDetail?(_detail!.Reminder?.Subject??_detail.Subject??""):"";
     public string DeliveryError=>Result?.ErrorLabel??"";
@@ -66,6 +68,7 @@ public sealed class ReminderViewModel:ViewModelBase
     public RelayCommand RecordCommand{get;}
     public RelayCommand RetryCommand{get;}
     public RelayCommand DeliveryRetryCommand{get;}
+    public RelayCommand HistoryRetryCommand{get;}
     public RelayCommand SearchCommand{get;}
     public RelayCommand PreviousCommand{get;}
     public RelayCommand NextCommand{get;}
@@ -90,7 +93,7 @@ public sealed class ReminderViewModel:ViewModelBase
     {
         OnPropertyChanged(nameof(History));
         foreach(var p in new[]{nameof(HasAccess),nameof(HasSelection),nameof(HasDetail),nameof(HasPending),nameof(BlocksNavigation),nameof(CanRecord),nameof(IsConfirming),nameof(IsBusy),nameof(Content),nameof(Feedback),nameof(Result),nameof(CanBrowse),nameof(NoAccess),nameof(NoResults),nameof(Page),nameof(QueueFeedback),nameof(Appointment),nameof(StatusLabel),nameof(MaskedRecipient),nameof(Subject),nameof(DeliveryError)})OnPropertyChanged(p);
-        foreach(var c in new[]{LoadCommand,ConfirmCommand,CancelCommand,RecordCommand,RetryCommand,DeliveryRetryCommand,SearchCommand,PreviousCommand,NextCommand})c?.NotifyCanExecuteChanged();
+        foreach(var c in new[]{LoadCommand,ConfirmCommand,CancelCommand,RecordCommand,RetryCommand,DeliveryRetryCommand,HistoryRetryCommand,SearchCommand,PreviousCommand,NextCommand})c?.NotifyCanExecuteChanged();
         Changed?.Invoke();
     }
     private void Error(Exception e)
@@ -110,10 +113,21 @@ public sealed class ReminderViewModel:ViewModelBase
             if(detail.Reminder!=null){_pending=false;_committed=false;_feedback=DeliveryFeedback(detail.Reminder);}
             else{_reconciled=true;if(_pending&&!_committed&&!detail.CanRecord)_pending=false;
                 _feedback=_pending?(_committed?"Đã nhận xác nhận lưu; tiếp tục đối chiếu, không ghi lại.":"Chưa có ghi nhận. Có thể thử lại thủ công trên cùng lịch."):
-                detail.CanRecord?"Xem email và người nhận trước khi xác nhận.":detail.UnavailableReason=="reminderRecipientUnavailable"?"Chưa có email đủ điều kiện nhận nhắc.":"Lịch không đủ điều kiện gửi email nhắc lịch.";}
+                detail.CanRecord?"Xem email và người nhận trước khi xác nhận.":detail.History is{Length:>0}?"Xem trạng thái từng email trong lịch sử bên dưới.":detail.UnavailableReason=="reminderRecipientUnavailable"?"Chưa có email đủ điều kiện nhận nhắc.":"Lịch không đủ điều kiện gửi email nhắc lịch.";}
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public async Task RecordAsync(){if(RecordCommand.CanExecute(null))await PostAsync();}
+    private async Task RetryHistoryAsync(ReminderRecord row)
+    {
+        if(!HistoryRetryCommand.CanExecute(row)||_id is not{} id)return;
+        _busy=true;_feedback="Đang thử lại email…";Refresh();
+        try{
+            await _service.RetryAsync(id,row.Attempts,row.Id);if(!IsCurrent||_denied)return;
+        }catch(Exception e){Error(e);}
+        finally{_busy=false;Refresh();}
+        // Reconcile this delivery before another retry, including an unknown HTTP outcome.
+        if(HasAccess)await LoadAsync();
+    }
     private static string DeliveryFeedback(ReminderRecord record)=>record.Status switch {
         "DaGui"=>"Đã gửi email nhắc lịch.", "GuiLoi"=>record.ErrorLabel, _=>"Đã ghi nhận yêu cầu. Email đang chờ gửi; tải lại để xem kết quả." };
     private async Task PostAsync(bool deliveryRetry=false)

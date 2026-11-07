@@ -106,7 +106,7 @@ public sealed class ReminderEmailDelivery(TiemChungDbContext db, IReminderEmailT
                     try {
                         var a = await ReminderEmailEndpoints.Source(db, row.AppointmentId, ct);
                         var owner = await ReminderEmailEndpoints.Recipient(db, a, ct);
-                        if (!await ReminderEmailEndpoints.Eligible(db, a, ct) || !await ReminderEmailEndpoints.Snapshot(db, a).AnyAsync(x => x.Id == row.Id, ct))
+                        if (!await ReminderEmailEndpoints.Eligible(db, a, row.Kind, DateTimeOffset.UtcNow, ct) || !await ReminderEmailEndpoints.Snapshot(db, a).AnyAsync(x => x.Id == row.Id, ct))
                             throw new IdentityFailure(409, "reminderSourceConflict");
                         if (owner?.MaTaiKhoan != row.RecipientAccountId || owner.LoginEmail != row.RecipientEmail)
                             throw new IdentityFailure(409, "reminderRecipientUnavailable");

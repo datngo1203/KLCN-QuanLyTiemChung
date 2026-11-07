@@ -24,8 +24,16 @@ public static class ReminderEmailEndpoints
         await AppointmentEndpoints.Query(db, ClinicalEndpoints.Sources(db).Where(x => x.MaLichHen == id)).SingleOrDefaultAsync(ct)
             ?? throw new IdentityFailure(409, "reminderSourceConflict");
 
-    internal static async Task<bool> Eligible(TiemChungDbContext db, AppointmentDto a, CancellationToken ct) =>
-        a.Status != "DaXepLich" || a.ScheduledAt <= DateTimeOffset.UtcNow ? false : !await
+    internal static Task<bool> Eligible(TiemChungDbContext db, AppointmentDto a, CancellationToken ct) =>
+        Eligible(db, a, "Manual", DateTimeOffset.UtcNow, ct);
+
+    internal static async Task<bool> Eligible(TiemChungDbContext db, AppointmentDto a, string kind, DateTimeOffset now, CancellationToken ct) =>
+        a.Status != "DaXepLich" || !(kind switch {
+            "Manual" or "TMinus48" or "TMinus24" => a.ScheduledAt > now,
+            "DPlus3" => a.ScheduledAt.AddDays(3) <= now,
+            "DPlus7" => a.ScheduledAt.AddDays(7) <= now,
+            _ => false
+        }) ? false : !await
         (from m in db.Set<MuiTiem>()
          join i in db.Set<ChiDinhTiem>() on m.MaChiDinh equals i.MaChiDinh
          join p in db.Set<PhieuKhamSangLoc>() on i.MaPhieuKham equals p.MaPhieuKham
@@ -46,13 +54,16 @@ public static class ReminderEmailEndpoints
 
     internal static string Mask(string email) => email[..1] + "***@" + email[(email.IndexOf('@') + 1)..];
     private static string Display(string name) => name.StartsWith("[DEMO] ", StringComparison.OrdinalIgnoreCase) ? name[7..] : name;
-    private static (string Subject, string Body) Content(AppointmentDto a, IConfiguration config)
+    internal static (string Subject, string Body) Content(AppointmentDto a, IConfiguration config, string kind = "Manual")
     {
         var hotline = config["Appointments:Hotline"];
         if (string.IsNullOrWhiteSpace(hotline)) throw new IdentityFailure(503, "dependencyUnavailable");
         var time = a.ScheduledAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm 'UTC+07:00 (Asia/Ho_Chi_Minh)'", CultureInfo.InvariantCulture);
-        return ($"[VNVC] Nhắc lịch tiêm chủng LH-{a.Id:0000}",
-            $"Trung tâm tiêm chủng VNVC — VNVC Hoàng Văn Thụ\n\nKính chào Quý khách,\n\nMã lịch hẹn: LH-{a.Id:0000}\nMã đăng ký: DK-{a.RegistrationId:0000}\nNgười được tiêm: {Display(a.Recipient.FullName)}\nDịch vụ: {Display(a.ServiceName)}\nNgày giờ hẹn: {time}\nĐịa điểm: {a.Location}\nHotline: {hotline}\n\nNếu cần thay đổi lịch, vui lòng liên hệ trung tâm qua hotline trên để được hỗ trợ.\nLịch hẹn không thay thế khám sàng lọc và chỉ định chuyên môn.\n\nTrân trọng,\nTrung tâm tiêm chủng VNVC");
+        var recall = kind is "DPlus3" or "DPlus7";
+        var intro = recall ? "Chúng tôi ghi nhận lịch hẹn đã qua nhưng chưa có thông tin mũi tiêm hoàn tất trong hệ thống.\nVui lòng liên hệ trung tâm để sắp xếp lại.\n\n" : "";
+        var content = ($"[VNVC] Nhắc lịch tiêm chủng LH-{a.Id:0000}",
+            $"Trung tâm tiêm chủng VNVC — VNVC Hoàng Văn Thụ\n\nKính chào Quý khách,\n\n{intro}Mã lịch hẹn: LH-{a.Id:0000}\nMã đăng ký: DK-{a.RegistrationId:0000}\nNgười được tiêm: {Display(a.Recipient.FullName)}\nDịch vụ: {Display(a.ServiceName)}\nNgày giờ hẹn: {time}\nĐịa điểm: {a.Location}\nHotline: {hotline}\n\nNếu cần thay đổi lịch, vui lòng liên hệ trung tâm qua hotline trên để được hỗ trợ.\nLịch hẹn không thay thế khám sàng lọc và chỉ định chuyên môn.\n\nTrân trọng,\nTrung tâm tiêm chủng VNVC");
+        return (recall ? $"[VNVC] Liên hệ sắp xếp lịch LH-{a.Id:0000}" : content.Item1, content.Item2);
     }
 
     internal static bool Retryable(ReminderEmail row) => row.Status == "GuiLoi" &&
@@ -60,10 +71,10 @@ public static class ReminderEmailEndpoints
 
     private static async Task<ReminderEmailDto> Result(TiemChungDbContext db, ReminderEmail row, CancellationToken ct)
     {
-        var staff = await db.Set<NhanVien>().AsNoTracking().SingleAsync(x => x.MaNhanVien == row.CreatedByEmployeeId, ct);
+        var staff = row.CreatedByEmployeeId == null ? null : await db.Set<NhanVien>().AsNoTracking().SingleAsync(x => x.MaNhanVien == row.CreatedByEmployeeId, ct);
         return new(row.Id, row.AppointmentId, "Email", row.Status, row.Body, row.CreatedAt,
-            new(staff.MaNhanVien, staff.HoTen), Mask(row.RecipientEmail), row.Subject, row.Attempts,
-            row.DeliveredAt, row.NextAttemptAt, row.LastErrorCode, Retryable(row));
+            staff == null ? null : new(staff.MaNhanVien, staff.HoTen), Mask(row.RecipientEmail), row.Subject, row.Attempts,
+            row.DeliveredAt, row.NextAttemptAt, row.LastErrorCode, Retryable(row), row.Kind);
     }
 
     public static void MapReminderEmailEndpoints(this IEndpointRouteBuilder app)
@@ -77,7 +88,9 @@ public static class ReminderEmailEndpoints
             var now = DateTime.UtcNow;
             var shots = from m in db.Set<MuiTiem>() join i in db.Set<ChiDinhTiem>() on m.MaChiDinh equals i.MaChiDinh
                         join p in db.Set<PhieuKhamSangLoc>() on i.MaPhieuKham equals p.MaPhieuKham where m.TrangThai == "DaTiem" select p.MaLichHen;
-            var rows = ClinicalEndpoints.Sources(db).Where(a => a.TrangThai == "DaXepLich" && a.ThoiGianHen > now && !shots.Contains(a.MaLichHen));
+            var rows = ClinicalEndpoints.Sources(db).Where(a =>
+                (a.TrangThai == "DaXepLich" && a.ThoiGianHen > now && !shots.Contains(a.MaLichHen)) ||
+                db.Set<ReminderEmail>().Any(r => r.AppointmentId == a.MaLichHen));
             if (!string.IsNullOrEmpty(search)) {
                 int.TryParse(search.StartsWith("LH-", StringComparison.OrdinalIgnoreCase) ? search[3..] : search, out var id);
                 rows = rows.Where(a => a.MaLichHen == id || db.Recipients.Any(p => p.MaNguoiDuocTiem == a.MaNguoiDuocTiem && p.HoTen.Contains(search)));
@@ -95,11 +108,14 @@ public static class ReminderEmailEndpoints
             if (id <= 0) throw new IdentityFailure(400, "validation");
             if (!await db.Set<LichHenTiem>().AnyAsync(x => x.MaLichHen == id, ct)) throw new IdentityFailure(404, "resourceNotFound");
             var a = await Source(db, id, ct);
-            var row = await Snapshot(db, a).AsNoTracking().SingleOrDefaultAsync(ct);
+            var row = await Snapshot(db, a).AsNoTracking().SingleOrDefaultAsync(r => r.Kind == "Manual", ct);
             var historyRows = await db.Set<ReminderEmail>().AsNoTracking().Where(r => r.AppointmentId == id && (row == null || r.Id != row.Id))
                 .OrderByDescending(r => r.Id).ToArrayAsync(ct);
             var history = new List<ReminderEmailDto>();
-            foreach (var old in historyRows) history.Add((await Result(db, old, ct)) with { CanRetry = false });
+            foreach (var old in historyRows) history.Add((await Result(db, old, ct)) with {
+                CanRetry = Retryable(old) && await Eligible(db, a, old.Kind, DateTimeOffset.UtcNow, ct) &&
+                    await Snapshot(db, a).AnyAsync(r => r.Id == old.Id, ct)
+            });
             if (row != null) return Results.Ok(new ReminderEmailDetailDto(a, null, false,
                 (await Result(db, row, ct)) with { CanRetry = await Eligible(db, a, ct) && Retryable(row) },
                 Mask(row.RecipientEmail), row.Subject, null, history.ToArray()));
@@ -117,7 +133,7 @@ public static class ReminderEmailEndpoints
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
             var a = await Source(db, id, ct);
             // Replay returns the committed snapshot, including after a lost HTTP response.
-            var row = await Snapshot(db, a).SingleOrDefaultAsync(ct);
+            var row = await Snapshot(db, a).SingleOrDefaultAsync(r => r.Kind == "Manual", ct);
             if (row == null) {
                 if (!await Eligible(db, a, ct)) throw new IdentityFailure(409, "reminderSourceConflict");
                 var recipient = await Recipient(db, a, ct) ?? throw new IdentityFailure(409, "reminderRecipientUnavailable");
@@ -142,10 +158,11 @@ public static class ReminderEmailEndpoints
             _ = await db.Set<LichHenTiem>().FromSqlInterpolated($"SELECT * FROM LichHenTiem WITH (UPDLOCK,HOLDLOCK) WHERE MaLichHen={id}")
                 .SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(404, "resourceNotFound");
             var a = await Source(db, id, ct);
-            var row = await Snapshot(db, a).SingleOrDefaultAsync(ct) ?? throw new IdentityFailure(409, "reminderRetryUnavailable");
+            var row = await Snapshot(db, a).SingleOrDefaultAsync(r => req.DeliveryId == null ? r.Kind == "Manual" : r.Id == req.DeliveryId, ct)
+                ?? throw new IdentityFailure(409, "reminderRetryUnavailable");
             // Expected attempt prevents a stale retry click from retrying a later failed attempt.
             if (!Retryable(row) || req.ExpectedAttempts != row.Attempts) throw new IdentityFailure(409, "reminderRetryUnavailable");
-            if (!await Eligible(db, a, ct)) throw new IdentityFailure(409, "reminderSourceConflict");
+            if (!await Eligible(db, a, row.Kind, DateTimeOffset.UtcNow, ct)) throw new IdentityFailure(409, "reminderSourceConflict");
             var recipient = await Recipient(db, a, ct);
             if (recipient?.MaTaiKhoan != row.RecipientAccountId || recipient.LoginEmail != row.RecipientEmail)
                 throw new IdentityFailure(409, "reminderRecipientUnavailable");

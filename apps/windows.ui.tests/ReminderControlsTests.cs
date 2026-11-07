@@ -35,6 +35,12 @@ public sealed partial class ComboBoxTemplateTests
             view.Dispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);view.UpdateLayout();
             Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text==ReminderResponses.Row.Label);
             Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text=="Nội dung nhắc lịch thử nghiệm");
+            var history=VisualChildren<Expander>(view).ToArray();Assert.Equal(4,history.Length);
+            Assert.Equal(new[]{"Nhắc lịch T−48h","Nhắc lịch T−24h","Liên hệ sắp xếp lại D+3","Liên hệ sắp xếp lại D+7"},history.Select(e=>e.Header));
+            foreach(var item in history){item.IsExpanded=true;item.ApplyTemplate();}
+            view.Dispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);
+            view.UpdateLayout();
+            Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text=="Tự động bởi hệ thống");
             Assert.DoesNotContain(VisualChildren<TextBlock>(view),t=>t.Text.Contains("AppointmentRecord {")||t.Text.Contains("LogMoPhong")||t.Text.Contains("GET"));
             model.ConfirmCommand.Execute(null);Assert.False(list.IsEnabled);
             model.CancelCommand.Execute(null);Assert.Null(model.Result);
@@ -59,7 +65,8 @@ public sealed partial class ComboBoxTemplateTests
             else if(path.EndsWith("/me"))body=new{accountType="employee",employee=new{title="LeTan"},permissions=new[]{"QuanLyLichHen"},capabilities=new{appointments=true}};
             else if(path.EndsWith("/email-queue"))body=new{items=_saved?Array.Empty<AppointmentRecord>():new[]{Row}};
             else if(request.Method==HttpMethod.Post){_saved=true;body=record;status=HttpStatusCode.Created;}
-            else body=new ReminderDetail(Row,_saved?null:record.Content,!_saved,_saved?record:null,record.MaskedRecipient,record.Subject);
+            else body=new ReminderDetail(Row,_saved?null:record.Content,!_saved,_saved?record:null,record.MaskedRecipient,record.Subject,
+                History:new[]{"TMinus48","TMinus24","DPlus3","DPlus7"}.Select((kind,index)=>record with{Id=20+index,Kind=kind,RecordedBy=null}).ToArray());
             return Task.FromResult(new HttpResponseMessage(status){Content=JsonContent.Create(body)});
         }
     }
