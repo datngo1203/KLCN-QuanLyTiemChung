@@ -10,7 +10,7 @@ public sealed record ReminderRecord(int Id,int AppointmentId,string Channel,stri
 {
     public string TimeLabel => RecordedAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm:ss 'UTC+07'");
     public string RecorderLabel => Kind != "Manual" ? "Tự động bởi hệ thống" : RecordedBy?.FullName ?? "Chưa có liên kết người ghi (dữ liệu cũ)";
-    public string KindLabel => Kind switch { "Manual"=>"Nhắc lịch thủ công", "TMinus48"=>"Nhắc lịch T−48h", "TMinus24"=>"Nhắc lịch T−24h", "DPlus3"=>"Liên hệ sắp xếp lại D+3", "DPlus7"=>"Liên hệ sắp xếp lại D+7", _=>"Loại nhắc lịch chưa hỗ trợ" };
+    public string KindLabel => Kind switch { "Manual"=>"Nhắc lịch thủ công", "TMinus48"=>"Nhắc trước lịch hẹn 48 giờ", "TMinus24"=>"Nhắc trước lịch hẹn 24 giờ", "DPlus3"=>"Liên hệ sau lịch hẹn 3 ngày", "DPlus7"=>"Liên hệ sau lịch hẹn 7 ngày", _=>"Loại nhắc lịch chưa hỗ trợ" };
     public string StatusLabel => Status switch { "ChoGui"=>"Đang gửi", "DaGui"=>"Đã gửi", "GuiLoi"=>"Gửi lỗi", _=>"Chưa gửi" };
     public string ErrorLabel => LastErrorCode switch {
         "deliveryUncertain"=>"Chưa xác định được kết quả gửi. Cần đối chiếu trước khi gửi lại.",

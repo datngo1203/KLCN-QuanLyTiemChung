@@ -36,7 +36,7 @@ public sealed partial class ComboBoxTemplateTests
             Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text==ReminderResponses.Row.Label);
             Assert.Contains(VisualChildren<TextBlock>(view),t=>t.Text=="Nội dung nhắc lịch thử nghiệm");
             var history=VisualChildren<Expander>(view).ToArray();Assert.Equal(4,history.Length);
-            Assert.Equal(new[]{"Nhắc lịch T−48h","Nhắc lịch T−24h","Liên hệ sắp xếp lại D+3","Liên hệ sắp xếp lại D+7"},history.Select(e=>e.Header));
+            Assert.Equal(new[]{"Nhắc trước lịch hẹn 48 giờ","Nhắc trước lịch hẹn 24 giờ","Liên hệ sau lịch hẹn 3 ngày","Liên hệ sau lịch hẹn 7 ngày"},history.Select(e=>e.Header));
             foreach(var item in history){item.IsExpanded=true;item.ApplyTemplate();}
             view.Dispatcher.Invoke(()=>{},DispatcherPriority.ApplicationIdle);
             view.UpdateLayout();

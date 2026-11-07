@@ -98,8 +98,8 @@ public sealed class ReminderClientTests
         var vm=await Ready(fake);Assert.False(vm.DeliveryRetryCommand.CanExecute(null));Assert.DoesNotContain("deliveryUncertain",vm.DeliveryError);
     }
     [Theory]
-    [InlineData("TMinus48","Nhắc lịch T−48h")][InlineData("TMinus24","Nhắc lịch T−24h")]
-    [InlineData("DPlus3","Liên hệ sắp xếp lại D+3")][InlineData("DPlus7","Liên hệ sắp xếp lại D+7")]
+    [InlineData("TMinus48","Nhắc trước lịch hẹn 48 giờ")][InlineData("TMinus24","Nhắc trước lịch hẹn 24 giờ")]
+    [InlineData("DPlus3","Liên hệ sau lịch hẹn 3 ngày")][InlineData("DPlus7","Liên hệ sau lịch hẹn 7 ngày")]
     public async Task AutomatedHistoryParsesLabelsAndSystemOrigin(string kind,string label) {
         var row=Saved with{Kind=kind,RecordedBy=null,Status="DaGui",DeliveredAt=DateTimeOffset.UtcNow};
         var handler=new Handler{DetailOverride=Detail() with{History=[row]}};
