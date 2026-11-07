@@ -15,15 +15,14 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-Không có business slice ACTIVE. Chờ người dùng xác nhận trước khi kích hoạt NEXT.
+**REGIMEN-R1 #180** — mở rộng phác đồ Catalog hiện có với calendar interval + base dose và hiển thị timeline tham khảo source-backed trên Customer Web; không auto chọn phác đồ, không auto-eligibility/chỉ định, không thay `LichHenTiem` làm lịch thực tế.
 
 ### NEXT
-1. **REGIMEN-R1**.
-2. **#168 UI-F03**.
-3. **RF-02C**.
-4. **PAY-R1**.
-5. **DATA-R2**.
-6. **S8** final integration/end-to-end.
+1. **#168 UI-F03**.
+2. **RF-02C**.
+3. **PAY-R1**.
+4. **DATA-R2**.
+5. **S8** final integration/end-to-end.
 
 ### PARKED sau core/S8
 - **#173 NOTIFY-R1** — shared Email/SMS delivery + provider SMS thật.
