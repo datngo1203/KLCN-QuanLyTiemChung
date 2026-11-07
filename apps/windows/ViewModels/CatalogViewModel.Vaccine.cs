@@ -396,4 +396,7 @@ public sealed class CatalogDoseDraft : ViewModelBase
     }
 }
 
-public sealed record CatalogDoseAnchor(int? Order, string Label);
+public sealed record CatalogDoseAnchor(int? Order, string Label)
+{
+    public override string ToString() => Label;
+}

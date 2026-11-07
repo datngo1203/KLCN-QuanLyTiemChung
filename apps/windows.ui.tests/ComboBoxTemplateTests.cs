@@ -88,6 +88,7 @@ public sealed partial class ComboBoxTemplateTests(WpfComboBoxHost host) : IClass
         var anchor = Assert.Single(combos, combo => AutomationProperties.GetName(combo) == "Mũi neo tham khảo");
         var unit = Assert.Single(combos, combo => AutomationProperties.GetName(combo) == "Đơn vị khoảng cách");
         Assert.Equal("Mũi 1", Assert.IsType<CatalogDoseAnchor>(anchor.SelectedItem).Label);
+        Assert.Equal("Mũi 1", anchor.SelectedItem.ToString());
         Assert.Equal("Tháng", Assert.IsType<CatalogStatus>(unit.SelectedItem).Label);
         Assert.Equal(2, anchor.Items.Count);
         Assert.Equal(5, unit.Items.Count);
