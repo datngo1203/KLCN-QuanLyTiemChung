@@ -28,9 +28,11 @@ public sealed record VaccineRequest(string Name, string Manufacturer, string Ori
     string? AdministrationRoute = null, string? AdministrationRouteNote = null, string? Dosage = null, decimal? Volume = null,
     string? SourceName = null, string? SourceUrl = null, DateTimeOffset? InformationUpdatedAt = null, VaccineRegimenRequest[]? Regimens = null, int[]? TechnologyIds = null);
 public sealed record VaccineRegimenRequest(string Name, string TargetAudience, string? Summary, VaccineRegimenDoseRequest[] Doses, string? SourceName = null, string? SourceUrl = null);
-public sealed record VaccineRegimenDoseRequest(int DoseOrder, string TimingLabel, int? MinimumIntervalDays = null, int? RecommendedIntervalDays = null, string? Note = null);
+public sealed record VaccineRegimenDoseRequest(int DoseOrder, string TimingLabel, int? MinimumIntervalDays = null, int? RecommendedIntervalDays = null, string? Note = null,
+    int? AnchorDoseOrder = null, int? IntervalValue = null, string? IntervalUnit = null);
 public sealed record VaccineRegimenDto(int Id, string Name, string TargetAudience, string? Summary, string? SourceName, string? SourceUrl, VaccineRegimenDoseDto[] Doses);
-public sealed record VaccineRegimenDoseDto(int Id, int DoseOrder, string TimingLabel, int? MinimumIntervalDays, int? RecommendedIntervalDays, string? Note);
+public sealed record VaccineRegimenDoseDto(int Id, int DoseOrder, string TimingLabel, int? MinimumIntervalDays, int? RecommendedIntervalDays, string? Note,
+    int? AnchorDoseOrder = null, int? IntervalValue = null, string? IntervalUnit = null);
 public sealed record PackageItemDto(int VaccineId, int Quantity, string? VaccineName = null, string? VaccineCode = null);
 public sealed record PackageRequest(string Name, [property: System.Text.Json.Serialization.JsonRequired] decimal Price, PackageItemDto[] Items,
     string? Code = null, string? Status = null, string? Description = null, string? TargetAudience = null);

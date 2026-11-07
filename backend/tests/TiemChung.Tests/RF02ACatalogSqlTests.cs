@@ -186,7 +186,9 @@ public sealed class RF02ACatalogSqlTests
     public async Task SqlOrAuditFailureRollsBackVaccineLinksRegimensDosesAndAudit(string failingTable)
     {
         await WithCatalog(async f => {
-            var req=await Request(f); var vaccine=await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root+"vaccines",req),HttpStatusCode.Created);
+            var req=await Request(f);
+            req = req with { Regimens = [req.Regimens![0] with { Doses = [new(1,"First"), new(2,"Second", AnchorDoseOrder:1, IntervalValue:2, IntervalUnit:"Years")] }] };
+            var vaccine=await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root+"vaccines",req),HttpStatusCode.Created);
             var snapshot=JsonSerializer.Serialize(vaccine); var auditCount=await f.Db.Set<SecurityAudit>().CountAsync();
             var otherDisease=await f.Db.Set<Benh>().OrderByDescending(x=>x.MaBenh).FirstAsync();
             // Table names are fixed InlineData, never request data. A DB failure occurs after child replacements start.
@@ -209,6 +211,94 @@ public sealed class RF02ACatalogSqlTests
             Assert.Equal(auditCount,await f.Db.Set<SecurityAudit>().CountAsync()); Assert.Equal(3,await f.Db.Vaccines.CountAsync());
         });
     }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task RegimenR1ValidatesAnchorsRoundTripsAndPreservesGraphOnOldPut() => WithCatalog(async f => {
+        var req = await Request(f);
+        var first = new VaccineRegimenDoseRequest(1, "First", 3, 7);
+        var second = new VaccineRegimenDoseRequest(3, "Later", AnchorDoseOrder: 1, IntervalValue: 6, IntervalUnit: "Months");
+        var regimen = req.Regimens![1] with { Doses = [second, first] };
+        req = req with { Regimens = [regimen] };
+        var created = await Success<VaccineDto>(f.Client.PostAsJsonAsync(Root + "vaccines", req), HttpStatusCode.Created);
+        var path = Root + "vaccines/" + created.Id;
+        var graph = Assert.Single(created.Regimens);
+        Assert.Equal(regimen.SourceUrl, graph.SourceUrl);
+        Assert.Equal(new[] { 1, 3 }, graph.Doses.Select(d => d.DoseOrder));
+        var sql = await f.Db.Set<VaccineRegimenDose>().AsNoTracking().SingleAsync(d => d.RegimenId == graph.Id && d.DoseOrder == 3);
+        Assert.Equal((1, 6, "Months"), (sql.AnchorDoseOrder, sql.IntervalValue, sql.IntervalUnit));
+        Assert.Equal((1, 6, "Months"), (graph.Doses[1].AnchorDoseOrder, graph.Doses[1].IntervalValue, graph.Doses[1].IntervalUnit));
+        Assert.Null(sql.MinimumIntervalDays);
+        Assert.Null(sql.RecommendedIntervalDays);
+        var oldPut = new { name = "Old client", req.Manufacturer, req.Origin, req.Price };
+        var omitted = await Success<VaccineDto>(f.Client.PutAsJsonAsync(path, oldPut));
+        Assert.Equal("Old client", omitted.Name);
+        var explicitNull = await Success<VaccineDto>(f.Client.PutAsJsonAsync(path, req with { Name = "Explicit null", Regimens = null }));
+        Assert.Equal("Explicit null", explicitNull.Name);
+        var savedGraph = JsonSerializer.Serialize(created.Regimens);
+        Assert.Equal(savedGraph, JsonSerializer.Serialize(omitted.Regimens));
+        Assert.Equal(savedGraph, JsonSerializer.Serialize(explicitNull.Regimens));
+
+        var resource = created.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var audit = await f.Db.Set<SecurityAudit>().Where(a => a.ResourceType == "vaccines" && a.ResourceId == resource).ToArrayAsync();
+        Assert.Single(audit, a => a.Action == "catalog.created");
+        Assert.Equal(2, audit.Count(a => a.Action == "catalog.updated"));
+        Assert.All(audit, a => Assert.NotNull(a.ActorAccountId));
+
+        var auditCount = await f.Db.Set<SecurityAudit>().CountAsync();
+        var invalid = new[] {
+            second with { IntervalUnit = "months" }, second with { IntervalUnit = "Days " },
+            second with { IntervalValue = 0 }, second with { IntervalValue = -1 }, second with { IntervalValue = null },
+            second with { IntervalUnit = null }, second with { AnchorDoseOrder = null },
+            second with { AnchorDoseOrder = 2 }, second with { AnchorDoseOrder = 3 }, second with { AnchorDoseOrder = 4 },
+            second with { MinimumIntervalDays = 0 }, second with { RecommendedIntervalDays = 5 }
+        };
+        foreach (var dose in invalid)
+            await Error(f.Client.PutAsJsonAsync(path, req with { Name = "Invalid", Regimens = [regimen with { Doses = [first, dose] }] }), HttpStatusCode.BadRequest);
+        // A forward edge to an existing dose is also rejected, including a two-dose cycle.
+        var cycle = first with { MinimumIntervalDays = null, RecommendedIntervalDays = null, AnchorDoseOrder = 3, IntervalValue = 1, IntervalUnit = "Days" };
+        await Error(f.Client.PutAsJsonAsync(path, req with { Regimens = [regimen with { Doses = [cycle, second] }] }), HttpStatusCode.BadRequest);
+        var reloaded = await Success<VaccineDto>(f.Client.GetAsync(path));
+        Assert.Equal("Explicit null", reloaded.Name);
+        Assert.Equal(savedGraph, JsonSerializer.Serialize(reloaded.Regimens));
+        Assert.Equal(auditCount, await f.Db.Set<SecurityAudit>().CountAsync());
+    });
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public Task RegimenR1MigrationPreservesLegacyAndEnforcesCalendarCheck() => SqlFixtureLifecycle.RunAsync(
+        () => CatalogSqlTests.Fixture.Create(async db => {
+            await db.GetService<IMigrator>().MigrateAsync("20261107013336_RF05GAutomaticReminders");
+            var vaccine = new VacXin { Code = "VX-R1-LEGACY", TenVacXin = "Synthetic", NhaSanXuat = "Maker", XuatXu = "Origin" };
+            db.Add(vaccine);
+            await db.SaveChangesAsync();
+            var regimen = new VaccineRegimen { VaccineId = vaccine.MaVacXin, Name = "Legacy", TargetAudience = "Synthetic" };
+            db.Add(regimen);
+            await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO VaccineRegimenDose (RegimenId, DoseOrder, TimingLabel, MinimumIntervalDays, RecommendedIntervalDays)
+                VALUES ({regimen.Id}, 1, N'First', NULL, NULL), ({regimen.Id}, 2, N'Legacy timing', 3, 7);
+                """);
+        }), async f => {
+            await f.Db.Database.MigrateAsync();
+            Assert.False(f.Db.Database.HasPendingModelChanges());
+            Assert.Empty(await f.Db.Database.GetPendingMigrationsAsync());
+            var legacy = await f.Db.Set<VaccineRegimenDose>().AsNoTracking().SingleAsync(d => d.DoseOrder == 2);
+            Assert.Equal(("Legacy timing", 3, 7), (legacy.TimingLabel, legacy.MinimumIntervalDays, legacy.RecommendedIntervalDays));
+            Assert.Null(legacy.AnchorDoseOrder);
+            Assert.Null(legacy.IntervalValue);
+            Assert.Null(legacy.IntervalUnit);
+            foreach (var (anchor, value, unit, legacyDays) in new (int?, int?, string?, int?)[] {
+                (1, null, "Days", null), (null, 1, "Days", null), (1, 1, null, null),
+                (0, 1, "Days", null), (3, 1, "Days", null), (1, 0, "Days", null),
+                (1, 1, "days", null), (1, 1, "Days ", null), (1, 1, "Weeks", 0)
+            }) {
+                var error = await Assert.ThrowsAsync<SqlException>(() => f.Db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO VaccineRegimenDose (RegimenId, DoseOrder, TimingLabel, AnchorDoseOrder, IntervalValue, IntervalUnit, MinimumIntervalDays)
+                    VALUES ({legacy.RegimenId}, 3, N'Invalid', {anchor}, {value}, {unit}, {legacyDays});
+                    """));
+                Assert.Contains("CK_VaccineRegimenDose_CalendarInterval", error.Message);
+            }
+            Assert.Equal(2, await f.Db.Set<VaccineRegimenDose>().CountAsync());
+        });
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task SeedIsIdempotentFullGraphAndObsoleteDemoFlagCannotEnableRuntimeFallback()

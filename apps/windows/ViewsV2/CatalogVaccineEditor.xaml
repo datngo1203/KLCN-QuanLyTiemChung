@@ -26,6 +26,10 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,4,0,10"/>
         </Style>
+        <Style x:Key="IntervalSelector" TargetType="ComboBox" BasedOn="{StaticResource CE.ComboBox}">
+            <Setter Property="Margin" Value="0,4,0,10"/>
+            <Setter Property="IsEnabled" Value="{Binding DataContext.CanEdit,RelativeSource={RelativeSource AncestorType=local:CatalogVaccineEditor}}"/>
+        </Style>
     </UserControl.Resources>
     <StackPanel IsEnabled="{Binding CanInteract}">
         <TextBlock Text="Định danh và trạng thái" Style="{StaticResource CE.SectionHeading}"/>
@@ -150,7 +154,7 @@
                     <TextBlock Text="{Binding Regimens.Count,StringFormat='Phác đồ tham khảo · {0}'}" Style="{StaticResource CE.SectionHeading}"/>
                 </Expander.Header>
                 <StackPanel Margin="0,8,0,0">
-                    <TextBlock Text="Ghi lại phác đồ theo nguồn đã tra cứu. Nội dung chỉ dùng để tham khảo." Style="{StaticResource Helper}"/>
+                    <TextBlock Text="Ghi lại phác đồ theo nguồn đã tra cứu. Khi dùng mũi neo, để trống các khoảng cách ngày cũ." Style="{StaticResource Helper}"/>
                     <ItemsControl x:Name="RegimenList" ItemsSource="{Binding Regimens}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:CatalogRegimenDraft}">
@@ -187,6 +191,25 @@
                                                             <TextBlock Text="Thời điểm *"/>
                                                             <TextBox x:Name="DoseTimingInput" Text="{Binding TimingLabel,UpdateSourceTrigger=PropertyChanged}" MaxLength="250"
                                                                      Style="{StaticResource Field}" AutomationProperties.Name="Thời điểm mũi"/>
+                                                            <TextBlock Text="Mũi neo tham khảo"/>
+                                                            <ComboBox ItemsSource="{Binding AnchorOptions}" DisplayMemberPath="Label" SelectedValuePath="Order"
+                                                                      SelectedValue="{Binding AnchorDoseOrder}" Style="{StaticResource IntervalSelector}"
+                                                                      AutomationProperties.Name="Mũi neo tham khảo"/>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Khoảng cách sau mũi neo" TextWrapping="Wrap"/>
+                                                                    <TextBox Text="{Binding IntervalValue,UpdateSourceTrigger=PropertyChanged}" MaxLength="10"
+                                                                             Style="{StaticResource Field}" AutomationProperties.Name="Khoảng cách sau mũi neo"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="2">
+                                                                    <TextBlock Text="Đơn vị"/>
+                                                                    <ComboBox ItemsSource="{Binding IntervalUnits}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                                              SelectedValue="{Binding IntervalUnit}" Style="{StaticResource IntervalSelector}"
+                                                                              AutomationProperties.Name="Đơn vị khoảng cách"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                            <TextBlock Text="Khoảng cách ngày theo dữ liệu cũ" Style="{StaticResource Helper}"/>
                                                             <Grid>
                                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                                 <StackPanel>

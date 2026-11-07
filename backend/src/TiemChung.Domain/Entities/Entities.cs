@@ -238,6 +238,9 @@ public sealed class VaccineRegimenDose
     public string TimingLabel { get; set; } = string.Empty;
     public int? MinimumIntervalDays { get; set; }
     public int? RecommendedIntervalDays { get; set; }
+    public int? AnchorDoseOrder { get; set; }
+    public int? IntervalValue { get; set; }
+    public string? IntervalUnit { get; set; }
     public string? Note { get; set; }
 }
 

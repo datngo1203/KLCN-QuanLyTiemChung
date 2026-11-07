@@ -322,11 +322,20 @@ public sealed partial class TiemChungDbContext(DbContextOptions<TiemChungDbConte
         dose.ToTable("VaccineRegimenDose", t => {
             t.HasCheckConstraint("CK_VaccineRegimenDose_Order", "[DoseOrder] BETWEEN 1 AND 20");
             t.HasCheckConstraint("CK_VaccineRegimenDose_Intervals", "([MinimumIntervalDays] IS NULL OR [MinimumIntervalDays] >= 0) AND ([RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= 0) AND ([MinimumIntervalDays] IS NULL OR [RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= [MinimumIntervalDays])");
+            t.HasCheckConstraint("CK_VaccineRegimenDose_CalendarInterval", """
+                ([AnchorDoseOrder] IS NULL AND [IntervalValue] IS NULL AND [IntervalUnit] IS NULL)
+                OR ([AnchorDoseOrder] IS NOT NULL AND [IntervalValue] IS NOT NULL AND [IntervalUnit] IS NOT NULL
+                    AND [AnchorDoseOrder] >= 1 AND [AnchorDoseOrder] < [DoseOrder] AND [IntervalValue] > 0
+                    AND [IntervalUnit] COLLATE Latin1_General_100_BIN2 IN (N'Days', N'Weeks', N'Months', N'Years')
+                    AND DATALENGTH([IntervalUnit]) = 2 * LEN([IntervalUnit])
+                    AND [MinimumIntervalDays] IS NULL AND [RecommendedIntervalDays] IS NULL)
+                """);
         });
         dose.HasKey(x => x.Id);
         dose.HasOne<VaccineRegimen>().WithMany().HasForeignKey(x => x.RegimenId).OnDelete(DeleteBehavior.Cascade);
         dose.HasIndex(x => new { x.RegimenId, x.DoseOrder }).IsUnique();
         dose.Property(x => x.TimingLabel).HasMaxLength(250);
+        dose.Property(x => x.IntervalUnit).HasMaxLength(6);
         dose.Property(x => x.Note).HasMaxLength(500);
 
         var goivacxinvacxin = model.Entity<GoiVacXin_VacXin>();

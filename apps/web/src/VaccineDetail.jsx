@@ -8,6 +8,48 @@ export function ProductPlaceholder() {
   return <div className="product-placeholder"><ImageOff aria-hidden="true" /><span>Chưa có hình ảnh sản phẩm được xác minh</span></div>
 }
 
+const intervalUnits = new Map([['Days', 'ngày'], ['Weeks', 'tuần'], ['Months', 'tháng'], ['Years', 'năm']])
+
+function doseTiming(dose, doses) {
+  const unit = intervalUnits.get(dose.intervalUnit)
+  if (unit && Number.isInteger(dose.intervalValue) && dose.intervalValue > 0 &&
+      dose.anchorDoseOrder < dose.doseOrder && doses.some(anchor => anchor.doseOrder === dose.anchorDoseOrder)) {
+    return `${dose.intervalValue} ${unit} sau mũi ${dose.anchorDoseOrder}`
+  }
+  if (dose.timingLabel?.trim()) return dose.timingLabel
+  const days = []
+  if (Number.isInteger(dose.minimumIntervalDays)) days.push(`Tối thiểu ${dose.minimumIntervalDays} ngày`)
+  if (Number.isInteger(dose.recommendedIntervalDays)) days.push(`Khuyến nghị ${dose.recommendedIntervalDays} ngày`)
+  return days.join(' · ') || 'Chưa có thông tin về thời điểm'
+}
+
+function referenceUrl(value) {
+  if (!/^https?:\/\//i.test(value)) return null
+  try {
+    const url = new URL(value)
+    return url.username || url.password ? null : url.href
+  } catch { return null }
+}
+
+function RegimenReference({ regimen }) {
+  const url = referenceUrl(regimen.sourceUrl)
+  const doses = [...(regimen.doses ?? [])].sort((a, b) => a.doseOrder - b.doseOrder)
+  return <article className="regimen-reference">
+    <h3>{regimen.name}</h3>
+    <p><strong>Đối tượng tham khảo</strong> · {regimen.targetAudience}</p>
+    {regimen.summary && <p>{regimen.summary}</p>}
+    <ol className="regimen-doses" role="list">
+      {doses.map(dose => <li key={dose.id}>
+        <strong>Mũi {dose.doseOrder}</strong>
+        <div>{doseTiming(dose, doses)}</div>
+        {dose.note && <div className="vac-reference">{dose.note}</div>}
+      </li>)}
+    </ol>
+    {url ? <p className="vac-reference"><a href={url} target="_blank" rel="noreferrer">{regimen.sourceName || 'Nguồn phác đồ'}</a></p>
+      : regimen.sourceName && <p className="vac-reference">{regimen.sourceName}</p>}
+  </article>
+}
+
 export default function VaccineDetail({ id, go }) {
   const [vaccine, setVaccine] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -46,7 +88,13 @@ export default function VaccineDetail({ id, go }) {
         </div>
       </div>
       {vaccine.sourceName && <p className="catalog-clinical-note">{vaccine.sourceName}</p>}
-      <p className="catalog-clinical-note">Danh mục hiện chưa cung cấp độ tuổi, liều dùng, lịch tiêm, chống chỉ định hoặc tồn kho. Vui lòng trao đổi với nhân viên y tế để được tư vấn; chỉ định tiêm cần được đánh giá chuyên môn.</p>
+      <section aria-labelledby="regimen-heading" className="vaccine-regimens">
+        <h2 id="regimen-heading">Phác đồ tham khảo</h2>
+        <p>Lịch tiêm cá nhân và chỉ định tiêm cần được nhân viên y tế xác nhận.</p>
+        {vaccine.regimens?.length
+          ? vaccine.regimens.map(regimen => <RegimenReference key={regimen.id} regimen={regimen} />)
+          : <p className="empty-state">Chưa có phác đồ tham khảo cho vắc xin này.</p>}
+      </section>
     </>}
   </section>
 }
