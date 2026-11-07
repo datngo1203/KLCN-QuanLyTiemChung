@@ -55,10 +55,22 @@ public sealed class RegisteredDoseSqlTests
         (client ?? f.Nurse).PostAsJsonAsync("/api/v1/vaccinations", new RecordVaccinationRequest(id,
             vaccine == f.B ? "[DEMO] S55-VALID-B" : "[DEMO] S5-VALID-A", "Bắp tay trái"));
 
+    private static async Task AddReferenceRegimen(Fixture f)
+    {
+        var regimen = new VaccineRegimen { VaccineId = f.A, Name = "Synthetic reference", TargetAudience = "Synthetic audience" };
+        f.Db.Add(regimen);
+        await f.Db.SaveChangesAsync();
+        f.Db.AddRange(new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = 1, TimingLabel = "First" },
+            new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = 2, TimingLabel = "Later",
+                AnchorDoseOrder = 1, IntervalValue = 6, IntervalUnit = "Years" });
+        await f.Db.SaveChangesAsync();
+    }
+
     [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("vaccine", 1)][InlineData("package", 2)]
     public Task EnforcesRegisteredQuantityAcrossAppointmentsAndKeepsVaccinesAndRegistrationsIndependent(string kind, int quantity) =>
         SqlFixtureLifecycle.RunAsync(Fixture.Create, async f => {
+            await AddReferenceRegimen(f);
             if (kind == "package") await f.Db.Set<GoiVacXin_VacXin>().Where(c => c.MaGoi == f.PackageId && c.MaVacXin == f.A)
                 .ExecuteUpdateAsync(s => s.SetProperty(c => c.SoLuong, 2));
             var r = await Register(f, kind, quantity);
@@ -132,6 +144,7 @@ public sealed class RegisteredDoseSqlTests
     [Fact, Trait("Category", "SqlIntegration")]
     public Task JourneyReportsCertainProgressAndOnlyConfirmedNextAppointmentWithLegacyFailClosed() =>
         SqlFixtureLifecycle.RunAsync(Fixture.Create, async f => {
+            await AddReferenceRegimen(f);
             using var customer = await f.Base.Actor(null, false); var account = f.Base.LastAccountId;
             f.Db.AddRange(new AccountProfileLink { AccountId = account, CustomerId = f.Base.CustomerId, State = "Active" },
                 new AccountProfileLink { AccountId = account, RecipientId = f.Base.RecipientId, State = "Active" }); await f.Db.SaveChangesAsync();
@@ -144,6 +157,7 @@ public sealed class RegisteredDoseSqlTests
             var progress = journey.Progress.Single(d => d.VaccineId == f.A);
             Assert.Equal(2, progress.RegisteredDoses); Assert.Equal(1, progress.AdministeredDoses); Assert.Equal(1, progress.RemainingDoses);
             Assert.Equal(future.Id, progress.NextAppointment!.Id); Assert.Equal(future.Id, journey.NextAppointment!.Id);
+            Assert.Equal(future.ScheduledAt, progress.NextAppointment.ScheduledAt);
             Assert.Equal(0, journey.Progress.Single(d => d.VaccineId == f.B).AdministeredDoses);
             await f.Db.Set<LichHenTiem>().Where(x => x.MaLichHen == future.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.TrangThai, "Legacy"));
             journey = await Read(); Assert.Null(journey.NextAppointment); Assert.All(journey.Progress, d => Assert.Null(d.NextAppointment));

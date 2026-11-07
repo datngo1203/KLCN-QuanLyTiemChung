@@ -70,7 +70,8 @@ public static class DevelopmentCatalogSeed
             db.Add(regimen); await db.SaveChangesAsync();
             // Calendar months must not be guessed as a fixed number of days.
             db.AddRange(new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = 1, TimingLabel = "Lần tiêm đầu tiên" },
-                new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = 2, TimingLabel = "6 tháng sau mũi 1" });
+                new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = 2, TimingLabel = "6 tháng sau mũi 1",
+                    AnchorDoseOrder = 1, IntervalValue = 6, IntervalUnit = "Months" });
             await db.SaveChangesAsync();
         }
         // No package: synthetic compositions/prices must not be advertised as real products.

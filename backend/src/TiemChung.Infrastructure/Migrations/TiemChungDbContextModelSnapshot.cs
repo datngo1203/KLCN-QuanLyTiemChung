@@ -1945,7 +1945,17 @@ namespace TiemChung.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AnchorDoseOrder")
+                        .HasColumnType("int");
+
                     b.Property<int>("DoseOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IntervalUnit")
+                        .HasMaxLength(6)
+                        .HasColumnType("nvarchar(6)");
+
+                    b.Property<int?>("IntervalValue")
                         .HasColumnType("int");
 
                     b.Property<int?>("MinimumIntervalDays")
@@ -1973,6 +1983,8 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.ToTable("VaccineRegimenDose", null, t =>
                         {
+                            t.HasCheckConstraint("CK_VaccineRegimenDose_CalendarInterval", "([AnchorDoseOrder] IS NULL AND [IntervalValue] IS NULL AND [IntervalUnit] IS NULL)\nOR ([AnchorDoseOrder] IS NOT NULL AND [IntervalValue] IS NOT NULL AND [IntervalUnit] IS NOT NULL\n    AND [AnchorDoseOrder] >= 1 AND [AnchorDoseOrder] < [DoseOrder] AND [IntervalValue] > 0\n    AND [IntervalUnit] COLLATE Latin1_General_100_BIN2 IN (N'Days', N'Weeks', N'Months', N'Years')\n    AND DATALENGTH([IntervalUnit]) = 2 * LEN([IntervalUnit])\n    AND [MinimumIntervalDays] IS NULL AND [RecommendedIntervalDays] IS NULL)");
+
                             t.HasCheckConstraint("CK_VaccineRegimenDose_Intervals", "([MinimumIntervalDays] IS NULL OR [MinimumIntervalDays] >= 0) AND ([RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= 0) AND ([MinimumIntervalDays] IS NULL OR [RecommendedIntervalDays] IS NULL OR [RecommendedIntervalDays] >= [MinimumIntervalDays])");
 
                             t.HasCheckConstraint("CK_VaccineRegimenDose_Order", "[DoseOrder] BETWEEN 1 AND 20");

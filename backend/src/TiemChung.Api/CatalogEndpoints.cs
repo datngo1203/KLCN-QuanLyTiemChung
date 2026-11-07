@@ -232,7 +232,8 @@ public static class CatalogEndpoints
             TargetAudience = v.DoiTuongSuDung, AdministrationRoute = v.DuongDung, AdministrationRouteNote = v.DuongDungKhac,
             Dosage = v.LieuLuong, Volume = v.TheTich, SourceName = v.NguonThongTin, SourceUrl = v.DuongDanNguon, InformationUpdatedAt = v.NgayCapNhatThongTin,
             Regimens = regimens.Where(r => r.VaccineId == v.MaVacXin).Select(r => new VaccineRegimenDto(r.Id, r.Name, r.TargetAudience, r.Summary, r.SourceName, r.SourceUrl,
-                doses.Where(d => d.RegimenId == r.Id).Select(d => new VaccineRegimenDoseDto(d.Id, d.DoseOrder, d.TimingLabel, d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note)).ToArray())).ToArray()
+                doses.Where(d => d.RegimenId == r.Id).Select(d => new VaccineRegimenDoseDto(d.Id, d.DoseOrder, d.TimingLabel,
+                    d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note, d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit)).ToArray())).ToArray()
         }).ToArray();
     }
     private static async Task<PackageDto> PackageDetail(TiemChungDbContext db, int id, CancellationToken ct) =>
@@ -330,7 +331,14 @@ public static class CatalogEndpoints
             if (regimen.Doses == null || regimen.Doses.Length is < 1 or > 20 || regimen.Doses.Any(d => d == null || d.DoseOrder is < 1 or > 20 ||
                 d.MinimumIntervalDays is < 0 || d.RecommendedIntervalDays is < 0 || d.RecommendedIntervalDays < d.MinimumIntervalDays) ||
                 regimen.Doses.Select(d => d.DoseOrder).Distinct().Count() != regimen.Doses.Length) throw new IdentityFailure(400, "validation");
-            foreach (var dose in regimen.Doses) { ValidateText(dose.TimingLabel, 250); ValidateText(dose.Note, 500, false); }
+            foreach (var dose in regimen.Doses) {
+                ValidateText(dose.TimingLabel, 250); ValidateText(dose.Note, 500, false);
+                if (dose.AnchorDoseOrder is null && dose.IntervalValue is null && dose.IntervalUnit is null) continue;
+                if (dose.AnchorDoseOrder is not int anchor || anchor >= dose.DoseOrder || !regimen.Doses.Any(d => d.DoseOrder == anchor) ||
+                    dose.IntervalValue is not > 0 || dose.IntervalUnit is not ("Days" or "Weeks" or "Months" or "Years") ||
+                    dose.MinimumIntervalDays is not null || dose.RecommendedIntervalDays is not null)
+                    throw new IdentityFailure(400, "validation");
+            }
         }
     }
     private static void SetVaccine(VacXin row, VaccineRequest req)
@@ -364,7 +372,8 @@ public static class CatalogEndpoints
                 var regimen = new VaccineRegimen { VaccineId = id, Name = r.Name.Trim(), TargetAudience = r.TargetAudience.Trim(), Summary = r.Summary?.Trim(), SourceName = r.SourceName?.Trim(), SourceUrl = r.SourceUrl?.Trim() };
                 db.Add(regimen); await db.SaveChangesAsync(ct);
                 db.AddRange(r.Doses.Select(d => new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = d.DoseOrder, TimingLabel = d.TimingLabel.Trim(),
-                    MinimumIntervalDays = d.MinimumIntervalDays, RecommendedIntervalDays = d.RecommendedIntervalDays, Note = d.Note?.Trim() }));
+                    MinimumIntervalDays = d.MinimumIntervalDays, RecommendedIntervalDays = d.RecommendedIntervalDays, Note = d.Note?.Trim(),
+                    AnchorDoseOrder = d.AnchorDoseOrder, IntervalValue = d.IntervalValue, IntervalUnit = d.IntervalUnit }));
             }
         }
     }

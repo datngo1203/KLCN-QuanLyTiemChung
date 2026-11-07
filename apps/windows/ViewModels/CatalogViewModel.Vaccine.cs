@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TiemChung.Contracts;
 using TiemChung.Desktop.Services;
 
@@ -170,7 +171,20 @@ public sealed partial class CatalogViewModel
             var min = ReadDays(dose.MinimumIntervalDays, doseLabel + " — số ngày tối thiểu");
             var recommended = ReadDays(dose.RecommendedIntervalDays, doseLabel + " — số ngày khuyến nghị");
             if (recommended < min) throw Invalid(field, $"{doseLabel} — số ngày khuyến nghị phải từ số ngày tối thiểu trở lên.");
-            return new VaccineRegimenDoseRequest(dose.Order, dose.TimingLabel, min, recommended, dose.Note);
+            int? interval = null;
+            if (dose.AnchorDoseOrder.HasValue || !string.IsNullOrWhiteSpace(dose.IntervalValue) || dose.IntervalUnit is not null) {
+                if (dose.AnchorDoseOrder is not int anchor || !dose.AnchorOptions.Any(option => option.Order == anchor))
+                    throw Invalid(field, $"{doseLabel} — chọn một mũi neo đứng trước mũi này.");
+                if (!int.TryParse(dose.IntervalValue.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var value) || value <= 0)
+                    throw Invalid(field, $"{doseLabel} — khoảng cách phải là số nguyên dương.");
+                if (dose.IntervalUnit is null || !dose.IntervalUnits.Any(unit => unit.Value == dose.IntervalUnit))
+                    throw Invalid(field, $"{doseLabel} — chọn đơn vị khoảng cách.");
+                if (min.HasValue || recommended.HasValue)
+                    throw Invalid(field, $"{doseLabel} — xóa các khoảng cách ngày cũ để dùng khoảng cách theo mũi neo.");
+                interval = value;
+            }
+            return new VaccineRegimenDoseRequest(dose.Order, dose.TimingLabel, min, recommended, dose.Note,
+                dose.AnchorDoseOrder, interval, dose.IntervalUnit);
         }).ToArray();
         return new VaccineRegimenRequest(regimen.Name, regimen.TargetAudience, regimen.Summary, doses, regimen.SourceName, regimen.SourceUrl);
     }
@@ -287,7 +301,10 @@ public sealed class CatalogRegimenDraft : ViewModelBase
         _sourceUrl = value?.SourceUrl ?? "";
         _doses = new((value?.Doses ?? []).OrderBy(x => x.DoseOrder).Select(x => new CatalogDoseDraft(x)));
         Doses = new(_doses);
-        foreach (var dose in Doses) dose.PropertyChanged += DoseChanged;
+        foreach (var dose in Doses) {
+            dose.UpdateAnchors(Doses, dose.AnchorDoseOrder);
+            dose.PropertyChanged += DoseChanged;
+        }
     }
     public event Action? Changed;
     public ReadOnlyObservableCollection<CatalogDoseDraft> Doses { get; }
@@ -318,7 +335,12 @@ public sealed class CatalogRegimenDraft : ViewModelBase
 
     private void NotifyDoseStructure()
     {
+        // Map the old order before renumbering so an anchor keeps pointing to the same dose.
+        var orders = _doses.Select((dose, index) => (dose.Order, NewOrder: index + 1)).ToDictionary(x => x.Order, x => x.NewOrder);
+        var anchors = _doses.Select(dose => dose.AnchorDoseOrder is int anchor && orders.TryGetValue(anchor, out var order)
+            ? (int?)order : null).ToArray();
         for (var i = 0; i < _doses.Count; i++) _doses[i].Order = i + 1;
+        for (var i = 0; i < _doses.Count; i++) _doses[i].UpdateAnchors(Doses, anchors[i]);
         OnPropertyChanged(nameof(CanAddDose));
         Changed?.Invoke();
     }
@@ -333,20 +355,45 @@ public sealed class CatalogRegimenDraft : ViewModelBase
 
 public sealed class CatalogDoseDraft : ViewModelBase
 {
+    private static readonly CatalogStatus[] Units = [
+        new(null, "Chọn đơn vị"), new("Days", "Ngày"), new("Weeks", "Tuần"), new("Months", "Tháng"), new("Years", "Năm")
+    ];
     private int _order;
-    private string _timingLabel, _minimumIntervalDays, _recommendedIntervalDays, _note;
+    private int? _anchorDoseOrder;
+    private string? _intervalUnit;
+    private string _timingLabel, _minimumIntervalDays, _recommendedIntervalDays, _note, _intervalValue;
     public CatalogDoseDraft(VaccineRegimenDoseDto? value = null)
     {
         _order = value?.DoseOrder ?? 0;
         _timingLabel = value?.TimingLabel ?? "";
         _minimumIntervalDays = value?.MinimumIntervalDays?.ToString(CultureInfo.InvariantCulture) ?? "";
         _recommendedIntervalDays = value?.RecommendedIntervalDays?.ToString(CultureInfo.InvariantCulture) ?? "";
+        _anchorDoseOrder = value?.AnchorDoseOrder;
+        _intervalValue = value?.IntervalValue?.ToString(CultureInfo.InvariantCulture) ?? "";
+        _intervalUnit = value?.IntervalUnit;
         _note = value?.Note ?? "";
     }
-    public bool HasContent => !string.IsNullOrWhiteSpace(TimingLabel + MinimumIntervalDays + RecommendedIntervalDays + Note);
+    public bool HasContent => AnchorDoseOrder.HasValue || IntervalUnit is not null ||
+        !string.IsNullOrWhiteSpace(TimingLabel + MinimumIntervalDays + RecommendedIntervalDays + Note + IntervalValue);
     public int Order { get => _order; internal set => Set(ref _order, value); }
     public string TimingLabel { get => _timingLabel; set => Set(ref _timingLabel, value); }
     public string MinimumIntervalDays { get => _minimumIntervalDays; set => Set(ref _minimumIntervalDays, value); }
     public string RecommendedIntervalDays { get => _recommendedIntervalDays; set => Set(ref _recommendedIntervalDays, value); }
+    public int? AnchorDoseOrder { get => _anchorDoseOrder; set => Set(ref _anchorDoseOrder, value); }
+    public string IntervalValue { get => _intervalValue; set => Set(ref _intervalValue, value); }
+    public string? IntervalUnit { get => _intervalUnit; set => Set(ref _intervalUnit, value); }
+    [JsonIgnore] public IReadOnlyList<CatalogStatus> IntervalUnits => Units;
+    [JsonIgnore] public IReadOnlyList<CatalogDoseAnchor> AnchorOptions { get; private set; } = [];
     public string Note { get => _note; set => Set(ref _note, value); }
+
+    internal void UpdateAnchors(IEnumerable<CatalogDoseDraft> doses, int? anchor)
+    {
+        AnchorOptions = [new(null, "Không dùng mũi neo"), .. doses.Where(d => d.Order < Order)
+            .Select(d => new CatalogDoseAnchor(d.Order, $"Mũi {d.Order}"))];
+        OnPropertyChanged(nameof(AnchorOptions));
+        _anchorDoseOrder = anchor;
+        OnPropertyChanged(nameof(AnchorDoseOrder));
+    }
 }
+
+public sealed record CatalogDoseAnchor(int? Order, string Label);

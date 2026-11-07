@@ -166,6 +166,51 @@ public sealed partial class CatalogClientTests
     }
 
     [Fact]
+    public async Task StructuredRegimenRoundTripsAndRemovingAnchorRequiresAnExplicitRepair()
+    {
+        var api = new VaccineHandler();
+        var vm = await OpenVaccine(api);
+        var regimen = vm.Regimens[0];
+        var later = Assert.IsType<CatalogDoseDraft>(vm.AddDose(regimen));
+        later.TimingLabel = "Mốc tham khảo";
+        later.AnchorDoseOrder = Assert.Single(later.AnchorOptions, option => option.Order.HasValue).Order;
+        later.IntervalUnit = later.IntervalUnits.Single(unit => unit.Label == "Tháng").Value;
+        foreach (var invalid in new[] { "", "0", "-3", "1,5", "2147483648" }) {
+            later.IntervalValue = invalid;
+            await Execute(vm, vm.SaveCommand);
+            Assert.Contains("số nguyên dương", vm.Feedback);
+            Assert.Null(api.LastWrite);
+        }
+        later.IntervalValue = "6";
+        later.MinimumIntervalDays = "0";
+        await Execute(vm, vm.SaveCommand);
+        Assert.Contains("khoảng cách ngày cũ", vm.Feedback);
+        later.MinimumIntervalDays = "";
+        api.Timeout = true;
+        await Execute(vm, vm.SaveCommand);
+        Assert.True(vm.IsDirty);
+        Assert.Equal((1, "6", "Months"), (later.AnchorDoseOrder, later.IntervalValue, later.IntervalUnit));
+        api.Timeout = false;
+        await Execute(vm, vm.SaveCommand);
+        Assert.Equal((1, 6, "Months"), (api.LastWrite!.Regimens![0].Doses[1].AnchorDoseOrder,
+            api.LastWrite.Regimens[0].Doses[1].IntervalValue, api.LastWrite.Regimens[0].Doses[1].IntervalUnit));
+        Assert.False(vm.IsDirty);
+        var readOnly = await OpenVaccine(api, ["QuanLyDanhMucChuyenMon"]);
+        var saved = readOnly.Regimens[0].Doses[1];
+        Assert.Equal((1, "6", "Months"), (saved.AnchorDoseOrder, saved.IntervalValue, saved.IntervalUnit));
+        Assert.False(readOnly.SaveCommand.CanExecute(null));
+
+        regimen = vm.Regimens[0];
+        later = regimen.Doses[1];
+        vm.RemoveDose(regimen, regimen.Doses[0]);
+        Assert.Null(later.AnchorDoseOrder);
+        Assert.Equal("6", later.IntervalValue);
+        Assert.True(vm.IsDirty);
+        await Execute(vm, vm.SaveCommand);
+        Assert.Contains("mũi neo", vm.Feedback);
+    }
+
+    [Fact]
     public async Task VaccineWriteRightsReferencedConflictAndTimeoutKeepDraftForRetry()
     {
         var api = new VaccineHandler();
@@ -241,7 +286,8 @@ public sealed partial class CatalogClientTests
                 Diseases = value.DiseaseIds is null ? _saved.Diseases : References(Diseases, value.DiseaseIds),
                 Technologies = value.TechnologyIds is null ? _saved.Technologies : References(Technologies, value.TechnologyIds),
                 Regimens = value.Regimens?.Select(r => new VaccineRegimenDto(91, r.Name, r.TargetAudience, r.Summary, r.SourceName, r.SourceUrl,
-                    r.Doses.Select(d => new VaccineRegimenDoseDto(92, d.DoseOrder, d.TimingLabel, d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note)).ToArray())).ToArray() ?? _saved.Regimens
+                    r.Doses.Select(d => new VaccineRegimenDoseDto(92, d.DoseOrder, d.TimingLabel, d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note,
+                        d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit)).ToArray())).ToArray() ?? _saved.Regimens
             };
             return Ok(_saved);
         }

@@ -43,7 +43,10 @@ public sealed class DevelopmentCatalogSeedSqlTests
             var doses = await f.Db.Set<VaccineRegimenDose>().OrderBy(x => x.RegimenId).ThenBy(x => x.DoseOrder).ToArrayAsync();
             Assert.Equal(4, doses.Length);
             Assert.All(doses, d => { Assert.Null(d.MinimumIntervalDays); Assert.Null(d.RecommendedIntervalDays); });
-            Assert.All(doses.Where(d => d.DoseOrder == 2), d => Assert.Equal("6 tháng sau mũi 1", d.TimingLabel));
+            Assert.All(doses.Where(d => d.DoseOrder == 2), d => {
+                Assert.Equal("6 tháng sau mũi 1", d.TimingLabel);
+                Assert.Equal((1, 6, "Months"), (d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit));
+            });
             Assert.Empty(await f.Db.Set<GoiVacXin>().ToArrayAsync());
             Assert.DoesNotContain("DEMO", await Snapshot(f.Db));
             Assert.DoesNotContain("mô phỏng", await Snapshot(f.Db));
@@ -57,9 +60,13 @@ public sealed class DevelopmentCatalogSeedSqlTests
             var web = (await f.Client.GetFromJsonAsync<VaccineListResponse>("/api/v1/catalog/vaccines"))!;
             Assert.Equal("database", web.Source); Assert.Equal(2, web.Items.Count);
             Assert.All(web.Items, v => { Assert.NotNull(v.SourceUrl); Assert.NotNull(v.InformationUpdatedAt); Assert.Single(v.Regimens); });
+            Assert.All(windows.SelectMany(v => v.Regimens), r => Assert.Equal("Months", r.Doses.Single(d => d.DoseOrder == 2).IntervalUnit));
+            Assert.All(web.Items.SelectMany(v => v.Regimens), r => Assert.Equal("Months", r.Doses.Single(d => d.DoseOrder == 2).IntervalUnit));
 
             vaccines[0].Gia = 123456; vaccines[0].TenVacXin = "Avaxim đã chỉnh sửa"; vaccines[0].TrangThai = "Inactive";
             doses[1].TimingLabel = "Nhân viên đã chỉnh lịch tham khảo";
+            doses[1].AnchorDoseOrder = doses[1].IntervalValue = null;
+            doses[1].IntervalUnit = null;
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
             var before = await Snapshot(f.Db);
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);

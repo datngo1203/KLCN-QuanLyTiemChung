@@ -51,6 +51,9 @@ public sealed class RF02B2VaccineEditorSqlTests
             var dose = Assert.IsType<CatalogDoseDraft>(vm.AddDose(regimen));
             dose.TimingLabel = "Synthetic timing"; dose.MinimumIntervalDays = "3";
             dose.RecommendedIntervalDays = "7"; dose.Note = "Synthetic note";
+            var later = Assert.IsType<CatalogDoseDraft>(vm.AddDose(regimen));
+            later.TimingLabel = "Synthetic second step";
+            later.AnchorDoseOrder = 1; later.IntervalValue = "6"; later.IntervalUnit = "Months";
             await Execute(vm, vm.SaveCommand);
             Assert.StartsWith("Đã tạo", vm.Feedback);
             var id = vm.Selected!.Id;
@@ -79,8 +82,10 @@ public sealed class RF02B2VaccineEditorSqlTests
             Assert.Equal(regimen.Summary, persistedRegimen.Summary);
             Assert.Equal(regimen.SourceName, persistedRegimen.SourceName);
             Assert.Equal(regimen.SourceUrl, persistedRegimen.SourceUrl);
-            var persistedDose = Assert.Single(persistedRegimen.Doses);
+            Assert.Equal(2, persistedRegimen.Doses.Length);
+            var persistedDose = persistedRegimen.Doses[0];
             Assert.Equal(new VaccineRegimenDoseDto(persistedDose.Id, 1, dose.TimingLabel, 3, 7, dose.Note), persistedDose);
+            Assert.Equal((1, 6, "Months"), (persistedRegimen.Doses[1].AnchorDoseOrder, persistedRegimen.Doses[1].IntervalValue, persistedRegimen.Doses[1].IntervalUnit));
 
             legacy.TrangThai = technology.TrangThai = "Inactive";
             await f.Db.SaveChangesAsync();
@@ -88,6 +93,8 @@ public sealed class RF02B2VaccineEditorSqlTests
             Assert.Contains(vm.DiseaseSelection.Selected, x => x.Id == legacy.MaBenh && !x.Active);
             Assert.False(Assert.Single(vm.TechnologySelection.Selected).Active);
             Assert.Equal(persistedDose.Note, vm.Regimens[0].Doses[0].Note);
+            var reloaded = vm.Regimens[0].Doses[1];
+            Assert.Equal((1, "6", "Months"), (reloaded.AnchorDoseOrder, reloaded.IntervalValue, reloaded.IntervalUnit));
             await f.Login();
             using var package = await f.Client.PostAsJsonAsync("/api/v1/catalog/packages",
                 new PackageRequest("[DEMO] Package", 235000, [new(id, 1)], "GOI-B2", TargetAudience: "Synthetic"));
@@ -101,6 +108,7 @@ public sealed class RF02B2VaccineEditorSqlTests
             vm.Status = "Active";
             vm.AdministrationRoute = vm.VaccineRoutes.Single(x => x.Label == "Đường uống").Value;
             vm.Regimens[0].Doses[0].Note = "Updated dose";
+            reloaded.IntervalValue = "7";
             await Execute(vm, vm.SaveCommand);
             Assert.StartsWith("Đã cập nhật", vm.Feedback);
             Assert.False(vm.IsDirty);
@@ -113,7 +121,9 @@ public sealed class RF02B2VaccineEditorSqlTests
             Assert.Equal(detail.InformationUpdatedAt, sql.NgayCapNhatThongTin);
             Assert.Equal(2, await f.Db.Set<VacXin_Benh>().CountAsync(x => x.MaVacXin == id));
             Assert.Equal(technology.MaCongNghe, (await f.Db.Set<VacXin_CongNghe>().AsNoTracking().SingleAsync()).MaCongNghe);
-            Assert.Equal("Updated dose", (await f.Db.Set<VaccineRegimenDose>().AsNoTracking().SingleAsync()).Note);
+            var savedDoses = await f.Db.Set<VaccineRegimenDose>().AsNoTracking().OrderBy(d => d.DoseOrder).ToArrayAsync();
+            Assert.Equal("Updated dose", savedDoses[0].Note);
+            Assert.Equal((1, 7, "Months"), (savedDoses[1].AnchorDoseOrder, savedDoses[1].IntervalValue, savedDoses[1].IntervalUnit));
 
             vm.DiseaseSelection.Remove(legacy.MaBenh);
             vm.TechnologySelection.Remove(technology.MaCongNghe);

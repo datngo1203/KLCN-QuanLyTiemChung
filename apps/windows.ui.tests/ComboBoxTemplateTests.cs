@@ -66,6 +66,45 @@ public sealed partial class ComboBoxTemplateTests(WpfComboBoxHost host) : IClass
         });
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public Task RegimenSelectorsRenderEarlierDosesAndLocalizedUnits(bool canEdit) => host.Run(_ => {
+        var vm = new CatalogViewModel(permissions: canEdit ? ["QuanLyDanhMucChuyenMon", "QuanLyDanhMucGia"] : []);
+        var regimen = new CatalogRegimenDraft(new(1, "Phác đồ thử", "Tham khảo", null, null, null, [
+            new(1, 1, "Mốc đầu", null, null, null), new(2, 3, "Mốc sau", null, null, null, 1, 6, "Months")
+        ]));
+        vm.Regimens.Add(regimen);
+        var editor = new CatalogVaccineEditor { DataContext = vm };
+        ((Expander)editor.FindName("Regimens")).IsExpanded = true;
+        using var source = new HwndSource(new HwndSourceParameters("Catalog regimen controls") {
+            Width = 480, Height = 900, WindowStyle = 0
+        }) { RootVisual = editor };
+        editor.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+        editor.Measure(new Size(480, double.PositiveInfinity));
+        editor.Arrange(new Rect(new Point(), editor.DesiredSize));
+        editor.UpdateLayout();
+        var dose = regimen.Doses[1];
+        var combos = VisualChildren<ComboBox>(editor).Where(combo => ReferenceEquals(combo.DataContext, dose)).ToArray();
+        var anchor = Assert.Single(combos, combo => AutomationProperties.GetName(combo) == "Mũi neo tham khảo");
+        var unit = Assert.Single(combos, combo => AutomationProperties.GetName(combo) == "Đơn vị khoảng cách");
+        Assert.Equal("Mũi 1", Assert.IsType<CatalogDoseAnchor>(anchor.SelectedItem).Label);
+        Assert.Equal("Tháng", Assert.IsType<CatalogStatus>(unit.SelectedItem).Label);
+        Assert.Equal(2, anchor.Items.Count);
+        Assert.Equal(5, unit.Items.Count);
+        Assert.All(combos, combo => {
+            Assert.Equal(canEdit, combo.IsEnabled);
+            Assert.False(combo.IsEditable);
+            Assert.True(combo.ActualWidth > 0);
+        });
+        if (canEdit) {
+            unit.SelectedValue = "Years";
+            Assert.Equal("Years", dose.IntervalUnit);
+            anchor.SelectedIndex = 0;
+            Assert.Null(dose.AnchorDoseOrder);
+        }
+    });
+
+    [Theory]
     [InlineData("phòng bệnh", "BENH")]
     [InlineData("công nghệ vắc xin", "CNVX")]
     public Task TaxonomyPickerRendersBusinessLabelsInSelectionAndPopup(string group, string prefix) =>
