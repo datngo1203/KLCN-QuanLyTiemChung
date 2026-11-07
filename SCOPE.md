@@ -7,6 +7,7 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 ## Current State
 
 ### DONE gần nhất
+- **REGIMEN-R1 #180 / PR #181** — Catalog hỗ trợ calendar interval theo mũi neo với `Days|Weeks|Months|Years`, giữ legacy day intervals; Windows A04 quản trị structured regimen; Customer Web hiển thị timeline + provenance tham khảo. Native A04 full-shell smoke PASS sau fix hiển thị selector; CI #387 PASS đủ backend/windows/web. Squash main: `04b932e8e4df6ec865ea90f19ad2ea731c1d77ac`.
 - **RF-05G #170 / PR #179** — tự động nhắc trước lịch hẹn 48/24 giờ và liên hệ sau lịch hẹn 3/7 ngày trên appointment hiện hành; DB idempotency + retry/revalidation + A09 history/wording người dùng. CI #382 PASS; native WPF keyboard smoke PASS ở HEAD trước wording-only patch. Squash main: `19f8218da0e6a505bf11ed3ad5daf8b087abe72b`.
 - **RF-05F.1 #175 / PR #178** — Customer Web lưu ngày+giờ mong muốn với provenance `CoGioDuKien`; A09 dùng preference làm gợi ý nhưng `LichHenTiem` xác nhận độc lập; confirm/reschedule/cancel tự enqueue lifecycle Email. CI #377 và Web/WPF runtime gates PASS. Squash main: `90873bbf42853ad9f00810d600ae96da9705e3bb`.
 - **RF-05E #166 / PR #172** — email reminder thật, outbox/dispatcher, Windows A09; real Development SMTP acceptance đã PASS.
@@ -15,7 +16,7 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-**REGIMEN-R1 #180** — mở rộng phác đồ Catalog hiện có với calendar interval + base dose và hiển thị timeline tham khảo source-backed trên Customer Web; không auto chọn phác đồ, không auto-eligibility/chỉ định, không thay `LichHenTiem` làm lịch thực tế.
+Không có slice ACTIVE. Chờ người dùng xác nhận lát tiếp theo.
 
 ### NEXT
 1. **#168 UI-F03**.
@@ -25,6 +26,7 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 5. **S8** final integration/end-to-end.
 
 ### PARKED sau core/S8
+- **REGIMEN-WORDING follow-up** — rà và chuẩn hóa các wording người dùng nhìn thấy như “phác đồ tham khảo”, “đối tượng tham khảo”, disclaimer lịch/chỉ định theo quy định/hướng dẫn chính thức còn hiệu lực; không tự mở lại clinical rule engine.
 - **#173 NOTIFY-R1** — shared Email/SMS delivery + provider SMS thật.
 - AUTH-PWLESS.
 - ADDR-R1.
