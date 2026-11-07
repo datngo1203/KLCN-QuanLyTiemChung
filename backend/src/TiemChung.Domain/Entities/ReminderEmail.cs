@@ -3,6 +3,7 @@ namespace TiemChung.Domain.Entities;
 public sealed class ReminderEmail
 {
     public int Id { get; set; }
+    public string Kind { get; set; } = "Manual";
     public int AppointmentId { get; set; }
     public int RegistrationId { get; set; }
     public int CustomerId { get; set; }
@@ -17,8 +18,8 @@ public sealed class ReminderEmail
     public string RecipientEmail { get; set; } = "";
     public string Subject { get; set; } = "";
     public string Body { get; set; } = "";
-    public int CreatedByAccountId { get; set; }
-    public int CreatedByEmployeeId { get; set; }
+    public int? CreatedByAccountId { get; set; }
+    public int? CreatedByEmployeeId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public string Status { get; set; } = "ChoGui";
     public int Attempts { get; set; }

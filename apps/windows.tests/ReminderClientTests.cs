@@ -97,19 +97,49 @@ public sealed class ReminderClientTests
         var fake=new Fake{Persisted=true,Current=Saved with{Status="GuiLoi",LastErrorCode="deliveryUncertain"}};
         var vm=await Ready(fake);Assert.False(vm.DeliveryRetryCommand.CanExecute(null));Assert.DoesNotContain("deliveryUncertain",vm.DeliveryError);
     }
+    [Theory]
+    [InlineData("TMinus48","Nhắc trước lịch hẹn 48 giờ")][InlineData("TMinus24","Nhắc trước lịch hẹn 24 giờ")]
+    [InlineData("DPlus3","Liên hệ sau lịch hẹn 3 ngày")][InlineData("DPlus7","Liên hệ sau lịch hẹn 7 ngày")]
+    public async Task AutomatedHistoryParsesLabelsAndSystemOrigin(string kind,string label) {
+        var row=Saved with{Kind=kind,RecordedBy=null,Status="DaGui",DeliveredAt=DateTimeOffset.UtcNow};
+        var handler=new Handler{DetailOverride=Detail() with{History=[row]}};
+        var detail=await new ReminderApiService(await Login(handler)).GetAsync(3);
+        var history=Assert.Single(detail.History!);Assert.Equal(label,history.KindLabel);Assert.Equal("Tự động bởi hệ thống",history.RecorderLabel);
+        Assert.Equal("Đã gửi",history.StatusLabel);Assert.False(history.CanRetry);Assert.Contains("UTC+07",history.TimeLabel);
+    }
+    [Theory][InlineData("unknown")][InlineData("appointment")][InlineData("fakeEmployee")][InlineData("status")]
+    public async Task InvalidAutomatedHistoryFailsClosed(string invalid) {
+        var row=Saved with{Kind="DPlus3",RecordedBy=null};
+        row=invalid switch {"unknown"=>row with{Kind="FutureKind"},"appointment"=>row with{AppointmentId=99},
+            "fakeEmployee"=>row with{RecordedBy=new(7,"fake")},_=>row with{Status="Unknown"}};
+        var handler=new Handler{DetailOverride=Detail() with{History=[row]}};
+        var service=new ReminderApiService(await Login(handler));
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(()=>service.GetAsync(3));
+    }
+    [Fact] public async Task HistoryRetryUsesExactDeliveryAndReconcilesWithoutCreatingManualEmail() {
+        var row=Saved with{Id=19,Kind="DPlus3",RecordedBy=null,Status="GuiLoi",LastErrorCode="providerUnavailable",CanRetry=true,Attempts=1};
+        var fake=new Fake{DetailOverride=Detail() with{CanRecord=false,History=[row]}};
+        var vm=await Ready(fake);Assert.Equal(row,Assert.Single(vm.History));Assert.True(vm.HistoryRetryCommand.CanExecute(row));
+        Assert.Equal("Lịch sử email bên dưới",vm.StatusLabel);Assert.Contains("từng email",vm.Feedback);
+        vm.HistoryRetryCommand.Execute(row);await Task.Yield();
+        Assert.Equal(19,fake.DeliveryId);Assert.Equal(1,fake.ExpectedAttempts);Assert.Equal(1,fake.Posts);Assert.Equal(2,fake.Gets);
+        Assert.False(vm.HistoryRetryCommand.CanExecute(row with{CanRetry=false}));
+    }
     private sealed class Fake:IReminderService
     {
         public TaskCompletionSource<AppointmentRecord[]>? ListGate;
         public Task<AppointmentRecord[]> ListAsync(string search,int page){if(ListGate!=null)return ListGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Persisted?Array.Empty<AppointmentRecord>():new[]{Appointment});}
-        public ReminderRecord? Current;public int ExpectedAttempts;
-        public Task<ReminderRecord> RetryAsync(int id,int expectedAttempts){ExpectedAttempts=expectedAttempts;return RecordAsync(id);}
+        public ReminderDetail? DetailOverride;
+        public ReminderRecord? Current;public int ExpectedAttempts;public int? DeliveryId;
+        public Task<ReminderRecord> RetryAsync(int id,int expectedAttempts,int? deliveryId=null){ExpectedAttempts=expectedAttempts;DeliveryId=deliveryId;return RecordAsync(id);}
         public int Gets,Posts;public bool Persisted;public string? Error,GetError;public List<int> PostedIds=[];
         public TaskCompletionSource<ReminderDetail>? GetGate;public TaskCompletionSource<ReminderRecord>? PostGate;
-        public Task<ReminderDetail> GetAsync(int id){Gets++;if(GetGate!=null)return GetGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(Current==null?Detail(Persisted):Detail(true) with{Reminder=Current});}
+        public Task<ReminderDetail> GetAsync(int id){Gets++;if(GetGate!=null)return GetGate.Task;if(GetError!=null)throw new AppointmentApiException(GetError,"Safe error");return Task.FromResult(DetailOverride??(Current==null?Detail(Persisted):Detail(true) with{Reminder=Current}));}
         public Task<ReminderRecord> RecordAsync(int id){Posts++;PostedIds.Add(id);if(PostGate!=null)return PostGate.Task;if(Error!=null)throw new AppointmentApiException(Error,"Safe error");Persisted=true;return Task.FromResult(Saved);}
     }
     private sealed class Handler:HttpMessageHandler
     {
+        public ReminderDetail? DetailOverride;
         public string Title="LeTan",Failure="",Body="",LastPath="";public bool Grant=true;public int Posts,Refreshes;public HttpStatusCode Status=HttpStatusCode.Created;
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct){
             var path=request.RequestUri!.AbsolutePath;
@@ -119,7 +149,7 @@ public sealed class ReminderClientTests
             if(request.Method==HttpMethod.Post){Posts++;LastPath=path;Body=await request.Content!.ReadAsStringAsync(ct);if(Failure=="network")throw new HttpRequestException();if(Failure=="bad201")return Json(new{},HttpStatusCode.Created);
                 return Status==HttpStatusCode.Created?Json(Saved,Status):Json(new{code=Status==HttpStatusCode.Conflict?"reminderAlreadyRecorded":"validation",detail="SQL PRIVATE"},Status);}
             if(path.EndsWith("/reminders/email-queue")){LastPath=request.RequestUri.PathAndQuery;return Json(new{items=new[]{Appointment}});}
-            return Json(Detail());
+            return Json(DetailOverride??Detail());
         }
         private static HttpResponseMessage Json(object value,HttpStatusCode status=HttpStatusCode.OK)=>new(status){Content=JsonContent.Create(value)};
     }

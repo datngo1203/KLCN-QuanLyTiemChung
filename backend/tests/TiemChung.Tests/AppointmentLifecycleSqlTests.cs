@@ -187,7 +187,8 @@ public sealed class AppointmentLifecycleSqlTests
                 Assert.Null(legacyDetail.Reminder); Assert.True(legacyDetail.CanRecord);
             } else {
                 Assert.False(detail.CanRecord);
-                Assert.DoesNotContain((await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/email-queue"))!.Items, x => x.Id == a.Id);
+                // RF-05G keeps cancelled appointments discoverable for read-only delivery history.
+                Assert.Contains((await f.Reception.GetFromJsonAsync<AppointmentListResponse>("/api/v1/reminders/email-queue"))!.Items, x => x.Id == a.Id && x.Status == "DaHuy");
             }
             var preserved = await f.Db.Set<NhacLich>().AsNoTracking().SingleAsync();
             Assert.Equal(log.NoiDungMoPhong, preserved.NoiDungMoPhong); Assert.Equal(log.ThoiDiemGui, preserved.ThoiDiemGui);
