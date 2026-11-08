@@ -500,6 +500,34 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — TopDev Use Case Diagram supplementary review — 09/11/2026
+
+Nguồn bổ trợ đã đọc toàn bộ: TopDev, **“Use Case Diagram và 5 sai lầm thường gặp”**. Đây là **guideline thực hành/BA**, không phải chuẩn UML chính thức và **không override** bài giảng HUIT hoặc UML semantic profile.
+
+#### Rule bổ sung được áp dụng
+- Use Case phải thể hiện **tương tác giữa actor và hệ thống nhằm đạt một mục đích cụ thể**, không phải inventory endpoint/chức năng kỹ thuật.
+- Actor có thể là **con người hoặc hệ thống bên ngoài**; chỉ đưa actor vào khi có interaction trực tiếp có evidence.
+- Tên Actor ưu tiên **danh từ**; tên Use Case ưu tiên **Động từ + Danh từ**, ngắn, rõ, không dùng thuật ngữ implementation nếu stakeholder không cần biết.
+- Không biến Use Case Diagram thành **phân rã chức năng**; tránh các UC “Quản lý X” quá rộng nếu không thể nói rõ end-user đạt kết quả gì. Tuy nhiên `Quản lý X` vẫn được phép khi nó thực sự gom CRUD/operations cùng một mục tiêu người dùng và đặc tả nói rõ phạm vi thao tác.
+- Không trộn các UC ở **khác cấp độ requirement** trong cùng view; summary view phải nhất quán high-level, detail view phải nhất quán mức chi tiết.
+- **Readability heuristic:** một diagram sạch thường nên quanh **10 UC**. Đây là heuristic, không phải UML hard limit. Khi vượt ngưỡng đọc A4, chia thành nhiều diagram/view theo actor/domain/subsystem nhưng giữ cùng một Use Case Model.
+- Không tách CRUD thành Create/Read/Update/Delete riêng chỉ để đủ chức năng; chỉ tách khi mỗi thao tác là goal độc lập có giá trị với actor.
+- `include` chỉ nên tách khi hành vi bắt buộc đủ lớn và/hoặc thực sự tái sử dụng; không dùng chỉ để làm sơ đồ “logic hơn”.
+- `extend` biểu diễn hành vi optional/conditional; nếu dùng phải giải thích được điều kiện/extension point trong đặc tả, dù không nhất thiết ghi hết comment lên overall diagram.
+- Khi vẽ, ưu tiên câu hỏi **WHAT** actor muốn đạt được; tránh rơi vào **HOW** implementation.
+- Layout: association không chồng chéo; được phép lặp lại cùng actor ở hai vị trí trong **cùng view** nếu chỉ nhằm giảm crossing và có nhãn y hệt, nhưng không tạo actor semantic mới.
+
+#### Điểm của bài TopDev KHÔNG khóa thành rule
+- “Use Case cùng kích thước”, “Extend phải vẽ to hơn”, “bắt buộc ghi Use Case ID trên hình”, “nên tô màu” chỉ là style suggestion của bài viết; **không phải UML/HUIT requirement**. Thesis tiếp tục giữ adaptive sizing, monochrome, A4 readability.
+- Ví dụ của bài dùng “Đăng nhập” như `include` trong một số flow; **không tự áp dụng** cho thesis. Với hệ thống này, login có thể phục vụ nhiều UC trong cùng session nên tiếp tục được xem là precondition/session concern trừ khi đặc tả cụ thể chứng minh mỗi execution luôn thực hiện UC login như một hành vi con.
+- Heuristic “khoảng 10 UC” không được dùng để merge/xóa UC semantic đúng; chỉ dùng để **chia view trình bày**.
+
+#### Hệ quả cho Hình 2.9
+- Không cố nhét đủ 21 UC vào một diagram.
+- Ưu tiên **1 summary view khoảng 8–10 UC thật** + các detail views theo nhóm chức năng; mọi UC vẫn thuộc cùng một System Use Case Model.
+- Không tạo “UC cha” giả chỉ để gom nhóm. Việc gom nhóm dùng **diagram/view/boundary/package**, không bịa relationship.
+- Chỉ sau khi khóa decomposition presentation mới render PlantUML.
+
 ### THESIS-R1 — System Use Case semantic lock v3 / 21 UC — 09/11/2026
 
 **Evidence base:** HUIT System UC theory + exact implementation evidence on `main` HEAD `1fa336942559047a75400e3c863c08a3b294416e`. Commit từ `20a4ce2c...` → `1fa3369...` chỉ đổi Copilot docs/prompt, **không đổi implementation code**.
