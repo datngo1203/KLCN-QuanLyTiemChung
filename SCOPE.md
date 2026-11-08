@@ -388,27 +388,28 @@ Trình bày/in ấn:
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 - **UML density optimization:** giữ Hình 2.1 nếu bố cục tổng thể đang rõ; với Activity ưu tiên compact wording/merge/gộp action trước khi đổi hướng bố cục. Không đổi sang landscape hoặc hai cột chỉ để tiết kiệm trang nếu làm giảm khả năng đọc. Mục tiêu thực tế là giảm khoảng trắng thị giác và số trang khi có thể, không ép đạt một số trang cụ thể.
 
-### THESIS-R1 — Patch 2D.3d Business Activity density/data-flow cleanup DONE
+### THESIS-R1 — Patch 2D.3e Business Entity/ObjectFlow cleanup DONE
 
 - **Hình 2.1** giữ nguyên layout Business Use Case đã duyệt.
-- **Hình 2.2–2.8** đã compact theo rule **Activity ưu tiên thể hiện flow, không lặp bảng đặc tả**: rút wording, gộp action cùng chủ thể/mục đích khi không làm mất decision/trách nhiệm/kết quả; giữ font 16 trong source PlantUML, không giảm font để nhồi trang.
-- Bổ sung **Business Entity/Object + ObjectFlow** có chọn lọc theo bài giảng HUIT để thể hiện dữ liệu đọc/ghi:
-  - 2.2: Chứng từ giao nhận; Lô vắc xin; Tồn kho.
-  - 2.3: Hồ sơ khách hàng; Hồ sơ người được tiêm.
-  - 2.4: Hồ sơ người được tiêm; Đăng ký dịch vụ.
-  - 2.5: Đăng ký dịch vụ; Lịch hẹn.
-  - 2.6: Hồ sơ người được tiêm; Kết quả khám/chỉ định.
-  - 2.7: Đăng ký dịch vụ; Giao dịch thanh toán.
-  - 2.8: Lô vắc xin; Mũi tiêm đã thực hiện; Theo dõi sau tiêm.
-- Quy ước hướng ObjectFlow vẫn giữ: **Business Entity → Activity = đọc/nhận**, **Activity → Business Entity = tạo/ghi/cập nhật**. Không biến Activity thành ERD; chỉ dùng 1–3 entity trọng yếu/sơ đồ.
-- Pipeline render reproducible: PlantUML → `docs/thesis/uml/postprocess_activity.py` để chuẩn hóa outer frame, loại biên swimlane ngoài cùng, thêm Business Entity/ObjectFlow và nhãn lane một-lane cần thiết. Script có guard kích thước base để fail nếu source đổi mà chưa review lại tọa độ data-flow.
+- **Hình 2.2–2.8** tiếp tục dùng bản compact của 2D.3d: Activity ưu tiên thể hiện flow, không lặp bảng đặc tả; không giảm font.
+- **Entity justification gate đã áp thật vào từng sơ đồ**: chỉ giữ entity khi có activity cụ thể đọc/nhận hoặc tạo/ghi/cập nhật nó.
+  - **2.2 Nhập vắc xin:** giữ `Chứng từ giao nhận` (đầu vào cho bước đối chiếu) và `Lô vắc xin` (đầu ra được ghi nhận khi xác nhận tiếp nhận); **bỏ `Tồn kho` khỏi hình** vì trong sơ đồ này nó làm tăng nhiễu hơn giá trị giải thích, trong khi action `ghi nhận lô/tồn` đã thể hiện hệ quả tồn kho.
+  - **2.3 Quản lý hồ sơ:** `Hồ sơ khách hàng` là dữ liệu được tra cứu; `Hồ sơ người được tiêm` là dữ liệu được tạo/cập nhật trong nhánh quản lý hồ sơ.
+  - **2.4 Đăng ký dịch vụ:** `Hồ sơ người được tiêm` là đầu vào để xác định đúng chủ thể; `Đăng ký dịch vụ` là đầu ra của bước ghi nhận đăng ký.
+  - **2.5 Quản lý lịch hẹn:** `Đăng ký dịch vụ` là nguồn để tiếp nhận/sắp xếp lịch; `Lịch hẹn` là dữ liệu được tạo/xác nhận và tiếp tục được thay đổi trong vòng đời lịch.
+  - **2.6 Khám sàng lọc:** `Hồ sơ người được tiêm` là đầu vào cho bước xem hồ sơ; đầu ra đổi thành **`Kết quả khám sàng lọc`** thay vì `Kết quả khám/chỉ định` để không gộp mơ hồ hai khái niệm; chỉ định vẫn được thể hiện bằng action riêng ở nhánh đủ điều kiện.
+  - **2.7 Thanh toán:** `Đăng ký dịch vụ` là dữ liệu đầu vào để đối chiếu nghĩa vụ; `Giao dịch thanh toán` là bằng chứng nghiệp vụ được ghi nhận khi giao dịch hoàn tất. Trạng thái chưa hoàn tất vẫn thể hiện bằng action nhánh phụ, không thêm entity thứ ba.
+  - **2.8 Tiêm và theo dõi:** `Lô vắc xin` là đầu vào đối chiếu trước tiêm; `Mũi tiêm đã thực hiện` là kết quả của hành động tiêm; `Theo dõi sau tiêm` là dữ liệu được ghi nhận sau quan sát/xử lý.
+- **ObjectFlow geometry đã khóa:** entity đặt gần activity liên quan nhất, ưu tiên cùng cao độ; connector **thẳng từ rìa entity đến rìa activity**, không đi qua gutter, không nối vào tâm shape, không cắt activity/decision khác. Entity có thể đặt trái/phải khác nhau giữa các hình nếu giúp đường ngắn và sạch.
+- Quy ước hướng vẫn giữ: **Business Entity → Activity = đọc/nhận**, **Activity → Business Entity = tạo/ghi/cập nhật**.
+- Pipeline render reproducible vẫn dùng PlantUML → `docs/thesis/uml/postprocess_activity.py`; script có guard kích thước base để fail nếu source đổi mà chưa review lại tọa độ ObjectFlow.
 - Paragraph chứa Activity vẫn **Before = 8 pt / After = 0**; ảnh chèn Word khóa aspect ratio.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3d_BusinessActivity_Density_Final.docx`, SHA-256 `db39b201dad14fe9cde636a936a52e1867a37643557b94ff2b084baa7a659f11`.
-- Render QA: **88 trang PASS**, giảm **1 trang** so với 2D.3c mà không giảm font.
-  - Trang 1–38, 40 và 44 pixel-identical baseline 2D.3c.
-  - Các trang 39, 41–43, 45–49 đã kiểm trực quan ở 100%.
-  - Từ trang 50–88, toàn bộ **thân trang** pixel-identical với baseline 2D.3c trang 51–89 sau khi bù dịch +1; System UC/đặc tả hệ thống không bị sửa semantic/layout.
-- Khoảng trắng còn lại ở một số điểm được **chấp nhận có chủ đích**: các hàng lớn của bảng đặc tả đang khóa không tách qua trang; không bỏ `cantSplit` và không ép thêm để đổi lấy bảng vỡ hoặc chữ UML nhỏ.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3e_BusinessEntityRouting_Final.docx`, SHA-256 `9467cc971426188f309746b76d819a73b8f467e7ae5988bcd5b93864194186ea`.
+- Render QA: **88 trang PASS**.
+  - **81/88 trang pixel-identical** với baseline 2D.3d.
+  - Chỉ trang **39, 41, 43, 45, 46, 47, 49** thay đổi; toàn bộ đã kiểm trực quan ở 100%.
+  - System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- Khoảng trắng còn lại tiếp tục được chấp nhận có chủ đích khi nguyên nhân là hàng bảng đặc tả `cantSplit`; không phá bảng hoặc giảm font UML chỉ để tiết kiệm thêm trang.
 - **System UML vẫn PARKED**; chưa redraw/chỉnh.
 - **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
