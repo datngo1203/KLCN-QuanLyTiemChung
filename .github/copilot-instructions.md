@@ -2,6 +2,23 @@
 
 This file is a **compatibility/context router** for GitHub Copilot. It does not replace the repository source of truth.
 
+## Session lane lock
+
+Before substantial work, determine exactly one session lane from the user's latest instruction. Do not mix lane state from previous chats.
+
+### CODE lane
+- Source of truth is current `main` or the explicitly active feature branch. Never recover CODE work from `docs/thesis-r1-current-state`.
+- Recovery order: **exact remote HEAD first** → root `AGENTS.md` → CODE `SCOPE.md` → active issue → nested `AGENTS.md` → only relevant code/tests/contracts.
+- Ignore issue #182, thesis artifacts, and thesis checkpoints unless the coordinator explicitly asks to verify a thesis claim.
+- If a CODE task is running on or reading the thesis branch, stop and report the branch/context mismatch before doing work.
+
+### THESIS lane
+- Source of truth is `docs/thesis-r1-current-state`, issue #182, and the current Word artifact/checkpoint.
+- Use `main`/application code only to verify implementation claims.
+- Do not implement application features or advance the CODE queue from a THESIS session.
+
+CODE and THESIS have independent ACTIVE/NEXT/PARKED queues. Never carry status from one lane into the other. Repository state for the selected lane overrides chat history.
+
 ## Source of truth
 
 For every substantial task, recover context in this order:
