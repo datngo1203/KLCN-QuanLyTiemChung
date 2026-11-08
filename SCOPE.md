@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.3 DONE:** hoàn thiện Mở đầu + Chương 1 trước mục 1.4 theo mẫu Khoa và nguồn khảo sát có kiểm chứng; 1.1 đổi thành `PHẠM VI VÀ CÁCH TIẾP CẬN KHẢO SÁT`, 1.2/1.3 được viết lại tự nhiên hơn, không lặp mục đích với Mở đầu; bảy quy trình nghiệp vụ được mô tả theo trigger → actor/action → dữ liệu đọc/ghi → kết quả/nhánh → quy trình tiếp theo, nhưng trình bày thành văn xuôi thay vì checklist. Không sửa nội dung biểu mẫu 1.4. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C3_Final.docx`, SHA-256 `31cadaf146b9d1a13534fc045697af4567631fb7ec5feccd9683c545faef079f`. Render QA 84 trang PASS; TOC/list caches đồng bộ và body caption đã bỏ page-number suffix thừa. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo đúng cùng 7 nghiệp vụ/canonical terminology; redraw UML chỉ sau khi đặc tả text PASS.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.4 DONE:** mở rộng riêng mục `1.3. CÁC QUY TRÌNH NGHIỆP VỤ` bằng chi tiết thực tế có nguồn và relevance gate; P1–P7 hiện mỗi quy trình khoảng nửa trang trở lên, vẫn giữ trigger → actor/action → dữ liệu đọc/ghi → nhánh → kết quả/next process. Không sửa nội dung biểu mẫu 1.4 và chưa viết lại Chương 2. Bổ sung nguồn VNVC/WHO/Bộ Y tế [17]–[23]; P1 có thêm packaging/presentation, số liều/lọ, quy cách, dung môi, cold-chain và trạng thái biệt trữ; P5 giới hạn QĐ 1575/QĐ-BYT đúng phạm vi trẻ em; P7 bổ sung đối chiếu vắc xin/lô/hạn/dung môi/liều/đường dùng và theo dõi sau tiêm. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C4_Final.docx`, SHA-256 `71dd4993a6e68656e36c372569ebec759aae174cedec4d124ef6d27780dbc90f`. Render QA 88 trang PASS; TOC đã có field thật và cache số trang cùng danh mục hình/bảng đã đồng bộ. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo đúng P1–P7/canonical terminology; redraw UML chỉ sau khi đặc tả text PASS.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -305,12 +305,12 @@ Quy tắc trình bày:
 
 ### 7 quy trình nghiệp vụ
 1. Nhập vắc xin từ nhà cung cấp.
-2. Đăng ký thông tin khách hàng/người được tiêm.
+2. Tiếp nhận và quản lý hồ sơ khách hàng/người được tiêm.
 3. Đăng ký dịch vụ tiêm chủng.
-4. Khám sàng lọc và chỉ định.
-5. Thanh toán dịch vụ.
-6. Thực hiện tiêm chủng và theo dõi sau tiêm.
-7. Quản lý lịch tiêm và nhắc lịch.
+4. Quản lý lịch hẹn và nhắc lịch.
+5. Khám sàng lọc và chỉ định tiêm chủng.
+6. Thanh toán dịch vụ.
+7. Thực hiện tiêm chủng và theo dõi sau tiêm.
 
 ### 6 actor nghiệp vụ
 Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
