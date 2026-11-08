@@ -1,5 +1,4 @@
 @startuml
-!pragma layout elk
 ' HUIT UML Visual Profile v1
 skinparam monochrome true
 skinparam shadowing false
@@ -11,9 +10,10 @@ skinparam UsecaseBorderColor black
 skinparam UsecaseBackgroundColor white
 skinparam RectangleBorderColor black
 skinparam RectangleBackgroundColor white
+skinparam linetype ortho
 skinparam dpi 180
 
-top to bottom direction
+left to right direction
 
 actor/ "Nhà cung cấp" as Supplier
 actor/ "Khách hàng" as Customer
@@ -36,12 +36,11 @@ rectangle "TRUNG TÂM TIÊM CHỦNG" as BusinessBoundary {
 }
 
 Supplier -right- BUC1
-Customer -left- BUC2
-Customer -left- BUC3
-Customer -left- BUC4
-Customer -left- BUC5
-Customer -left- BUC6
-Customer -left- BUC7
-BUC4 -[hidden]right- Customer
+BUC2 -right- Customer
+BUC3 -right- Customer
+BUC4 -right- Customer
+BUC5 -right- Customer
+BUC6 -right- Customer
+BUC7 -right- Customer
 
 @enduml
