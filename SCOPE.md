@@ -500,6 +500,80 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — System Use Case presentation lock v1 — 09/11/2026
+
+**Mục tiêu:** giữ nguyên System Use Case Model 21 UC đã khóa nhưng trình bày thành nhiều view để đọc được trên A4. Không merge/xóa/invent UC chỉ vì layout.
+
+#### Cấu trúc mục 2.2.1
+Đổi cách hiểu từ “một hình tổng thể chứa mọi UC” sang **một System Use Case Model được trình bày qua 1 summary view + 4 detail views**.
+
+1. **Hình 2.9 — Sơ đồ Use Case hệ thống tổng quan**
+   - Chỉ dùng **10 UC xương sống của hành trình tiêm chủng**:
+     - UC09 Quản lý hồ sơ khách hàng/người được tiêm
+     - UC10 Tra cứu dịch vụ tiêm chủng
+     - UC11 Đăng ký dịch vụ tiêm chủng
+     - UC12 Quản lý lịch hẹn
+     - UC14 Tự động nhắc lịch và liên hệ theo lịch
+     - UC15 Ghi nhận khám sàng lọc và chỉ định
+     - UC16 Thanh toán dịch vụ
+     - UC17 Ghi nhận mũi tiêm
+     - UC18 Ghi nhận theo dõi sau tiêm
+     - UC19 Theo dõi hành trình tiêm chủng
+   - Actor hiển thị: **Khách hàng, Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng, Thời gian**.
+   - Không hiển thị actor hierarchy, Dịch vụ thư điện tử, Admin, Nhân viên kho hay các UC account/admin/support ở summary; các quan hệ đó được thể hiện ở detail view.
+   - Không dùng mũi tên UC→UC để kể thứ tự. Vị trí chỉ phục vụ đọc từ trái/phải và trên/xuống.
+
+2. **Hình 2.10 — Sơ đồ Use Case nhóm tài khoản và hồ sơ**
+   - UC01 Đăng ký tài khoản khách hàng
+   - UC02 Đăng nhập hệ thống
+   - UC03 Đổi mật khẩu
+   - UC04 Đăng xuất hệ thống
+   - UC05 Quản lý chức danh tài khoản nhân viên
+   - UC09 Quản lý hồ sơ khách hàng/người được tiêm
+   - Actor: **Người dùng, Khách hàng, Nhân viên, Lễ tân, Quản trị viên**.
+   - Đây là view ưu tiên thể hiện actor generalization cần thiết cho shared authentication; không kéo các chức danh lâm sàng/kho vào chỉ để minh họa hierarchy. Các vai trò còn lại được mô tả là chuyên biệt của Nhân viên trong phần xác định actor và xuất hiện tại detail view tương ứng.
+
+3. **Hình 2.11 — Sơ đồ Use Case nhóm dịch vụ, đăng ký, lịch hẹn và nhắc lịch**
+   - UC10 Tra cứu dịch vụ tiêm chủng
+   - UC11 Đăng ký dịch vụ tiêm chủng
+   - UC12 Quản lý lịch hẹn
+   - UC13 Gửi nhắc lịch
+   - UC14 Tự động nhắc lịch và liên hệ theo lịch
+   - UC19 Theo dõi hành trình tiêm chủng
+   - UC20 Tra cứu lịch sử tiêm chủng
+   - Actor: **Khách hàng, Lễ tân, Thời gian, Dịch vụ thư điện tử**.
+   - Dịch vụ thư điện tử là secondary actor cho UC13/UC14; `Thời gian` chỉ kích hoạt UC14.
+
+4. **Hình 2.12 — Sơ đồ Use Case nhóm khám, thanh toán, tiêm và theo dõi sau tiêm**
+   - UC15 Ghi nhận khám sàng lọc và chỉ định
+   - UC16 Thanh toán dịch vụ
+   - UC17 Ghi nhận mũi tiêm
+   - UC18 Ghi nhận theo dõi sau tiêm
+   - Actor: **Khách hàng, Bác sĩ, Thu ngân, Điều dưỡng**.
+   - Không thể hiện dependency nghiệp vụ giữa 4 UC bằng include/extend; precondition/gate giữ trong đặc tả.
+
+5. **Hình 2.13 — Sơ đồ Use Case nhóm quản trị danh mục, kho và báo cáo**
+   - UC06 Quản lý danh mục tiêm chủng
+   - UC07 Quản lý ưu đãi
+   - UC08 Quản lý lô và tồn kho vắc xin
+   - UC21 Báo cáo hoạt động
+   - Actor: **Quản trị viên, Nhân viên kho**.
+
+#### Coverage/readability rules
+- **4 detail views partition đủ 21 UC đúng một lần**; Hình 2.9 là summary nên được phép lặp lại 10 UC đã có ở detail views.
+- Một UC lặp ở summary và detail vẫn là **cùng một model element**, không phải UC mới.
+- Summary ưu tiên **orientation/readability**, detail views ưu tiên **coverage/traceability**.
+- Không cố thể hiện mọi actor-generalization ở mọi view. Quan hệ hierarchy dùng ở view nơi nó giúp giảm lặp; các actor cụ thể vẫn giữ semantic role xuyên model.
+- Target layout mỗi hình: khoảng **4–10 UC**, 2–6 actor, association ngắn, hạn chế crossing; monochrome, A4-readable.
+- Nếu PlantUML auto-layout làm crossing/xô lệch, được phép dùng hidden links/layout helpers **không mang semantic**, nhưng không đổi association/actor/UC để phục vụ renderer.
+- Mẫu HUIT mục 2.2.1 được hiểu là **Sơ đồ Use Case hệ thống** (có thể nhiều hình/view), không bắt buộc một diagram duy nhất chứa toàn model.
+- Chưa đổi Word/numbering tại checkpoint này; renumber/caption chỉ làm sau khi 5 diagram semantic + render PASS.
+
+#### Scope stop
+- Không mở lại 21-UC semantic lock chỉ vì một detail view xấu.
+- Nếu một view vẫn quá rối, **chia view**, không merge UC semantic đúng.
+- NEXT: viết PlantUML source-first cho **Hình 2.9 summary** trước; render engine thật và QA. Chỉ sau Hình 2.9 PASS mới tiếp tục 2.10–2.13.
+
 ### THESIS-R1 — TopDev Use Case Diagram supplementary review — 09/11/2026
 
 Nguồn bổ trợ đã đọc toàn bộ: TopDev, **“Use Case Diagram và 5 sai lầm thường gặp”**. Đây là **guideline thực hành/BA**, không phải chuẩn UML chính thức và **không override** bài giảng HUIT hoặc UML semantic profile.
