@@ -130,6 +130,40 @@ Mục tiêu của thứ tự này:
 - **Kết luận** đối chiếu mục tiêu ban đầu với kết quả thật, hạn chế và hướng phát triển; không lặp mô tả chức năng theo kiểu Chương 4.
 - Mỗi claim/ý giải thích chính chỉ có một “home section”. Phần khác nếu cần nhắc lại chỉ tham chiếu ngắn để nối mạch, không diễn giải lại cùng một ý bằng câu chữ khác.
 
+### THESIS-R1 — khóa nguyên tắc làm giàu khảo sát bằng chi tiết thực tế
+
+Khi mở rộng Chương 1, chỉ thêm chi tiết thực tế nếu chi tiết đó **tác động trực tiếp đến nghiệp vụ hoặc dữ liệu cần quản lý**.
+
+#### Relevance gate
+Một chi tiết chỉ được đưa vào phần khảo sát nếu trả lời được ít nhất một câu hỏi:
+- Nó làm thay đổi **cách tiếp nhận/kiểm tra**?
+- Nó làm thay đổi **đơn vị tính, số lượng, đóng gói hoặc tồn kho**?
+- Nó làm thay đổi **điều kiện bảo quản/vận chuyển**?
+- Nó ảnh hưởng **truy vết lô, hạn dùng, nhà sản xuất hoặc nguồn gốc**?
+- Nó ảnh hưởng **cách chuẩn bị/cấp phát/thực hiện tiêm**?
+- Nó tạo ra **trường dữ liệu** mà hệ thống cần lưu hoặc đối chiếu?
+
+#### Ví dụ phù hợp cho nghiệp vụ vắc xin/kho
+Có thể khảo sát và trình bày khi có nguồn chính thức:
+- tên vắc xin, nhà sản xuất, dạng bào chế/presentation;
+- đơn vị đóng gói: hộp/thùng/lọ/bơm tiêm;
+- số lọ trong hộp/thùng nếu tài liệu sản phẩm công bố;
+- số liều trong một lọ;
+- thể tích mỗi liều (mL);
+- lọ đơn liều hay đa liều;
+- số lô, hạn dùng;
+- dung môi kèm theo nếu có;
+- điều kiện nhiệt độ/bảo quản và yêu cầu dây chuyền lạnh;
+- quy định sau mở lọ/hoàn nguyên nếu có;
+- công nghệ/nền tảng vắc xin **chỉ khi nó có ý nghĩa đối với phân loại, bảo quản, chuẩn bị hoặc sử dụng trong nghiệp vụ**.
+
+#### Cảnh báo
+- **Không viết “một lô có X lọ” như một quy tắc chung.** “Lô” là batch sản xuất/định danh truy vết; số lượng lọ giao trong một lần nhận phụ thuộc shipment/packaging, còn số lọ mỗi hộp/thùng phụ thuộc từng sản phẩm.
+- Không suy rộng thông số của một vắc xin cho tất cả vắc xin.
+- Không thêm kiến thức sinh học/công nghệ vắc xin nếu không liên quan đến actor, quyết định nghiệp vụ, dữ liệu hoặc điều kiện xử lý.
+- Chi tiết sản phẩm phải lấy từ WHO, Bộ Y tế, nhà sản xuất/tờ hướng dẫn chính thức hoặc nguồn công khai đáng tin cậy; ghi rõ đó là **ví dụ sản phẩm**, không phải quy tắc chung của trung tâm.
+- Source thực tế làm giàu **khảo sát nghiệp vụ**; repo vẫn là Source of Truth cho **hệ thống của đồ án thực sự hỗ trợ gì**.
+
 ### THESIS-R1 — khóa chuẩn mô tả quy trình nghiệp vụ theo mẫu Khoa
 
 Áp dụng cho Chương 1 và phần Use Case nghiệp vụ ở Chương 2:
