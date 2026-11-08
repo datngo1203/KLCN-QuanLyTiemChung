@@ -649,6 +649,54 @@ Trình bày/in ấn:
 - Hình 2.9 v1–v7 là intermediate/stale; không dùng trong Word.
 - NEXT: Hình 2.10 — nhóm tài khoản và hồ sơ. Chưa sửa Word/renumber/caption cho tới khi 2.10–2.13 PASS.
 
+### THESIS-R1 — Hình 2.10 semantic lock v1 / layout candidate v4 — 09/11/2026
+
+**Evidence baseline:** exact `main` HEAD `1fa336942559047a75400e3c863c08a3b294416e`.
+
+#### Semantic scope
+Hình 2.10 — **Sơ đồ Use Case nhóm tài khoản và hồ sơ** gồm đúng 6 UC:
+- UC01 **Đăng ký tài khoản khách hàng**
+- UC02 **Đăng nhập hệ thống**
+- UC03 **Đổi mật khẩu**
+- UC04 **Đăng xuất hệ thống**
+- UC05 **Thay đổi chức danh tài khoản nhân viên**
+- UC09 **Quản lý hồ sơ khách hàng/người được tiêm**
+
+Actor dùng trong view:
+- general actors: **Người dùng**, **Nhân viên**
+- concrete actors: **Khách hàng**, **Lễ tân**, **Quản trị viên**
+
+Actor generalization:
+- Khách hàng —|> Người dùng
+- Nhân viên —|> Người dùng
+- Lễ tân —|> Nhân viên
+- Quản trị viên —|> Nhân viên
+
+Actor–UC associations:
+- Người dùng — UC02, UC03, UC04
+- Khách hàng — UC01, UC09
+- Lễ tân — UC09
+- Quản trị viên — UC05
+
+Relations:
+- **0 `<<include>>`, 0 `<<extend>>`, 0 generalization giữa UC**.
+- Actor generalization chỉ dùng để kế thừa các goal xác thực chung; không dùng để giảm dây một cách giả tạo.
+- UC01 không include xác minh email; xác minh email là registration continuation/supporting flow.
+- Password reset không xuất hiện như top-level UC trong view; vẫn là supporting Identity flow đã khóa ở reconciliation v4.
+- UC05 chỉ là **thay đổi chức danh tài khoản nhân viên hiện có**; không claim provision/reset/lock/full permission matrix.
+
+#### Visual contract candidate v4
+- Boundary bên phải; actor hierarchy nằm riêng bên trái.
+- Auth cluster ở phần trên: UC02 → UC03 → UC04 theo reading order.
+- Customer registration nằm dưới auth cluster: UC01.
+- Profile/admin cluster ở phần dưới: UC09 và UC05.
+- `Người dùng` là parent của Khách hàng/Nhân viên; `Nhân viên` là parent của Lễ tân/Quản trị viên.
+- Concrete actors được đặt gần UC riêng của mình để association đi sang phải; generalization đi về trái/trên.
+- Title safe zone sạch; không connector đi qua actor/node khác; một actor = một visible symbol.
+- Prototype candidate: `Hinh_2_10_layout_prototype_v4.png`.
+- Prototype v1–v3 là intermediate, không canonical.
+- Chưa viết PlantUML canonical cho Hình 2.10 cho tới khi human review chấp nhận candidate v4.
+
 ### THESIS-R1 — System Use Case presentation lock v1 — 09/11/2026
 
 **Mục tiêu:** giữ nguyên System Use Case Model 21 UC đã khóa nhưng trình bày thành nhiều view để đọc được trên A4. Không merge/xóa/invent UC chỉ vì layout.
@@ -670,7 +718,7 @@ Trình bày/in ấn:
      - UC19 Theo dõi hành trình tiêm chủng
    - Actor hiển thị: **Khách hàng, Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng**.
    - Không hiển thị actor hierarchy, **Thời gian**, Dịch vụ thư điện tử, Admin, Nhân viên kho hay các UC account/admin/support ở summary; các quan hệ đó được thể hiện ở detail view.
-   - UC14 **Tự động nhắc lịch và liên hệ theo lịch** vẫn thuộc model 21 UC nhưng chỉ xuất hiện ở Hình 2.11 chi tiết; summary dùng UC13 **Gửi nhắc lịch** để giữ góc nhìn actor–goal trực quan.
+   - UC14 **Tự động gửi nhắc lịch** vẫn thuộc model 21 UC nhưng chỉ xuất hiện ở Hình 2.11 chi tiết; summary dùng UC13 **Gửi nhắc lịch** để giữ góc nhìn actor–goal trực quan.
    - Không dùng mũi tên UC→UC để kể thứ tự. Vị trí chỉ phục vụ đọc từ trái/phải và trên/xuống.
    - **Summary association policy:** Hình 2.9 chỉ hiển thị **primary/representative actor** cho từng UC để giữ orientation/readability; các direct actor association còn lại vẫn thuộc model và được thể hiện đầy đủ ở detail views. Không được hiểu việc thiếu một association trên summary là actor đó mất quyền/capability.
    - Primary/representative mapping của summary: Khách hàng → UC09, UC10, UC11, UC19; Lễ tân → UC12, UC13; Bác sĩ → UC15; Thu ngân → UC16; Điều dưỡng → UC17, UC18.
@@ -680,7 +728,7 @@ Trình bày/in ấn:
    - UC02 Đăng nhập hệ thống
    - UC03 Đổi mật khẩu
    - UC04 Đăng xuất hệ thống
-   - UC05 Quản lý chức danh tài khoản nhân viên
+   - UC05 Thay đổi chức danh tài khoản nhân viên
    - UC09 Quản lý hồ sơ khách hàng/người được tiêm
    - Actor: **Người dùng, Khách hàng, Nhân viên, Lễ tân, Quản trị viên**.
    - Đây là view ưu tiên thể hiện actor generalization cần thiết cho shared authentication; không kéo các chức danh lâm sàng/kho vào chỉ để minh họa hierarchy. Các vai trò còn lại được mô tả là chuyên biệt của Nhân viên trong phần xác định actor và xuất hiện tại detail view tương ứng.
@@ -690,7 +738,7 @@ Trình bày/in ấn:
    - UC11 Đăng ký dịch vụ tiêm chủng
    - UC12 Quản lý lịch hẹn
    - UC13 Gửi nhắc lịch
-   - UC14 Tự động nhắc lịch và liên hệ theo lịch
+   - UC14 Tự động gửi nhắc lịch
    - UC19 Theo dõi hành trình tiêm chủng
    - UC20 Tra cứu lịch sử tiêm chủng
    - Actor: **Khách hàng, Lễ tân, Thời gian, Dịch vụ thư điện tử**.
