@@ -341,6 +341,16 @@ Nguồn và ưu tiên:
 - Nếu các file bài giảng cùng nội dung xuất hiện với nhiều tên, chỉ cần đọc một bản đã xác minh; không lặp retrieval chỉ vì tên file khác.
 
 Use Case:
+
+**Phân tầng thuật ngữ bắt buộc — Business ≠ System:**
+- **Tầng nghiệp vụ (Business):** mô tả **quy trình của trung tâm tiêm chủng ngoài góc nhìn phần mềm**. Dùng các khái niệm **Business Actor, Business Worker, Business Entity, Business Use Case, Business Activity/Business Object**. Câu hỏi chính: *nghiệp vụ diễn ra thế nào, ai làm gì, xử lý đối tượng/thông tin nào?*
+- **Tầng hệ thống (System):** mô tả **phần mềm hỗ trợ/tự động hóa phần nào của nghiệp vụ**. Dùng **System Actor, System Use Case, System Boundary**, sau đó đặc tả/Sequence ở mức hệ thống. Câu hỏi chính: *ai sử dụng phần mềm và phần mềm phải cung cấp chức năng gì?*
+- **Không dùng thuật ngữ lai** như “Business System Use Case”, “Business Actor hệ thống”, “Business Worker hệ thống” nếu không trích nguyên văn nguồn. Trong khóa luận phải gọi rõ **Use Case nghiệp vụ** hoặc **Use Case hệ thống**.
+- Một **Business Worker** có thể trở thành **System Actor** khi vai trò đó trực tiếp sử dụng phần mềm, nhưng đó là **chuyển tầng mô hình**, không phải cùng một phần tử UML được giữ nguyên shape.
+- Một **Business Actor** không tự động trở thành System Actor. Chỉ trở thành System Actor nếu trong phạm vi tự động hóa, đối tượng đó thật sự tương tác trực tiếp với phần mềm.
+- Một **Business Use Case** có thể được hỗ trợ bởi **một hoặc nhiều System Use Case**; không ép quan hệ 1–1 và không mang nguyên tên/shape business sang sơ đồ hệ thống.
+- **Business Entity** là đối tượng/thông tin nghiệp vụ; khi sang Class Analysis có thể trở thành ứng viên lớp nếu hệ thống cần quản lý thông tin về nó, nhưng không được coi hai phần tử là cùng loại ký hiệu.
+
 - **Business boundary**: hình chữ nhật có tên phạm vi nghiệp vụ ở phía trên; Business Use Case nằm trong, Business Actor nằm ngoài.
 - **Business Actor**: dùng ký hiệu business actor của PlantUML/Rational Rose (PlantUML `actor/` hoặc `:Tên:/`) khi renderer hỗ trợ; chỉ dùng cho đối tượng ngoài ranh giới nghiệp vụ cung cấp đầu vào/nhận đầu ra.
 - **Business Use Case**: ellipse business có nét chéo theo HUIT/Rational Rose (PlantUML `usecase/`); tên là cụm động từ.
@@ -454,7 +464,7 @@ Trình bày/in ấn:
 - SHA-256: `bcbb73be5e27edf6351dec62e66e02e8b848ada1b6dcfdb77ac21dbf050737b2`.
 - Render QA: **86 trang PASS**.
 - Business UML `Hình 2.1–2.8` đã qua semantic/layout/data-flow/shape-aware/adaptive-size cleanup và là baseline hiện hành.
-- HUIT UML Visual Profile + Activity density + Business Entity/ObjectFlow + shape-aware anchoring + adaptive figure sizing đều đã checkpoint trong `SCOPE.md`.
+- HUIT UML Visual & Semantic Profile v2 + Activity density + Business Entity/ObjectFlow + shape-aware anchoring + adaptive figure sizing đều đã checkpoint trong `SCOPE.md`.
 - **Fork/Join rule:** chỉ dùng Fork/Join bar khi có xử lý song song thực sự; Decision/Merge dùng cho các nhánh loại trừ. Không đổi Merge sang Join chỉ để hình gọn/đẹp.
 - **System UML hiện vẫn PARKED/NEXT**, chưa redraw trong Business UML patches.
 - **NEXT candidate:** phục hồi context rồi audit/chốt **System Use Case Diagram tổng thể** trước; sau khi PASS mới đi từng System Use Case + Sequence. Không sửa Sequence/Class Analysis trước khi System Use Case set/actors/relations được khóa.
