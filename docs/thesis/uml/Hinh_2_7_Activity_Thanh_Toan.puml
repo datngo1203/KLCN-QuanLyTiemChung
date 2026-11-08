@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact-fixed layout
+' HUIT UML Visual Profile v1 - compact data-aware layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -10,15 +10,17 @@ skinparam ActivityBorderColor black
 skinparam ActivityBackgroundColor white
 skinparam PartitionBorderColor black
 skinparam PartitionBackgroundColor white
+skinparam nodesep 20
+skinparam ranksep 24
 skinparam dpi 180
 
 |Thu ngân|
 start
-:Tiếp nhận thông tin Người được tiêm\nvà dịch vụ/vắc xin cần thanh toán;
-:Đối chiếu dịch vụ, ưu đãi/quyền lợi\nvà số tiền còn phải thanh toán;
+:Tiếp nhận đăng ký và\nthông tin thanh toán;
+:Đối chiếu số tiền,\nưu đãi hoặc quyền lợi;
 
 if (Nghĩa vụ đã được\nđáp ứng trước đó?) then (Có)
-  :Kết thúc đối chiếu,\nkhông tạo giao dịch trùng;
+  :Không tạo giao dịch trùng;
   stop
 else (Không)
 endif
@@ -27,14 +29,12 @@ endif
 :Lựa chọn phương thức thanh toán;
 
 |Thu ngân|
-:Tiếp nhận và xử lý khoản thanh toán;
+:Xử lý khoản thanh toán;
 if (Giao dịch hoàn tất?) then (Có)
-  :Ghi nhận số tiền thực thu, phương thức,\nthời điểm và trạng thái thanh toán;
-  :Cung cấp chứng từ/biên nhận\nvà xác nhận nghĩa vụ đã được xử lý;
+  :Ghi nhận giao dịch và\ncung cấp biên nhận;
   stop
 else (Không)
-  :Ghi nhận trạng thái không thành công,\nbị hủy hoặc còn chờ xử lý;
-  :Xác nhận nghĩa vụ tài chính\nchưa hoàn tất;
+  :Ghi nhận trạng thái\nchưa hoàn tất;
   stop
 endif
 @enduml

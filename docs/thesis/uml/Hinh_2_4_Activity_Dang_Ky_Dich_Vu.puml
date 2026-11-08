@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact-fixed layout
+' HUIT UML Visual Profile v1 - compact data-aware layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -10,38 +10,40 @@ skinparam ActivityBorderColor black
 skinparam ActivityBackgroundColor white
 skinparam PartitionBorderColor black
 skinparam PartitionBackgroundColor white
+skinparam nodesep 20
+skinparam ranksep 24
 skinparam dpi 180
 
 |Khách hàng|
 start
-:Nêu nhu cầu sử dụng dịch vụ\ncho Người được tiêm;
+:Nêu nhu cầu dịch vụ\ncho Người được tiêm;
 
 |Lễ tân|
-:Xác định đúng hồ sơ\nNgười được tiêm;
+:Xác định hồ sơ\nNgười được tiêm;
 if (Đăng ký cho nhiều\nNgười được tiêm?) then (Có)
-  :Tách thành từng đăng ký riêng\ncho từng Người được tiêm;
+  :Tách thành từng đăng ký riêng;
 else (Không)
 endif
 
 |Khách hàng|
-:Làm rõ dịch vụ, gói hoặc vắc xin\ncó nhu cầu đăng ký;
+:Chọn dịch vụ, gói\nhoặc vắc xin;
 
 |Lễ tân|
-:Ghi nhận nội dung đăng ký\ncho đúng Người được tiêm;
+:Ghi nhận đăng ký;
 if (Có thời gian mong muốn?) then (Có)
-  :Ghi nhận thời gian mong muốn\ncùng đăng ký;
+  :Ghi nhận thời gian mong muốn;
 else (Không)
 endif
 
-:Kiểm tra lại thông tin đăng ký;
+:Kiểm tra thông tin đăng ký;
 if (Thông tin đã đầy đủ?) then (Có)
 else (Không)
   |Khách hàng|
-  :Bổ sung thông tin còn thiếu;
+  :Bổ sung thông tin;
   |Lễ tân|
-  :Cập nhật thông tin đăng ký;
+  :Cập nhật đăng ký;
 endif
 
-:Hoàn tất tiếp nhận\nnhu cầu dịch vụ;
+:Hoàn tất tiếp nhận;
 stop
 @enduml

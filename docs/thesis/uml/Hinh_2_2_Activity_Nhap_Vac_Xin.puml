@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact-fixed layout
+' HUIT UML Visual Profile v1 - compact data-aware layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -10,6 +10,8 @@ skinparam ActivityBorderColor black
 skinparam ActivityBackgroundColor white
 skinparam PartitionBorderColor black
 skinparam PartitionBackgroundColor white
+skinparam nodesep 20
+skinparam ranksep 24
 skinparam dpi 180
 
 |Nhà cung cấp|
@@ -17,12 +19,11 @@ start
 :Bàn giao lô vắc xin\nvà chứng từ giao nhận;
 
 |Nhân viên kho|
-:Đối chiếu lô thực nhận\nvới chứng từ giao nhận;
-:Kiểm tra bao bì, điều kiện giao nhận\nvà nhiệt độ vận chuyển (nếu có);
+:Đối chiếu lô, chứng từ\nvà điều kiện giao nhận;
 
 if (Đủ căn cứ tiếp nhận?) then (Có)
 else (Không)
-  :Giữ lô tách biệt và làm rõ\nsai lệch với Nhà cung cấp;
+  :Giữ lô tách biệt và\nlàm rõ sai lệch;
   if (Sai lệch đã được xử lý?) then (Có)
   else (Không)
     :Ghi nhận trạng thái\nchưa tiếp nhận;
@@ -30,9 +31,8 @@ else (Không)
   endif
 endif
 
-:Xác nhận tiếp nhận lô;
-:Ghi nhận số lượng, số lô, hạn sử dụng,\nthời điểm nhập và trạng thái lô;
-:Phân loại, sắp xếp lô\nđể tiếp tục bảo quản;
-:Cập nhật nguồn lô/tồn;
+:Xác nhận tiếp nhận và\nghi nhận thông tin lô;
+:Sắp xếp, bảo quản lô;
+:Cập nhật tồn kho;
 stop
 @enduml

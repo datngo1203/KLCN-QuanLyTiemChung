@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact-fixed layout
+' HUIT UML Visual Profile v1 - compact data-aware layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -10,25 +10,26 @@ skinparam ActivityBorderColor black
 skinparam ActivityBackgroundColor white
 skinparam PartitionBorderColor black
 skinparam PartitionBackgroundColor white
+skinparam nodesep 20
+skinparam ranksep 24
 skinparam dpi 180
 
 |Bác sĩ|
 start
-:Tiếp nhận Người được tiêm\nvà xác định lần phục vụ liên quan;
-:Xem hồ sơ, thông tin đăng ký\nvà lịch sử tiêm chủng cần thiết;
-:Khai thác thông tin sức khỏe\nvà thực hiện khám sàng lọc;
-:Đánh giá tình trạng\ntại thời điểm khám;
-:Ghi nhận kết quả khám sàng lọc\nvà kết luận chuyên môn;
+:Tiếp nhận Người được tiêm\nvà lần phục vụ;
+:Xem hồ sơ, đăng ký\nvà lịch sử tiêm;
+:Khai thác sức khỏe và\nthực hiện khám sàng lọc;
+:Ghi nhận kết quả và\nkết luận chuyên môn;
 
 if (Đủ điều kiện tiêm?) then (Có)
-  :Ghi nhận chỉ định vắc xin\nphù hợp cho lần phục vụ;
+  :Ghi nhận chỉ định vắc xin;
   stop
 else (Không)
   if (Tạm hoãn?) then (Có)
-    :Ghi nhận kết quả\nvà lý do tạm hoãn;
+    :Ghi nhận lý do tạm hoãn;
     stop
   else (Không)
-    :Ghi nhận kết luận chống chỉ định\nhoặc cần đánh giá thêm;
+    :Ghi nhận chống chỉ định\nhoặc cần đánh giá thêm;
     stop
   endif
 endif
