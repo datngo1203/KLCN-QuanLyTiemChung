@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2B DONE:** toàn bộ Chương 2 đã được tái bố trí theo góp ý giảng viên: mỗi bảng đặc tả nghiệp vụ đặt ngay trước activity diagram tương ứng; mỗi bảng đặc tả hệ thống đặt ngay trước sequence diagram tương ứng; UC hệ thống được xếp theo dependency tạm thời nhưng vẫn giữ mã UC cũ để chưa phá tham chiếu. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2B.docx`, SHA-256 `199c1dc3ea473b440a5ce2b1b86fa0c8bdfcfe9f32506bd3cdfa35b861120aff`. Render QA 82 trang PASS; TOC/danh mục hình/bảng đã đồng bộ theo vị trí mới. **ACTIVE tiếp theo:** Patch 2C viết lại nội dung Chương 2 theo dependency spine, sau đó mới đánh lại mã UC/caption và redraw sơ đồ.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2B DONE:** toàn bộ Chương 2 đã được tái bố trí theo góp ý giảng viên: mỗi bảng đặc tả nghiệp vụ đặt ngay trước activity diagram tương ứng; mỗi bảng đặc tả hệ thống đặt ngay trước sequence diagram tương ứng; UC hệ thống được xếp theo dependency tạm thời nhưng vẫn giữ mã UC cũ để chưa phá tham chiếu. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2B.docx`, SHA-256 `199c1dc3ea473b440a5ce2b1b86fa0c8bdfcfe9f32506bd3cdfa35b861120aff`. Render QA 82 trang PASS; TOC/danh mục hình/bảng đã đồng bộ theo vị trí mới. **ACTIVE tiếp theo:** Patch 2C viết lại phần trước Chương 2 theo writing guardrail mới: Lời cảm ơn → Mở đầu → Chương 1. Sau khi ba phần này khóa nội dung và văn phong mới chuyển sang Patch 2D viết lại Chương 2 theo dependency spine; chỉ sau đó mới đánh lại mã UC/caption và redraw sơ đồ.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -92,6 +92,19 @@ Khi chỉnh `CNTT_KLCN090_Tuan12.docx`, **bắt buộc bám đúng mẫu chính 
 - Số trang đặt **giữa cuối trang**; **không đánh số hai trang bìa**; từ Lời cảm ơn đến Danh mục bảng dùng **i, ii, iii, ...**; từ Mở đầu dùng **1, 2, 3, ...**.
 - **Mục lục phải tạo tự động**; danh mục hình/bảng cũng phải đồng bộ theo caption/field, không giữ danh mục gõ tay.
 - Đây là **hard acceptance** của THESIS-R1: nếu nội dung đúng nhưng format lệch mẫu Khoa thì chưa được coi là hoàn thành.
+
+### THESIS-R1 — khóa thứ tự chỉnh sửa báo cáo trước Chương 2
+
+Trước khi viết lại Chương 2, phải hoàn thiện theo thứ tự:
+1. **Lời cảm ơn** — viết lại ngắn gọn, tự nhiên, đúng vai trò học thuật; tránh sáo ngữ/generic và tránh claim trải nghiệm không có thật.
+2. **Mở đầu** — khóa lý do chọn đề tài, mục tiêu, phạm vi, đối tượng, phương pháp/thực hiện, cấu trúc báo cáo; mọi claim về hệ thống phải khớp repo hiện tại.
+3. **Chương 1: Khảo sát hệ thống** — viết lại theo nguồn khảo sát/tài liệu thật, phân biệt rõ quy trình thực tế tham khảo với quy tắc thiết kế của đồ án; yêu cầu chức năng/phi chức năng phải bám đề cương và core thesis scope.
+4. Chỉ khi ba phần trên PASS writing guardrail mới chuyển sang **Chương 2: Phân tích hệ thống**.
+
+Mục tiêu của thứ tự này:
+- khóa giọng văn và thuật ngữ trước khi vào đặc tả;
+- tránh Chương 2 dùng khái niệm/phạm vi chưa được định nghĩa ở Mở đầu/Chương 1;
+- đảm bảo dependency spine đã xuất hiện từ Chương 1 và tiếp tục nhất quán qua Chương 2–5.
 
 ### THESIS-R1 — khóa thứ tự luồng nội dung
 
