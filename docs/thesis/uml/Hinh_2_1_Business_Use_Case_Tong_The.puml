@@ -1,0 +1,46 @@
+@startuml
+' HUIT UML Visual Profile v1
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam ArrowColor black
+skinparam ActorBorderColor black
+skinparam UsecaseBorderColor black
+skinparam RectangleBorderColor black
+skinparam packageStyle rectangle
+skinparam dpi 180
+
+top to bottom direction
+
+actor/ "Nhà cung cấp" as Supplier
+actor/ "Khách hàng" as Customer
+
+rectangle "TRUNG TÂM TIÊM CHỦNG" as BusinessBoundary {
+  usecase/ "Nhập vắc xin\ntừ nhà cung cấp" as BUC1
+  usecase/ "Tiếp nhận và quản lý hồ sơ\nkhách hàng/người được tiêm" as BUC2
+  usecase/ "Đăng ký dịch vụ\ntiêm chủng" as BUC3
+  usecase/ "Quản lý lịch hẹn\nvà nhắc lịch" as BUC4
+  usecase/ "Khám sàng lọc và\nchỉ định tiêm chủng" as BUC5
+  usecase/ "Thanh toán dịch vụ" as BUC6
+  usecase/ "Thực hiện tiêm chủng và\ntheo dõi sau tiêm" as BUC7
+
+  BUC1 -[hidden]down- BUC2
+  BUC2 -[hidden]down- BUC3
+  BUC3 -[hidden]down- BUC4
+  BUC4 -[hidden]down- BUC5
+  BUC5 -[hidden]down- BUC6
+  BUC6 -[hidden]down- BUC7
+}
+
+' Association Actor–Use Case: solid line, no arrowhead
+Supplier -right- BUC1
+BUC4 -right- Customer
+Customer -- BUC2
+Customer -- BUC3
+Customer -- BUC5
+Customer -- BUC6
+Customer -- BUC7
+
+@enduml
