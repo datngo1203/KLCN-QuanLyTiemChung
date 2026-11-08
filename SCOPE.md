@@ -500,6 +500,31 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — Hình 2.9 System Use Case tổng quan — FINAL PASS 09/11/2026
+
+- Semantic source: `docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml`.
+- Deterministic layout post-process: `docs/thesis/uml/postprocess_system_usecase.py`.
+- Workflow commit: `115ced359c70c3e1ce5b6bc3755e4cf91c5f6513`.
+- GitHub Actions run: `42532788312` — **PASS**.
+- Final PNG: **1800×1400 px**, SHA-256 `1b4fe668dd40ad71c5f34165ca5dcf8972ae0717c53c34e9909527eb9d90c957`.
+- Visual contract: approved prototype v3.
+- Final gates:
+  - đúng 10 UC summary đã khóa;
+  - đúng 5 actor, mỗi actor **một visible symbol duy nhất**;
+  - trái boundary: Khách hàng, Lễ tân;
+  - phải boundary: Bác sĩ, Thu ngân, Điều dưỡng;
+  - title safe zone sạch;
+  - không connector crossing;
+  - không duplicate actor;
+  - connector chạm actor và ellipse;
+  - không curve lớn; association là các đoạn thẳng trực tiếp;
+  - cụm clinical đọc top-down: UC15 → UC16 → UC17 → UC18, chỉ là reading order, **không tạo UC relation**;
+  - 0 include / 0 extend / 0 UC generalization;
+  - aspect ratio 1.286; khi chèn rộng 13.0 cm thì cao ~10.1 cm, phù hợp A4.
+- `postprocess_system_usecase.py` fail-fast nếu actor/UC/association trong `.puml` lệch semantic lock; script chỉ dàn trang, không thay đổi semantic.
+- Các bản Hình 2.9 trước final này = **STALE**; không dùng cho Word.
+- Scope stop đạt. NEXT chỉ sau khi xác nhận: **Hình 2.10 — nhóm tài khoản và hồ sơ**.
+
 ### THESIS-R1 — Hình 2.9 PlantUML translation attempts — REJECTED 09/11/2026
 
 - Approved visual contract remains **prototype v3**; không thay đổi.
