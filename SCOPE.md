@@ -500,6 +500,14 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — Hình 2.9 PlantUML translation attempts — REJECTED 09/11/2026
+
+- Approved visual contract remains **prototype v3**; không thay đổi.
+- PlantUML translation commit `4c242009f22b17a9ee3401ba1ced8e666448361b`: CI render success nhưng visual **FAIL** — actor sides/layout bị đảo, nhiều đường dài, không bám prototype.
+- PlantUML translation commit `2450d315a9bd09788f56958deb9a3985f3bfbcb8`: CI render success nhưng visual **FAIL** — quá ngang, title safe zone bị connector xuyên, actor placement không đúng contract.
+- Cả hai commit là **renderer experiments / STALE**, không dùng cho Word và không được gọi PASS.
+- Rule được tái xác nhận: **CI xanh ≠ visual PASS; renderer phải phục vụ prototype đã duyệt, không ngược lại.**
+
 ### THESIS-R1 — Hình 2.9 layout prototype v3 — APPROVED 09/11/2026
 
 - User review: **APPROVED**.
