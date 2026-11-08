@@ -2,7 +2,7 @@
 
 **Nguồn sự thật hiện hành về phạm vi và trạng thái.** Chi tiết acceptance/test/CI nằm ở active issue, PR và Git history; không lưu lại toàn bộ lịch sử ở đây.
 
-Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
+Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
@@ -16,7 +16,7 @@ Cập nhật: **07/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-Không có slice ACTIVE. Chờ người dùng xác nhận lát tiếp theo.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận `CNTT_KLCN090_Tuan12.docx` với trạng thái repo hiện tại, đề cương CNTT-KLCN090 và mẫu báo cáo của Khoa. Scope chỉ tài liệu/checkpoint; không sửa business feature trên branch báo cáo.
 
 ### NEXT
 1. **#168 UI-F03**.
