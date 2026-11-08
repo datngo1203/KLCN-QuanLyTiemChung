@@ -38,7 +38,7 @@ jobs:
             java -Djava.awt.headless=true -jar plantuml.jar -charset UTF-8 -tpng "$f"
           done
 
-      - name: Add full outer frame to Activity diagrams
+      - name: Normalize Activity swimlane edges and add outer frame
         shell: bash
         run: |
           set -euo pipefail
@@ -53,6 +53,16 @@ jobs:
               bbox = ImageChops.difference(img, white).getbbox()
               if bbox:
                   img = img.crop(bbox)
+
+              # PlantUML swimlane renders long outer vertical lane borders.
+              # The thesis visual profile uses one explicit outer frame instead:
+              # remove only the extreme left/right lane borders, keep internal separators.
+              draw = ImageDraw.Draw(img)
+              w, h = img.size
+              edge_strip = 4
+              draw.rectangle((0, 0, edge_strip, h - 1), fill="white")
+              draw.rectangle((w - 1 - edge_strip, 0, w - 1, h - 1), fill="white")
+
               img = ImageOps.expand(img, border=14, fill="white")
               draw = ImageDraw.Draw(img)
               w, h = img.size
