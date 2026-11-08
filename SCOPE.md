@@ -53,6 +53,12 @@ Nguồn tinh chế: tài liệu người dùng cung cấp `Hướng dẫn giảm
 - Không đặt mục tiêu "AI Detection < X%" hoặc "Similarity < X%" như acceptance của THESIS-R1. Các con số minh họa trong tài liệu hướng dẫn không thay thế quy định chính thức của trường/công cụ.
 - Nếu Khoa/Trường có quy định khai báo việc sử dụng AI, phải tuân theo quy định chính thức đó; không tự suy đoán chính sách.
 
+#### F. Tone chuẩn cho phần Mở đầu
+- Phần Mở đầu phải có nhịp dẫn mềm: **bối cảnh thực tế → đặc điểm hành trình tiêm chủng → vấn đề dữ liệu/phối hợp → nhu cầu hệ thống thông tin → lý do chọn đề tài → giải pháp của nhóm**.
+- Không mở đầu bằng kiến trúc kỹ thuật hoặc danh sách chức năng ngay lập tức.
+- Mỗi đoạn vẫn phải có nhiệm vụ rõ ràng và bổ sung thông tin mới; không kéo dài bằng câu sáo hoặc lặp ý.
+- Tone dùng cho Mở đầu là học thuật nhưng tự nhiên, có giải thích “vì sao” trước khi đi vào “xây dựng gì”.
+
 #### E. Checklist cho mỗi đoạn được sửa
 1. Đoạn này trả lời câu hỏi gì trong mạch nghiệp vụ/hệ thống?
 2. Claim nào là fact từ repo/tài liệu? Claim nào là phân tích/thiết kế của nhóm?
