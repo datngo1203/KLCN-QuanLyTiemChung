@@ -29,12 +29,7 @@ endif
 :Chọn dịch vụ, gói\nhoặc vắc xin;
 
 |Lễ tân|
-:Ghi nhận đăng ký;
-if (Có thời gian mong muốn?) then (Có)
-  :Ghi nhận thời gian mong muốn;
-else (Không)
-endif
-
+:Ghi nhận đăng ký và thời gian\nmong muốn (nếu có);
 :Kiểm tra thông tin đăng ký;
 if (Thông tin đã đầy đủ?) then (Có)
 else (Không)

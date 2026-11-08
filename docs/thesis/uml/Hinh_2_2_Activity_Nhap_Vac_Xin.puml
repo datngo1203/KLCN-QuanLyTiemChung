@@ -31,8 +31,7 @@ else (Không)
   endif
 endif
 
-:Xác nhận tiếp nhận và\nghi nhận thông tin lô;
+:Xác nhận tiếp nhận và\nghi nhận lô/tồn;
 :Sắp xếp, bảo quản lô;
-:Cập nhật tồn kho;
 stop
 @enduml
