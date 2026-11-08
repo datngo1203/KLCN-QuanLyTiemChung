@@ -17,17 +17,17 @@ EXPECTED_BASE_SIZES = {
 }
 
 CFG = {
-    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(left_pad=0, right_pad=30, entities=[
-        dict(label=": Chứng từ giao nhận", cx=835, cy=305, target=(780,305), mode="read"),
-        dict(label=": Lô vắc xin", cx=835, cy=1115, target=(780,1115), mode="write"),
+    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(left_pad=0, right_pad=90, entities=[
+        dict(label=": Chứng từ giao nhận", cx=895, cy=305, target=(780,305), mode="read"),
+        dict(label=": Lô vắc xin", cx=895, cy=1115, target=(780,1115), mode="write"),
     ]),
     "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(left_pad=0, right_pad=220, entities=[
         dict(label=": Hồ sơ khách hàng", cx=1160, cy=465, target=(1030,465), mode="read"),
         dict(label=": Hồ sơ người được tiêm", cx=1380, cy=620, target=(1245,620), mode="write"),
     ]),
-    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(left_pad=0, right_pad=100, entities=[
-        dict(label=": Hồ sơ người được tiêm", cx=900, cy=330, target=(780,330), mode="read"),
-        dict(label=": Đăng ký dịch vụ", cx=930, cy=880, target=(880,880), mode="write"),
+    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(left_pad=0, right_pad=170, entities=[
+        dict(label=": Hồ sơ người được tiêm", cx=930, cy=330, target=(780,330), mode="read"),
+        dict(label=": Đăng ký dịch vụ", cx=1000, cy=880, target=(880,880), mode="write"),
     ]),
     "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(left_pad=0, right_pad=0, entities=[
         dict(label=": Đăng ký dịch vụ", cx=1250, cy=335, target=(1100,335), mode="read"),
@@ -37,9 +37,9 @@ CFG = {
         dict(label=": Hồ sơ người được tiêm", cx=900, cy=310, target=(690,310), mode="read"),
         dict(label=": Kết quả khám sàng lọc", cx=900, cy=570, target=(700,570), mode="write"),
     ]),
-    "Hinh_2_7_Activity_Thanh_Toan.png": dict(left_pad=0, right_pad=0, entities=[
-        dict(label=": Đăng ký dịch vụ", cx=100, cy=235, target=(220,235), mode="read"),
-        dict(label=": Giao dịch thanh toán", cx=560, cy=1100, target=(390,1100), mode="write"),
+    "Hinh_2_7_Activity_Thanh_Toan.png": dict(left_pad=160, right_pad=0, entities=[
+        dict(label=": Đăng ký dịch vụ", cx=250, cy=235, target=(220,235), mode="read"),
+        dict(label=": Giao dịch thanh toán", cx=80, cy=1100, target=(20,1100), mode="write"),
     ]),
     "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(left_pad=160, right_pad=0, entities=[
         dict(label=": Lô vắc xin", cx=80, cy=335, target=(20,335), mode="read"),
