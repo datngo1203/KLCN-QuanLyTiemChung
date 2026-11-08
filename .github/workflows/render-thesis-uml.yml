@@ -1,0 +1,49 @@
+name: Render thesis PlantUML
+
+on:
+  push:
+    branches:
+      - docs/thesis-r1-current-state
+    paths:
+      - 'docs/thesis/uml/**.puml'
+      - '.github/workflows/render-thesis-uml.yml'
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download PlantUML
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            https://github.com/plantuml/plantuml/releases/download/v1.2026.9/plantuml-1.2026.9.jar \
+            -o plantuml.jar
+          echo 'aa4a1d06f8911c4b842beff4828dd955be431692b631a312d04c0e9fab9581de  plantuml.jar' | sha256sum -c -
+
+      - name: Render thesis UML PNG
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p uml-rendered
+          shopt -s nullglob
+          files=(docs/thesis/uml/*.puml)
+          test ${#files[@]} -gt 0
+          for f in "${files[@]}"; do
+            java -Djava.awt.headless=true -jar plantuml.jar -charset UTF-8 -tpng "$f"
+          done
+          cp docs/thesis/uml/*.png uml-rendered/
+          ls -lh uml-rendered
+
+      - name: Upload rendered UML
+        uses: actions/upload-artifact@v4
+        with:
+          name: thesis-uml-rendered
+          path: uml-rendered/*.png
+          if-no-files-found: error
+          retention-days: 3

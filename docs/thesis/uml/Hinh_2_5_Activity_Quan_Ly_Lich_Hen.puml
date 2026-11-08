@@ -1,0 +1,45 @@
+@startuml
+' HUIT UML Visual Profile v1 - compact print layout
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam ArrowColor black
+skinparam ActivityBorderColor black
+skinparam ActivityBackgroundColor white
+skinparam PartitionBorderColor black
+skinparam PartitionBackgroundColor white
+skinparam dpi 180
+
+|Lễ tân|
+start
+:Tiếp nhận đăng ký cần sắp xếp lịch\nvà xem thời gian Khách hàng mong muốn;
+
+|Khách hàng|
+:Trao đổi thời điểm có thể đến trung tâm;
+
+|Lễ tân|
+:Thống nhất ngày, giờ phục vụ;
+:Xác nhận lịch hẹn chính thức\ngắn với đúng đăng ký và Người được tiêm;
+:Theo dõi lịch hẹn hiện hành\nvà các thay đổi trước ngày hẹn;
+
+if (Khách hàng yêu cầu thay đổi?) then (Đổi lịch)
+  |Khách hàng|
+  :Trao đổi thời điểm mới;
+  |Lễ tân|
+  :Đối chiếu lịch hiện hành, thống nhất\nvà ghi nhận lịch hẹn mới;
+elseif (Khách hàng không tiếp tục lần hẹn?) then (Hủy lịch)
+  :Ghi nhận hủy lịch hẹn;
+  stop
+else (Không)
+endif
+
+|Khách hàng|
+:Nhận thông tin nhắc lịch\ndựa trên lịch hẹn hiện hành;
+:Đến trung tâm theo lịch hẹn;
+
+|Lễ tân|
+:Sử dụng lịch hẹn để xác định\nđúng lượt phục vụ và đăng ký liên quan;
+stop
+@enduml

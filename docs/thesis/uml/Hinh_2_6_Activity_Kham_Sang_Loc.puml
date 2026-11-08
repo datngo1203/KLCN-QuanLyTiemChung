@@ -1,0 +1,33 @@
+@startuml
+' HUIT UML Visual Profile v1 - compact print layout
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam ArrowColor black
+skinparam ActivityBorderColor black
+skinparam ActivityBackgroundColor white
+skinparam PartitionBorderColor black
+skinparam PartitionBackgroundColor white
+skinparam dpi 180
+
+|Bác sĩ|
+start
+:Tiếp nhận Người được tiêm\nvà xác định lần phục vụ liên quan;
+:Xem hồ sơ, thông tin đăng ký\nvà lịch sử tiêm chủng cần thiết;
+:Khai thác thông tin sức khỏe\nvà thực hiện khám sàng lọc;
+:Đánh giá tình trạng\ntại thời điểm khám;
+:Ghi nhận kết quả khám sàng lọc\nvà kết luận chuyên môn;
+
+if (Kết luận chuyên môn?) then (Đủ điều kiện)
+  :Ghi nhận chỉ định vắc xin\nphù hợp cho lần phục vụ;
+  stop
+elseif (Tạm hoãn) then (Tạm hoãn)
+  :Ghi nhận kết quả\nvà lý do tạm hoãn;
+  stop
+else (Chống chỉ định / cần đánh giá thêm)
+  :Ghi nhận kết luận tương ứng\nvà dừng luồng thông thường;
+  stop
+endif
+@enduml
