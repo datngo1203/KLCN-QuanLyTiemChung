@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7 DONE:** đã chuẩn hóa toàn bộ hình biểu mẫu mục 1.4 theo cùng chuẩn in: ảnh ngang dùng gần hết vùng nội dung, ảnh dọc dùng cùng cột thị giác và căn giữa thật, giữ tỷ lệ gốc; Hình 1.3 tiếp tục tách 1.3a/1.3b, Hình 1.4 giữ bản ghép đã loại vùng trống. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7_Final.docx`, SHA-256 `4150ba9a3d28484bdce3e1dc21bff5df0018efd0fcfcb3749cf85e99161fa6f4`. Render QA 87 trang PASS; chỉ trang 26–34 thay đổi so với baseline 2C.6, các trang còn lại pixel-identical; DOCX ZIP integrity PASS. **Chương 1 được khóa hoàn toàn. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7a DONE:** hotfix toàn bộ bullet trong báo cáo: thay `- ` / `+ ` bằng marker + tab stop để dòng đầu và các dòng wrap thẳng cột, vẫn giữ đúng chuẩn Khoa (cấp 1: Position 0,3 cm / Text indent 0,8 cm; cấp 2: Position 0,8 cm / Text indent 1,3 cm). Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7a_Final.docx`, SHA-256 `cc9d58d1fd0e9e6100c47d501f90b0c41e86904fb9a79fd379cb84f38ffb29b2`. Render QA 87 trang PASS; chỉ trang 31–34 thay đổi, các trang khác pixel-identical với 2C.7. **Chương 1 tiếp tục được khóa. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
