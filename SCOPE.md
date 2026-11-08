@@ -500,6 +500,59 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — UML production discipline / visual gate v3 — 09/11/2026
+
+Áp dụng cho toàn bộ UML thesis từ Hình 2.9 trở đi. Mục tiêu: **semantic quyết định hình; renderer chỉ thi công**, không để auto-layout làm thay đổi cách hiểu mô hình.
+
+#### Thứ tự làm việc bắt buộc
+1. **Source-of-truth recovery**: đọc SCOPE/active issue; nếu hình có claim implementation thì ghi exact `main` HEAD và chỉ dùng evidence trực tiếp.
+2. **Semantic lock trước**: khóa actor/node/relation/WHEN-WHY; chưa khóa semantic thì chưa vẽ.
+3. **Visual contract trước renderer**: xác định actor bên nào, cụm node nào, reading order, title safe zone, routing rule, target aspect ratio/A4 size.
+4. **Layout prototype**: làm mockup hình học đơn giản để kiểm cognitive load; prototype không được dùng thay final PlantUML.
+5. **Human QA trước khi code renderer**: tự xem như người chấm — có hiểu trong vài giây không, có phải lần dây không, vị trí có ngầm kể sai workflow không.
+6. **PlantUML source-first**: chỉ sau khi visual contract PASS mới viết/chỉnh `.puml`.
+7. **Render engine thật**: CI xanh chỉ chứng minh render thành công, **không đồng nghĩa visual PASS**.
+8. **Compare render với visual contract**: nếu renderer phá contract, sửa layout/helper hoặc dùng post-process hình học deterministic; **không đổi semantic để chiều renderer**.
+9. **Scope stop**: Hình hiện tại phải semantic + visual PASS rồi mới sang hình kế tiếp.
+
+#### Hard visual gates
+- **Một semantic actor = một visible actor symbol trong cùng diagram.** Không duplicate actor để giảm crossing.
+- Actor đặt ngoài system boundary; UC bên trong; connector phải **chạm đúng actor và ellipse**.
+- Không connector chạy qua title, label, actor, ellipse hoặc system-boundary title safe zone.
+- Không connector crossing; tránh spline/curve lớn. Ưu tiên đường thẳng hoặc orthogonal ngắn.
+- Không dùng chung một “bus/trunk” association nếu làm mơ hồ actor đang nối với UC nào.
+- Title có safe zone riêng, không có connector đi xuyên.
+- Layout phải hỗ trợ đọc, nhưng **không được ngầm tạo workflow sai**. Nếu các UC có trình tự nghiệp vụ rõ, thứ tự thị giác không được mâu thuẫn với trình tự đó dù không vẽ UC→UC.
+- Không dùng `include`, `extend`, actor generalization, duplicate actor hay UC cha giả chỉ để chữa layout.
+- Không thay đổi actor–UC mapping, tên UC hoặc mức decomposition vì renderer xấu.
+- Summary view ưu tiên orientation; detail view ưu tiên coverage. Relation bị lược trên summary phải có rule/traceability rõ.
+- A4 gate: font đọc được khi chèn khoảng 10.5–13.5 cm width; preferred height 10–15 cm, soft cap ~15.5 cm; aspect ratio locked.
+- Monochrome, no shadow, Times New Roman; adaptive ellipse sizing theo label, không ép cùng kích thước nếu gây dư khoảng trắng.
+
+#### Anti-patterns đã gặp — cấm lặp lại
+- **Renderer-first / engine roulette**: đổi Graphviz → ELK → Smetana liên tục mà chưa khóa target layout.
+- **CI-green = PASS**: không được.
+- **Duplicate actor để giảm dây**: dù semantic nói là cùng actor, người đọc vẫn có thể hiểu thành hai actor.
+- **Chỉ đếm crossing**: “không crossing” vẫn có thể khó đọc nếu dây dài, cong, đi qua title hoặc phải lần dây.
+- **Layout-driven semantics**: không thêm/bớt UC, actor, include/extend vì muốn hình đẹp.
+- **Tối ưu từng đường mà quên whole-page reading**: phải review toàn hình ở kích thước A4.
+- **Chuyển NEXT quá sớm**: không sang diagram khác khi diagram hiện tại còn visual debt.
+
+#### Post-process policy
+- PlantUML vẫn là source/renderer canonical.
+- Post-process chỉ được sửa **hình học trình bày** (crop, connector endpoint, ObjectFlow/association anchoring, padding), không thêm/bớt semantic element.
+- Post-process phải deterministic, fail-fast theo expected base size/shape hints và được CI render lại.
+- Nếu post-process làm thay đổi meaning hoặc không trace được về PlantUML source thì không dùng.
+
+#### Hình 2.9 visual contract v2
+- **Trái boundary:** Khách hàng, Lễ tân.
+- **Phải boundary:** Bác sĩ, Thu ngân, Điều dưỡng.
+- **Cụm tiếp nhận/dịch vụ:** UC09 Hồ sơ; UC10 Tra cứu; UC11 Đăng ký; UC12 Lịch hẹn; UC13 Gửi nhắc; UC19 Hành trình.
+- **Cụm thực hiện tiêm:** UC15 Khám sàng lọc/chỉ định → UC16 Thanh toán → UC17 Ghi nhận mũi → UC18 Theo dõi sau tiêm theo reading order trên→dưới; đây chỉ là bố cục, không tạo UC→UC relation.
+- Summary primary associations giữ nguyên: Khách hàng→UC09/10/11/19; Lễ tân→UC12/13; Bác sĩ→UC15; Thu ngân→UC16; Điều dưỡng→UC17/18.
+- **0 include / 0 extend / 0 UC generalization** trên Hình 2.9.
+- Title safe zone phải sạch hoàn toàn; mọi association ngắn, rõ, không curve/crossing.
+
 ### THESIS-R1 — Hình 2.9 visual candidate v15 — 09/11/2026
 
 - Source commit: `77507a0a687224fe14c1c4ad4d21783d03b99edd`.
