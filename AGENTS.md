@@ -21,6 +21,26 @@
 
 ## 2. Context routing — đọc ít nhất đủ dùng
 
+### Session lane lock — CODE vs THESIS
+
+Mỗi session phải được khóa vào **một lane duy nhất** trước khi phục hồi task context. Chỉ dẫn lane mới nhất của người dùng có ưu tiên cao hơn recent chat/project history.
+
+**CODE lane**
+- Dùng `main` hiện hành hoặc active feature branch làm source of truth; **không dùng `docs/thesis-r1-current-state`**.
+- Recovery bắt buộc: **kiểm exact remote HEAD trước** → `AGENTS.md` → `SCOPE.md` của CODE branch → active issue → nested `AGENTS.md` → code/test/contract liên quan.
+- Không đọc issue #182, thesis artifact hoặc thesis checkpoint trừ khi người dùng yêu cầu đối chiếu một claim cụ thể.
+- Nếu CODE session phát hiện đang đứng/đọc thesis branch hoặc đang lấy ACTIVE/NEXT từ thesis lane: **STOP, báo branch/context mismatch và phục hồi lại từ CODE source of truth**.
+
+**THESIS lane**
+- Dùng `docs/thesis-r1-current-state` + issue #182 + artifact Word hiện hành làm source of truth điều phối báo cáo.
+- Recovery bắt buộc: kiểm exact remote thesis HEAD → `AGENTS.md`/`SCOPE.md` trên thesis branch → issue #182 → artifact hiện hành → chỉ đọc `main`/code khi cần xác minh claim implementation.
+- Không implement application feature, không tạo feature branch CODE và không tự chuyển queue CODE trong THESIS session.
+- Nếu THESIS session chuẩn bị sửa application code/business feature: **STOP và chuyển việc sang CODE lane**.
+
+**Không truyền trạng thái giữa hai lane:** ACTIVE/NEXT/PARKED của CODE và THESIS là hai hàng đợi độc lập. Recent chat, project conversation history và memory chỉ là context phụ; **branch + SCOPE + active issue của lane hiện tại mới là source of truth**.
+
+Khuyến nghị vận hành: mở CODE và THESIS ở hai chat cố định và hai Git worktree/VS Code window riêng khi có thể.
+
 ### Mặc định khi bắt đầu task/session mới
 
 Đọc theo thứ tự:
