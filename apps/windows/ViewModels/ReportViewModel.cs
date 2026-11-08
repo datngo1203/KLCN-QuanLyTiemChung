@@ -121,7 +121,14 @@ public sealed class ReportViewModel : ViewModelBase
     public bool IsSimulated
     {
         get => _isSimulated;
-        private set => Set(ref _isSimulated, value);
+        private set
+        {
+            if (Set(ref _isSimulated, value))
+            {
+                OnPropertyChanged(nameof(DataSourceLabel));
+                OnPropertyChanged(nameof(RevenueDisclaimer));
+            }
+        }
     }
 
     // Vaccine Doses properties
@@ -214,9 +221,16 @@ public sealed class ReportViewModel : ViewModelBase
     public bool CanViewReports => IdentityApiService.Current.CanViewReports || _service.UseSampleData;
     public bool CanGenerate => !IsLoading && !HasInvalidRange && CanViewReports;
 
+    public string RevenueDisclaimer =>
+        $"Doanh thu ghi nhận từ các giao dịch thanh toán thành công trong hệ thống{(IsSimulated ? "; chưa phải số liệu đối soát ngân hàng." : ".")}";
+
     public string DataSourceLabel => _service.UseSampleData
-        ? "Dữ liệu mẫu"
-        : (IsRevenueTab ? "Doanh thu mô phỏng (G3)" : (IsVaccineDosesTab ? "Dữ liệu tiêm thực tế" : "Dữ liệu đăng ký thực tế"));
+        ? "Số liệu minh họa"
+        : IsRevenueTab
+            ? (IsSimulated ? "Doanh thu hệ thống · chưa đối soát ngân hàng" : "Doanh thu hệ thống")
+            : IsVaccineDosesTab
+                ? "Số mũi tiêm thực tế đã thực hiện thành công"
+                : "Lượt đăng ký dịch vụ thực tế";
 
     public bool UseSampleData
     {

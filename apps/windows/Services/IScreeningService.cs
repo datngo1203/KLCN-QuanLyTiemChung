@@ -43,12 +43,12 @@ public sealed class ScreeningApiService(IdentityApiService? identity = null) : I
         try { response = await _identity.SendCatalogAsync(method, "api/v1/clinical/appointments" + path, body,
             retryUnauthorized: !post, expectedSessionRevision: _revision); }
         catch (Exception e) when (post && e is HttpRequestException or OperationCanceledException) {
-            throw new ClinicalApiException("outcomeUnknown", "Kết quả lưu chưa xác định. Hãy GET đối chiếu trước khi thử lại.");
+            throw new ClinicalApiException("outcomeUnknown", "Chưa xác định kết quả lưu. Hãy tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
         }
         if (response.IsSuccessStatusCode) return response;
         using (response) {
             if (post && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
-                throw new ClinicalApiException("outcomeUnknown", "Kết quả lưu chưa xác định. Hãy GET đối chiếu trước khi thử lại.");
+                throw new ClinicalApiException("outcomeUnknown", "Chưa xác định kết quả lưu. Hãy tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
             string? code = null;
             try { using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
                 if (json.RootElement.TryGetProperty("code", out var value) && value.ValueKind == JsonValueKind.String) code = value.GetString();
@@ -62,11 +62,11 @@ public sealed class ScreeningApiService(IdentityApiService? identity = null) : I
                 "permissionDenied" => "Chỉ Bác sĩ đang hoạt động được xem và ghi kết luận.",
                 "validation" => "Kiểm tra kết luận, lý do và vắc xin được chọn. Bản nháp được giữ lại.",
                 "resourceNotFound" => "Lịch hoặc nguồn dịch vụ không còn hợp lệ. Hãy tải lại.",
-                "assessmentAlreadyRecorded" => "Buổi hẹn đã có kết luận. Hãy GET đối chiếu, không ghi đè.",
+                "assessmentAlreadyRecorded" => "Buổi hẹn đã có kết luận. Hãy tải lại để đối chiếu; không ghi lại.",
                 "appointmentNotStarted" => "Chưa đến giờ hẹn. Chưa thể khám hoặc chỉ định; hãy tải lại khi đến giờ.",
                 "doseEntitlementExhausted" => "Đã thực hiện đủ số mũi đăng ký. Không thể chỉ định thêm; hãy tải lại.",
                 "doseEntitlementUnavailable" => "Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi khám hoặc chỉ định.",
-                _ => "Không đọc được API. Hãy thử lại; bản nháp được giữ lại."
+                _ => "Không tải được dữ liệu. Hãy thử lại; bản nháp được giữ lại."
             });
         }
     }
@@ -95,14 +95,14 @@ public sealed class ScreeningApiService(IdentityApiService? identity = null) : I
     public async Task<ClinicalAssessment> CreateAsync(int id, AssessmentRequest request)
     {
         using var response = await Send(HttpMethod.Post, $"/{id}/assessment", request);
-        if (response.StatusCode != HttpStatusCode.Created) throw new ClinicalApiException("outcomeUnknown", "Cần GET đối chiếu kết quả lưu.");
+        if (response.StatusCode != HttpStatusCode.Created) throw new ClinicalApiException("outcomeUnknown", "Chưa xác định kết quả lưu. Hãy tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
         try {
             var result = await response.Content.ReadFromJsonAsync<ClinicalAssessment>() ?? throw new JsonException();
             if (!Valid(result, id) || result.Conclusion != request.Conclusion || result.Reason != request.Reason ||
                 !result.Indications.Select(v => v.VaccineId).Order().SequenceEqual(request.VaccineIds.Order())) throw new JsonException();
             return result;
         } catch (Exception e) when (e is JsonException or HttpRequestException or OperationCanceledException) {
-            throw new ClinicalApiException("recordedUnreadable", "API đã trả 201. Chỉ GET đối chiếu, không gửi lại.");
+            throw new ClinicalApiException("recordedUnreadable", "Yêu cầu đã được xác nhận lưu nhưng chưa đọc được kết quả. Hãy tải lại để đối chiếu; không gửi lại.");
         }
     }
 }

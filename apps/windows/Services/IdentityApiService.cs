@@ -152,7 +152,7 @@ public sealed class IdentityApiService : IAuthService, IChangePasswordService
             "emailVerificationRequired" => "Vui lòng xác minh email trước khi đăng nhập.",
             "validation" => "Mật khẩu mới cần 12–128 ký tự và khác mật khẩu hiện tại.",
             "rateLimited" => "Thao tác quá nhiều lần. Vui lòng thử lại sau.",
-            _ => $"Không thực hiện được yêu cầu (HTTP {(int)response.StatusCode})."
+            _ => "Không thể hoàn tất yêu cầu. Vui lòng thử lại."
         };
     }
 

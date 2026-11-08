@@ -8,7 +8,7 @@
    <StackPanel>
     <TextBlock Text="CHUYÊN MÔN / A06" Style="{StaticResource CE.Caption}"/>
     <TextBlock Text="Ghi nhận mũi đã thực hiện" Style="{StaticResource CE.Heading}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-    <TextBlock Text="API / SQL · Theo chỉ định bác sĩ. Ghi kết quả theo dõi ở khu vực Theo dõi sau tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <TextBlock Text="Thực hiện theo chỉ định bác sĩ. Ghi nhận theo dõi tại khu vực Theo dõi sau tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
     <TextBlock Text="Chỉ Điều dưỡng đang hoạt động được xem và ghi mũi." Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
     <TextBlock Text="{Binding Feedback}" Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
     <TextBlock x:Name="PageFeedback" Text="{Binding Feedback}" Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Focusable="True" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
@@ -36,7 +36,7 @@
        <TextBlock Text="Đọc lại mũi đã ghi" Style="{StaticResource CE.SectionHeading}"/>
        <TextBlock Text="Mã chỉ định (ví dụ CD-0001)" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,8,0,0"/>
        <TextBox Text="{Binding ResultIndicationId,UpdateSourceTrigger=PropertyChanged}" MaxLength="13" IsEnabled="{Binding CanBrowse}" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Mã chỉ định đọc kết quả" Margin="0,4,0,8"/>
-       <Button Content="Đọc kết quả bằng GET" Click="ReadResult" IsEnabled="{Binding CanReadResult}" Style="{StaticResource CE.Button.Secondary}"/>
+       <Button Content="Tải lại kết quả" Click="ReadResult" IsEnabled="{Binding CanReadResult}" Style="{StaticResource CE.Button.Secondary}"/>
       </StackPanel>
      </Border>
      <Border x:Name="DetailPanel" Grid.Column="2" Style="{StaticResource CE.Card}" Padding="18" VerticalAlignment="Top">
@@ -44,8 +44,8 @@
        <TextBlock x:Name="DetailHeading" Text="Đối chiếu và ghi nhận" Focusable="True" Style="{StaticResource CE.SectionHeading}" TextWrapping="Wrap"/>
        <TextBlock Text="{Binding Feedback}" Visibility="{Binding HasDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,10"/>
        <WrapPanel Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,4,0,12">
-        <Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
-        <Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
+        <Button Content="Tải lại và đối chiếu" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
+        <Button Content="Thử lại sau khi xác nhận chưa ghi" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
        </WrapPanel>
        <TextBlock Text="Chọn chỉ định để đối chiếu đúng người tiêm, vắc xin và lô." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10"/>
        <Button Content="Tải lại chi tiết / kết quả" Command="{Binding DetailCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,10"/>
@@ -57,7 +57,7 @@
         <TextBlock Text="{Binding Detail.Indication.Location,StringFormat=Địa điểm: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
         <TextBlock Text="{Binding Detail.Indication.Doctor.FullName,StringFormat=Bác sĩ chỉ định: {0}}" TextWrapping="Wrap" Margin="0,8,0,0"/>
         <TextBlock Text="{Binding Detail.FacilityDateLabel,StringFormat=Ngày cơ sở Việt Nam (UTC+7): {0}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,8,0,16"/>
-        <TextBlock Text="Không có lô phù hợp còn hạn và còn tồn từ SQL." Visibility="{Binding NoLots,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+        <TextBlock Text="Không có lô phù hợp còn hạn và còn tồn kho." Visibility="{Binding NoLots,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" Margin="0,0,0,12"/>
         <StackPanel IsEnabled="{Binding CanEdit}">
          <TextBlock Text="Số lô đã sử dụng *" Style="{StaticResource CE.Caption}"/>
          <ComboBox x:Name="LotInput" ItemsSource="{Binding Lots}" SelectedItem="{Binding SelectedLot}" Style="{StaticResource CE.ComboBox}" AutomationProperties.Name="Số lô đã sử dụng" Margin="0,4,0,12">
@@ -65,7 +65,7 @@
          </ComboBox>
          <TextBlock Text="Vị trí tiêm thực tế *" Style="{StaticResource CE.Caption}"/>
          <TextBox Text="{Binding InjectionSite,UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Style="{StaticResource CE.TextBox}" AutomationProperties.Name="Vị trí tiêm thực tế" Margin="0,4,0,12"/>
-         <TextBlock Text="Chỉ ghi sau khi đã thực hiện tiêm theo chỉ định. API kiểm lại điều kiện và trừ đúng 1 đơn vị tồn khi lưu." Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
+         <TextBlock Text="Chỉ ghi sau khi đã thực hiện tiêm theo chỉ định. Hệ thống kiểm tra lại điều kiện và trừ đúng 1 đơn vị tồn kho khi lưu." Style="{StaticResource CE.Caption}" TextWrapping="Wrap"/>
         </StackPanel>
        </StackPanel>
        <StackPanel Visibility="{Binding IsRecorded,Converter={StaticResource Vis}}" Margin="0,12,0,0">

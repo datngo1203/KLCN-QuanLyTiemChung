@@ -32,8 +32,9 @@
                 </StackPanel>
             </WrapPanel>
             <DockPanel Margin="0,0,0,12">
-                <Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Warning}" ToolTip="Các số liệu và hồ sơ đang dùng để xem trước giao diện.">
-                    <TextBlock Text="Dữ liệu mẫu" FontWeight="SemiBold" />
+                <Border DockPanel.Dock="Right" Style="{StaticResource CE.Badge.Warning}" ToolTip="Chưa có dữ liệu công việc trong khoảng thời gian đã chọn."
+                        Visibility="{Binding HasNoDashboardData, Converter={StaticResource BoolVisibility}}">
+                    <TextBlock Text="Chưa có dữ liệu tổng quan" FontWeight="SemiBold" />
                 </Border>
                 <TextBlock Text="Luồng xử lý" Style="{StaticResource CE.SectionHeading}" VerticalAlignment="Center" />
             </DockPanel>
@@ -105,7 +106,7 @@
                             <DataGrid x:Name="WorkTable" ItemsSource="{Binding WorkItemsView}" Style="{StaticResource CE.DataGrid}"
                                       AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                                       CanUserReorderColumns="False" SelectionMode="Single" MinHeight="260" MaxHeight="400"
-                                      AutomationProperties.Name="Danh sách lịch hẹn và công việc mẫu">
+                                      AutomationProperties.Name="Danh sách lịch hẹn và công việc">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Giờ" Binding="{Binding TimeLabel}" Width="65" />
                                     <DataGridTemplateColumn Header="Người được tiêm" Width="*" MinWidth="170">
@@ -151,7 +152,7 @@
                     <Border Style="{StaticResource CE.Card}">
                         <StackPanel>
                             <TextBlock Text="Tóm tắt hoạt động" Style="{StaticResource CE.SectionHeading}" />
-                            <TextBlock Text="Khoảng ngày này chưa có dữ liệu; các chỉ số đang bằng 0." Style="{StaticResource CE.Caption}" Margin="0,6,0,12" Visibility="{Binding HasNoPeriodData, Converter={StaticResource BoolVisibility}}" TextWrapping="Wrap" />
+                            <TextBlock Text="Chưa có dữ liệu cho khoảng ngày đã chọn; các chỉ số chưa khả dụng." Style="{StaticResource CE.Caption}" Margin="0,6,0,12" Visibility="{Binding HasNoPeriodData, Converter={StaticResource BoolVisibility}}" TextWrapping="Wrap" />
 
                             <ItemsControl ItemsSource="{Binding Metrics}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate><DataTemplate>
@@ -180,11 +181,11 @@
                             </Style>
                         </Border.Style>
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối API" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><ui:SymbolIcon Symbol="PlugConnected24" Foreground="{StaticResource CE.Primary}" Margin="0,0,8,0" /><TextBlock Text="Kết nối hệ thống" Style="{StaticResource CE.SectionHeading}" /></StackPanel>
                             <TextBlock Text="{Binding ApiStatus}" Style="{StaticResource CE.Body}" FontWeight="SemiBold" />
                             <TextBlock Text="{Binding ApiCheckedAt}" Style="{StaticResource CE.Caption}" Margin="0,6,0,12" />
                             <Button Content="Kiểm tra kết nối" Command="{Binding CheckApiCommand}" Style="{StaticResource CE.Button.Primary}" HorizontalAlignment="Left" />
-                            <TextBlock Text="Kiểm tra phản hồi từ dịch vụ." Style="{StaticResource CE.Caption}" Margin="0,12,0,0" />
+                            <TextBlock Text="Kiểm tra phản hồi từ hệ thống." Style="{StaticResource CE.Caption}" Margin="0,12,0,0" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

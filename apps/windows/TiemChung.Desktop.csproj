@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <Resource Include="Assets/vac-logo.png" />
+    <Resource Include="Assets/vnvc-logo.png" />
+    <Resource Include="Assets/vnvc-logo-horizontal.png" />
     <Page Remove="MainWindow.xaml;Themes/_Gallery.xaml" />
     <Compile Remove="MainWindow.xaml.cs;MainWindow.Api.cs" />
   </ItemGroup>

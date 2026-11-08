@@ -8,13 +8,13 @@
    <StackPanel>
     <TextBlock Text="CHUYÊN MÔN / A02" Style="{StaticResource CE.Caption}"/>
     <TextBlock Text="Kết luận và chỉ định theo lịch hẹn" Style="{StaticResource CE.Heading}" TextWrapping="Wrap" Margin="0,4,0,8"/>
-    <TextBlock Text="API / SQL · Lịch hẹn chưa phải xác nhận đã đến khám hoặc đã tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+    <TextBlock Text="Lịch hẹn chưa phải xác nhận đã đến khám hoặc đã tiêm." Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,0,0,12"/>
     <TextBlock Text="Chỉ Bác sĩ đang hoạt động được xem và ghi kết luận." Visibility="{Binding NoAccess,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap"/>
     <TextBlock Text="{Binding Feedback}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,8"/>
     <TextBlock Text="Đang xử lý…" Visibility="{Binding IsBusy,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}"/>
     <WrapPanel Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,8,0,12">
-     <Button Content="Đối chiếu bằng GET" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
-     <Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
+     <Button Content="Tải lại và đối chiếu" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
+     <Button Content="Thử lại sau khi xác nhận chưa ghi" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
     </WrapPanel>
     <Grid x:Name="Workspace" Visibility="{Binding HasAccess,Converter={StaticResource Vis}}">
      <Grid.ColumnDefinitions><ColumnDefinition Width="310"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

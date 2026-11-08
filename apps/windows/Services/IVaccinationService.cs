@@ -54,12 +54,12 @@ public sealed class VaccinationApiService(IdentityApiService? identity = null) :
         HttpResponseMessage response;
         try { response=await _identity.SendCatalogAsync(method,Route+path,body,retryUnauthorized:!post,expectedSessionRevision:_revision); }
         catch(Exception e) when(post && e is HttpRequestException or OperationCanceledException) {
-            throw new VaccinationApiException("outcomeUnknown","Chưa xác định kết quả ghi mũi. Giữ yêu cầu và GET đối chiếu trước khi thử lại.");
+            throw new VaccinationApiException("outcomeUnknown","Chưa xác định kết quả ghi mũi. Giữ yêu cầu, tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
         }
         if(response.IsSuccessStatusCode)return response;
         using(response) {
             if(post && response.StatusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
-                throw new VaccinationApiException("outcomeUnknown","Chưa xác định kết quả ghi mũi. Giữ yêu cầu và GET đối chiếu trước khi thử lại.");
+                throw new VaccinationApiException("outcomeUnknown","Chưa xác định kết quả ghi mũi. Giữ yêu cầu, tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
             string? code=null;
             try { using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
                 if(json.RootElement.TryGetProperty("code",out var value) && value.ValueKind==JsonValueKind.String)code=value.GetString();
@@ -73,9 +73,9 @@ public sealed class VaccinationApiService(IdentityApiService? identity = null) :
                 "permissionDenied"=>"Chỉ Điều dưỡng đang hoạt động được xem và ghi mũi.",
                 "validation"=>"Kiểm tra mã chỉ định, số lô và vị trí tiêm (1–100 ký tự). Bản nháp được giữ lại.",
                 "resourceNotFound"=>"Không tìm thấy chỉ định. Hãy kiểm tra mã hoặc tải lại.",
-                "vaccinationAlreadyRecorded"=>"Chỉ định đã có mũi ghi nhận. Hãy GET đối chiếu, không ghi thêm.",
+                "vaccinationAlreadyRecorded"=>"Chỉ định đã có mũi ghi nhận. Hãy tải lại để đối chiếu; không ghi thêm.",
                 "vaccinationSourceConflict"=>"Nguồn lịch/đăng ký không hợp lệ. Không thể ghi mũi; hãy tải lại.",
-                "vaccinationNotIndicated"=>"Chưa có kết luận Đủ điều kiện và chỉ định DuocTiem hợp lệ cho buổi hẹn.",
+                "vaccinationNotIndicated"=>"Chưa có kết luận và chỉ định vắc xin phù hợp cho buổi hẹn.",
                 "vaccinationPaymentRequired"=>"Đăng ký chưa có thanh toán toàn bộ hợp lệ. Chưa thể ghi mũi.",
                 "vaccinationZeroTotalNotSupported"=>"Đăng ký tổng 0 chưa được chốt chính sách ghi tiêm. Chưa thể ghi mũi.",
                 "paymentDataConflict"=>"Dữ liệu thanh toán/giá đã chốt không nhất quán. Chưa thể ghi mũi.",
@@ -83,7 +83,7 @@ public sealed class VaccinationApiService(IdentityApiService? identity = null) :
                 "appointmentNotStarted"=>"Chưa đến giờ hẹn. Chưa thể ghi tiêm; hãy tải lại khi đến giờ.",
                 "doseEntitlementExhausted"=>"Đã thực hiện đủ số mũi đăng ký. Không thể ghi thêm; hãy tải lại.",
                 "doseEntitlementUnavailable"=>"Chưa xác định được số mũi đăng ký. Cần đối chiếu đăng ký trước khi ghi tiêm.",
-                _=>"Không đọc được API. Hãy thử lại; bản nháp được giữ lại."
+                _=>"Không tải được dữ liệu. Hãy thử lại; bản nháp được giữ lại."
             });
         }
     }
@@ -116,13 +116,13 @@ public sealed class VaccinationApiService(IdentityApiService? identity = null) :
     public async Task<VaccinationRecord> RecordAsync(VaccinationRequest request)
     {
         using var response=await Send(HttpMethod.Post,"",request);
-        if(response.StatusCode!=HttpStatusCode.Created)throw new VaccinationApiException("outcomeUnknown","Cần GET đối chiếu kết quả ghi mũi.");
+        if(response.StatusCode!=HttpStatusCode.Created)throw new VaccinationApiException("outcomeUnknown","Chưa xác định kết quả ghi mũi. Giữ yêu cầu, tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
         try {
             var result=await response.Content.ReadFromJsonAsync<VaccinationRecord>()??throw new JsonException();
             if(!Valid(result,request.IndicationId) || result.LotNumber!=request.LotNumber || result.InjectionSite!=request.InjectionSite.Trim())throw new JsonException();
             return result;
         }catch(Exception e) when(e is JsonException or HttpRequestException or OperationCanceledException) {
-            throw new VaccinationApiException("recordedUnreadable","API đã trả 201. Chỉ GET đối chiếu, không POST lại.");
+            throw new VaccinationApiException("recordedUnreadable","Yêu cầu đã được xác nhận lưu nhưng chưa đọc được kết quả. Hãy tải lại để đối chiếu; không gửi lại.");
         }
     }
 }
