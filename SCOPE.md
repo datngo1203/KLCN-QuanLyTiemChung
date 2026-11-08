@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.2 DONE:** rút Mở đầu còn 4 trang và tái cấu trúc Chương 1 để không lặp mục đích/ngữ nghĩa với Mở đầu; audit lại 7 quy trình nghiệp vụ theo góc nhìn tổ chức, chuẩn hóa 6 actor + dữ liệu canonical, loại các chủ thể mơ hồ, sắp biểu mẫu theo luồng nghiệp vụ và chỉ giữ yêu cầu hệ thống ở mục 1.5. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C2_Final.docx`, SHA-256 `fc13aed013c20c255e4fcd17051a21b30bb0fcb6baffcd4ee82dcec5a2f2eef6`. Render QA 83 trang PASS; TOC field còn nguyên và cached page numbers/danh mục đã đồng bộ. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo cùng 7 nghiệp vụ/canonical terminology; chưa redraw UML trước khi đặc tả text PASS.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.3 DONE:** hoàn thiện Mở đầu + Chương 1 trước mục 1.4 theo mẫu Khoa và nguồn khảo sát có kiểm chứng; 1.1 đổi thành `PHẠM VI VÀ CÁCH TIẾP CẬN KHẢO SÁT`, 1.2/1.3 được viết lại tự nhiên hơn, không lặp mục đích với Mở đầu; bảy quy trình nghiệp vụ được mô tả theo trigger → actor/action → dữ liệu đọc/ghi → kết quả/nhánh → quy trình tiếp theo, nhưng trình bày thành văn xuôi thay vì checklist. Không sửa nội dung biểu mẫu 1.4. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C3_Final.docx`, SHA-256 `31cadaf146b9d1a13534fc045697af4567631fb7ec5feccd9683c545faef079f`. Render QA 84 trang PASS; TOC/list caches đồng bộ và body caption đã bỏ page-number suffix thừa. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo đúng cùng 7 nghiệp vụ/canonical terminology; redraw UML chỉ sau khi đặc tả text PASS.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -129,6 +129,23 @@ Mục tiêu của thứ tự này:
 - **Chương 5** trả lời: sản phẩm được kiểm thử/triển khai và có bằng chứng gì.
 - **Kết luận** đối chiếu mục tiêu ban đầu với kết quả thật, hạn chế và hướng phát triển; không lặp mô tả chức năng theo kiểu Chương 4.
 - Mỗi claim/ý giải thích chính chỉ có một “home section”. Phần khác nếu cần nhắc lại chỉ tham chiếu ngắn để nối mạch, không diễn giải lại cùng một ý bằng câu chữ khác.
+
+### THESIS-R1 — khóa chuẩn mô tả quy trình nghiệp vụ theo mẫu Khoa
+
+Áp dụng cho Chương 1 và phần Use Case nghiệp vụ ở Chương 2:
+- Trước phần chi tiết phải có **tổng quan đầy đủ các Use Case/quy trình nghiệp vụ** và sắp theo đúng quan hệ trước–sau; không sắp theo mã hoặc theo loại sơ đồ.
+- Mỗi quy trình phải làm rõ đủ các câu hỏi của mẫu Khoa:
+  1. **Khi nào quy trình bắt đầu?**
+  2. **Những hoạt động nào xảy ra và actor cụ thể nào thực hiện từng hoạt động?**
+  3. **Actor đọc dữ liệu gì, ghi/tạo/cập nhật dữ liệu gì?**
+  4. **Có nhánh điều kiện/thay thế nào không?**
+  5. **Khi kết thúc, kết quả của quy trình mở sang quy trình nào hoặc được dùng ở đâu?**
+- Trong văn bản chính, các ý trên phải được **lồng vào văn xuôi tự nhiên**, không biến mỗi quy trình thành một checklist hỏi–đáp máy móc.
+- Không dùng actor mơ hồ như “bộ phận tiếp nhận”, “nhân viên phụ trách” nếu đã biết chính xác là Lễ tân/Bác sĩ/Thu ngân/Điều dưỡng/Nhân viên kho.
+- Khi nguồn công khai chỉ chứng minh một phần của quy trình, chỉ khẳng định phần đó. Quy tắc riêng của đồ án phải ghi rõ là **mô hình/phạm vi của đề tài**, không gán thành quy trình nội bộ VNVC.
+- Với nguồn thực tế, ưu tiên VNVC chính thức, văn bản Chính phủ/Bộ Y tế hoặc nguồn chính thức tương đương; không lấy bản cũ của sinh viên làm Source of Truth.
+- P1 **Nhập vắc xin từ nhà cung cấp** là luồng hỗ trợ; P2→P7 là hành trình phục vụ chính; P4 lịch hẹn và P6 thanh toán có thể là nhánh điều kiện.
+- Nội dung biểu mẫu ở 1.4 được xử lý ở patch riêng; không dùng việc chỉnh 1.1–1.3 để âm thầm thay đổi nội dung biểu mẫu.
 
 ### THESIS-R1 — khóa từ điển nghiệp vụ, actor và dữ liệu canonical
 
