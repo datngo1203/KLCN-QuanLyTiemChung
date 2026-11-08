@@ -10,7 +10,7 @@ skinparam UsecaseBorderColor black
 skinparam UsecaseBackgroundColor white
 skinparam RectangleBorderColor black
 skinparam RectangleBackgroundColor white
-skinparam linetype ortho
+skinparam linetype polyline
 skinparam dpi 180
 
 top to bottom direction
