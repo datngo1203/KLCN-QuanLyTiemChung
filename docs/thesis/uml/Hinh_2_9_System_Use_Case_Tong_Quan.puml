@@ -13,7 +13,7 @@ skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
 skinparam nodesep 28
-skinparam ranksep 32
+skinparam ranksep 30
 skinparam dpi 180
 
 top to bottom direction
@@ -31,26 +31,26 @@ rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
   usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
 
-  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
   usecase "Thanh toán dịch vụ" as UC16
-
+  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
 
+  ' Left customer discovery/registration column.
   UC09 -[hidden]down- UC10
   UC10 -[hidden]down- UC11
-  UC11 -[hidden]down- UC19
 
+  ' Right operational/journey column.
   UC12 -[hidden]down- UC13
   UC13 -[hidden]down- UC15
   UC15 -[hidden]down- UC16
-  UC16 -[hidden]down- UC17
-  UC17 -[hidden]right- UC18
+  UC16 -[hidden]down- UC19
+  UC19 -[hidden]down- UC17
+  UC17 -[hidden]down- UC18
 
   UC09 -[hidden]right- UC12
   UC10 -[hidden]right- UC13
   UC11 -[hidden]right- UC15
-  UC19 -[hidden]right- UC16
 }
 
 actor "Bác sĩ" as Doctor
@@ -68,7 +68,7 @@ Reception -- UC13
 
 UC15 -right- Doctor
 UC16 -right- Cashier
-CustomerJourney -right- UC19
+UC19 -right- CustomerJourney
 UC17 -right- Nurse
 UC18 -right- Nurse
 
