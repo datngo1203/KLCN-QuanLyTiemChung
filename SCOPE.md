@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2A DONE:** đã đưa sequence diagram sang Chương 3, giữ sơ đồ lớp mức phân tích ở Chương 2, giữ lớp mức thiết kế + mô hình quan hệ ở Chương 3. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2A.docx`, SHA-256 `1619cd517a5701ea70d099b090faaea42b378232b0e0192c2cf93a4e1d5c4e10`. **ACTIVE tiếp theo:** Patch 2B chuẩn hóa Chương 2 theo dependency flow đã khóa.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2B DONE:** toàn bộ Chương 2 đã được tái bố trí theo góp ý giảng viên: mỗi bảng đặc tả nghiệp vụ đặt ngay trước activity diagram tương ứng; mỗi bảng đặc tả hệ thống đặt ngay trước sequence diagram tương ứng; UC hệ thống được xếp theo dependency tạm thời nhưng vẫn giữ mã UC cũ để chưa phá tham chiếu. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2B.docx`, SHA-256 `199c1dc3ea473b440a5ce2b1b86fa0c8bdfcfe9f32506bd3cdfa35b861120aff`. Render QA 82 trang PASS; TOC/danh mục hình/bảng đã đồng bộ theo vị trí mới. **ACTIVE tiếp theo:** Patch 2C viết lại nội dung Chương 2 theo dependency spine, sau đó mới đánh lại mã UC/caption và redraw sơ đồ.
 
 ### THESIS-R1 — khóa bố cục đặc tả và sơ đồ
 
