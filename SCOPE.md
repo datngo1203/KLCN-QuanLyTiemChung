@@ -181,6 +181,20 @@ Có thể khảo sát và trình bày khi có nguồn chính thức:
 - P1 **Nhập vắc xin từ nhà cung cấp** là luồng hỗ trợ; P2→P7 là hành trình phục vụ chính; P4 lịch hẹn và P6 thanh toán có thể là nhánh điều kiện.
 - Nội dung biểu mẫu ở 1.4 được xử lý ở patch riêng; không dùng việc chỉnh 1.1–1.3 để âm thầm thay đổi nội dung biểu mẫu.
 
+### THESIS-R1 — khóa xử lý hình biểu mẫu mục 1.4
+
+Patch 2C.5 chỉ chỉnh **hình, caption và bố cục hình** trong mục 1.4; không sửa semantic nghiệp vụ.
+
+Quy tắc:
+- Ưu tiên lấy lại/raster lại ảnh nguồn ở độ phân giải cao; không dùng sharpen giả để bù cho nguồn quá thấp.
+- Crop bỏ vùng trắng thừa trước khi chèn vào Word; ảnh phải được **căn giữa theo vùng nội dung thật**, không căn theo canvas trắng khiến hình nhìn lệch phải.
+- Kích thước ảnh phải phù hợp vùng in A4 với lề khóa 3,5/2,5/2,5/2,5 cm; không kéo giãn ảnh vượt tỷ lệ gốc.
+- Nếu một biểu mẫu nhiều trang không thể ghép hợp lý thành một ảnh, dùng hậu tố **a/b** và ghi rõ **trang 1 / trang 2** trong caption.
+- Với biểu mẫu hiện mang số Hình 1.3: dùng **Hình 1.3a** và **Hình 1.3b** cho hai trang tương ứng.
+- Với Hình 1.4: crop bỏ phần trống không mang thông tin và ghép lại phần nội dung vào ảnh chính nếu việc ghép không làm sai bố cục hoặc mất thông tin.
+- Sau khi chỉnh phải render QA và kiểm ở kích thước in; acceptance là ảnh rõ, không lệch, caption đúng, không vỡ trang.
+- Không sửa nội dung biểu mẫu, không thay dữ liệu trong ảnh.
+
 ### THESIS-R1 — khóa cách gọi nghiệp vụ trong văn xuôi và citation navigation
 
 - Các ký hiệu kỹ thuật nội bộ như `P1`…`P7` chỉ được dùng trong planning/audit nội bộ; **không xuất hiện trong văn xuôi khóa luận**. Trong báo cáo phải dùng tên nghiệp vụ đầy đủ hoặc cách gọi ngắn đã rõ ngữ cảnh.
