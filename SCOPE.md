@@ -523,6 +523,8 @@ Trình bày/in ấn:
    - Không hiển thị actor hierarchy, **Thời gian**, Dịch vụ thư điện tử, Admin, Nhân viên kho hay các UC account/admin/support ở summary; các quan hệ đó được thể hiện ở detail view.
    - UC14 **Tự động nhắc lịch và liên hệ theo lịch** vẫn thuộc model 21 UC nhưng chỉ xuất hiện ở Hình 2.11 chi tiết; summary dùng UC13 **Gửi nhắc lịch** để giữ góc nhìn actor–goal trực quan.
    - Không dùng mũi tên UC→UC để kể thứ tự. Vị trí chỉ phục vụ đọc từ trái/phải và trên/xuống.
+   - **Summary association policy:** Hình 2.9 chỉ hiển thị **primary/representative actor** cho từng UC để giữ orientation/readability; các direct actor association còn lại vẫn thuộc model và được thể hiện đầy đủ ở detail views. Không được hiểu việc thiếu một association trên summary là actor đó mất quyền/capability.
+   - Primary/representative mapping của summary: Khách hàng → UC09, UC10, UC11, UC19; Lễ tân → UC12, UC13; Bác sĩ → UC15; Thu ngân → UC16; Điều dưỡng → UC17, UC18.
 
 2. **Hình 2.10 — Sơ đồ Use Case nhóm tài khoản và hồ sơ**
    - UC01 Đăng ký tài khoản khách hàng
