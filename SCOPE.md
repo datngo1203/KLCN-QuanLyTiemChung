@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.5 DONE:** tối ưu toàn bộ hình mục 1.4 cho bản in: resample/crop lại ảnh nguồn, canh giữa đúng paragraph, tách Phiếu khám sàng lọc thành `Hình 1.3a (trang 1)` + `Hình 1.3b (trang 2)`, chuyển phần chữ ký về đúng trang 2, ghép Phiếu thanh toán thành một ảnh liên tục và bỏ khoảng trắng thừa; cập nhật TOC/Danh mục hình/bảng theo pagination mới. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C5_Final.docx`, SHA-256 `6f4545a4d43e15785d585955d76321d0b825410fb6d59b676323607a57dad0fb`. Render QA 87 trang PASS; DOCX ZIP integrity PASS; regression xác nhận trang 11–25 không đổi và trang 32–87 khớp tuyệt đối với baseline cũ sau offset 1 trang. **ACTIVE tiếp theo:** mở chat mới trước Patch 2D Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.6 DONE:** hoàn thiện nốt Chương 1 trước khi sang Chương 2: viết lại 1.5 theo đúng vai trò yêu cầu chức năng/phi chức năng, bỏ implementation detail khỏi requirement; sửa bìa phụ `Công Nghệ Thông Tin` → `Công nghệ thông tin`; chuẩn hóa lần nhắc đầu actor ở 1.2.3 thành `Lễ Tân, Khách Hàng, Bác Sĩ, Thu Ngân, Điều Dưỡng, Nhân Viên Kho`; sửa bảng Danh mục ký hiệu/chữ viết tắt theo format Khoa và loại căn đều gây giãn chữ. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C6_Final.docx`, SHA-256 `2920419fdc7f12a1881b8684d7e1afda860b2066b81dd4f2b3f23eb57067aa31`. Render QA 87 trang PASS; 23 reference bookmarks + 19 internal citation links vẫn giữ nguyên. **ACTIVE tiếp theo:** mở chat mới rồi Patch 2D Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -87,6 +87,15 @@ Theo góp ý giảng viên, **mỗi sơ đồ phải đặt ngay sau bảng đ�
 - Thứ tự các cặp **đặc tả → sơ đồ** phải đi theo dependency của quy trình thực tế, không theo mã UC cũ nếu mã cũ làm sai luồng.
 - Chương 3 vẫn dành cho thiết kế tổng thể/dữ liệu/lớp và các nội dung thiết kế không gắn trực tiếp với một bảng đặc tả Use Case cụ thể.
 - Quy tắc này ưu tiên tính dễ theo dõi theo góp ý giảng viên, kể cả khi một sequence diagram về mặt UML có thể được xem là nội dung thiết kế.
+
+### THESIS-R1 — khóa định dạng bảng
+
+- Nội dung bảng: **Times New Roman 12 pt**, line spacing **Multiple 1.3**, Before **0 pt**, After **0 pt**.
+- Header bảng: **đậm, canh giữa**, lặp lại khi bảng sang trang.
+- Căn chữ trong ô theo ngữ nghĩa; với bảng danh mục/ngắn, ưu tiên **căn giữa hoặc trái**, **không dùng Justify** vì dễ tạo khoảng trắng bất thường giữa các từ.
+- Chiều cao hàng để tự động theo nội dung; không ép fixed height nếu không cần.
+- Giữ padding ô vừa phải và vertical alignment giữa để bảng cân khi in.
+- Không dùng direct formatting rời rạc khiến cùng một bảng có font/cỡ/spacing khác nhau.
 
 ### THESIS-R1 — khóa thể thức trình bày
 
