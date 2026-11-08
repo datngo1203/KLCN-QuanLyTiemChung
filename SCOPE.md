@@ -332,7 +332,8 @@ Quy tắc trình bày:
 - Đặc tả System Use Case dùng **Tác nhân chính, Tổng quan, Mối quan hệ, Dòng sự kiện chính, Dòng sự kiện phụ, Tiền điều kiện, Hậu điều kiện**; các biến thể/ngoại lệ phải bám điểm rẽ thực sự của luồng.
 - Trong prose khóa luận ưu tiên thuật ngữ tiếng Việt; tên kỹ thuật/code chỉ giữ khi cần traceability. Quy ước reminder nếu dùng ký hiệu: lần đầu phải viết đầy đủ **48 giờ trước lịch hẹn (T-48), 24 giờ trước lịch hẹn (T-24), 3 ngày sau lịch hẹn (D+3), 7 ngày sau lịch hẹn (D+7)**.
 - Các Sequence Diagram cũ không còn được coi là evidence sau khi tập UC thay đổi; redraw chỉ bắt đầu sau khi text tương ứng đã PASS.
-- Mục **1.6 Công cụ và công nghệ sử dụng** chỉ giải thích vai trò của công nghệ trong kiến trúc và lý do lựa chọn; không đưa version/package/configuration/command hoặc chi tiết triển khai thuộc Chương 4.\n- Recovery phiên tiếp theo: `AGENTS.md → SCOPE.md → Issue #182 → CNTT_KLCN090_THESIS-R1_Patch2D2_TechRationale_Final.docx → code/test/contract chỉ khi sơ đồ cần xác minh chi tiết`.
+- Mục **1.6 Công cụ và công nghệ sử dụng** chỉ giải thích vai trò của công nghệ trong kiến trúc và lý do lựa chọn; không đưa version/package/configuration/command hoặc chi tiết triển khai thuộc Chương 4.
+- Recovery phiên tiếp theo: `AGENTS.md → SCOPE.md → Issue #182 → CNTT_KLCN090_THESIS-R1_Patch2D2_TechRationale_Final.docx → code/test/contract chỉ khi sơ đồ cần xác minh chi tiết`.
 - **Patch 2D.3 NEXT:** redraw Business Use Case tổng thể + 7 Activity Diagram theo text Business UC đã khóa; renumber/caption đồng bộ trong cùng patch.
 
 ### NEXT
