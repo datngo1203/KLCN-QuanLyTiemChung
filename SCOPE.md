@@ -2,7 +2,7 @@
 
 **Nguồn sự thật hiện hành về phạm vi và trạng thái.** Chi tiết acceptance/test/CI nằm ở active issue, PR và Git history; không lưu lại toàn bộ lịch sử ở đây.
 
-Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
+Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2D.2 DONE:** audit implementation hiện hành và khóa tập **13 System Use Case** ở mức mục tiêu nghiệp vụ/phần mềm, không giữ máy móc 10 UC cũ. Toàn bộ bảng đặc tả 2.2.2 dùng format bài giảng **Tên Use Case / Tác nhân chính / Tổng quan / Mối quan hệ / Dòng sự kiện chính / Dòng sự kiện phụ / Tiền điều kiện / Hậu điều kiện**. Đã loại các overclaim cũ về mobile app/chứng nhận điện tử, quét mã vắc xin, cảnh báo khẩn tự động, điều chuyển/điều chỉnh kho, cổng thanh toán production và reminder chỉ mô phỏng; hệ thống không tự quyết định eligibility y khoa. Toàn bộ prose của 13 bảng đã Việt hóa các thuật ngữ implementation như reschedule/cancel/reconcile/provider/clinical/fail-closed/audit; các mốc reminder được định nghĩa ngay lần đầu: **48 giờ trước lịch hẹn (T-48), 24 giờ trước lịch hẹn (T-24), 3 ngày sau lịch hẹn (D+3), 7 ngày sau lịch hẹn (D+7)**. 10 Sequence Diagram cũ đã loại khỏi 2.2.2 vì không còn khớp text; **Hình Use Case hệ thống tổng thể và Sequence Diagram mới vẫn PARKED để redraw sau**. **Micro-patch 1.6 DONE:** mở rộng mục Công cụ và công nghệ sử dụng theo nguyên tắc **công nghệ dùng ở đâu → vì sao phù hợp với kiến trúc/phạm vi đề tài**, giữ ranh giới không lặp nội dung cài đặt của Chương 4. **Micro-patch print QA DONE:** sửa Danh mục hình/bảng để dòng xuống hàng không còn kế thừa first-line indent thân bài; đặt left/first-line = 0, chừa right indent 0,5 cm và tab leader phải tại 14,5 cm để caption dài không tràn vùng số trang. Sửa cỡ chữ dòng thành viên **Nguyễn Ngọc Quý** trên cả hai trang bìa từ 13 pt về 14 pt cho đồng nhất với hai thành viên còn lại; làm sạch cached pagination markers ở phần đầu để tránh trang trắng phát sinh khi Word repaginate/refresh field. **Micro-patch print layout DONE:** xóa số trang bị dính ở caption thật nhưng giữ số trang trong Danh mục hình/bảng; phóng Hình 1.3a lên hết chiều rộng vùng nội dung để giảm khoảng trắng mà vẫn đọc rõ; trang Nhận xét của giảng viên hướng dẫn được kéo dài vùng dòng chấm gần trọn trang và đưa khối chữ ký xuống thấp; bìa ngoài dùng khung đôi với họa tiết hình học nhẹ ở bốn góc, cạnh trái lùi 18 mm để chừa vùng đóng gáy, các cạnh còn lại 10 mm. Latest working artifact `CNTT_KLCN090_THESIS-R1_Patch2D2_PrintLayout_Final.docx`, SHA-256 `d29920def22a3ccde28bed8d62a713d78028de232b729eba37f7a31d01a44cda`. Render QA **87 trang PASS**; so với baseline CaptionLayout QA chỉ trang 1, 4, 28 thay đổi, 84 trang còn lại pixel-identical. **NEXT:** Patch 2D.3 — khóa/redraw Business Use Case tổng thể + 7 Activity Diagram theo 7 đặc tả đã PASS.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2D.2 DONE (text baseline):** audit implementation hiện hành và khóa tạm tập **13 System Use Case** ở mức mục tiêu nghiệp vụ/phần mềm, không giữ máy móc 10 UC cũ. **Course-source re-audit 09/11/2026 đã mở lại riêng semantic gate của Hình 2.9 trước khi redraw** để kiểm thêm `single-session / interactive / complete` và special actor `Thời gian`; chưa coi bộ 13 UC là diagram-level PASS cho tới khi gate này được chốt. Toàn bộ bảng đặc tả 2.2.2 dùng format bài giảng **Tên Use Case / Tác nhân chính / Tổng quan / Mối quan hệ / Dòng sự kiện chính / Dòng sự kiện phụ / Tiền điều kiện / Hậu điều kiện**. Đã loại các overclaim cũ về mobile app/chứng nhận điện tử, quét mã vắc xin, cảnh báo khẩn tự động, điều chuyển/điều chỉnh kho, cổng thanh toán production và reminder chỉ mô phỏng; hệ thống không tự quyết định eligibility y khoa. Toàn bộ prose của 13 bảng đã Việt hóa các thuật ngữ implementation như reschedule/cancel/reconcile/provider/clinical/fail-closed/audit; các mốc reminder được định nghĩa ngay lần đầu: **48 giờ trước lịch hẹn (T-48), 24 giờ trước lịch hẹn (T-24), 3 ngày sau lịch hẹn (D+3), 7 ngày sau lịch hẹn (D+7)**. 10 Sequence Diagram cũ đã loại khỏi 2.2.2 vì không còn khớp text; **Hình Use Case hệ thống tổng thể và Sequence Diagram mới vẫn PARKED để redraw sau**. **Micro-patch 1.6 DONE:** mở rộng mục Công cụ và công nghệ sử dụng theo nguyên tắc **công nghệ dùng ở đâu → vì sao phù hợp với kiến trúc/phạm vi đề tài**, giữ ranh giới không lặp nội dung cài đặt của Chương 4. **Micro-patch print QA DONE:** sửa Danh mục hình/bảng để dòng xuống hàng không còn kế thừa first-line indent thân bài; đặt left/first-line = 0, chừa right indent 0,5 cm và tab leader phải tại 14,5 cm để caption dài không tràn vùng số trang. Sửa cỡ chữ dòng thành viên **Nguyễn Ngọc Quý** trên cả hai trang bìa từ 13 pt về 14 pt cho đồng nhất với hai thành viên còn lại; làm sạch cached pagination markers ở phần đầu để tránh trang trắng phát sinh khi Word repaginate/refresh field. **Micro-patch print layout DONE:** xóa số trang bị dính ở caption thật nhưng giữ số trang trong Danh mục hình/bảng; phóng Hình 1.3a lên hết chiều rộng vùng nội dung để giảm khoảng trắng mà vẫn đọc rõ; trang Nhận xét của giảng viên hướng dẫn được kéo dài vùng dòng chấm gần trọn trang và đưa khối chữ ký xuống thấp; bìa ngoài dùng khung đôi với họa tiết hình học nhẹ ở bốn góc, cạnh trái lùi 18 mm để chừa vùng đóng gáy, các cạnh còn lại 10 mm. Latest working artifact `CNTT_KLCN090_THESIS-R1_Patch2D2_PrintLayout_Final.docx`, SHA-256 `d29920def22a3ccde28bed8d62a713d78028de232b729eba37f7a31d01a44cda`. Render QA **87 trang PASS**; so với baseline CaptionLayout QA chỉ trang 1, 4, 28 thay đổi, 84 trang còn lại pixel-identical. **NEXT:** Patch 2D.3 — khóa/redraw Business Use Case tổng thể + 7 Activity Diagram theo 7 đặc tả đã PASS.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -324,13 +324,21 @@ Quy tắc trình bày:
 - Cùng một thứ tự phải được dùng lại xuyên Chương 1 → Chương 2 → Chương 3 → Chương 4 → Chương 5 để người đọc theo được một hành trình duy nhất.
 - Không đổi thứ tự chỉ vì mã UC cũ. Mã UC/số hình sẽ được đánh lại sau khi khóa nội dung.
 
-### THESIS-R1 — HUIT UML Visual Profile v1
+### THESIS-R1 — HUIT UML Visual & Semantic Profile v2
 
 Nguồn và ưu tiên:
 - **Ngữ nghĩa mô hình** bám bộ bài giảng PTTKHTTT của HUIT đã được dùng để khóa Chương 2.
 - **Ký hiệu trực quan** ưu tiên cách biểu diễn HUIT/Rational Rose khi không xung đột UML.
 - Khi ví dụ công cụ/bài thực hành xung đột với UML chuẩn, **UML chuẩn được ưu tiên**. PlantUML chỉ là renderer, không phải Source of Truth nghiệp vụ.
 - UML trong luận văn dùng **PlantUML source-first**, giữ source `.puml` để sửa/re-render có kiểm soát; hình chèn vào luận văn ưu tiên SVG/PNG sắc nét, monochrome, không shadow/gradient.
+
+- **Course-source audit 09/11/2026:** profile v2 đã được đối chiếu lại trực tiếp với bộ bài giảng HUIT người dùng cung cấp, không chỉ kế thừa chat cũ. Khi cần spot-check shape/semantic, ưu tiên đúng phần sau:
+  - Chương 4 — Mô hình hóa nghiệp vụ, **tr. 49–60**: Business Worker, Business Entity, Business Object Diagram, Activity symbols/Object Flow/Swimlane.
+  - Chương 5 — Mô hình hóa chức năng, **tr. 3–21 và 27–28**: system boundary/actor/use case, quality gate, special actors, include/extend/generalization.
+  - Bài giảng thực hành PTTKHTTT, **tr. 22–24**: Sequence Diagram.
+  - Chương 6 — Mô hình hóa cấu trúc, **tr. 2–16, 24–30, 47–50, 77–82**: Class Analysis và truy vết từ Business Entity/Use Case/Sequence.
+  - Chương 7 — Thiết kế lớp, **tr. 21–30**: tinh chế thuộc tính/mối kết hợp/phương thức ở Class Design.
+- Nếu các file bài giảng cùng nội dung xuất hiện với nhiều tên, chỉ cần đọc một bản đã xác minh; không lặp retrieval chỉ vì tên file khác.
 
 Use Case:
 - **Business boundary**: hình chữ nhật có tên phạm vi nghiệp vụ ở phía trên; Business Use Case nằm trong, Business Actor nằm ngoài.
@@ -341,12 +349,25 @@ Use Case:
 - `<<include>>`: dependency nét đứt, mũi tên từ use case cơ sở tới use case được bao gồm.
 - `<<extend>>`: dependency nét đứt, mũi tên từ use case mở rộng tới use case cơ sở.
 - Generalization: đường liền + tam giác rỗng hướng về phần tử tổng quát.
+- **System UC quality gate theo Chương 5 HUIT:** một System Use Case tốt phải có mục tiêu/kết quả trọn vẹn, **single-session**, có **System Actor tương tác** và cho kết quả nhất quán. Xử lý chỉ tồn tại như fragment trong ngữ cảnh của xử lý khác thì không tách thành UC riêng. CRUD có thể gom khi cùng một mục tiêu quản lý.
+- System Use Case là mô hình chức năng, không đặt tên theo endpoint, màn hình, framework hay công nghệ giao tiếp.
+- **Primary/Secondary Actor là phân loại ngữ nghĩa, không phải shape khác nhau:** đều dùng System Actor thường. Primary Actor trực tiếp dùng/thực hiện chức năng; Secondary Actor cung cấp/nhận dịch vụ hỗ trợ.
+- HUIT cho phép **tác nhân đặc biệt `Thời gian`** đối với chức năng chạy theo lịch/định kỳ. Chỉ dùng khi một hành vi phần mềm thực sự được kích hoạt bởi thời điểm; không dùng `Thời gian` để biểu diễn thứ tự quy trình.
 - Không dùng đường/mũi tên giữa các use case chỉ để diễn tả thứ tự nghiệp vụ; thứ tự thuộc Activity/Sequence/specification.
 
+Business Object Diagram:
+- Khi báo cáo yêu cầu **Sơ đồ đối tượng nghiệp vụ**, phải phân biệt đúng ba loại: **Business Actor** (đối tượng ngoài nghiệp vụ), **Business Worker/thừa tác viên** (vai trò thực hiện công việc bên trong) và **Business Entity/thực thể nghiệp vụ** (sự vật/thông tin được worker xử lý).
+- **Business Worker shape theo HUIT/Rational Rose:** biểu tượng người hình que nằm trong oval/tròn có nét chéo đặc trưng. Worker biểu diễn **vai trò**, không phải sao chép tên chức vụ máy móc; không thay bằng System Actor thường hoặc class box.
+- **Business Entity shape theo HUIT/Rational Rose:** hình tròn/oval có nét chéo ở góc dưới phải, đặt trên đường đáy, tên bên dưới. Dùng cho thực thể thông tin (hồ sơ, chứng từ, báo cáo, tập tin/CSDL...) hoặc thực thể vật thể khi thật sự tham gia nghiệp vụ.
+- Association trong Business Object Diagram là đường liền; đặt **multiplicity ở hai đầu** khi đặc tả nghiệp vụ hỗ trợ. Không tự suy ra bản số chỉ để hình “đủ”.
+- Nếu PlantUML không có primitive giữ đúng silhouette HUIT, dùng helper/macro/source-first riêng để tái tạo shape; **không hạ cấp shape** thành actor/class thông thường vì renderer tiện hơn.
+- Business Object Diagram không phải ERD/Class Diagram: chỉ đưa actor/worker/entity trực tiếp tham gia Business Use Case tương ứng.
+
 Activity Diagram:
-- Dùng initial node chấm đen, activity final vòng tròn kép, action hình chữ nhật bo góc, decision/merge hình thoi.
+- Dùng initial node chấm đen, **activity final** vòng tròn kép, **flow final** vòng tròn có dấu X, action hình chữ nhật bo góc, decision/merge hình thoi. Activity final kết thúc toàn activity; flow final chỉ kết thúc một nhánh/dòng khi activity còn tiếp tục.
+- **Control Flow = nét liền có mũi tên**; **Object Flow = nét đứt có mũi tên** theo bảng ký hiệu Chương 4. Không dùng cùng line style cho hai loại flow.
 - Nhánh decision phải có guard rõ như `[Hợp lệ]`, `[Không hợp lệ]`; merge dùng khi cần gom các nhánh loại trừ.
-- Fork/Join chỉ dùng khi có xử lý song song thực sự.
+- Fork/Join dùng **thanh đen dày** và chỉ khi có xử lý song song thực sự; Decision/Merge dùng cho các nhánh loại trừ.
 - Swimlane biểu diễn **trách nhiệm thực hiện hành động**; không tạo lane rỗng chỉ vì một vai trò được nhắc tới.
 - Trong Business Activity, vai trò nội bộ được hiểu là **Business Worker/thừa tác viên**; Business Actor không mặc định trở thành swimlane.
 - Business Entity/Object Node chỉ đưa vào khi giúp hiểu luồng dữ liệu nghiệp vụ (ví dụ hồ sơ, lịch hẹn, lô vắc xin, kết quả khám); không biến Activity Diagram thành ERD.
@@ -367,14 +388,24 @@ Activity Diagram:
 - Với dữ liệu có thể suy ra từ entity khác, chỉ giữ cả hai khi mỗi entity có ý nghĩa nghiệp vụ riêng và activity thực sự đọc/ghi chúng; tránh thêm entity chỉ để “đủ dữ liệu”.
 
 Sequence Diagram:
-- Dùng Actor/Object, lifeline nét đứt, activation, message; return/self-message chỉ khi làm rõ kịch bản.
-- Sequence ở Chương 2 là **mức phân tích**: mô tả luồng tương tác theo System Use Case đã khóa, không vẽ endpoint/service/repository/database như sơ đồ implementation.
-- Tên message dùng động từ/nghiệp vụ dễ hiểu; không đưa chi tiết code nếu không cần traceability.
+- Ký hiệu gốc HUIT: **Actor**, Object/lifeline head, lifeline nét đứt theo trục thời gian từ trên xuống, **execution occurrence/activation** là thanh chữ nhật hẹp trên lifeline, message giữa các participant; Return Message dùng nét đứt, Self Message quay về chính lifeline, destruction marker là `X` khi object thực sự kết thúc vòng đời.
+- Không vẽ return cho mọi call; chỉ thêm return/self/destruction khi làm rõ luồng hoặc kết quả. Thứ tự dọc là thứ tự thời gian, không routing connector trái với thời gian chỉ để hình đẹp.
+- Theo góp ý giảng viên đã khóa ở THESIS-R1, sequence được đặt ngay sau bảng đặc tả System UC dù mẫu Khoa gốc đặt Sequence ở Chương 3. Khi nằm cạnh đặc tả Chương 2, sequence giữ **mức phân tích/logical interaction**: không vẽ endpoint/service/repository/database như implementation diagram.
+- Participant phải có trách nhiệm rõ trong UC; actor ở ngoài hệ thống, object là đối tượng logic tham gia xử lý. Tên message dùng động từ/nghiệp vụ dễ hiểu; chi tiết code chỉ giữ khi cần traceability.
+- Sequence phải nhất quán với Class Analysis: object/message có thể là evidence để phát hiện lớp/phương thức, nhưng không tự tạo lớp chỉ để làm sequence cân đối.
 
 Class Diagram mức phân tích:
-- Dùng class box UML, association, multiplicity; thêm tên/vai trò quan hệ khi giúp làm rõ ngữ nghĩa.
+- Dùng **class box UML**; không dùng Business Worker/Business Entity icon và không tự áp mô hình `boundary/control/entity` nếu bài giảng/đặc tả hiện hành không yêu cầu. Chương 6 xác định Class Analysis từ thực thể nghiệp vụ, cụm danh từ, phân loại và hoạt động Use Case.
+- Class Analysis ưu tiên tên lớp + thuộc tính đủ diễn đạt trạng thái ở mức phân tích; không nhồi kiểu cài đặt/visibility/foreign key. Phương thức chỉ thêm khi trách nhiệm/message từ Use Case/Sequence hỗ trợ.
+- Association là đường liền; ghi multiplicity và tên/vai trò khi giúp rõ ngữ nghĩa. **Association Class** chỉ dùng khi chính mối kết hợp có thuộc tính/hoạt động riêng.
+- Aggregation dùng **diamond rỗng ở phía whole** cho whole–part chia sẻ; Composition dùng **diamond đặc ở phía whole** khi whole quản lý vòng đời part; Generalization dùng tam giác rỗng hướng về lớp tổng quát.
 - Aggregation/Composition/Generalization chỉ dùng khi quan hệ miền nghiệp vụ thực sự hỗ trợ, không dùng trang trí.
-- Class Analysis là mô hình khái niệm/domain, **không sao chép schema hoặc DTO**.
+- Class Analysis là mô hình khái niệm/domain, **không sao chép schema, EF entity, DTO hoặc API contract**.
+
+Class Diagram mức thiết kế:
+- Chỉ tinh chế từ Class Analysis khi bước thiết kế ACTIVE. Có thể bổ sung kiểu thuộc tính, reference, method và visibility. Theo Chương 7: `+` public/toàn cục, `#` protected/bảo vệ, `-` private/cục bộ; thuộc tính mặc định ưu tiên private/cục bộ nếu không có lý do khác.
+- Có thể chuyển association class thành lớp thiết kế độc lập khi cần reference/implementation; giữ multiplicity/whole-part/generalization theo semantic, không biến sơ đồ thiết kế thành bản sao CSDL.
+- Thiết kế lớp ưu tiên cohesion cao, coupling thấp; không gom lớp chỉ để sơ đồ ít box hơn.
 
 Trình bày/in ấn:
 - Sơ đồ đen–trắng, nền trắng, nét rõ; không gradient, icon trang trí hoặc màu phụ thuộc máy in.
@@ -429,6 +460,16 @@ Trình bày/in ấn:
 - **NEXT candidate:** phục hồi context rồi audit/chốt **System Use Case Diagram tổng thể** trước; sau khi PASS mới đi từng System Use Case + Sequence. Không sửa Sequence/Class Analysis trước khi System Use Case set/actors/relations được khóa.
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
+
+### THESIS-R1 — HUIT course-source re-audit 09/11/2026
+
+- Người dùng đã cung cấp lại bộ bài giảng PTTKHTTT; coordinator đã đọc trực tiếp các phần shape/notation liên quan thay vì chỉ dựa vào chat cũ.
+- **Profile v2** ở trên là bản chưng cất bền vững dùng cho mọi session sau. `AGENTS.md` bắt buộc recovery THESIS/UML phải đọc profile này.
+- **Business UML Hình 2.1–2.8 vẫn là baseline hiện hành và chưa tự sửa lại.** Tuy nhiên mẫu báo cáo Khoa yêu cầu mỗi Business Use Case có **Sơ đồ hoạt động + Sơ đồ đối tượng nghiệp vụ**, trong khi artifact hiện hành chỉ có Hình 2.1 tổng thể + Hình 2.2–2.8 Activity. Đây là **PARKED compliance gap**; không tự mở lại Business UML nếu người dùng chưa reprioritize.
+- **System Use Case semantic gate được mở lại trước khi vẽ Hình 2.9:** bộ 13 UC của Patch 2D.2 vẫn là text baseline, nhưng phải audit thêm theo rule HUIT `single-session / interactive / complete` và special actor `Thời gian`. Ít nhất UC “Xác thực và phân quyền truy cập” và “Quản lý lịch hẹn và nhắc lịch” cần re-check vì có nguy cơ gộp nhiều mục tiêu/phiên/actor.
+- Preview Hình 2.9 dựng thủ công trong chat **không phải PlantUML engine render PASS**. Source `.puml` phải được render bằng PlantUML engine/CI rồi mới visual PASS.
+- **Không sửa Word tại checkpoint này.** Sau khi semantic System UC PASS mới render Hình 2.9; compliance gap Business Object vẫn PARKED trừ khi người dùng đổi ưu tiên.
+- Recovery bắt buộc: `AGENTS.md → SCOPE.md (Current State + HUIT UML Visual & Semantic Profile v2 + checkpoint này) → issue #182 → artifact Word hiện hành khi cần → code/contracts/tests chỉ khi cần xác minh claim`.
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
