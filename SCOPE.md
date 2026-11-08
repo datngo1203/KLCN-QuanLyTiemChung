@@ -22,6 +22,13 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 
 Nguồn tinh chế: tài liệu người dùng cung cấp `Hướng dẫn giảm đạo văn và AI trong văn bảng học thuật.pdf` (08/11/2026). Mục tiêu là **tính học thuật, tính nguyên gốc và khả năng truy vết nguồn**, không tối ưu để "qua" AI detector hoặc chạy theo một ngưỡng Similarity/AI Detection cụ thể.
 
+#### G. Tránh meta-signposting máy móc
+- Không mở liên tiếp các tiểu mục bằng các câu như “Phần này trình bày…”, “Trong phần này…”, “Mục này giới thiệu…”.
+- Chỉ dùng một câu định hướng ở **đầu chương** hoặc tại điểm chuyển mạch thực sự cần thiết.
+- Với tiểu mục như 1.1, 1.2, 1.3…, ưu tiên đi thẳng vào bối cảnh/nội dung cụ thể hoặc dùng một câu nối có thông tin thực chất.
+- Nếu cần chuyển ý, câu chuyển phải bổ sung quan hệ logic giữa phần trước và phần sau, không chỉ mô tả cấu trúc văn bản.
+- Rule này áp dụng xuyên toàn bộ khóa luận để tránh giọng văn cơ học và lặp công thức.
+
 #### A. Nguyên tắc bắt buộc khi viết/sửa
 - Viết theo **ý nghĩa và bằng chứng**, không thay từ đồng nghĩa trên cùng một cấu trúc câu rồi coi là paraphrase.
 - Với nội dung lấy từ nguồn ngoài: **đọc hiểu → tách khỏi câu chữ nguồn → viết lại theo cách hiểu của nhóm → vẫn phải trích dẫn nguồn**. Paraphrase không làm mất nghĩa vụ trích dẫn.
