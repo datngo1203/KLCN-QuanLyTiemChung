@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.6 DONE:** hoàn thiện nốt Chương 1 trước khi sang Chương 2: viết lại 1.5 theo đúng vai trò yêu cầu chức năng/phi chức năng, bỏ implementation detail khỏi requirement; sửa bìa phụ `Công Nghệ Thông Tin` → `Công nghệ thông tin`; chuẩn hóa lần nhắc đầu actor ở 1.2.3 thành `Lễ Tân, Khách Hàng, Bác Sĩ, Thu Ngân, Điều Dưỡng, Nhân Viên Kho`; sửa bảng Danh mục ký hiệu/chữ viết tắt theo format Khoa và loại căn đều gây giãn chữ. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C6_Final.docx`, SHA-256 `2920419fdc7f12a1881b8684d7e1afda860b2066b81dd4f2b3f23eb57067aa31`. Render QA 87 trang PASS; 23 reference bookmarks + 19 internal citation links vẫn giữ nguyên. **ACTIVE tiếp theo:** mở chat mới rồi Patch 2D Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.6 DONE:** đã viết lại 1.5, chuẩn hóa bìa phụ, actor ở 1.2.3 và bảng Danh mục ký hiệu/chữ viết tắt. **ACTIVE tiếp theo: Patch 2C.7** — chuẩn hóa nốt toàn bộ hình biểu mẫu mục 1.4 (crop, kích thước in, căn giữa, độ rõ, caption a/b khi nhiều trang, cập nhật danh mục hình), render/print QA; chỉ sau khi PASS mới khóa Chương 1 và mở chat mới cho Patch 2D Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -308,6 +308,14 @@ Quy tắc trình bày:
 - Nếu có nhánh điều kiện, trình bày main flow trước rồi mới alternative/exception ngay sau điểm rẽ.
 - Cùng một thứ tự phải được dùng lại xuyên Chương 1 → Chương 2 → Chương 3 → Chương 4 → Chương 5 để người đọc theo được một hành trình duy nhất.
 - Không đổi thứ tự chỉ vì mã UC cũ. Mã UC/số hình sẽ được đánh lại sau khi khóa nội dung.
+
+### THESIS-R1 — checkpoint chuyển sang Chương 2
+
+Trước khi Patch 2D bắt đầu:
+- Patch 2C.7 phải hoàn tất toàn bộ hình biểu mẫu 1.4 và QA bản in.
+- Sau khi Chương 1 PASS, mở chat mới và recovery theo: `AGENTS.md → SCOPE.md → Issue #182 → artifact Chương 1 mới nhất → code/test cần thiết`.
+- Patch 2D bắt đầu bằng audit cấu trúc Chương 2, khóa text/specification trước; **chưa redraw UML khi đặc tả chưa PASS**.
+- Chương 2 phải kế thừa nguyên vẹn 7 nghiệp vụ, 6 actor, canonical data terminology, writing guardrail, anti-repetition rule và đặc tả→sơ đồ adjacency đã khóa.
 
 ### NEXT
 1. **#168 UI-F03**.
