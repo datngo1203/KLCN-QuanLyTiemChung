@@ -12,11 +12,15 @@ Use the repository as the source of truth. Do not rely on old chat memory.
 
 Recover context progressively:
 
-1. Read root `AGENTS.md`.
-2. Read `SCOPE.md` — Current State, Core thesis scope, and queue only.
-3. Read the assigned issue/task source.
-4. Read the nearest nested `AGENTS.md` for every area the task may touch.
-5. Audit the relevant current code/tests/contracts. Read README, broader contracts, closed issues/PRs, or old history only when the audit proves they are needed.
+1. Determine the session lane from the user's latest instruction. This reusable prompt is for CODE work unless the user explicitly selects THESIS.
+2. Verify the exact remote branch/HEAD first. For CODE, use current `origin/main` or the explicitly active feature branch; never recover CODE work from `docs/thesis-r1-current-state`.
+3. Read root `AGENTS.md`.
+4. Read `SCOPE.md` — Current State, Core project scope, and queue only.
+5. Read the assigned/ACTIVE issue or task source.
+6. Read the nearest nested `AGENTS.md` for every area the task may touch.
+7. Audit the relevant current code/tests/contracts. Read README, broader contracts, closed issues/PRs, or old history only when the audit proves they are needed.
+
+If branch/lane state conflicts with the requested task, STOP and report the mismatch instead of continuing with context from another lane.
 
 Before changing code, report:
 - exact `origin/main` SHA;

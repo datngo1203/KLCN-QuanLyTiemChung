@@ -24,7 +24,7 @@ CODE and THESIS have independent ACTIVE/NEXT/PARKED queues. Never carry status f
 For every substantial task, recover context in this order:
 
 1. Read the root `AGENTS.md`.
-2. Read `SCOPE.md`, focusing on **Current State**, **Core thesis scope**, and the queue.
+2. Read `SCOPE.md`, focusing on **Current State**, **Core project scope**, and the queue.
 3. Read the assigned/ACTIVE GitHub issue.
 4. Read the nearest nested `AGENTS.md` for every code area that may be changed.
 5. Read only the code, tests, contracts, or runtime docs required by the audit.
