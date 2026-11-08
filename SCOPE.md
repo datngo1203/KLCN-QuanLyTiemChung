@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.1 DONE:** mở rộng và tinh chỉnh Lời cảm ơn + Mở đầu theo tone đã khóa; Lời cảm ơn giữ 1 trang, Mở đầu đi theo mạch bối cảnh → vấn đề dữ liệu/phối hợp → nhu cầu hệ thống → lý do chọn đề tài → giải pháp, đồng thời mở rộng mục tiêu, phạm vi, phương pháp và cấu trúc báo cáo mà không đổi Chương 1 trở đi. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C1.docx`, SHA-256 `c7acbbab858538ee6025ff4d15c9167f90a2922f8d861dab7fd280a064e5ee3c`. Render QA 86 trang PASS; mục lục và danh mục page cache đã cập nhật theo pagination mới. **ACTIVE tiếp theo:** rà Chương 1 sau tone mới rồi mới sang Patch 2D viết lại Chương 2; chưa redraw UML trước khi đặc tả text PASS.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.2 DONE:** rút Mở đầu còn 4 trang và tái cấu trúc Chương 1 để không lặp mục đích/ngữ nghĩa với Mở đầu; audit lại 7 quy trình nghiệp vụ theo góc nhìn tổ chức, chuẩn hóa 6 actor + dữ liệu canonical, loại các chủ thể mơ hồ, sắp biểu mẫu theo luồng nghiệp vụ và chỉ giữ yêu cầu hệ thống ở mục 1.5. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C2_Final.docx`, SHA-256 `fc13aed013c20c255e4fcd17051a21b30bb0fcb6baffcd4ee82dcec5a2f2eef6`. Render QA 83 trang PASS; TOC field còn nguyên và cached page numbers/danh mục đã đồng bộ. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo cùng 7 nghiệp vụ/canonical terminology; chưa redraw UML trước khi đặc tả text PASS.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -111,6 +111,17 @@ Mục tiêu của thứ tự này:
 - khóa giọng văn và thuật ngữ trước khi vào đặc tả;
 - tránh Chương 2 dùng khái niệm/phạm vi chưa được định nghĩa ở Mở đầu/Chương 1;
 - đảm bảo dependency spine đã xuất hiện từ Chương 1 và tiếp tục nhất quán qua Chương 2–5.
+
+### THESIS-R1 — khóa mục đích từng phần, chống lặp ngữ nghĩa
+
+- **Mở đầu** chỉ trả lời: vì sao chọn bài toán, mục tiêu gì, đối tượng/phạm vi nào, phương pháp thực hiện ra sao và báo cáo được tổ chức thế nào.
+- **Chương 1** chỉ trả lời: bối cảnh khảo sát cụ thể, actor nghiệp vụ, quy trình thực tế, biểu mẫu/dữ liệu và các yêu cầu rút ra từ khảo sát. Không kể lại lý do chọn đề tài/mục tiêu/phạm vi như Mở đầu.
+- **Chương 2** trả lời: từ nghiệp vụ đã khảo sát, hệ thống cần hỗ trợ những chức năng nào và chúng được đặc tả/mô hình hóa ra sao.
+- **Chương 3** trả lời: hệ thống được thiết kế như thế nào để đáp ứng Chương 2.
+- **Chương 4** trả lời: các thiết kế đã được cài đặt thành sản phẩm/giao diện như thế nào.
+- **Chương 5** trả lời: sản phẩm được kiểm thử/triển khai và có bằng chứng gì.
+- **Kết luận** đối chiếu mục tiêu ban đầu với kết quả thật, hạn chế và hướng phát triển; không lặp mô tả chức năng theo kiểu Chương 4.
+- Mỗi claim/ý giải thích chính chỉ có một “home section”. Phần khác nếu cần nhắc lại chỉ tham chiếu ngắn để nối mạch, không diễn giải lại cùng một ý bằng câu chữ khác.
 
 ### THESIS-R1 — khóa từ điển nghiệp vụ, actor và dữ liệu canonical
 
