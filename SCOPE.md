@@ -342,6 +342,22 @@ Nguồn và ưu tiên:
 
 Use Case:
 
+**Nguyên tắc chọn ký hiệu — phải biết WHEN/WHY trước khi biết HOW:**
+- Không vẽ theo kiểu “có ký hiệu này trong bài giảng nên đưa vào”. Mỗi node/quan hệ phải trả lời được 3 câu: **(1) Nó biểu diễn khái niệm gì? (2) Điều kiện nào khiến nó xuất hiện? (3) Vì sao không dùng ký hiệu gần giống khác?**
+- Nếu không giải thích được ba câu trên từ đặc tả/bài giảng/implementation thì **không vẽ phần tử đó**.
+- **Decision vs Fork:** Decision dùng khi chỉ **một nhánh loại trừ** được chọn theo guard; Fork dùng khi **nhiều nhánh thực sự chạy song song**. Merge gom các nhánh loại trừ; Join đồng bộ các nhánh song song. Không chọn Fork/Join chỉ vì layout đẹp.
+- **Control Flow vs Object Flow:** Control Flow trả lời “bước nào diễn ra tiếp theo”; Object Flow trả lời “đối tượng/dữ liệu nào được truyền, đọc hoặc cập nhật giữa các hoạt động”. Vì vậy Activity có tuần tự nhưng không có dữ liệu trao đổi thì chỉ cần Control Flow.
+- **Activity Final vs Flow Final:** Activity Final kết thúc **toàn bộ activity**; Flow Final chỉ kết thúc **một dòng/nhánh**, trong khi nhánh khác có thể tiếp tục.
+- **Include vs Extend:** `include` chỉ dùng khi UC A **luôn cần** thực hiện hành vi UC B như phần bắt buộc có thể tái sử dụng; `extend` chỉ dùng khi hành vi bổ sung xảy ra **có điều kiện** tại điểm mở rộng của UC cơ sở. Dependency dữ liệu, tiền điều kiện hoặc “A xảy ra trước B” không phải include/extend.
+- **Generalization Actor:** dùng khi actor chuyên biệt thật sự **kế thừa toàn bộ vai trò/UC chung** của actor tổng quát và có thể có thêm UC riêng. Không tạo actor cha chỉ để giảm số đường nối.
+- **Business Worker vs Business Actor:** Worker là vai trò **bên trong quy trình nghiệp vụ** thực hiện công việc; Business Actor đứng **ngoài ranh giới nghiệp vụ** và trao đổi giá trị với nghiệp vụ. Cùng là con người nhưng khác vị trí/trách nhiệm nên khác ký hiệu.
+- **System Actor:** chỉ xuất hiện khi thực thể thật sự **tương tác trực tiếp với phần mềm** qua giao diện/giao tiếp hệ thống. Một Business Worker chỉ trở thành System Actor khi bước nghiệp vụ của họ được đưa vào phạm vi tự động hóa.
+- **Business Entity/Object:** dùng khi một thực thể/thông tin **được worker xử lý hoặc sử dụng** và việc thấy nó giúp hiểu cấu trúc/luồng dữ liệu nghiệp vụ; không thêm nếu chỉ là danh từ phụ hoặc dữ liệu suy ra không cần thiết.
+- **Sequence Return Message:** chỉ vẽ khi kết quả trả về có giá trị làm rõ luồng; không vẽ phản hồi cho mọi call. **Self Message** chỉ khi cùng một object gọi xử lý khác của chính nó/đệ quy. **Destruction X** chỉ khi vòng đời object thật sự kết thúc trong interaction.
+- **Association vs Aggregation vs Composition:** Association là quan hệ ngữ nghĩa thông thường; Aggregation chỉ khi có quan hệ whole–part nhưng part vẫn tồn tại độc lập/chia sẻ được; Composition chỉ khi whole quản lý vòng đời part và part không tồn tại độc lập theo mô hình. Không dùng diamond để trang trí.
+- **Association Class:** chỉ dùng khi **chính mối quan hệ** giữa hai lớp có thuộc tính/hành vi riêng; nếu dữ liệu thuộc về một lớp độc lập thì mô hình thành lớp thường.
+- Mọi lựa chọn ký hiệu phải truy vết được về **đặc tả nghiệp vụ/System UC/Sequence/Class Analysis** tương ứng; layout không được thay đổi semantic.
+
 **Phân tầng thuật ngữ bắt buộc — Business ≠ System:**
 - **Tầng nghiệp vụ (Business):** mô tả **quy trình của trung tâm tiêm chủng ngoài góc nhìn phần mềm**. Dùng các khái niệm **Business Actor, Business Worker, Business Entity, Business Use Case, Business Activity/Business Object**. Câu hỏi chính: *nghiệp vụ diễn ra thế nào, ai làm gì, xử lý đối tượng/thông tin nào?*
 - **Tầng hệ thống (System):** mô tả **phần mềm hỗ trợ/tự động hóa phần nào của nghiệp vụ**. Dùng **System Actor, System Use Case, System Boundary**, sau đó đặc tả/Sequence ở mức hệ thống. Câu hỏi chính: *ai sử dụng phần mềm và phần mềm phải cung cấp chức năng gì?*
