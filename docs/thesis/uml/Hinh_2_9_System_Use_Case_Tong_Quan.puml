@@ -1,4 +1,5 @@
 @startuml
+!pragma layout smetana
 ' THESIS-R1 — Hình 2.9 System Use Case summary
 ' One visible symbol per actor. Graphviz polyline routing, no directional association hints.
 skinparam monochrome true
