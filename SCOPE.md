@@ -500,6 +500,21 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — Hình 2.9 visual candidate v15 — 09/11/2026
+
+- Source commit: `77507a0a687224fe14c1c4ad4d21783d03b99edd`.
+- Render CI: run `42530657648` — PASS.
+- Renderer: PlantUML 1.2026.9 + ELK orthogonal layout.
+- PNG: **1446×1433 px**; near-square, phù hợp A4 hơn các ELK thử nghiệm trước.
+- Đạt:
+  - đúng **một** ký hiệu cho mỗi actor;
+  - không duplicate `Khách hàng`;
+  - association orthogonal, không đường cong;
+  - không connector crossing;
+  - 10 UC summary và primary actor mapping không đổi.
+- Chưa gọi final visual PASS vì ELK kết thúc association ở actor-node bounding box, tạo một khoảng hở nhỏ trước stick figure ở một số actor. Đây là renderer/layout artifact, không phải semantic disconnect.
+- Nếu review chấp nhận readability của v15, dùng làm visual baseline; nếu không, chỉ post-process đoạn actor endpoint, không mở lại UC semantic/layout model.
+
 ### THESIS-R1 — Hình 2.9 System Use Case tổng quan — VISUAL REOPENED 09/11/2026
 
 - Source: `docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml`.
