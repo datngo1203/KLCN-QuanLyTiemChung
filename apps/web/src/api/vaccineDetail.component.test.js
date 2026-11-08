@@ -27,7 +27,7 @@ async function mount(t) {
 }
 
 const vaccine = { id: 12, name: 'Vắc xin thử', price: '250000' }
-const catalog = (...items) => Response.json({ source: 'database', items })
+const detail = item => Response.json(item)
 
 test('vaccine detail renders ordered reference doses, provenance and legacy fallback', async t => {
   const pending = Promise.withResolvers()
@@ -40,7 +40,7 @@ test('vaccine detail renders ordered reference doses, provenance and legacy fall
       { id: 1, doseOrder: 1, timingLabel: 'Mốc văn bản' },
       { id: 2, doseOrder: 2, minimumIntervalDays: 3, recommendedIntervalDays: 7 },
     ] }
-  await act(async () => pending.resolve(catalog({ ...vaccine, regimens: [regimen,
+  await act(async () => pending.resolve(detail({ ...vaccine, regimens: [regimen,
     { ...regimen, id: 2, sourceName: 'Tên nguồn cũ', sourceUrl: 'javascript:alert(1)', doses: [] }] })))
   const section = host.querySelector('[aria-labelledby="regimen-heading"]')
   assert.match(section.textContent, /Phác đồ tham khảo.*Lịch tiêm cá nhân và chỉ định tiêm cần được nhân viên y tế xác nhận/)
@@ -59,14 +59,14 @@ test('vaccine detail keeps its error, retry and missing-item states', async t =>
   globalThis.fetch = async () => new Response(null, { status: 503 })
   const host = await mount(t)
   assert.match(host.querySelector('[role="alert"]').textContent, /Không tải được chi tiết vắc xin/)
-  globalThis.fetch = async () => catalog()
+  globalThis.fetch = async () => new Response(null, { status: 404 })
   await act(async () => host.querySelector('[role="alert"] button').click())
   assert.match(host.textContent, /Không tìm thấy vắc xin/)
   assert.equal(host.querySelector('[role="alert"]'), null)
 })
 
 test('legacy vaccine detail with no regimen has a neutral empty state', async t => {
-  globalThis.fetch = async () => catalog(vaccine)
+  globalThis.fetch = async () => detail(vaccine)
   const host = await mount(t)
   assert.match(host.textContent, /Chưa có phác đồ tham khảo cho vắc xin này/)
 })
