@@ -39,7 +39,7 @@ CFG = {
     ]),
     "Hinh_2_7_Activity_Thanh_Toan.png": dict(left_pad=160, right_pad=0, entities=[
         dict(label=": Đăng ký dịch vụ", cx=250, cy=235, target=(220,235), mode="read"),
-        dict(label=": Giao dịch thanh toán", cx=80, cy=1100, target=(20,1100), mode="write"),
+        dict(label=": Giao dịch thanh toán", cx=130, cy=1100, target=(20,1100), mode="write"),
     ]),
     "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(left_pad=160, right_pad=0, entities=[
         dict(label=": Lô vắc xin", cx=80, cy=335, target=(20,335), mode="read"),
