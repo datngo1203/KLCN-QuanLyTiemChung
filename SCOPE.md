@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.6 DONE:** đã viết lại 1.5, chuẩn hóa bìa phụ, actor ở 1.2.3 và bảng Danh mục ký hiệu/chữ viết tắt. **ACTIVE tiếp theo: Patch 2C.7** — chuẩn hóa nốt toàn bộ hình biểu mẫu mục 1.4 (crop, kích thước in, căn giữa, độ rõ, caption a/b khi nhiều trang, cập nhật danh mục hình), render/print QA; chỉ sau khi PASS mới khóa Chương 1 và mở chat mới cho Patch 2D Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7 DONE:** đã chuẩn hóa toàn bộ hình biểu mẫu mục 1.4 theo cùng chuẩn in: ảnh ngang dùng gần hết vùng nội dung, ảnh dọc dùng cùng cột thị giác và căn giữa thật, giữ tỷ lệ gốc; Hình 1.3 tiếp tục tách 1.3a/1.3b, Hình 1.4 giữ bản ghép đã loại vùng trống. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7_Final.docx`, SHA-256 `4150ba9a3d28484bdce3e1dc21bff5df0018efd0fcfcb3749cf85e99161fa6f4`. Render QA 87 trang PASS; chỉ trang 26–34 thay đổi so với baseline 2C.6, các trang còn lại pixel-identical; DOCX ZIP integrity PASS. **Chương 1 được khóa hoàn toàn. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
