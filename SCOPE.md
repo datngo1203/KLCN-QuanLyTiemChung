@@ -354,7 +354,7 @@ Activity Diagram:
 - **Layout chuẩn được lấy từ Hình 2.2 compact-fixed đã duyệt:** không dùng `left to right direction` với Activity Diagram có swimlane kiểu `|...|`; luồng chính ưu tiên top-to-bottom.
 - Nhánh thay thế/ngoại lệ phải **merge về luồng chính ngay khi điều kiện đã được xử lý**, tránh lặp lại cả chuỗi action và tránh connector dài chạy vòng trang.
 - Ưu tiên connector **dọc/ngang ngắn, ít giao cắt**; không chấp nhận line xéo dài, line chụm/dính khó đọc hoặc auto-routing tạo vòng cung không cần thiết.
-- Toàn bộ Activity Diagram nghiệp vụ phải có **outer frame đầy đủ bốn cạnh (trên/dưới/trái/phải)**; bên trong frame vẫn giữ separator swimlane rõ ràng. Hình chỉ có một lane (ví dụ Bác sĩ) vẫn phải dùng cùng style frame để đồng nhất batch.
+- Toàn bộ Activity Diagram nghiệp vụ phải có **outer frame đầy đủ bốn cạnh (trên/dưới/trái/phải)**. Outer frame là **khung ngoài duy nhất**: sau render phải loại hai biên dọc ngoài cùng do PlantUML swimlane tự sinh, chỉ giữ **separator giữa các lane**. Hình một lane (ví dụ Bác sĩ) không giữ hai biên swimlane bên trong; chỉ còn outer frame để đồng nhất batch.
 - Nội dung activity giữ ngắn gọn, tránh nhồi một câu đặc tả dài vào một node; semantic vẫn phải truy vết được về dòng cơ bản/dòng thay thế tương ứng.
 
 Sequence Diagram:
@@ -375,6 +375,7 @@ Trình bày/in ấn:
 - Khi chèn PNG/SVG vào DOCX phải **khóa aspect ratio**; chỉ scale theo một chiều giới hạn rồi suy ra chiều còn lại, không đặt width/height độc lập làm méo ellipse/actor/frame.
 - Business Use Case ellipse phải giữ hình học chuẩn sau khi chèn Word; nếu preview PlantUML đúng nhưng DOCX bị méo thì lỗi nằm ở insertion/scale và phải sửa ở bước chèn, không sửa shape trong source để “bù méo”.
 - Không dùng page break cưỡng bức chỉ để giữ hình trên một trang; tối ưu source/layout/kích thước trước, chỉ chấp nhận hình sang trang mới khi cần để giữ khả năng đọc khi in.
+- Giữa **bảng đặc tả và sơ đồ ngay sau nó** phải có khoảng trắng thị giác rõ ràng; paragraph chứa hình đặt **Before tối thiểu 6 pt** (ưu tiên 8–12 pt nếu trang vẫn cân), không để outer frame chạm hoặc dính sát đường viền dưới của bảng.
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 
 ### THESIS-R1 — Patch 2D.3b Business UML visual cleanup DONE
