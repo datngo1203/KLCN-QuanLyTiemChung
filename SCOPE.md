@@ -377,14 +377,22 @@ Trình bày/in ấn:
 - Không dùng page break cưỡng bức chỉ để giữ hình trên một trang; tối ưu source/layout/kích thước trước, chỉ chấp nhận hình sang trang mới khi cần để giữ khả năng đọc khi in.
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 
-### THESIS-R1 — Patch 2D.3b Business UML visual cleanup ACTIVE
+### THESIS-R1 — Patch 2D.3b Business UML visual cleanup DONE
 
-- Batch `Hình 2.1–2.8` từ Patch 2D.3 **không còn được coi là visual PASS cuối** sau print review; semantic source vẫn là cơ sở, nhưng cần cleanup layout toàn batch.
-- Hình 2.2 **compact-fixed** do người dùng duyệt trực quan là reference layout cho Activity Diagram: top-to-bottom, nhánh phụ merge về main flow, connector dọc/ngang sạch, không `left to right direction`.
-- Hình 2.1 cần re-render/reinsert với **aspect ratio khóa** để Business Use Case ellipse không bị méo trong Word và association không auto-route cong/xéo không cần thiết.
-- Hình 2.2–2.8 phải đồng nhất **outer frame bốn cạnh + swimlane separator**, kể cả hình một lane; giảm connector xéo/dính/cross.
-- Chưa đụng System UML trong cleanup này.
-- Artifact Patch 2D.3 hiện tại chỉ là baseline để diff; artifact final mới chỉ được checkpoint sau khi render/visual QA toàn bộ 2.1 PASS.
+- Batch `Hình 2.1–2.8` đã được cleanup và **visual PASS cuối** sau print review.
+- **Hình 2.1** dùng đúng source top-to-bottom đã được người dùng duyệt; Nhà cung cấp ở trái, Khách hàng ở phải, 7 Business Use Case xếp dọc trong boundary. Không dùng các layout thử nghiệm ELK/LTR làm thay thế nếu chưa review lại bằng mắt.
+- **Hình 2.2–2.8** dùng reference layout từ Hình 2.2 compact-fixed: không `left to right direction`, main flow top-to-bottom, nhánh phụ merge về main flow khi xử lý xong, connector ưu tiên dọc/ngang sạch.
+- Activity PNG có **outer frame đầy đủ bốn cạnh** do pipeline render thêm sau PlantUML; separator swimlane vẫn do PlantUML tạo. Hình một lane như 2.6 vẫn dùng cùng frame để đồng nhất.
+- Khi chèn vào DOCX, toàn bộ Hình 2.1–2.8 được **khóa aspect ratio**; không đặt width/height độc lập. Đây là fix bắt buộc cho lỗi ellipse/diagram bị bẹt hoặc kéo giãn trong Word.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3b_BusinessUML_Cleanup_Final.docx`, SHA-256 `2cf90d49653d96a75ae3dbfe6f76b6a9c9293a13046ff2f5b7fa19fea09e3b78`.
+- Render QA: **89 trang PASS**.
+  - Trang 1–36 pixel-identical baseline.
+  - Các trang thay đổi do Business UML/reflow: 37, 39, 41, 43, 45–50 đã kiểm trực quan ở 100%.
+  - Các trang 38, 40, 42, 44 vẫn pixel-identical baseline.
+  - Từ trang 51–89, nội dung thân trang tương đương baseline trang 50–88 sau khi bù dịch +1 trang; System UC/đặc tả hệ thống không bị sửa semantic.
+- **System UML vẫn PARKED**; không redraw/chỉnh trong Patch 2D.3b.
+- **Rule persistence:** mọi visual/layout rule người dùng đã chốt phải được cập nhật vào `SCOPE.md` trước khi áp sang phần/sơ đồ tiếp theo; không dựa vào chat cũ làm nguồn duy nhất.
+
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
