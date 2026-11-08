@@ -17,50 +17,49 @@ EXPECTED_BASE_SIZES = {
 }
 
 CFG = {
-    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(side="right", panel=300, entities=[
-        dict(label=": Chứng từ giao nhận", y=290, target=(615,305), mode="read"),
-        dict(label=": Lô vắc xin", y=1080, target=(610,1115), mode="write"),
-        dict(label=": Tồn kho", y=1240, target=(610,1115), mode="write"),
+    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(left_pad=0, right_pad=30, entities=[
+        dict(label=": Chứng từ giao nhận", cx=835, cy=305, target=(780,305), mode="read"),
+        dict(label=": Lô vắc xin", cx=835, cy=1115, target=(780,1115), mode="write"),
     ]),
-    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(side="right", panel=260, entities=[
-        dict(label=": Hồ sơ khách hàng", y=465, target=(930,465), mode="read"),
-        dict(label=": Hồ sơ người được tiêm", y=660, target=(1080,620), mode="write"),
+    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(left_pad=0, right_pad=220, entities=[
+        dict(label=": Hồ sơ khách hàng", cx=1160, cy=465, target=(1030,465), mode="read"),
+        dict(label=": Hồ sơ người được tiêm", cx=1380, cy=620, target=(1245,620), mode="write"),
     ]),
-    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(side="right", panel=320, entities=[
-        dict(label=": Hồ sơ người được tiêm", y=330, target=(650,330), mode="read"),
-        dict(label=": Đăng ký dịch vụ", y=875, target=(625,870), mode="write"),
+    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(left_pad=0, right_pad=100, entities=[
+        dict(label=": Hồ sơ người được tiêm", cx=900, cy=330, target=(780,330), mode="read"),
+        dict(label=": Đăng ký dịch vụ", cx=930, cy=880, target=(880,880), mode="write"),
     ]),
-    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(side="right", panel=260, entities=[
-        dict(label=": Đăng ký dịch vụ", y=335, target=(1030,350), mode="read"),
-        dict(label=": Lịch hẹn", y=520, target=(1015,495), mode="write"),
+    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(left_pad=0, right_pad=0, entities=[
+        dict(label=": Đăng ký dịch vụ", cx=1250, cy=335, target=(1100,335), mode="read"),
+        dict(label=": Lịch hẹn", cx=1260, cy=480, target=(1160,480), mode="write"),
     ]),
-    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(side="right", panel=260, title="Bác sĩ", top_pad=34, entities=[
-        dict(label=": Hồ sơ người được tiêm", y=260, target=(650,260), mode="read"),
-        dict(label=": Kết quả khám / chỉ định", y=575, target=(650,515), mode="write"),
+    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(left_pad=0, right_pad=0, title="Bác sĩ", top_pad=34, entities=[
+        dict(label=": Hồ sơ người được tiêm", cx=900, cy=310, target=(690,310), mode="read"),
+        dict(label=": Kết quả khám sàng lọc", cx=900, cy=570, target=(700,570), mode="write"),
     ]),
-    "Hinh_2_7_Activity_Thanh_Toan.png": dict(side="left", panel=260, entities=[
-        dict(label=": Đăng ký dịch vụ", y=240, target=(430,235), mode="read"),
-        dict(label=": Giao dịch thanh toán", y=1090, target=(420,1100), mode="write"),
+    "Hinh_2_7_Activity_Thanh_Toan.png": dict(left_pad=0, right_pad=0, entities=[
+        dict(label=": Đăng ký dịch vụ", cx=100, cy=235, target=(220,235), mode="read"),
+        dict(label=": Giao dịch thanh toán", cx=560, cy=1100, target=(390,1100), mode="write"),
     ]),
-    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(side="left", panel=320, entities=[
-        dict(label=": Lô vắc xin", y=340, target=(335,335), mode="read"),
-        dict(label=": Mũi tiêm đã thực hiện", y=765, target=(330,760), mode="write"),
-        dict(label=": Theo dõi sau tiêm", y=1360, target=(340,1360), mode="write"),
+    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(left_pad=160, right_pad=0, entities=[
+        dict(label=": Lô vắc xin", cx=80, cy=335, target=(20,335), mode="read"),
+        dict(label=": Mũi tiêm đã thực hiện", cx=80, cy=760, target=(30,760), mode="write"),
+        dict(label=": Theo dõi sau tiêm", cx=80, cy=1360, target=(40,1360), mode="write"),
     ]),
 }
 
-def dashed(draw, pts, fill="black", width=2, dash=9, gap=6):
-    for (x1,y1),(x2,y2) in zip(pts,pts[1:]):
-        dx,dy=x2-x1,y2-y1
-        length=math.hypot(dx,dy)
-        if not length:
-            continue
-        ux,uy=dx/length,dy/length
-        d=0
-        while d<length:
-            e=min(d+dash,length)
-            draw.line((x1+ux*d,y1+uy*d,x1+ux*e,y1+uy*e),fill=fill,width=width)
-            d += dash+gap
+def dashed(draw, p1, p2, fill="black", width=2, dash=9, gap=6):
+    x1,y1=p1; x2,y2=p2
+    dx,dy=x2-x1,y2-y1
+    length=math.hypot(dx,dy)
+    if not length:
+        return
+    ux,uy=dx/length,dy/length
+    d=0
+    while d<length:
+        e=min(d+dash,length)
+        draw.line((x1+ux*d,y1+uy*d,x1+ux*e,y1+uy*e),fill=fill,width=width)
+        d += dash+gap
 
 def arrowhead(draw, p_from, p_to, size=10, fill="black"):
     x1,y1=p_from; x2,y2=p_to
@@ -73,7 +72,7 @@ def arrowhead(draw, p_from, p_to, size=10, fill="black"):
         (x2+size*math.cos(a2),y2+size*math.sin(a2)),
     ],fill=fill)
 
-def draw_entity(draw, cx, cy, label, side, font):
+def draw_entity(draw, cx, cy, label, font):
     r=27
     draw.ellipse((cx-r,cy-r,cx+r,cy+r),outline="black",width=2)
     draw.line((cx+4,cy+19,cx+21,cy+2),fill="black",width=2)
@@ -84,7 +83,28 @@ def draw_entity(draw, cx, cy, label, side, font):
         box=draw.textbbox((0,0),line,font=font)
         draw.text((cx-(box[2]-box[0])/2,y),line,font=font,fill="black")
         y += 22
-    return (cx-r-12,cy) if side=="right" else (cx+r+12,cy)
+    return r
+
+def connect_object_flow(draw, entity_center, target, mode, radius=27):
+    cx,cy=entity_center
+    tx,ty=target
+    # Entity and target must be aligned horizontally; this is a hard visual rule.
+    if abs(cy-ty) > 1:
+        raise ValueError(f"ObjectFlow must be horizontal: entity={entity_center}, target={target}")
+    if cx < tx:
+        entity_edge=(cx+radius,cy)
+        target_edge=(tx,ty)
+    else:
+        entity_edge=(cx-radius,cy)
+        target_edge=(tx,ty)
+    if mode=="read":
+        dashed(draw,entity_edge,target_edge)
+        arrowhead(draw,entity_edge,target_edge)
+    elif mode=="write":
+        dashed(draw,target_edge,entity_edge)
+        arrowhead(draw,target_edge,entity_edge)
+    else:
+        raise ValueError(f"Unknown ObjectFlow mode: {mode}")
 
 def normalize_base(path):
     img=Image.open(path).convert("RGB")
@@ -108,7 +128,7 @@ def main():
         img=normalize_base(path)
         expected=EXPECTED_BASE_SIZES[name]
         if img.size != expected:
-            raise SystemExit(f"{name}: base size changed from {expected} to {img.size}; review data-flow coordinates before render")
+            raise SystemExit(f"{name}: base size changed from {expected} to {img.size}; review ObjectFlow coordinates before render")
 
         ow,oh=img.size
         top_pad=cfg.get("top_pad",0)
@@ -118,41 +138,30 @@ def main():
             img=padded
             oh += top_pad
 
-        panel=cfg["panel"]
-        side=cfg["side"]
-        nw=ow+panel
+        left_pad=cfg.get("left_pad",0)
+        right_pad=cfg.get("right_pad",0)
+        nw=left_pad+ow+right_pad
         canvas=Image.new("RGB",(nw,oh),"white")
-        shift=panel if side=="left" else 0
-        canvas.paste(img,(shift,0))
+        canvas.paste(img,(left_pad,0))
         draw=ImageDraw.Draw(canvas)
 
         if cfg.get("title"):
             title=cfg["title"]
             box=draw.textbbox((0,0),title,font=title_font)
-            center=shift+ow/2
+            center=left_pad+ow/2
             draw.text((center-(box[2]-box[0])/2,7),title,font=title_font,fill="black")
 
-        if side=="right":
-            gutter=shift+ow+25
-            cx=shift+ow+panel//2+10
-        else:
-            gutter=panel-25
-            cx=panel//2-10
-
         for entity in cfg["entities"]:
-            cy=entity["y"]+top_pad
-            anchor=draw_entity(draw,cx,cy,entity["label"],side,font)
+            cx=entity["cx"]
+            cy=entity["cy"]+top_pad
             tx,ty=entity["target"]
-            tx += shift
+            tx += left_pad
             ty += top_pad
-            path_points=[anchor,(gutter,cy),(gutter,ty),(tx,ty)]
-            if entity["mode"]=="read":
-                dashed(draw,path_points)
-                arrowhead(draw,path_points[-2],path_points[-1])
-            else:
-                rev=list(reversed(path_points))
-                dashed(draw,rev)
-                arrowhead(draw,rev[-2],rev[-1])
+
+            # cx is final-canvas coordinate by design. For diagrams with left padding,
+            # entities live in that padding while activity coordinates shift with left_pad.
+            radius=draw_entity(draw,cx,cy,entity["label"],font)
+            connect_object_flow(draw,(cx,cy),(tx,ty),entity["mode"],radius=radius)
 
         draw.rectangle((1,1,nw-2,oh-2),outline="black",width=2)
         canvas.save(path,dpi=(180,180))
