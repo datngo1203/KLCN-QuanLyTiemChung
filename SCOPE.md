@@ -324,6 +324,50 @@ Quy tắc trình bày:
 - Cùng một thứ tự phải được dùng lại xuyên Chương 1 → Chương 2 → Chương 3 → Chương 4 → Chương 5 để người đọc theo được một hành trình duy nhất.
 - Không đổi thứ tự chỉ vì mã UC cũ. Mã UC/số hình sẽ được đánh lại sau khi khóa nội dung.
 
+### THESIS-R1 — HUIT UML Visual Profile v1
+
+Nguồn và ưu tiên:
+- **Ngữ nghĩa mô hình** bám bộ bài giảng PTTKHTTT của HUIT đã được dùng để khóa Chương 2.
+- **Ký hiệu trực quan** ưu tiên cách biểu diễn HUIT/Rational Rose khi không xung đột UML.
+- Khi ví dụ công cụ/bài thực hành xung đột với UML chuẩn, **UML chuẩn được ưu tiên**. PlantUML chỉ là renderer, không phải Source of Truth nghiệp vụ.
+- UML trong luận văn dùng **PlantUML source-first**, giữ source `.puml` để sửa/re-render có kiểm soát; hình chèn vào luận văn ưu tiên SVG/PNG sắc nét, monochrome, không shadow/gradient.
+
+Use Case:
+- **Business boundary**: hình chữ nhật có tên phạm vi nghiệp vụ ở phía trên; Business Use Case nằm trong, Business Actor nằm ngoài.
+- **Business Actor**: dùng ký hiệu business actor của PlantUML/Rational Rose (PlantUML `actor/` hoặc `:Tên:/`) khi renderer hỗ trợ; chỉ dùng cho đối tượng ngoài ranh giới nghiệp vụ cung cấp đầu vào/nhận đầu ra.
+- **Business Use Case**: ellipse business có nét chéo theo HUIT/Rational Rose (PlantUML `usecase/`); tên là cụm động từ.
+- **System Actor / System Use Case**: dùng actor và ellipse UML thường, **không dùng nét business**; system boundary là phạm vi phần mềm.
+- **Association Actor–Use Case**: **đường liền, không mũi tên**. Với PlantUML dùng `--`, không dùng `-->`. Đây là rule khóa cho cả Business Use Case và System Use Case.
+- `<<include>>`: dependency nét đứt, mũi tên từ use case cơ sở tới use case được bao gồm.
+- `<<extend>>`: dependency nét đứt, mũi tên từ use case mở rộng tới use case cơ sở.
+- Generalization: đường liền + tam giác rỗng hướng về phần tử tổng quát.
+- Không dùng đường/mũi tên giữa các use case chỉ để diễn tả thứ tự nghiệp vụ; thứ tự thuộc Activity/Sequence/specification.
+
+Activity Diagram:
+- Dùng initial node chấm đen, activity final vòng tròn kép, action hình chữ nhật bo góc, decision/merge hình thoi.
+- Nhánh decision phải có guard rõ như `[Hợp lệ]`, `[Không hợp lệ]`; merge dùng khi cần gom các nhánh loại trừ.
+- Fork/Join chỉ dùng khi có xử lý song song thực sự.
+- Swimlane biểu diễn **trách nhiệm thực hiện hành động**; không tạo lane rỗng chỉ vì một vai trò được nhắc tới.
+- Trong Business Activity, vai trò nội bộ được hiểu là **Business Worker/thừa tác viên**; Business Actor không mặc định trở thành swimlane.
+- Business Entity/Object Node chỉ đưa vào khi giúp hiểu luồng dữ liệu nghiệp vụ (ví dụ hồ sơ, lịch hẹn, lô vắc xin, kết quả khám); không biến Activity Diagram thành ERD.
+- Không dùng lane “Hệ thống” để kéo implementation automation vào mô hình nghiệp vụ nếu đặc tả Business Use Case không có vai trò nghiệp vụ tương ứng.
+
+Sequence Diagram:
+- Dùng Actor/Object, lifeline nét đứt, activation, message; return/self-message chỉ khi làm rõ kịch bản.
+- Sequence ở Chương 2 là **mức phân tích**: mô tả luồng tương tác theo System Use Case đã khóa, không vẽ endpoint/service/repository/database như sơ đồ implementation.
+- Tên message dùng động từ/nghiệp vụ dễ hiểu; không đưa chi tiết code nếu không cần traceability.
+
+Class Diagram mức phân tích:
+- Dùng class box UML, association, multiplicity; thêm tên/vai trò quan hệ khi giúp làm rõ ngữ nghĩa.
+- Aggregation/Composition/Generalization chỉ dùng khi quan hệ miền nghiệp vụ thực sự hỗ trợ, không dùng trang trí.
+- Class Analysis là mô hình khái niệm/domain, **không sao chép schema hoặc DTO**.
+
+Trình bày/in ấn:
+- Sơ đồ đen–trắng, nền trắng, nét rõ; không gradient, icon trang trí hoặc màu phụ thuộc máy in.
+- Ưu tiên bố cục đọc được trên A4 ở kích thước in thực tế; không thu nhỏ để nhồi quá nhiều phần tử.
+- Mỗi tiểu mục giữ adjacency đã khóa: **heading → bảng đặc tả → sơ đồ/caption**, không thêm prose lặp lại nội dung bảng/hình.
+- Một sơ đồ chỉ đưa các thành phần có ý nghĩa cho mục tiêu của sơ đồ; ưu tiên rõ ràng hơn “đầy đủ mọi object”.
+
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
 - **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Ví dụ trong bài giảng không tự mở rộng chức năng của đồ án.
