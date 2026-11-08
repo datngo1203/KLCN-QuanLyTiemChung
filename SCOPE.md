@@ -378,21 +378,21 @@ Trình bày/in ấn:
 - Giữa **bảng đặc tả và sơ đồ ngay sau nó** phải có khoảng trắng thị giác rõ ràng; paragraph chứa hình đặt **Before tối thiểu 6 pt** (ưu tiên 8–12 pt nếu trang vẫn cân), không để outer frame chạm hoặc dính sát đường viền dưới của bảng.
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 
-### THESIS-R1 — Patch 2D.3b Business UML visual cleanup DONE
+### THESIS-R1 — Patch 2D.3c Business UML frame/spacing cleanup DONE
 
-- Batch `Hình 2.1–2.8` đã được cleanup và **visual PASS cuối** sau print review.
-- **Hình 2.1** dùng đúng source top-to-bottom đã được người dùng duyệt; Nhà cung cấp ở trái, Khách hàng ở phải, 7 Business Use Case xếp dọc trong boundary. Không dùng các layout thử nghiệm ELK/LTR làm thay thế nếu chưa review lại bằng mắt.
-- **Hình 2.2–2.8** dùng reference layout từ Hình 2.2 compact-fixed: không `left to right direction`, main flow top-to-bottom, nhánh phụ merge về main flow khi xử lý xong, connector ưu tiên dọc/ngang sạch.
-- Activity PNG có **outer frame đầy đủ bốn cạnh** do pipeline render thêm sau PlantUML; separator swimlane vẫn do PlantUML tạo. Hình một lane như 2.6 vẫn dùng cùng frame để đồng nhất.
-- Khi chèn vào DOCX, toàn bộ Hình 2.1–2.8 được **khóa aspect ratio**; không đặt width/height độc lập. Đây là fix bắt buộc cho lỗi ellipse/diagram bị bẹt hoặc kéo giãn trong Word.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3b_BusinessUML_Cleanup_Final.docx`, SHA-256 `2cf90d49653d96a75ae3dbfe6f76b6a9c9293a13046ff2f5b7fa19fea09e3b78`.
+- Batch `Hình 2.1–2.8` tiếp tục là **Business UML visual PASS cuối**; semantic không đổi so với 2D.3b.
+- **Hình 2.1** giữ source top-to-bottom đã duyệt và aspect ratio khóa khi chèn Word.
+- **Hình 2.2–2.8** dùng compact-fixed layout: main flow top-to-bottom, nhánh phụ merge về main flow khi xử lý xong, connector ưu tiên dọc/ngang.
+- Activity render pipeline đã sửa để **xóa hai biên dọc ngoài cùng do PlantUML swimlane tự sinh**, chỉ giữ separator giữa lane; sau đó mới thêm **outer frame duy nhất đủ bốn cạnh**. Hình một lane như 2.6 chỉ còn outer frame, không còn khung dọc kép bên trong.
+- Paragraph chứa Activity Diagram đặt **Before = 8 pt, After = 0** để tạo khoảng trắng thị giác giữa bảng đặc tả và sơ đồ; không chèn page break cưỡng bức.
+- Khi chèn/patch ảnh trong DOCX phải giữ **aspect ratio khóa**; không đặt width/height độc lập.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3c_BusinessUML_FrameSpacing_Final.docx`, SHA-256 `6cabdc82c47e7adaf90377d74547dff880c08e05b5316bcbd3a7e72912663dd5`.
 - Render QA: **89 trang PASS**.
-  - Trang 1–36 pixel-identical baseline.
-  - Các trang thay đổi do Business UML/reflow: 37, 39, 41, 43, 45–50 đã kiểm trực quan ở 100%.
-  - Các trang 38, 40, 42, 44 vẫn pixel-identical baseline.
-  - Từ trang 51–89, nội dung thân trang tương đương baseline trang 50–88 sau khi bù dịch +1 trang; System UC/đặc tả hệ thống không bị sửa semantic.
-- **System UML vẫn PARKED**; không redraw/chỉnh trong Patch 2D.3b.
-- **Rule persistence:** mọi visual/layout rule người dùng đã chốt phải được cập nhật vào `SCOPE.md` trước khi áp sang phần/sơ đồ tiếp theo; không dựa vào chat cũ làm nguồn duy nhất.
+  - So với 2D.3b, **82/89 trang pixel-identical**.
+  - Chỉ các trang 39, 41, 43, 45, 46, 48, 50 thay đổi; đã kiểm trực quan ở 100%.
+  - System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- **System UML vẫn PARKED**; chưa redraw/chỉnh.
+- **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
