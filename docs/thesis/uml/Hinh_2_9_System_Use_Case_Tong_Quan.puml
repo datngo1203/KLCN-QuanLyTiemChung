@@ -1,7 +1,6 @@
 @startuml
-!pragma layout elk
 ' THESIS-R1 — Hình 2.9 System Use Case summary
-' One visible symbol per actor. Graphviz polyline routing, no directional association hints.
+' One visible symbol per actor. Actors are layout-anchored close to their UC cluster.
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -11,16 +10,14 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam linetype ortho
-skinparam nodesep 28
+skinparam linetype polyline
+skinparam nodesep 32
 skinparam ranksep 30
 skinparam dpi 180
 
-left to right direction
+top to bottom direction
 
 actor "Khách hàng" as Customer
-actor "Lễ tân" as Reception
-Customer -[hidden]down- Reception
 
 rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
@@ -38,7 +35,7 @@ rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
 
-  ' Two-column semantic-free layout constraints.
+  ' Two-column layout.
   UC09 -[hidden]down- UC10
   UC10 -[hidden]down- UC11
   UC11 -[hidden]down- UC19
@@ -55,11 +52,17 @@ rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   UC19 -[hidden]right- UC16
 }
 
+actor "Lễ tân" as Reception
 actor "Bác sĩ" as Doctor
 actor "Thu ngân" as Cashier
 actor "Điều dưỡng" as Nurse
-Doctor -[hidden]down- Cashier
-Cashier -[hidden]down- Nurse
+
+' Layout anchors only: keep each actor close to its cluster.
+Customer -[hidden]right- UC10
+UC13 -[hidden]right- Reception
+UC15 -[hidden]right- Doctor
+UC16 -[hidden]right- Cashier
+UC17 -[hidden]right- Nurse
 
 ' Primary/representative actor associations only.
 Customer -- UC09
@@ -69,7 +72,6 @@ Customer -- UC19
 
 Reception -- UC12
 Reception -- UC13
-
 UC15 -- Doctor
 UC16 -- Cashier
 UC17 -- Nurse
