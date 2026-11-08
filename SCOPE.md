@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2D.1 DONE:** khóa phương pháp mô hình hóa nghiệp vụ theo bộ bài giảng PTTKHTTT; áp micro-patch thuật ngữ Chương 1 từ “actor/tác nhân nghiệp vụ” sang “vai trò nghiệp vụ” nhưng không đổi semantic 7 quy trình; viết lại toàn bộ 7 bảng đặc tả Business Use Case theo format **Giới thiệu Use Case → Các dòng cơ bản → Các dòng thay thế**; sắp lại đúng dependency, trong đó Nhập vắc xin là luồng hỗ trợ, Lịch hẹn và Thanh toán là nhánh điều kiện. Các Activity Diagram cũ chỉ được di chuyển theo đúng bảng tương ứng và vẫn **PARKED để redraw sau**, chưa dùng hình cũ làm Source of Truth cho semantic. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2D1b_BusinessUC_Text.docx`, SHA-256 `8351ba5b0b4ea602679d24d5b110e0ff3a5d923cab028e00e977184374451962`. Render/TOC/Danh mục hình-bảng QA PASS trên bản 86 trang. **Chương 1 tiếp tục khóa, ngoại trừ micro-patch thuật ngữ đã duyệt. ACTIVE tiếp theo:** Patch 2D.2 — audit và khóa tập System Use Case + đặc tả text theo bài giảng, **chưa redraw Sequence Diagram**.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2D.2 DONE:** audit implementation hiện hành và khóa tập **13 System Use Case** ở mức mục tiêu nghiệp vụ/phần mềm, không giữ máy móc 10 UC cũ. Toàn bộ bảng đặc tả 2.2.2 dùng format bài giảng **Tên Use Case / Tác nhân chính / Tổng quan / Mối quan hệ / Dòng sự kiện chính / Dòng sự kiện phụ / Tiền điều kiện / Hậu điều kiện**. Đã loại các overclaim cũ về mobile app/chứng nhận điện tử, quét mã vắc xin, cảnh báo khẩn tự động, điều chuyển/điều chỉnh kho, cổng thanh toán production và reminder chỉ mô phỏng; hệ thống không tự quyết định eligibility y khoa. Toàn bộ prose của 13 bảng đã Việt hóa các thuật ngữ implementation như reschedule/cancel/reconcile/provider/clinical/fail-closed/audit; các mốc reminder được định nghĩa ngay lần đầu: **48 giờ trước lịch hẹn (T-48), 24 giờ trước lịch hẹn (T-24), 3 ngày sau lịch hẹn (D+3), 7 ngày sau lịch hẹn (D+7)**. 10 Sequence Diagram cũ đã loại khỏi 2.2.2 vì không còn khớp text; **Hình Use Case hệ thống tổng thể và Sequence Diagram mới vẫn PARKED để redraw sau**. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2D2_Final.docx`, SHA-256 `db8e55c899bfc5d9525ed3a047a0e07090e5ee4609d86bef86da332ff34456af`. Render QA **86 trang PASS**; bảng System UC giữ Times New Roman 12 pt, Multiple 1.3, Before/After 0, indent/tab = 0; pagination hiện làm 2.3 và Chương 3 khớp số trang đang có trong Mục lục. **NEXT:** Patch 2D.3 — khóa/redraw Business Use Case tổng thể + 7 Activity Diagram theo 7 đặc tả đã PASS; chưa tự mở cho tới khi có lệnh tiếp theo.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -324,15 +324,16 @@ Quy tắc trình bày:
 - Cùng một thứ tự phải được dùng lại xuyên Chương 1 → Chương 2 → Chương 3 → Chương 4 → Chương 5 để người đọc theo được một hành trình duy nhất.
 - Không đổi thứ tự chỉ vì mã UC cũ. Mã UC/số hình sẽ được đánh lại sau khi khóa nội dung.
 
-### THESIS-R1 — checkpoint Patch 2D.1 / chuyển sang 2D.2
+### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
-- **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Không dùng ví dụ trong bài giảng để tự mở rộng chức năng của đồ án.
-- Patch 2D.1 đã khóa text phần mô hình hóa nghiệp vụ: 7 Business Use Case canonical theo đúng dependency và template **Giới thiệu Use Case → Các dòng cơ bản → Các dòng thay thế**.
-- Ở các tiểu mục nhỏ dành cho bảng/sơ đồ, dùng **heading → bảng → hình/caption**, không thêm prose dẫn nhập/kết luận chỉ để lặp lại nội dung bảng hoặc sơ đồ.
-- Business Actor / Business Worker / System Actor phải được phân biệt theo mục “Sáu vai trò nghiệp vụ cốt lõi”; không gọi mọi vai trò tham gia là Business Actor.
-- Activity Diagram hiện tại chưa được xem là semantic đã khóa; redraw để ở patch sau khi text tương ứng PASS.
-- Recovery phiên tiếp theo: `AGENTS.md → SCOPE.md → Issue #182 → CNTT_KLCN090_THESIS-R1_Patch2D1b_BusinessUC_Text.docx → code/test/contract chỉ khi audit System Use Case cần`.
-- **Patch 2D.2:** audit và khóa tập System Use Case + đặc tả text theo bài giảng; chưa renumber/redraw Sequence Diagram trước khi text PASS.
+- **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Ví dụ trong bài giảng không tự mở rộng chức năng của đồ án.
+- Patch 2D.1 đã khóa 7 Business Use Case và format đặc tả nghiệp vụ; Patch 2D.2 đã khóa tập 13 System Use Case và toàn bộ text đặc tả hệ thống.
+- System Use Case phải có mục tiêu/kết quả nhất quán; không tách vụn theo endpoint, nhưng cũng không gộp các mục tiêu độc lập chỉ để giữ mã UC cũ.
+- Đặc tả System Use Case dùng **Tác nhân chính, Tổng quan, Mối quan hệ, Dòng sự kiện chính, Dòng sự kiện phụ, Tiền điều kiện, Hậu điều kiện**; các biến thể/ngoại lệ phải bám điểm rẽ thực sự của luồng.
+- Trong prose khóa luận ưu tiên thuật ngữ tiếng Việt; tên kỹ thuật/code chỉ giữ khi cần traceability. Quy ước reminder nếu dùng ký hiệu: lần đầu phải viết đầy đủ **48 giờ trước lịch hẹn (T-48), 24 giờ trước lịch hẹn (T-24), 3 ngày sau lịch hẹn (D+3), 7 ngày sau lịch hẹn (D+7)**.
+- Các Sequence Diagram cũ không còn được coi là evidence sau khi tập UC thay đổi; redraw chỉ bắt đầu sau khi text tương ứng đã PASS.
+- Recovery phiên tiếp theo: `AGENTS.md → SCOPE.md → Issue #182 → CNTT_KLCN090_THESIS-R1_Patch2D2_Final.docx → code/test/contract chỉ khi sơ đồ cần xác minh chi tiết`.
+- **Patch 2D.3 NEXT:** redraw Business Use Case tổng thể + 7 Activity Diagram theo text Business UC đã khóa; renumber/caption đồng bộ trong cùng patch.
 
 ### NEXT
 1. **#168 UI-F03**.
