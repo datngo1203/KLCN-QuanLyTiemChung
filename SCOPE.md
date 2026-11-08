@@ -356,6 +356,11 @@ Activity Diagram:
 - Ưu tiên connector **dọc/ngang ngắn, ít giao cắt**; không chấp nhận line xéo dài, line chụm/dính khó đọc hoặc auto-routing tạo vòng cung không cần thiết.
 - Toàn bộ Activity Diagram nghiệp vụ phải có **outer frame đầy đủ bốn cạnh (trên/dưới/trái/phải)**. Outer frame là **khung ngoài duy nhất**: sau render phải loại hai biên dọc ngoài cùng do PlantUML swimlane tự sinh, chỉ giữ **separator giữa các lane**. Hình một lane (ví dụ Bác sĩ) không giữ hai biên swimlane bên trong; chỉ còn outer frame để đồng nhất batch.
 - Nội dung activity giữ ngắn gọn, tránh nhồi một câu đặc tả dài vào một node; semantic vẫn phải truy vết được về dòng cơ bản/dòng thay thế tương ứng.
+- **Activity Diagram ưu tiên thể hiện flow, không lặp lại bảng đặc tả.** Bảng đặc tả giữ chi tiết nghiệp vụ; sơ đồ chỉ giữ các hành động/điểm rẽ có giá trị để nhìn được luồng. Được phép gộp các bước liên tiếp cùng chủ thể/cùng mục đích thành một action nếu không làm mất decision, trách nhiệm hoặc kết quả nghiệp vụ.
+- Khi tối ưu mật độ trang, **không giảm font để nhồi hình**. Ưu tiên theo thứ tự: rút gọn wording action → gộp action cùng mục đích → giảm khoảng cách node/rank hợp lý → chỉ sau đó mới cân nhắc scale hình. Mục tiêu là giảm khoảng trắng nhưng vẫn đọc rõ khi in A4.
+- **HUIT data/object-flow notation:** khi cần thể hiện dữ liệu nghiệp vụ được đọc/ghi trong Activity Diagram, thêm **Business Entity/Object** theo ký hiệu bài giảng HUIT/Rational Rose: hình tròn có nét chéo ở góc dưới phải, đặt trên một đường ngang, tên đối tượng bên dưới. Ví dụ: `Hồ sơ người được tiêm`, `Đăng ký dịch vụ`, `Lịch hẹn`, `Kết quả khám sàng lọc`, `Giao dịch thanh toán`, `Lô vắc xin`, `Mũi tiêm`.
+- Nối Business Entity/Object với activity bằng **ObjectFlow** để biểu diễn việc **truy xuất hoặc cập nhật dữ liệu** như bài thực hành. Quy ước của luận văn: `Business Entity → Activity` khi activity đọc/nhận dữ liệu; `Activity → Business Entity` khi activity tạo/ghi/cập nhật dữ liệu. Đây là quy ước hướng hóa để làm rõ read/write; bài giảng xác nhận ObjectFlow dùng cho truy xuất/cập nhật nhưng không bắt buộc cách ghi nhãn hướng.
+- Chỉ thêm Business Entity/Object khi nó làm rõ **đầu vào/đầu ra dữ liệu quan trọng** của flow; không thêm cho mọi biến/trạng thái và không biến Activity Diagram thành ERD. Mặc định ưu tiên khoảng **1–3 entity quan trọng/sơ đồ**, nhiều hơn chỉ khi thực sự cần.
 
 Sequence Diagram:
 - Dùng Actor/Object, lifeline nét đứt, activation, message; return/self-message chỉ khi làm rõ kịch bản.
@@ -377,6 +382,7 @@ Trình bày/in ấn:
 - Không dùng page break cưỡng bức chỉ để giữ hình trên một trang; tối ưu source/layout/kích thước trước, chỉ chấp nhận hình sang trang mới khi cần để giữ khả năng đọc khi in.
 - Giữa **bảng đặc tả và sơ đồ ngay sau nó** phải có khoảng trắng thị giác rõ ràng; paragraph chứa hình đặt **Before tối thiểu 6 pt** (ưu tiên 8–12 pt nếu trang vẫn cân), không để outer frame chạm hoặc dính sát đường viền dưới của bảng.
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
+- **UML density optimization:** giữ Hình 2.1 nếu bố cục tổng thể đang rõ; với Activity ưu tiên compact wording/merge/gộp action trước khi đổi hướng bố cục. Không đổi sang landscape hoặc hai cột chỉ để tiết kiệm trang nếu làm giảm khả năng đọc. Mục tiêu thực tế là giảm khoảng trắng thị giác và số trang khi có thể, không ép đạt một số trang cụ thể.
 
 ### THESIS-R1 — Patch 2D.3c Business UML frame/spacing cleanup DONE
 
