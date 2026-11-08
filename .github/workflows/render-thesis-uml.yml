@@ -7,6 +7,7 @@ on:
     paths:
       - 'docs/thesis/uml/**.puml'
       - 'docs/thesis/uml/postprocess_activity.py'
+      - 'docs/thesis/uml/postprocess_system_usecase.py'
       - '.github/workflows/render-thesis-uml.yml'
   workflow_dispatch:
 
@@ -45,6 +46,12 @@ jobs:
           set -euo pipefail
           python -m pip install --quiet pillow opencv-python-headless
           python docs/thesis/uml/postprocess_activity.py
+
+      - name: Postprocess System Use Case diagram
+        shell: bash
+        run: |
+          set -euo pipefail
+          python docs/thesis/uml/postprocess_system_usecase.py
 
       - name: Collect rendered UML
         shell: bash
