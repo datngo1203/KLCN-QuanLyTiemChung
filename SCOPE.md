@@ -17,13 +17,12 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-Không có slice ACTIVE. Chờ người dùng xác nhận lát tiếp theo.
+- **RF-02C #186** — hoàn thiện Customer Web Catalog theo dữ liệu Catalog hiện hành: Active-only public catalog; search theo mã/tên/hãng/phòng bệnh; filter Phòng bệnh + Công nghệ + giá; vaccine detail dùng detail endpoint và dữ liệu API có sẵn; thêm package detail. Mặc định không migration/schema/backend redesign; medical-content expansion tiếp tục defer/out of scope. Triển khai theo checkpoint C1→C4 với exact-head review sau mỗi checkpoint.
 
 ### NEXT
-1. **RF-02C**.
-2. **PAY-R1**.
-3. **DATA-R2**.
-4. **S8** final integration/end-to-end.
+1. **PAY-R1**.
+2. **DATA-R2**.
+3. **S8** final integration/end-to-end.
 
 ### PARKED sau core/S8
 - **REGIMEN-WORDING follow-up** — rà và chuẩn hóa các wording người dùng nhìn thấy như “phác đồ tham khảo”, “đối tượng tham khảo”, disclaimer lịch/chỉ định theo quy định/hướng dẫn chính thức còn hiệu lực; không tự mở lại clinical rule engine.
@@ -71,7 +70,7 @@ Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 |---|---|
 | S0 nền SQL/API/CI | DONE |
 | S1 Identity/Auth | Core DONE; expansion parked |
-| S2 Catalog | Core/Windows refinement DONE; RF-02C Web còn NEXT |
+| S2 Catalog | Core/Windows refinement DONE; RF-02C #186 Web ACTIVE |
 | S3 Customer/Recipient profiles | DONE |
 | S4 Registration/Payment core | DONE; PAY-R1 NEXT |
 | S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1/RF-05G #170 DONE |
