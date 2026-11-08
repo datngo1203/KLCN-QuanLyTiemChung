@@ -374,7 +374,10 @@ Trình bày/in ấn:
 - Source PlantUML canonical: `docs/thesis/uml/Hinh_2_1_Business_Use_Case_Tong_The.puml`.
 - Business Actor chỉ gồm **Nhà cung cấp** và **Khách hàng**; Lễ tân/Bác sĩ/Thu ngân/Điều dưỡng/Nhân viên kho là vai trò nội bộ và không được vẽ thành Business Actor ngoài business boundary.
 - Association Actor–Use Case dùng **đường liền không mũi tên** theo HUIT UML Visual Profile v1.
-- **ACTIVE:** Activity Diagram `Nhập vắc xin từ nhà cung cấp`, dựng trực tiếp từ bảng Business Use Case đã khóa; chưa chèn DOCX trước khi hình PASS.
+- **Hình 2.2 Activity “Nhập vắc xin từ nhà cung cấp” PASS.**
+- Source PlantUML canonical: `docs/thesis/uml/Hinh_2_2_Activity_Nhap_Vac_Xin.puml`.
+- Layout Hình 2.2 dùng bản **compact print layout** đã duyệt: 2 swimlane Nhà cung cấp/Nhân viên kho, nhánh sai lệch merge về luồng tiếp nhận khi xử lý được, không dùng `left to right direction` vì xung đột cú pháp Activity swimlane mới của PlantUML.
+- **ACTIVE tiếp theo:** Activity Diagram `Tiếp nhận và quản lý hồ sơ khách hàng/người được tiêm`, dựng trực tiếp từ bảng Business Use Case đã khóa; chưa chèn DOCX trước khi hình PASS.
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
