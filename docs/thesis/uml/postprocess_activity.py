@@ -1,6 +1,8 @@
 from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
+import cv2
 import math
+import numpy as np
 import textwrap
 
 ROOT = Path(__file__).resolve().parent
@@ -16,37 +18,45 @@ EXPECTED_BASE_SIZES = {
     "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": (1066, 1543),
 }
 
+# hint is strictly inside the target Activity/Decision. It identifies the node
+# only; ObjectFlow endpoints are computed from the node's rendered contour.
 CFG = {
-    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(left_pad=0, right_pad=90, entities=[
-        dict(label=": Chứng từ giao nhận", cx=895, cy=305, target=(780,305), mode="read"),
-        dict(label=": Lô vắc xin", cx=895, cy=1115, target=(780,1115), mode="write"),
+    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(entities=[
+        dict(label=": Chứng từ giao nhận", hint=(632,333), side="right", mode="read"),
+        dict(label=": Lô vắc xin", hint=(632,1162), side="right", mode="write"),
     ]),
-    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(left_pad=0, right_pad=220, entities=[
-        dict(label=": Hồ sơ khách hàng", cx=1160, cy=465, target=(1030,465), mode="read"),
-        dict(label=": Hồ sơ người được tiêm", cx=1380, cy=620, target=(1245,620), mode="write"),
+    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(entities=[
+        dict(label=": Hồ sơ khách hàng", hint=(912,460), side="right", mode="read"),
+        dict(label=": Hồ sơ người được tiêm", hint=(1104,634), side="right", mode="write"),
     ]),
-    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(left_pad=0, right_pad=170, entities=[
-        dict(label=": Hồ sơ người được tiêm", cx=930, cy=330, target=(780,330), mode="read"),
-        dict(label=": Đăng ký dịch vụ", cx=1000, cy=880, target=(880,880), mode="write"),
+    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(entities=[
+        dict(label=": Hồ sơ người được tiêm", hint=(644,333), side="right", mode="read"),
+        dict(label=": Đăng ký dịch vụ", hint=(644,936), side="right", mode="write"),
     ]),
-    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(left_pad=0, right_pad=0, entities=[
-        dict(label=": Đăng ký dịch vụ", cx=1250, cy=335, target=(1100,335), mode="read"),
-        dict(label=": Lịch hẹn", cx=1260, cy=480, target=(1160,480), mode="write"),
+    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(entities=[
+        dict(label=": Đăng ký dịch vụ", hint=(920,333), side="right", mode="read"),
+        dict(label=": Lịch hẹn", hint=(920,460), side="right", mode="write"),
     ]),
-    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(left_pad=0, right_pad=0, title="Bác sĩ", top_pad=34, entities=[
-        dict(label=": Hồ sơ người được tiêm", cx=900, cy=310, target=(690,310), mode="read"),
-        dict(label=": Kết quả khám sàng lọc", cx=900, cy=570, target=(700,570), mode="write"),
+    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(title="Bác sĩ", top_pad=34, entities=[
+        dict(label=": Hồ sơ người được tiêm", hint=(569,287), side="right", mode="read"),
+        dict(label=": Kết quả khám sàng lọc", hint=(569,577), side="right", mode="write"),
     ]),
-    "Hinh_2_7_Activity_Thanh_Toan.png": dict(left_pad=260, right_pad=0, entities=[
-        dict(label=": Đăng ký dịch vụ", cx=300, cy=235, target=(220,235), mode="read"),
-        dict(label=": Giao dịch thanh toán", cx=130, cy=1100, target=(20,1100), mode="write"),
+    "Hinh_2_7_Activity_Thanh_Toan.png": dict(entities=[
+        dict(label=": Đăng ký dịch vụ", hint=(402,188), side="left", mode="read"),
+        dict(label=": Giao dịch thanh toán", hint=(209,1140), side="left", mode="write"),
     ]),
-    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(left_pad=160, right_pad=0, entities=[
-        dict(label=": Lô vắc xin", cx=80, cy=335, target=(20,335), mode="read"),
-        dict(label=": Mũi tiêm đã thực hiện", cx=80, cy=760, target=(30,760), mode="write"),
-        dict(label=": Theo dõi sau tiêm", cx=80, cy=1360, target=(40,1360), mode="write"),
+    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(entities=[
+        dict(label=": Lô vắc xin", hint=(248,333), side="left", mode="read"),
+        dict(label=": Mũi tiêm đã thực hiện", hint=(248,809), side="left", mode="write"),
+        dict(label=": Theo dõi sau tiêm", hint=(248,1395), side="left", mode="write"),
     ]),
 }
+
+BLACK_THRESHOLD = 200
+ENTITY_RADIUS = 27
+ENTITY_GAP = 22
+OUTER_MARGIN = 14
+
 
 def dashed(draw, p1, p2, fill="black", width=2, dash=9, gap=6):
     x1,y1=p1; x2,y2=p2
@@ -61,6 +71,7 @@ def dashed(draw, p1, p2, fill="black", width=2, dash=9, gap=6):
         draw.line((x1+ux*d,y1+uy*d,x1+ux*e,y1+uy*e),fill=fill,width=width)
         d += dash+gap
 
+
 def arrowhead(draw, p_from, p_to, size=10, fill="black"):
     x1,y1=p_from; x2,y2=p_to
     angle=math.atan2(y2-y1,x2-x1)
@@ -72,39 +83,37 @@ def arrowhead(draw, p_from, p_to, size=10, fill="black"):
         (x2+size*math.cos(a2),y2+size*math.sin(a2)),
     ],fill=fill)
 
+
+def entity_text_lines(label):
+    return textwrap.wrap(label,width=22) or [label]
+
+
+def entity_bbox(cx, cy, label, font):
+    r=ENTITY_RADIUS
+    lines=entity_text_lines(label)
+    max_w=0
+    for line in lines:
+        box=font.getbbox(line)
+        max_w=max(max_w,box[2]-box[0])
+    x1=min(cx-r-10, cx-max_w/2)
+    x2=max(cx+r+10, cx+max_w/2)
+    y1=cy-r
+    y2=cy+r+12+22*len(lines)
+    return (int(math.floor(x1)),int(math.floor(y1)),
+            int(math.ceil(x2)),int(math.ceil(y2)))
+
+
 def draw_entity(draw, cx, cy, label, font):
-    r=27
+    r=ENTITY_RADIUS
     draw.ellipse((cx-r,cy-r,cx+r,cy+r),outline="black",width=2)
     draw.line((cx+4,cy+19,cx+21,cy+2),fill="black",width=2)
     draw.line((cx-r-10,cy+r+5,cx+r+10,cy+r+5),fill="black",width=2)
-    lines=textwrap.wrap(label,width=22) or [label]
     y=cy+r+12
-    for line in lines:
+    for line in entity_text_lines(label):
         box=draw.textbbox((0,0),line,font=font)
         draw.text((cx-(box[2]-box[0])/2,y),line,font=font,fill="black")
         y += 22
-    return r
 
-def connect_object_flow(draw, entity_center, target, mode, radius=27):
-    cx,cy=entity_center
-    tx,ty=target
-    # Entity and target must be aligned horizontally; this is a hard visual rule.
-    if abs(cy-ty) > 1:
-        raise ValueError(f"ObjectFlow must be horizontal: entity={entity_center}, target={target}")
-    if cx < tx:
-        entity_edge=(cx+radius,cy)
-        target_edge=(tx,ty)
-    else:
-        entity_edge=(cx-radius,cy)
-        target_edge=(tx,ty)
-    if mode=="read":
-        dashed(draw,entity_edge,target_edge)
-        arrowhead(draw,entity_edge,target_edge)
-    elif mode=="write":
-        dashed(draw,target_edge,entity_edge)
-        arrowhead(draw,target_edge,entity_edge)
-    else:
-        raise ValueError(f"Unknown ObjectFlow mode: {mode}")
 
 def normalize_base(path):
     img=Image.open(path).convert("RGB")
@@ -120,52 +129,182 @@ def normalize_base(path):
     img=ImageOps.expand(img,border=14,fill="white")
     return img
 
+
+def find_closed_shape_bbox(img, hint):
+    gray=np.array(img.convert("L"))
+    _,mask=cv2.threshold(gray,BLACK_THRESHOLD,255,cv2.THRESH_BINARY_INV)
+    contours,_=cv2.findContours(mask,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
+    hx,hy=hint
+    candidates=[]
+    for contour in contours:
+        x,y,w,h=cv2.boundingRect(contour)
+        area=cv2.contourArea(contour)
+        if not (x < hx < x+w-1 and y < hy < y+h-1):
+            continue
+        if not (80 <= w <= 700 and 35 <= h <= 170):
+            continue
+        if area < 3000:
+            continue
+        fill_ratio=area/max(1,w*h)
+        if fill_ratio < 0.18:
+            continue
+        candidates.append((w*h,x,y,w,h,area,fill_ratio))
+    if not candidates:
+        raise RuntimeError(f"Cannot locate target UML shape for hint={hint}")
+    candidates.sort(key=lambda item:item[0])
+    if len(candidates)>1 and candidates[1][0] < candidates[0][0]*1.08:
+        raise RuntimeError(
+            f"Ambiguous target UML shape for hint={hint}: "
+            f"{candidates[0][1:5]} vs {candidates[1][1:5]}"
+        )
+    _,x,y,w,h,_,_=candidates[0]
+    return (x,y,w,h)
+
+
+def route_dark_pixels(img, p1, p2):
+    x1,y1=p1; x2,y2=p2
+    if y1 != y2:
+        raise ValueError("ObjectFlow route must be horizontal")
+    lo,hi=sorted((x1,x2))
+    lo+=4; hi-=4
+    if hi <= lo:
+        return 0
+    gray=np.array(img.convert("L"))
+    h,w=gray.shape
+    y=max(0,min(h-1,y1))
+    xa=max(0,lo); xb=min(w-1,hi)
+    if xb <= xa:
+        return 0
+    band=gray[max(0,y-2):min(h,y+3),xa:xb+1]
+    return int(np.count_nonzero(band < BLACK_THRESHOLD))
+
+
+def choose_entity_geometry(img, shape_bbox, label, side, font):
+    x,y,w,h=shape_bbox
+    cy=y+h//2
+    if side=="right":
+        target_edge=(x+w-1,cy)
+        cx=target_edge[0]+ENTITY_GAP+ENTITY_RADIUS
+        entity_edge=(cx-ENTITY_RADIUS,cy)
+        step=10
+    elif side=="left":
+        target_edge=(x,cy)
+        cx=target_edge[0]-ENTITY_GAP-ENTITY_RADIUS
+        entity_edge=(cx+ENTITY_RADIUS,cy)
+        step=-10
+    else:
+        raise ValueError(f"Unknown entity side: {side}")
+
+    gray=np.array(img.convert("L"))
+    for _ in range(40):
+        dark=route_dark_pixels(img,target_edge,entity_edge)
+        bbox=entity_bbox(cx,cy,label,font)
+        ix1=max(0,bbox[0]); iy1=max(0,bbox[1])
+        ix2=min(img.width-1,bbox[2]); iy2=min(img.height-1,bbox[3])
+        overlap_dark=0
+        if ix2>ix1 and iy2>iy1:
+            region=gray[iy1:iy2+1,ix1:ix2+1]
+            overlap_dark=int(np.count_nonzero(region < BLACK_THRESHOLD))
+        if dark <= 8 and overlap_dark <= 20:
+            return dict(cx=cx,cy=cy,target_edge=target_edge,
+                        entity_edge=entity_edge,bbox=bbox)
+        cx+=step
+        entity_edge=(cx-ENTITY_RADIUS,cy) if side=="right" else (cx+ENTITY_RADIUS,cy)
+
+    raise RuntimeError(
+        f"Cannot place entity '{label}' on {side} without crossing rendered content"
+    )
+
+
+def connect_object_flow(draw, target_edge, entity_edge, mode):
+    if target_edge[1] != entity_edge[1]:
+        raise ValueError("Shape-aware ObjectFlow must be horizontal")
+    if mode=="read":
+        dashed(draw,entity_edge,target_edge)
+        arrowhead(draw,entity_edge,target_edge)
+    elif mode=="write":
+        dashed(draw,target_edge,entity_edge)
+        arrowhead(draw,target_edge,entity_edge)
+    else:
+        raise ValueError(f"Unknown ObjectFlow mode: {mode}")
+
+
 def main():
     font=ImageFont.truetype(FONT_PATH,18)
     title_font=ImageFont.truetype(FONT_PATH,22)
+
     for name,cfg in CFG.items():
         path=ROOT/name
-        img=normalize_base(path)
+        base=normalize_base(path)
         expected=EXPECTED_BASE_SIZES[name]
-        if img.size != expected:
-            raise SystemExit(f"{name}: base size changed from {expected} to {img.size}; review ObjectFlow coordinates before render")
+        if base.size != expected:
+            raise SystemExit(
+                f"{name}: base size changed from {expected} to {base.size}; "
+                "review shape hints before render"
+            )
 
-        ow,oh=img.size
+        placements=[]
+        for entity in cfg["entities"]:
+            shape_bbox=find_closed_shape_bbox(base,entity["hint"])
+            geom=choose_entity_geometry(
+                base,shape_bbox,entity["label"],entity["side"],font
+            )
+            placements.append((entity,shape_bbox,geom))
+            print(
+                f"{name}: {entity['label']} hint={entity['hint']} "
+                f"shape={shape_bbox} target_edge={geom['target_edge']} "
+                f"entity_edge={geom['entity_edge']}"
+            )
+
+        min_x=0; max_x=base.width
+        min_y=0; max_y=base.height
+        for entity,shape_bbox,geom in placements:
+            x1,y1,x2,y2=geom["bbox"]
+            min_x=min(min_x,x1)
+            max_x=max(max_x,x2)
+            min_y=min(min_y,y1)
+            max_y=max(max_y,y2)
+
         top_pad=cfg.get("top_pad",0)
-        if top_pad:
-            padded=Image.new("RGB",(ow,oh+top_pad),"white")
-            padded.paste(img,(0,top_pad))
-            img=padded
-            oh += top_pad
+        left_pad=max(0,OUTER_MARGIN-min_x)
+        right_pad=max(0,max_x+OUTER_MARGIN-base.width)
+        bottom_pad=max(0,max_y+OUTER_MARGIN-base.height)
 
-        left_pad=cfg.get("left_pad",0)
-        right_pad=cfg.get("right_pad",0)
-        nw=left_pad+ow+right_pad
-        canvas=Image.new("RGB",(nw,oh),"white")
-        canvas.paste(img,(left_pad,0))
+        nw=left_pad+base.width+right_pad
+        nh=top_pad+base.height+bottom_pad
+        canvas=Image.new("RGB",(nw,nh),"white")
+        canvas.paste(base,(left_pad,top_pad))
         draw=ImageDraw.Draw(canvas)
 
         if cfg.get("title"):
             title=cfg["title"]
             box=draw.textbbox((0,0),title,font=title_font)
-            center=left_pad+ow/2
-            draw.text((center-(box[2]-box[0])/2,7),title,font=title_font,fill="black")
+            center=left_pad+base.width/2
+            draw.text(
+                (center-(box[2]-box[0])/2,7),
+                title,font=title_font,fill="black"
+            )
 
-        for entity in cfg["entities"]:
-            cx=entity["cx"]
-            cy=entity["cy"]+top_pad
-            tx,ty=entity["target"]
-            tx += left_pad
-            ty += top_pad
+        for entity,shape_bbox,geom in placements:
+            cx=geom["cx"]+left_pad
+            cy=geom["cy"]+top_pad
+            target_edge=(
+                geom["target_edge"][0]+left_pad,
+                geom["target_edge"][1]+top_pad,
+            )
+            entity_edge=(
+                geom["entity_edge"][0]+left_pad,
+                geom["entity_edge"][1]+top_pad,
+            )
+            draw_entity(draw,cx,cy,entity["label"],font)
+            connect_object_flow(
+                draw,target_edge,entity_edge,entity["mode"]
+            )
 
-            # cx is final-canvas coordinate by design. For diagrams with left padding,
-            # entities live in that padding while activity coordinates shift with left_pad.
-            radius=draw_entity(draw,cx,cy,entity["label"],font)
-            connect_object_flow(draw,(cx,cy),(tx,ty),entity["mode"],radius=radius)
-
-        draw.rectangle((1,1,nw-2,oh-2),outline="black",width=2)
+        draw.rectangle((1,1,nw-2,nh-2),outline="black",width=2)
         canvas.save(path,dpi=(180,180))
         print(f"postprocessed {name}: {expected} -> {canvas.size}")
+
 
 if __name__=="__main__":
     main()
