@@ -351,6 +351,11 @@ Activity Diagram:
 - Trong Business Activity, vai trò nội bộ được hiểu là **Business Worker/thừa tác viên**; Business Actor không mặc định trở thành swimlane.
 - Business Entity/Object Node chỉ đưa vào khi giúp hiểu luồng dữ liệu nghiệp vụ (ví dụ hồ sơ, lịch hẹn, lô vắc xin, kết quả khám); không biến Activity Diagram thành ERD.
 - Không dùng lane “Hệ thống” để kéo implementation automation vào mô hình nghiệp vụ nếu đặc tả Business Use Case không có vai trò nghiệp vụ tương ứng.
+- **Layout chuẩn được lấy từ Hình 2.2 compact-fixed đã duyệt:** không dùng `left to right direction` với Activity Diagram có swimlane kiểu `|...|`; luồng chính ưu tiên top-to-bottom.
+- Nhánh thay thế/ngoại lệ phải **merge về luồng chính ngay khi điều kiện đã được xử lý**, tránh lặp lại cả chuỗi action và tránh connector dài chạy vòng trang.
+- Ưu tiên connector **dọc/ngang ngắn, ít giao cắt**; không chấp nhận line xéo dài, line chụm/dính khó đọc hoặc auto-routing tạo vòng cung không cần thiết.
+- Toàn bộ Activity Diagram nghiệp vụ phải có **outer frame đầy đủ bốn cạnh (trên/dưới/trái/phải)**; bên trong frame vẫn giữ separator swimlane rõ ràng. Hình chỉ có một lane (ví dụ Bác sĩ) vẫn phải dùng cùng style frame để đồng nhất batch.
+- Nội dung activity giữ ngắn gọn, tránh nhồi một câu đặc tả dài vào một node; semantic vẫn phải truy vết được về dòng cơ bản/dòng thay thế tương ứng.
 
 Sequence Diagram:
 - Dùng Actor/Object, lifeline nét đứt, activation, message; return/self-message chỉ khi làm rõ kịch bản.
@@ -367,26 +372,19 @@ Trình bày/in ấn:
 - Ưu tiên bố cục đọc được trên A4 ở kích thước in thực tế; không thu nhỏ để nhồi quá nhiều phần tử.
 - Mỗi tiểu mục giữ adjacency đã khóa: **heading → bảng đặc tả → sơ đồ/caption**, không thêm prose lặp lại nội dung bảng/hình.
 - Một sơ đồ chỉ đưa các thành phần có ý nghĩa cho mục tiêu của sơ đồ; ưu tiên rõ ràng hơn “đầy đủ mọi object”.
+- Khi chèn PNG/SVG vào DOCX phải **khóa aspect ratio**; chỉ scale theo một chiều giới hạn rồi suy ra chiều còn lại, không đặt width/height độc lập làm méo ellipse/actor/frame.
+- Business Use Case ellipse phải giữ hình học chuẩn sau khi chèn Word; nếu preview PlantUML đúng nhưng DOCX bị méo thì lỗi nằm ở insertion/scale và phải sửa ở bước chèn, không sửa shape trong source để “bù méo”.
+- Không dùng page break cưỡng bức chỉ để giữ hình trên một trang; tối ưu source/layout/kích thước trước, chỉ chấp nhận hình sang trang mới khi cần để giữ khả năng đọc khi in.
+- **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 
-### THESIS-R1 — Patch 2D.3 business UML checkpoint
+### THESIS-R1 — Patch 2D.3b Business UML visual cleanup ACTIVE
 
-- **Hình 2.1 Business Use Case tổng thể PASS** và đã chèn vào artifact; source canonical: `docs/thesis/uml/Hinh_2_1_Business_Use_Case_Tong_The.puml`.
-- **Hình 2.2–2.8 Activity Diagram của 7 Business Use Case PASS** và đã chèn một lượt vào artifact.
-- Source canonical:
-  - `docs/thesis/uml/Hinh_2_2_Activity_Nhap_Vac_Xin.puml`
-  - `docs/thesis/uml/Hinh_2_3_Activity_Quan_Ly_Ho_So.puml`
-  - `docs/thesis/uml/Hinh_2_4_Activity_Dang_Ky_Dich_Vu.puml`
-  - `docs/thesis/uml/Hinh_2_5_Activity_Quan_Ly_Lich_Hen.puml`
-  - `docs/thesis/uml/Hinh_2_6_Activity_Kham_Sang_Loc.puml`
-  - `docs/thesis/uml/Hinh_2_7_Activity_Thanh_Toan.puml`
-  - `docs/thesis/uml/Hinh_2_8_Activity_Tiem_Va_Theo_Doi.puml`
-- PlantUML render được thực hiện reproducibly bằng workflow `.github/workflows/render-thesis-uml.yml`; workflow run `42501071781` PASS và artifact PNG được dùng để chèn Word.
-- Layout dùng **compact print layout**: không page-break cưỡng bức; hình được scale theo max width ~14 cm / max height ~19,5 cm để giảm khoảng trắng nhưng vẫn đọc được khi in.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3_BusinessUML_Final.docx`, SHA-256 `1d405e9042b9310321b2c2f5b8e93075f7753f1e871b7debeb515ca0c759d2ba`.
-- Render QA: **88 trang PASS**. Trang 1–35 pixel-identical với baseline; trang 36–49 (vùng Business UML) đã kiểm trực quan; từ trang 50 trở đi thân trang pixel-identical baseline sau khi bù dịch +1 trang, tức **phần System Use Case/đặc tả hệ thống không bị sửa semantic/layout**, ngoài số trang dịch do 2.1 dài thêm.
-- **System Use Case Diagram Hình 2.9 và phần system UML vẫn PARKED/stale theo checkpoint trước; chưa redraw/chỉnh trong Patch 2D.3.**
-- TOC/Danh mục hình chưa refresh cuối vì System UML còn PARKED và sẽ tiếp tục làm thay đổi pagination/figure list ở patch sau.
-
+- Batch `Hình 2.1–2.8` từ Patch 2D.3 **không còn được coi là visual PASS cuối** sau print review; semantic source vẫn là cơ sở, nhưng cần cleanup layout toàn batch.
+- Hình 2.2 **compact-fixed** do người dùng duyệt trực quan là reference layout cho Activity Diagram: top-to-bottom, nhánh phụ merge về main flow, connector dọc/ngang sạch, không `left to right direction`.
+- Hình 2.1 cần re-render/reinsert với **aspect ratio khóa** để Business Use Case ellipse không bị méo trong Word và association không auto-route cong/xéo không cần thiết.
+- Hình 2.2–2.8 phải đồng nhất **outer frame bốn cạnh + swimlane separator**, kể cả hình một lane; giảm connector xéo/dính/cross.
+- Chưa đụng System UML trong cleanup này.
+- Artifact Patch 2D.3 hiện tại chỉ là baseline để diff; artifact final mới chỉ được checkpoint sau khi render/visual QA toàn bộ 2.1 PASS.
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
