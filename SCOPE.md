@@ -18,6 +18,24 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 ### ACTIVE
 - **THESIS-R1 #182** — đồng bộ báo cáo khóa luận `CNTT_KLCN090_Tuan12.docx` với trạng thái repo hiện tại, đề cương CNTT-KLCN090 và mẫu báo cáo của Khoa. Scope chỉ tài liệu/checkpoint; không sửa business feature trên branch báo cáo.
 
+### THESIS-R1 — khóa thể thức trình bày
+
+Khi chỉnh `CNTT_KLCN090_Tuan12.docx`, **bắt buộc bám đúng mẫu chính thức của Khoa; không tự đổi format**:
+- Toàn bộ nội dung dùng **Times New Roman**.
+- Khổ A4; lề **trái 3,5 cm; phải 2,5 cm; trên 2,5 cm; dưới 2,5 cm**.
+- Cấp chương: **18 pt, IN HOA, đậm, canh giữa**.
+- Đề mục cấp 1 kiểu `1.1`: **14 pt, IN HOA, đậm**.
+- Đề mục cấp 2/3 kiểu `1.1.1`, `1.1.1.1`: **13 pt, in thường, đậm**.
+- Caption hình: đánh số theo chương (`Hình 1.1`, `Hình 1.2`, ...), **đặt dưới hình, canh giữa**.
+- Caption bảng: đánh số theo chương, **đặt trên bảng, canh giữa**.
+- Nội dung bảng: **12 pt**, line spacing **Multiple 1.3**, Before **0 pt**, After **0 pt**; lặp lại tiêu đề bảng khi bảng sang trang.
+- Nội dung thường: **13 pt**, line spacing **Multiple 1.3**, Before **6 pt**, After **6 pt**, **canh đều hai bên**, thụt đầu dòng từng đoạn.
+- Bullet cấp 1 dùng dấu `-`: Multiple 1.3, Before/After 6 pt, canh đều; Position **0,3 cm**, Text indent **0,8 cm**.
+- Bullet cấp 2 dùng dấu `+`: Position **0,8 cm**, Text indent **1,3 cm**; paragraph giống bullet cấp 1.
+- Số trang đặt **giữa cuối trang**; **không đánh số hai trang bìa**; từ Lời cảm ơn đến Danh mục bảng dùng **i, ii, iii, ...**; từ Mở đầu dùng **1, 2, 3, ...**.
+- **Mục lục phải tạo tự động**; danh mục hình/bảng cũng phải đồng bộ theo caption/field, không giữ danh mục gõ tay.
+- Đây là **hard acceptance** của THESIS-R1: nếu nội dung đúng nhưng format lệch mẫu Khoa thì chưa được coi là hoàn thành.
+
 ### NEXT
 1. **#168 UI-F03**.
 2. **RF-02C**.
