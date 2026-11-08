@@ -10,7 +10,7 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam linetype ortho
+skinparam linetype polyline
 skinparam nodesep 30
 skinparam ranksep 32
 skinparam dpi 180
