@@ -17,7 +17,7 @@ EXPECTED_BASE_SIZES = {
 }
 
 CFG = {
-    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(side="right", panel=320, entities=[
+    "Hinh_2_2_Activity_Nhap_Vac_Xin.png": dict(side="right", panel=300, entities=[
         dict(label=": Chứng từ giao nhận", y=290, target=(615,305), mode="read"),
         dict(label=": Lô vắc xin", y=1080, target=(610,1115), mode="write"),
         dict(label=": Tồn kho", y=1240, target=(610,1115), mode="write"),
