@@ -6,6 +6,15 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS session routing — hard rule
+- **Đây là THESIS session, không implement code; chỉ dùng `main` để verify claim implementation.**
+- Source of truth cho **báo cáo/UML/checkpoint THESIS** là nhánh thesis hiện hành (hiện tại: `docs/thesis-r1-current-state`).
+- Source of truth để **xác minh capability implementation** là `main` mới nhất hoặc active implementation branch nếu feature chưa merge.
+- Không sửa source code ứng dụng, không mở feature implementation, không cherry-pick/rebase/merge code trong THESIS session.
+- Không dùng trạng thái code của nhánh thesis để kết luận capability nếu nhánh thesis đang behind `main`; phải verify claim trên implementation HEAD hiện hành.
+- Chat điều phối **CODE** không được recovery từ nhánh thesis; chat điều phối **THESIS** không được dùng `main` làm nơi lưu rule/checkpoint báo cáo.
+
+
 ### DONE gần nhất
 - **REGIMEN-R1 #180 / PR #181** — Catalog hỗ trợ calendar interval theo mũi neo với `Days|Weeks|Months|Years`, giữ legacy day intervals; Windows A04 quản trị structured regimen; Customer Web hiển thị timeline + provenance tham khảo. Native A04 full-shell smoke PASS sau fix hiển thị selector; CI #387 PASS đủ backend/windows/web. Squash main: `04b932e8e4df6ec865ea90f19ad2ea731c1d77ac`.
 - **RF-05G #170 / PR #179** — tự động nhắc trước lịch hẹn 48/24 giờ và liên hệ sau lịch hẹn 3/7 ngày trên appointment hiện hành; DB idempotency + retry/revalidation + A09 history/wording người dùng. CI #382 PASS; native WPF keyboard smoke PASS ở HEAD trước wording-only patch. Squash main: `19f8218da0e6a505bf11ed3ad5daf8b087abe72b`.
