@@ -112,6 +112,79 @@ Mục tiêu của thứ tự này:
 - tránh Chương 2 dùng khái niệm/phạm vi chưa được định nghĩa ở Mở đầu/Chương 1;
 - đảm bảo dependency spine đã xuất hiện từ Chương 1 và tiếp tục nhất quán qua Chương 2–5.
 
+### THESIS-R1 — khóa từ điển nghiệp vụ, actor và dữ liệu canonical
+
+Từ Patch tiếp theo, tên gọi trong toàn bộ báo cáo phải dùng **một từ điển canonical duy nhất**. Không đổi thuật ngữ giữa Chương 1–5 chỉ để tránh lặp từ.
+
+#### 1. Bảy quy trình nghiệp vụ canonical
+1. **Nhập vắc xin từ nhà cung cấp**.
+2. **Tiếp nhận và quản lý hồ sơ khách hàng/người được tiêm**.
+3. **Đăng ký dịch vụ tiêm chủng**.
+4. **Quản lý lịch hẹn và nhắc lịch**.
+5. **Khám sàng lọc và chỉ định tiêm chủng**.
+6. **Thanh toán dịch vụ**.
+7. **Thực hiện tiêm chủng và theo dõi sau tiêm**.
+
+Quy tắc:
+- P1 là luồng hỗ trợ tạo nguồn lô/tồn, không phải bước bắt buộc phát sinh trong mỗi lượt khách.
+- P2→P7 là hành trình phục vụ chính; P4 và P6 có thể là nhánh điều kiện tùy trường hợp nghiệp vụ.
+- Không đổi lại sang các tên cũ như “đăng ký thông tin…”, “quản lý lịch tiêm…”, “khám/chỉ định” nếu không có lý do nghiệp vụ cụ thể.
+
+#### 2. Sáu actor nghiệp vụ canonical
+- **Khách hàng**
+- **Lễ tân**
+- **Bác sĩ**
+- **Thu ngân**
+- **Điều dưỡng**
+- **Nhân viên kho**
+
+Quy tắc:
+- Không dùng các cụm mơ hồ như “bộ phận tiếp nhận”, “nhân viên tiếp nhận”, “nhân viên phụ trách”, “bộ phận chuyên môn” nếu đã xác định được actor cụ thể.
+- Khi một thao tác do automation thực hiện, ghi rõ **Hệ thống** hoặc thành phần kỹ thuật phù hợp; không gán cho một actor nghiệp vụ không thực hiện thao tác đó.
+- **Người được tiêm** là đối tượng nghiệp vụ, không mặc định là actor riêng.
+- CSKH/Admin/CNTT nếu cần nhắc tới chỉ là vai trò hỗ trợ, không làm thay đổi 6 actor nghiệp vụ cốt lõi.
+
+#### 3. Thuật ngữ dữ liệu canonical
+- **Khách hàng**: người sở hữu tài khoản hoặc thực hiện đăng ký cho mình/người khác.
+- **Người được tiêm**: chủ thể thực sự nhận mũi tiêm.
+- **Hồ sơ người được tiêm**: hồ sơ nghiệp vụ của chủ thể nhận tiêm; không gọi chung là “hồ sơ khách hàng” khi thực tế đang nói về người được tiêm.
+- **Đăng ký dịch vụ tiêm chủng**: nhu cầu/dịch vụ đã được ghi nhận; không đồng nghĩa với lịch hẹn.
+- **Thời gian mong muốn**: ngày/giờ khách mong muốn trong đăng ký; không gọi là lịch hẹn chính thức.
+- **Lịch hẹn tiêm chủng** / **lịch hẹn**: appointment đã được xác nhận trong `LichHenTiem`; không dùng “lịch tiêm” nếu dễ nhầm với phác đồ/lịch sử.
+- **Phác đồ tham khảo** / **lịch phác đồ tham khảo**: timeline tham khảo; không phải lịch hẹn và không tự tạo appointment.
+- **Kết quả khám sàng lọc và chỉ định**: bằng chứng chuyên môn do Bác sĩ ghi nhận; hệ thống không tự suy diễn eligibility.
+- **Giao dịch thanh toán** / **trạng thái thanh toán**: dữ liệu tài chính gắn với nguồn đăng ký; không mô tả như quyết định y khoa.
+- **Vắc xin**: danh mục sản phẩm/vắc xin.
+- **Lô vắc xin**: batch cụ thể có số lô/hạn dùng và dữ liệu tiếp nhận.
+- **Tồn kho**: số lượng khả dụng theo dữ liệu kho; không đồng nghĩa với lô.
+- **Mũi tiêm đã thực hiện**: sự kiện tiêm thực tế đã ghi nhận.
+- **Theo dõi sau tiêm**: dữ liệu phát sinh sau mũi đã thực hiện.
+- **Lịch sử tiêm chủng**: tập hợp các mũi đã thực hiện; không bao gồm lịch hẹn tương lai hoặc phác đồ tham khảo.
+- **Ưu đãi**: dữ liệu hỗ trợ tính/hiển thị giá theo phạm vi module promotion.
+- **Báo cáo**: dữ liệu tổng hợp từ nghiệp vụ đã phát sinh, không phải source-of-truth độc lập.
+
+#### 4. Quy tắc viết chủ thể-hành động-dữ liệu
+Mỗi bước nghiệp vụ phải trả lời rõ:
+- **Ai** thực hiện?
+- **Làm gì**?
+- **Trên dữ liệu nào**?
+- **Kết quả tạo ra/cập nhật dữ liệu gì**?
+- **Kết quả đó mở sang bước nào**?
+
+Ví dụ đạt:
+- “Lễ tân tra cứu hồ sơ người được tiêm và cập nhật thông tin khi có thay đổi.”
+- “Bác sĩ ghi nhận kết quả khám sàng lọc và chỉ định tiêm chủng.”
+- “Thu ngân ghi nhận giao dịch thanh toán cho đăng ký dịch vụ.”
+- “Điều dưỡng đối chiếu chỉ định và lô vắc xin trước khi ghi nhận mũi tiêm.”
+- “Nhân viên kho tiếp nhận và ghi nhận lô vắc xin từ nhà cung cấp.”
+
+Ví dụ không đạt:
+- “Bộ phận tiếp nhận xử lý thông tin.”
+- “Nhân viên kiểm tra dữ liệu.”
+- “Hệ thống cập nhật trạng thái” nếu không nói trạng thái gì, nguồn nào và do sự kiện nào.
+
+Quy tắc canonical này áp dụng cho **Mở đầu, Chương 1–5, bảng đặc tả, caption, UML, test case và kết luận**.
+
 ### THESIS-R1 — khóa thứ tự luồng nội dung
 
 Mọi nội dung nghiệp vụ, Use Case, sequence diagram, mô tả cài đặt và test scenario phải được sắp theo **cùng một dependency spine**, không sắp tùy ý theo mã UC hoặc loại sơ đồ.
