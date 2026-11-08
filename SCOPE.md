@@ -500,6 +500,89 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — System Use Case semantic lock v3 / 21 UC — 09/11/2026
+
+**Evidence base:** HUIT System UC theory + exact implementation evidence on `main` HEAD `1fa336942559047a75400e3c863c08a3b294416e`. Commit từ `20a4ce2c...` → `1fa3369...` chỉ đổi Copilot docs/prompt, **không đổi implementation code**.
+
+#### Exact System Use Case set — 21 UC
+1. **Đăng ký tài khoản khách hàng**
+2. **Đăng nhập hệ thống**
+3. **Đổi mật khẩu**
+4. **Đăng xuất hệ thống**
+5. **Quản lý chức danh tài khoản nhân viên**
+6. **Quản lý danh mục tiêm chủng**
+7. **Quản lý ưu đãi**
+8. **Quản lý lô và tồn kho vắc xin**
+9. **Quản lý hồ sơ khách hàng/người được tiêm**
+10. **Tra cứu dịch vụ tiêm chủng**
+11. **Đăng ký dịch vụ tiêm chủng**
+12. **Quản lý lịch hẹn**
+13. **Gửi nhắc lịch**
+14. **Tự động nhắc lịch và liên hệ theo lịch**
+15. **Ghi nhận khám sàng lọc và chỉ định**
+16. **Thanh toán dịch vụ**
+17. **Ghi nhận mũi tiêm**
+18. **Ghi nhận theo dõi sau tiêm**
+19. **Theo dõi hành trình tiêm chủng**
+20. **Tra cứu lịch sử tiêm chủng**
+21. **Báo cáo hoạt động**
+
+#### Actor set và generalization
+- Abstract/general actors: **Người dùng**, **Nhân viên**.
+- Concrete human actors: **Khách hàng, Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng, Nhân viên kho, Quản trị viên**.
+- Special/external actors: **Thời gian**, **Dịch vụ thư điện tử**.
+- Generalization:
+  - Khách hàng → Người dùng.
+  - Nhân viên → Người dùng.
+  - Lễ tân/Bác sĩ/Thu ngân/Điều dưỡng/Nhân viên kho/Quản trị viên → Nhân viên.
+- Business/System separation vẫn giữ: tên vai trò có thể giống nhau ngoài đời nhưng phần tử System Actor dùng **System Actor shape**, không dùng Business Worker/Business Actor shape.
+
+#### Actor–Use Case associations
+- **Người dùng** — UC02, UC03, UC04.
+- **Khách hàng** — UC01, UC09, UC10, UC11, UC12, UC16, UC19, UC20; khách hàng là recipient của UC13/UC14 trong đặc tả.
+- **Lễ tân** — UC09, UC11, UC12, UC13.
+- **Bác sĩ** — UC15.
+- **Thu ngân** — UC16.
+- **Điều dưỡng** — UC17, UC18.
+- **Nhân viên kho** — UC08.
+- **Quản trị viên** — UC05, UC06, UC07, UC21.
+- **Thời gian** — UC14.
+- **Dịch vụ thư điện tử** — UC13, UC14 với vai trò secondary/external delivery actor; không nêu provider production cụ thể.
+
+#### Quan hệ Use Case tổng thể
+- **0 `<<include>>`, 0 `<<extend>>`, 0 generalization giữa các UC** ở Hình 2.9.
+- Dependency/precondition/thứ tự như đăng ký → lịch hẹn → khám → thanh toán → tiêm → theo dõi **không** được chuyển thành include/extend.
+- Đăng nhập là precondition của các UC protected, **không include Đăng nhập** vì một phiên đăng nhập có thể phục vụ nhiều UC.
+- UC13 manual reminder và UC14 automatic reminder tách riêng vì khác trigger/actor/session: Lễ tân chủ động gửi vs **Thời gian** kích hoạt scheduler.
+- UC19 hành trình và UC20 lịch sử tách riêng vì implementation có endpoint/page/result semantics riêng.
+
+#### Evidence map — implementation hiện hành
+- UC01–UC04: `IdentityEndpoints.cs`; register/login/change-password/logout. Email verification/password reset có implementation nhưng **không promote thành top-level Hình 2.9**; registration UC kết thúc ở trạng thái đăng ký nhất quán/pending verification, các flow hỗ trợ giữ trong đặc tả identity khi cần.
+- UC05: `EmployeeAccessEndpoints.cs` + contract A12: chỉ xem tài khoản nhân viên có sẵn và đổi **chức danh**; không claim permission-matrix/provision/reset/lock HTTP.
+- UC06: `CatalogEndpoints.cs`: public read + Admin CRUD danh mục vaccine/package/disease/technology.
+- UC07: `PromotionEndpoints.cs`: quản lý ưu đãi; public valid promotions chỉ là read/supporting data cho customer flow.
+- UC08: `InventoryEndpoints.cs` + `InventoryReceiptEndpoints.cs`: đọc lot/movement/history + tiếp nhận lô mới; **không claim arbitrary adjustment/transfer/full ERP**.
+- UC09: `ProfileEndpoints.cs`: Customer/Lễ tân read/create/update theo ownership/capability.
+- UC10: `CatalogEndpoints.cs` public vaccine/package list/detail. RF-02C #186 đang ACTIVE chỉ mở rộng/hoàn thiện Web UI; không claim UI RF-02C đã DONE.
+- UC11: `RegistrationEndpoints.cs`: Customer hoặc nhân viên có Registrations capability.
+- UC12: `AppointmentEndpoints.cs`: Reception create/reschedule/cancel; Customer đọc lịch thuộc ownership.
+- UC13: `ReminderEmailEndpoints.cs` + legacy `ReminderEndpoints.cs`: Lễ tân gửi/ghi nhắc thủ công theo capability `GuiNhacLich`.
+- UC14: `ReminderScheduler.cs` + contract RF-05G: scheduler T-48/T-24/D+3/D+7, actor `Thời gian`; delivery qua reminder dispatcher/email path.
+- UC15: `ClinicalEndpoints.cs`: Bác sĩ ghi assessment/indication; hệ thống không tự quyết eligibility.
+- UC16: `PaymentEndpoints.cs`: Customer/Cashier payment state/recording; **không claim production payment gateway**.
+- UC17: `VaccinationEndpoints.cs`: Điều dưỡng ghi mũi với clinical/payment/inventory gates.
+- UC18: `AftercareEndpoints.cs`: Điều dưỡng ghi follow-up sau mũi; gate 30 phút, không claim emergency automation.
+- UC19: `VaccinationJourneyEndpoints.cs`: Customer đọc registration/payment/appointment/progress/shots theo ownership.
+- UC20: `VaccinationHistoryEndpoints.cs`: Customer đọc lịch sử mũi đã thực hiện; endpoint/page riêng với journey.
+- UC21: `ReportEndpoints.cs`: Admin đọc revenue/dose/registration-status reports.
+
+#### Scope stop
+- Hình 2.9 cũ và preview v1/v2 **STALE**.
+- Không thêm UC chỉ vì endpoint/menu/class tồn tại; top-level set này là thesis-level decomposition theo HUIT, không phải endpoint inventory.
+- Không tự thêm Payment Gateway/SMS/ZNS/push/nhà cung cấp/Người được tiêm làm System Actor khi chưa có interaction trực tiếp được evidence hỗ trợ.
+- Không sửa bảng 2.2.2/Word/Sequence trước khi **Hình 2.9 semantic + PlantUML render PASS**.
+- NEXT: thiết kế layout source-first cho 21 UC → PlantUML engine render → visual QA A4 → checkpoint Hình 2.9.
+
 ### THESIS-R1 — implementation-evidence gate 09/11/2026
 
 - User requirement: **mọi mô hình hệ thống phải bám chức năng thực sự hiện có trên GitHub; không tự bịa hoặc suy luận capability**.
