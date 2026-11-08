@@ -1,0 +1,73 @@
+@startuml
+' THESIS-R1 — Hình 2.9 System Use Case summary
+' Semantic source: SCOPE.md System Use Case semantic lock v3 + presentation lock v1
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 15
+skinparam ArrowColor black
+skinparam ActorBorderColor black
+skinparam UsecaseBorderColor black
+skinparam RectangleBorderColor black
+skinparam dpi 180
+
+top to bottom direction
+
+actor "Khách hàng" as Customer
+actor "Lễ tân" as Reception
+actor "Thời gian" as Time
+
+rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
+  usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
+  usecase "Tra cứu dịch vụ\ntiêm chủng" as UC10
+  usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
+  usecase "Quản lý lịch hẹn" as UC12
+  usecase "Tự động nhắc lịch và\nliên hệ theo lịch" as UC14
+  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
+
+  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
+  usecase "Thanh toán dịch vụ" as UC16
+  usecase "Ghi nhận mũi tiêm" as UC17
+  usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
+
+  ' Layout helpers only — no semantic relationship.
+  UC09 -[hidden]down- UC10
+  UC10 -[hidden]down- UC11
+  UC11 -[hidden]down- UC12
+  UC12 -[hidden]down- UC14
+  UC14 -[hidden]down- UC19
+
+  UC15 -[hidden]down- UC16
+  UC16 -[hidden]down- UC17
+  UC17 -[hidden]down- UC18
+
+  UC12 -[hidden]right- UC15
+  UC14 -[hidden]right- UC16
+  UC19 -[hidden]right- UC17
+}
+
+actor "Bác sĩ" as Doctor
+actor "Thu ngân" as Cashier
+actor "Điều dưỡng" as Nurse
+
+' Actor–Use Case associations: solid lines, no arrowheads.
+Customer -- UC09
+Customer -- UC10
+Customer -- UC11
+Customer -- UC12
+Customer -- UC16
+Customer -- UC19
+
+Reception -- UC09
+Reception -- UC11
+Reception -- UC12
+
+Time -- UC14
+
+UC15 -- Doctor
+UC16 -- Cashier
+UC17 -- Nurse
+UC18 -- Nurse
+
+@enduml
