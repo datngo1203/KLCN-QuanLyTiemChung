@@ -1,4 +1,5 @@
 @startuml
+!pragma layout elk
 ' THESIS-R1 — Hình 2.9 System Use Case summary
 ' One visible symbol per actor; orthogonal connectors for print readability.
 skinparam monochrome true
@@ -10,7 +11,7 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam linetype polyline
+skinparam linetype ortho
 skinparam nodesep 30
 skinparam ranksep 32
 skinparam dpi 180
