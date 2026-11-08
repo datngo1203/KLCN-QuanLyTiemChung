@@ -754,6 +754,54 @@ Nguồn bổ trợ đã đọc toàn bộ: TopDev, **“Use Case Diagram và 5 s
 - Không tạo “UC cha” giả chỉ để gom nhóm. Việc gom nhóm dùng **diagram/view/boundary/package**, không bịa relationship.
 - Chỉ sau khi khóa decomposition presentation mới render PlantUML.
 
+### THESIS-R1 — System UC independent-review reconciliation v4 — 09/11/2026
+
+**Review source:** independent Claude critique supplied by user, then re-verified against exact `main` HEAD `1fa336942559047a75400e3c863c08a3b294416e`.
+
+#### Meta-rule corrected
+- **Artifact count is NOT a semantic criterion.** “21 UC ⇒ 21 bảng/21 Sequence” is a consequence, not evidence that the model is too granular.
+- Promote/demote/merge only by actor goal, trigger/session, complete result, abstraction level, cohesive flow/rules, HUIT semantics, and current-main evidence.
+- Do not reduce UC count merely to reduce report workload.
+
+#### Reconciliation of disputed UCs
+- **UC04 Đăng xuất hệ thống — KEEP TOP-LEVEL.**
+  - Evidence: `IdentitySessions.LogoutAsync` locks current session, calls `RevokeSessionAsync(...,"logout",...)`, and writes security audit action `logout`; web also deletes refresh/CSRF cookies.
+  - HUIT gate: direct actor action, single session, consistent security result “phiên hiện tại bị thu hồi”; not merely UI cleanup.
+- **UC05 — KEEP but RENAME to “Thay đổi chức danh tài khoản nhân viên”.**
+  - Evidence: A12 only lists existing accounts/fixed roles and PUTs `/{id}/role`; role change revokes account sessions and audits `employeeRoleChanged`.
+  - No claim full account lifecycle, provisioning, arbitrary permission matrix, lock/reset HTTP.
+- **UC08 Quản lý lô và tồn kho vắc xin — KEEP grouped, but scope must be explicit.**
+  - Evidence: X1 read lots/movements + X2.1 receive a completely new lot + X2.2.1 read receipt history.
+  - Windows A05 exposes inventory browsing, “Nhập lô vắc xin”, and “Lịch sử tiếp nhận” in one warehouse goal area.
+  - HUIT CRUD/operation grouping is acceptable when actor/domain/result family is cohesive; Sequence may model the primary write path with `alt/opt` for relevant branches, not every read-only screen.
+  - Hard scope: no arbitrary stock adjustment/transfer, no top-up existing lot, no full supplier management.
+- **UC14 — KEEP but RENAME to “Tự động gửi nhắc lịch”.**
+  - Evidence: `ReminderScheduler` enqueues `ReminderEmail` at configured reminder kinds/times; actual implemented delivery concern is email. No separate implemented actor goal “liên hệ theo lịch”.
+  - `Thời gian` remains special trigger actor in detail view under HUIT convention; email service remains secondary delivery actor.
+- **UC19 Theo dõi hành trình tiêm chủng — KEEP.**
+  - Evidence: journey aggregates registration ownership + payment + appointment schedule + registered-dose progress + completed shots for a registration.
+- **UC20 Tra cứu lịch sử tiêm chủng — KEEP separately.**
+  - Evidence: history endpoint projects completed vaccination records/shots, optionally filtered by recipient, ordered by vaccination time.
+  - Different actor result from journey; do not merge merely because both are read-only.
+- **Password recovery — KEEP AS SUPPORTING IDENTITY FLOW, not top-level thesis UC.**
+  - Evidence: request creates a time-limited reset token/mail; confirm later validates token, changes password, revokes account sessions, audits reset.
+  - Modeling rule: authenticated `Đổi mật khẩu` is a single-session self-service goal; token/email-mediated reset is a multi-step continuation that may leave/resume the interaction, so it stays supporting identity behavior under current HUIT single-session gate.
+  - Email verification likewise remains registration continuation/supporting behavior, not an additional top-level UC.
+
+#### Count after reconciliation
+- Exact top-level System UC count remains **21**.
+- This is **not** justified by wanting 21 artifacts; it is the result after semantic/evidence audit.
+- Names changed without changing count:
+  - UC05: `Quản lý chức danh tài khoản nhân viên` → **Thay đổi chức danh tài khoản nhân viên**.
+  - UC14: `Tự động nhắc lịch và liên hệ theo lịch` → **Tự động gửi nhắc lịch**.
+- UC04/08/19/20 remain top-level.
+- 0 `<<include>>`, 0 `<<extend>>`, 0 UC generalization remains valid.
+
+#### Consequence for report artifacts
+- If the official HUIT template is followed literally, expect **21 System UC specification tables** and **21 Sequence Diagrams** unless GVHD explicitly authorizes a narrower Sequence subset.
+- A Sequence represents the UC's primary processing; it does **not** require a separate sequence per CRUD branch/alternative flow. Important alternatives may use `alt/opt` fragments.
+- Artifact burden may drive layout/appendix decisions, but never semantic merging.
+
 ### THESIS-R1 — System Use Case semantic lock v3 / 21 UC — 09/11/2026
 
 **Evidence base:** HUIT System UC theory + exact implementation evidence on `main` HEAD `1fa336942559047a75400e3c863c08a3b294416e`. Commit từ `20a4ce2c...` → `1fa3369...` chỉ đổi Copilot docs/prompt, **không đổi implementation code**.
