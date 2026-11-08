@@ -384,19 +384,27 @@ Trình bày/in ấn:
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 - **UML density optimization:** giữ Hình 2.1 nếu bố cục tổng thể đang rõ; với Activity ưu tiên compact wording/merge/gộp action trước khi đổi hướng bố cục. Không đổi sang landscape hoặc hai cột chỉ để tiết kiệm trang nếu làm giảm khả năng đọc. Mục tiêu thực tế là giảm khoảng trắng thị giác và số trang khi có thể, không ép đạt một số trang cụ thể.
 
-### THESIS-R1 — Patch 2D.3c Business UML frame/spacing cleanup DONE
+### THESIS-R1 — Patch 2D.3d Business Activity density/data-flow cleanup DONE
 
-- Batch `Hình 2.1–2.8` tiếp tục là **Business UML visual PASS cuối**; semantic không đổi so với 2D.3b.
-- **Hình 2.1** giữ source top-to-bottom đã duyệt và aspect ratio khóa khi chèn Word.
-- **Hình 2.2–2.8** dùng compact-fixed layout: main flow top-to-bottom, nhánh phụ merge về main flow khi xử lý xong, connector ưu tiên dọc/ngang.
-- Activity render pipeline đã sửa để **xóa hai biên dọc ngoài cùng do PlantUML swimlane tự sinh**, chỉ giữ separator giữa lane; sau đó mới thêm **outer frame duy nhất đủ bốn cạnh**. Hình một lane như 2.6 chỉ còn outer frame, không còn khung dọc kép bên trong.
-- Paragraph chứa Activity Diagram đặt **Before = 8 pt, After = 0** để tạo khoảng trắng thị giác giữa bảng đặc tả và sơ đồ; không chèn page break cưỡng bức.
-- Khi chèn/patch ảnh trong DOCX phải giữ **aspect ratio khóa**; không đặt width/height độc lập.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3c_BusinessUML_FrameSpacing_Final.docx`, SHA-256 `6cabdc82c47e7adaf90377d74547dff880c08e05b5316bcbd3a7e72912663dd5`.
-- Render QA: **89 trang PASS**.
-  - So với 2D.3b, **82/89 trang pixel-identical**.
-  - Chỉ các trang 39, 41, 43, 45, 46, 48, 50 thay đổi; đã kiểm trực quan ở 100%.
-  - System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- **Hình 2.1** giữ nguyên layout Business Use Case đã duyệt.
+- **Hình 2.2–2.8** đã compact theo rule **Activity ưu tiên thể hiện flow, không lặp bảng đặc tả**: rút wording, gộp action cùng chủ thể/mục đích khi không làm mất decision/trách nhiệm/kết quả; giữ font 16 trong source PlantUML, không giảm font để nhồi trang.
+- Bổ sung **Business Entity/Object + ObjectFlow** có chọn lọc theo bài giảng HUIT để thể hiện dữ liệu đọc/ghi:
+  - 2.2: Chứng từ giao nhận; Lô vắc xin; Tồn kho.
+  - 2.3: Hồ sơ khách hàng; Hồ sơ người được tiêm.
+  - 2.4: Hồ sơ người được tiêm; Đăng ký dịch vụ.
+  - 2.5: Đăng ký dịch vụ; Lịch hẹn.
+  - 2.6: Hồ sơ người được tiêm; Kết quả khám/chỉ định.
+  - 2.7: Đăng ký dịch vụ; Giao dịch thanh toán.
+  - 2.8: Lô vắc xin; Mũi tiêm đã thực hiện; Theo dõi sau tiêm.
+- Quy ước hướng ObjectFlow vẫn giữ: **Business Entity → Activity = đọc/nhận**, **Activity → Business Entity = tạo/ghi/cập nhật**. Không biến Activity thành ERD; chỉ dùng 1–3 entity trọng yếu/sơ đồ.
+- Pipeline render reproducible: PlantUML → `docs/thesis/uml/postprocess_activity.py` để chuẩn hóa outer frame, loại biên swimlane ngoài cùng, thêm Business Entity/ObjectFlow và nhãn lane một-lane cần thiết. Script có guard kích thước base để fail nếu source đổi mà chưa review lại tọa độ data-flow.
+- Paragraph chứa Activity vẫn **Before = 8 pt / After = 0**; ảnh chèn Word khóa aspect ratio.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3d_BusinessActivity_Density_Final.docx`, SHA-256 `db39b201dad14fe9cde636a936a52e1867a37643557b94ff2b084baa7a659f11`.
+- Render QA: **88 trang PASS**, giảm **1 trang** so với 2D.3c mà không giảm font.
+  - Trang 1–38, 40 và 44 pixel-identical baseline 2D.3c.
+  - Các trang 39, 41–43, 45–49 đã kiểm trực quan ở 100%.
+  - Từ trang 50–88, toàn bộ **thân trang** pixel-identical với baseline 2D.3c trang 51–89 sau khi bù dịch +1; System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- Khoảng trắng còn lại ở một số điểm được **chấp nhận có chủ đích**: các hàng lớn của bảng đặc tả đang khóa không tách qua trang; không bỏ `cantSplit` và không ép thêm để đổi lấy bảng vỡ hoặc chữ UML nhỏ.
 - **System UML vẫn PARKED**; chưa redraw/chỉnh.
 - **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
