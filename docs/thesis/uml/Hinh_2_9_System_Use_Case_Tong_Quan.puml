@@ -1,7 +1,8 @@
 @startuml
 ' THESIS-R1 — Hình 2.9 System Use Case summary
 ' Semantic source: SCOPE.md System Use Case semantic lock v3 + presentation lock v1
-' Summary shows primary/representative actor associations only; detail views carry full coverage.
+' Summary shows primary/representative actor associations only.
+' "Khách hàng" is repeated as the same semantic actor to reduce connector crossing.
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -11,64 +12,61 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam nodesep 28
-skinparam ranksep 34
+skinparam nodesep 26
+skinparam ranksep 28
 skinparam dpi 180
 
 top to bottom direction
 
-actor "Khách hàng" as Customer
-actor "Lễ tân" as Reception
+actor "Khách hàng" as CustomerTop
+actor "Bác sĩ" as Doctor
+actor "Khách hàng" as CustomerBottom
 
 rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
-  usecase "Quản lý lịch hẹn" as UC12
-
   usecase "Tra cứu dịch vụ\ntiêm chủng" as UC10
-  usecase "Gửi nhắc lịch" as UC13
-
   usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
+  usecase "Quản lý lịch hẹn" as UC12
+  usecase "Gửi nhắc lịch" as UC13
   usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
-
-  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
   usecase "Thanh toán dịch vụ" as UC16
-
+  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
 
-  ' Semantic-free layout constraints: two compact columns.
   UC09 -[hidden]down- UC10
   UC10 -[hidden]down- UC11
-  UC11 -[hidden]down- UC19
-
+  UC11 -[hidden]down- UC12
   UC12 -[hidden]down- UC13
   UC13 -[hidden]down- UC15
   UC15 -[hidden]down- UC16
-  UC16 -[hidden]down- UC17
+  UC16 -[hidden]down- UC19
+  UC19 -[hidden]down- UC17
   UC17 -[hidden]down- UC18
-
-  UC09 -[hidden]right- UC12
-  UC10 -[hidden]right- UC13
-  UC11 -[hidden]right- UC15
-  UC19 -[hidden]right- UC16
 }
 
-actor "Bác sĩ" as Doctor
+actor "Lễ tân" as Reception
 actor "Thu ngân" as Cashier
 actor "Điều dưỡng" as Nurse
 
+' Keep actor columns vertically ordered; hidden links have no semantic meaning.
+CustomerTop -[hidden]down- Doctor
+Doctor -[hidden]down- CustomerBottom
+Reception -[hidden]down- Cashier
+Cashier -[hidden]down- Nurse
+
 ' Summary: primary/representative actor associations only.
-Customer -right- UC09
-Customer -right- UC10
-Customer -right- UC11
-Customer -right- UC19
+CustomerTop -right- UC09
+CustomerTop -right- UC10
+CustomerTop -right- UC11
 
-Reception -right- UC12
-Reception -right- UC13
+Reception -left- UC12
+Reception -left- UC13
 
-UC15 -right- Doctor
-UC16 -right- Cashier
-UC17 -right- Nurse
-UC18 -right- Nurse
+Doctor -right- UC15
+Cashier -left- UC16
+CustomerBottom -right- UC19
+Nurse -left- UC17
+Nurse -left- UC18
 
 @enduml
