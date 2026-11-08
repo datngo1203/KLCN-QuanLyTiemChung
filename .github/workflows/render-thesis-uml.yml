@@ -6,6 +6,7 @@ on:
       - docs/thesis-r1-current-state
     paths:
       - 'docs/thesis/uml/**.puml'
+      - 'docs/thesis/uml/postprocess_activity.py'
       - '.github/workflows/render-thesis-uml.yml'
   workflow_dispatch:
 
@@ -38,37 +39,12 @@ jobs:
             java -Djava.awt.headless=true -jar plantuml.jar -charset UTF-8 -tpng "$f"
           done
 
-      - name: Normalize Activity swimlane edges and add outer frame
+      - name: Postprocess Activity diagrams
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --quiet pillow
-          python - <<'PY'
-          from pathlib import Path
-          from PIL import Image, ImageChops, ImageDraw, ImageOps
-
-          for path in sorted(Path("docs/thesis/uml").glob("Hinh_2_*_Activity_*.png")):
-              img = Image.open(path).convert("RGB")
-              white = Image.new("RGB", img.size, "white")
-              bbox = ImageChops.difference(img, white).getbbox()
-              if bbox:
-                  img = img.crop(bbox)
-
-              # PlantUML swimlane renders long outer vertical lane borders.
-              # The thesis visual profile uses one explicit outer frame instead:
-              # remove only the extreme left/right lane borders, keep internal separators.
-              draw = ImageDraw.Draw(img)
-              w, h = img.size
-              edge_strip = 4
-              draw.rectangle((0, 0, edge_strip, h - 1), fill="white")
-              draw.rectangle((w - 1 - edge_strip, 0, w - 1, h - 1), fill="white")
-
-              img = ImageOps.expand(img, border=14, fill="white")
-              draw = ImageDraw.Draw(img)
-              w, h = img.size
-              draw.rectangle((1, 1, w - 2, h - 2), outline="black", width=2)
-              img.save(path, dpi=(180, 180))
-          PY
+          python docs/thesis/uml/postprocess_activity.py
 
       - name: Collect rendered UML
         shell: bash
