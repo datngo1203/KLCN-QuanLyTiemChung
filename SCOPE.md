@@ -500,6 +500,26 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — Hình 2.9 System Use Case tổng quan — PASS 09/11/2026
+
+- Source: `docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml`.
+- Exact source commit: `7767b899775f6224293bdbd44d160d667661dec1`.
+- GitHub Actions render run: **#25 / 42529155748 — PASS**.
+- Rendered PNG: **1245×1488 px**, monochrome, Times New Roman, no shadow.
+- Final summary semantic:
+  - 10 UC: UC09, UC10, UC11, UC12, UC13, UC15, UC16, UC19, UC17, UC18.
+  - Không actor `Thời gian` ở summary; UC14 automatic reminder giữ ở detail Hình 2.11.
+  - Chỉ primary/representative actor associations trên summary; full actor relation coverage nằm ở detail views.
+  - `Khách hàng` được lặp cùng nhãn ở hai vị trí chỉ để giảm crossing; đây vẫn là **một System Actor semantic**, không phải hai actor.
+  - 0 include / 0 extend / 0 UC generalization; không dùng UC→UC để kể workflow.
+- Visual QA:
+  - không connector crossing;
+  - title/boundary/use-case labels không chồng lấn;
+  - actor–UC connectors ngắn, không chạy xuyên node;
+  - tỷ lệ phù hợp A4: chèn khoảng **13,0 cm width → ~15,5 cm height** với aspect ratio locked.
+- Hình 2.9 v1–v6 là intermediate/stale; không dùng trong Word.
+- NEXT: Hình 2.10 — nhóm tài khoản và hồ sơ. Chưa sửa Word/renumber/caption cho tới khi 2.10–2.13 PASS.
+
 ### THESIS-R1 — System Use Case presentation lock v1 — 09/11/2026
 
 **Mục tiêu:** giữ nguyên System Use Case Model 21 UC đã khóa nhưng trình bày thành nhiều view để đọc được trên A4. Không merge/xóa/invent UC chỉ vì layout.
