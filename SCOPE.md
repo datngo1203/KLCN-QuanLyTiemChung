@@ -417,6 +417,19 @@ Trình bày/in ấn:
 - **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
 
+### THESIS-R1 — session handoff after Business UML / before System UML
+
+- **Current thesis artifact:** `CNTT_KLCN090_THESIS-R1_Patch2D3g_AdaptiveFigureSizing_Final.docx`.
+- SHA-256: `bcbb73be5e27edf6351dec62e66e02e8b848ada1b6dcfdb77ac21dbf050737b2`.
+- Render QA: **86 trang PASS**.
+- Business UML `Hình 2.1–2.8` đã qua semantic/layout/data-flow/shape-aware/adaptive-size cleanup và là baseline hiện hành.
+- HUIT UML Visual Profile + Activity density + Business Entity/ObjectFlow + shape-aware anchoring + adaptive figure sizing đều đã checkpoint trong `SCOPE.md`.
+- **Fork/Join rule:** chỉ dùng Fork/Join bar khi có xử lý song song thực sự; Decision/Merge dùng cho các nhánh loại trừ. Không đổi Merge sang Join chỉ để hình gọn/đẹp.
+- **System UML hiện vẫn PARKED/NEXT**, chưa redraw trong Business UML patches.
+- **NEXT candidate:** phục hồi context rồi audit/chốt **System Use Case Diagram tổng thể** trước; sau khi PASS mới đi từng System Use Case + Sequence. Không sửa Sequence/Class Analysis trước khi System Use Case set/actors/relations được khóa.
+- Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
+- Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
+
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
 - **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Ví dụ trong bài giảng không tự mở rộng chức năng của đồ án.
