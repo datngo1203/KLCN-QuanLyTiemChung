@@ -1,7 +1,7 @@
 @startuml
-!pragma layout elk
 ' THESIS-R1 — Hình 2.9 System Use Case summary
-' One visible symbol per actor. ELK orthogonal routing with compact grid layout.
+' Visual contract: approved layout prototype v3.
+' Semantics are locked in SCOPE.md; hidden links below are layout-only.
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -11,59 +11,66 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam linetype ortho
-skinparam nodesep 28
-skinparam ranksep 28
+skinparam linetype polyline
+skinparam nodesep 34
+skinparam ranksep 34
 skinparam dpi 180
 
-top to bottom direction
+left to right direction
 
 actor "Khách hàng" as Customer
+actor "Lễ tân" as Reception
 
 rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
+  ' Customer-facing cluster — top to bottom
   usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
-  usecase "Quản lý lịch hẹn" as UC12
-  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
-
   usecase "Tra cứu dịch vụ\ntiêm chủng" as UC10
-  usecase "Gửi nhắc lịch" as UC13
-  usecase "Thanh toán dịch vụ" as UC16
-
   usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
+  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
+
+  ' Reception cluster — lower than Customer cluster
+  usecase "Quản lý lịch hẹn" as UC12
+  usecase "Gửi nhắc lịch" as UC13
+
+  ' Clinical cluster — top to bottom, reading order only
+  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
+  usecase "Thanh toán dịch vụ" as UC16
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
 
-  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
-
-  ' Grid constraints only — no semantic meaning.
-  UC09 -[hidden]right- UC12
-  UC12 -[hidden]right- UC15
-
-  UC10 -[hidden]right- UC13
-  UC13 -[hidden]right- UC16
-
-  UC11 -[hidden]right- UC17
-  UC17 -[hidden]right- UC18
-
+  ' Vertical stacks.
   UC09 -[hidden]down- UC10
   UC10 -[hidden]down- UC11
   UC11 -[hidden]down- UC19
 
   UC12 -[hidden]down- UC13
-  UC13 -[hidden]down- UC17
 
   UC15 -[hidden]down- UC16
-  UC16 -[hidden]down- UC18
+  UC16 -[hidden]down- UC17
+  UC17 -[hidden]down- UC18
+
+  ' Horizontal grouping: customer/reception cluster left, clinical cluster right.
+  UC09 -[hidden]right- UC15
+  UC10 -[hidden]right- UC16
+  UC11 -[hidden]right- UC17
+  UC19 -[hidden]right- UC18
+
+  ' Keep Reception cluster below Customer cluster without semantic relation.
+  UC19 -[hidden]down- UC12
 }
 
-actor "Lễ tân" as Reception
 actor "Bác sĩ" as Doctor
 actor "Thu ngân" as Cashier
 actor "Điều dưỡng" as Nurse
 
-' Layout anchors only.
+' Actor column ordering only.
+Customer -[hidden]down- Reception
+Doctor -[hidden]down- Cashier
+Cashier -[hidden]down- Nurse
+
+' Actor placement anchors only.
 Customer -[hidden]right- UC10
-Reception -[hidden]down- UC12
+Reception -[hidden]right- UC12
 UC15 -[hidden]right- Doctor
 UC16 -[hidden]right- Cashier
 UC17 -[hidden]right- Nurse
@@ -76,6 +83,7 @@ Customer -- UC19
 
 Reception -- UC12
 Reception -- UC13
+
 UC15 -- Doctor
 UC16 -- Cashier
 UC17 -- Nurse
