@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7a DONE:** hotfix toàn bộ bullet trong báo cáo: thay `- ` / `+ ` bằng marker + tab stop để dòng đầu và các dòng wrap thẳng cột, vẫn giữ đúng chuẩn Khoa (cấp 1: Position 0,3 cm / Text indent 0,8 cm; cấp 2: Position 0,8 cm / Text indent 1,3 cm). Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7a_Final.docx`, SHA-256 `cc9d58d1fd0e9e6100c47d501f90b0c41e86904fb9a79fd379cb84f38ffb29b2`. Render QA 87 trang PASS; chỉ trang 31–34 thay đổi, các trang khác pixel-identical với 2C.7. **Chương 1 tiếp tục được khóa. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7b DONE:** hotfix toàn bộ paragraph trong bảng để không kế thừa first-line indent ~0,75 cm từ style thân bài; đặt left/right/first-line indent = 0, xóa tab stop thừa, giữ Times New Roman 12 pt, Multiple 1.3, Before/After 0. Bảng Danh mục ký hiệu/chữ viết tắt đã cân đúng tâm; các bảng Chương 2/4/5 cũng được chuẩn hóa formatting mà không đổi semantic. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7b_Final.docx`, SHA-256 `abb6981b1c24557b983f3fb576ec8f7c93a54267415e4d51b2376b35f8689f81`. Render QA 87 trang PASS; 39 trang có bảng thay đổi đã kiểm, các trang còn lại pixel-identical baseline. **Chương 1 vẫn khóa. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -96,6 +96,18 @@ Theo góp ý giảng viên, **mỗi sơ đồ phải đặt ngay sau bảng đ�
 - Chiều cao hàng để tự động theo nội dung; không ép fixed height nếu không cần.
 - Giữ padding ô vừa phải và vertical alignment giữa để bảng cân khi in.
 - Không dùng direct formatting rời rạc khiến cùng một bảng có font/cỡ/spacing khác nhau.
+
+### THESIS-R1 — khóa định dạng paragraph trong bảng
+
+Áp dụng cho **mọi bảng hiện tại và các bảng tạo mới**:
+- Paragraph trong cell phải đặt trực tiếp **left indent = 0, right indent = 0, first-line indent = 0**; không để kế thừa thụt đầu dòng của style thân bài.
+- Không dùng tab/space đầu dòng hoặc cuối dòng để canh nội dung trong cell; canh bằng paragraph alignment và cell alignment.
+- Xóa tab stop không cần thiết trong paragraph của bảng.
+- Nội dung bảng: **Times New Roman 12 pt**, line spacing **Multiple 1.3**, Before **0 pt**, After **0 pt**.
+- Header bảng: đậm, canh giữa; nội dung còn lại canh theo ngữ nghĩa của cột, nhưng phải đặt alignment rõ ràng thay vì dựa vào khoảng trắng.
+- Khi nội dung cần xuống dòng, để Word wrap tự nhiên; không chèn space/tab để “đẩy” chữ.
+- Với bảng nhiều trang, giữ repeat header row theo quy định mẫu Khoa.
+- Khi QA, phải kiểm trực quan xem chữ có bị lệch trái/phải do inherited indent hay không.
 
 ### THESIS-R1 — khóa thể thức trình bày
 
