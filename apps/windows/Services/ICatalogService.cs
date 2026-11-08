@@ -74,7 +74,7 @@ public sealed class CatalogApiService(IdentityApiService? identity = null)
             "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại.",
             "resourceNotFound" => "Mục không còn tồn tại. Hãy tải lại danh sách.",
             "dependencyUnavailable" => "Dịch vụ dữ liệu chưa sẵn sàng. Vui lòng thử lại.",
-            _ => $"Không thực hiện được yêu cầu (HTTP {(int)response.StatusCode})."
+            _ => "Không thể hoàn tất yêu cầu. Vui lòng thử lại."
         });
     }
 }

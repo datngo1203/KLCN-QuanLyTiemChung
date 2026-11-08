@@ -47,7 +47,7 @@
        <TextBlock Text="{Binding Feedback}" Visibility="{Binding HasDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Body}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Margin="0,10"/>
        <WrapPanel Visibility="{Binding HasPending,Converter={StaticResource Vis}}" Margin="0,4,0,12">
         <Button Content="Đối chiếu kết quả" Command="{Binding ReconcileCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,8,8"/>
-        <Button Content="Thử lại đúng yêu cầu cũ" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
+        <Button Content="Thử lại sau khi xác nhận chưa ghi" Command="{Binding RetryCommand}" Style="{StaticResource CE.Button.Secondary}" Margin="0,0,0,8"/>
        </WrapPanel>
        <TextBlock Text="Chọn mũi từ danh sách hoặc nhập mã MT để mở lại kết quả." Visibility="{Binding NoDetail,Converter={StaticResource Vis}}" Style="{StaticResource CE.Caption}" TextWrapping="Wrap" Margin="0,10"/>
        <Button Content="Làm mới mốc theo dõi / kết quả" Command="{Binding DetailCommand}" Style="{StaticResource CE.Button.Secondary}" HorizontalAlignment="Left" Margin="0,10"/>

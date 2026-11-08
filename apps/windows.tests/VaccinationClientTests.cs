@@ -54,14 +54,19 @@ public sealed class VaccinationClientTests
     public async Task PostFailuresNeverRetryOrShowServerDetails(int status,string code)
     {
         var handler=new Handler{PostStatus=(HttpStatusCode)status};var api=new VaccinationApiService(await Login(handler));
-        var error=await Assert.ThrowsAsync<VaccinationApiException>(()=>api.RecordAsync(Request));Assert.Equal(code,error.Code);Assert.DoesNotContain("PRIVATE",error.Message);Assert.Equal(1,handler.PostCount);Assert.Equal(0,handler.RefreshCount);
+        var error=await Assert.ThrowsAsync<VaccinationApiException>(()=>api.RecordAsync(Request));Assert.Equal(code,error.Code);Assert.DoesNotContain("PRIVATE",error.Message);
+        Assert.False(new[]{"API","SQL","GET","POST","201","HTTP","DuocTiem"}.Any(token=>error.Message.Contains(token,StringComparison.OrdinalIgnoreCase)),error.Message);
+        Assert.Equal(1,handler.PostCount);Assert.Equal(0,handler.RefreshCount);
     }
     [Theory]
     [InlineData("network","outcomeUnknown")][InlineData("timeout","outcomeUnknown")][InlineData("invalid201","recordedUnreadable")][InlineData("wrong201","recordedUnreadable")]
     public async Task LostOrUnreadablePostNeedsGetReconciliation(string failure,string code)
     {
         var handler=new Handler{Failure=failure};var api=new VaccinationApiService(await Login(handler));
-        Assert.Equal(code,(await Assert.ThrowsAsync<VaccinationApiException>(()=>api.RecordAsync(Request))).Code);Assert.Equal(1,handler.PostCount);
+        var error=await Assert.ThrowsAsync<VaccinationApiException>(()=>api.RecordAsync(Request));Assert.Equal(code,error.Code);
+        Assert.False(new[]{"API","SQL","GET","POST","201","HTTP","DuocTiem"}.Any(token=>error.Message.Contains(token,StringComparison.OrdinalIgnoreCase)),error.Message);
+        if(code=="recordedUnreadable")Assert.Contains("không gửi lại",error.Message,StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1,handler.PostCount);
     }
     [Fact]
     public async Task MalformedGetResultDoesNotProveAbsenceAndWrongIndicationIsRejected()

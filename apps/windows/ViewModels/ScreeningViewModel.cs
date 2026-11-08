@@ -97,7 +97,7 @@ public sealed class ScreeningViewModel : ViewModelBase
             _detail = _detail with { BlockReason = blocked.Code }; ClearDraft(); OnPropertyChanged(nameof(Detail));
         }
         if(error is ClinicalApiException {Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
-        Feedback=error is ClinicalApiException ? error.Message : "Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+        Feedback=error is ClinicalApiException ? error.Message : "Không kết nối hoặc tải được dữ liệu. Bản nháp được giữ lại; hãy thử lại.";
     }
     private void Refresh()
     {
@@ -109,7 +109,7 @@ public sealed class ScreeningViewModel : ViewModelBase
         if(!CanBrowse || page<1)return;
         if(SearchText.Trim().Length>100){Feedback="Tìm kiếm tối đa 100 ký tự.";return;}
         _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Appointments.Clear();
-        Feedback="Đang tải lịch hẹn từ API / SQL…";Refresh();
+        Feedback="Đang tải danh sách lịch hẹn…";Refresh();
         try {var rows=await _service.ListAsync(page,SearchText);if(!IsCurrent || _denied)return;
             foreach(var row in rows)Appointments.Add(row);_page=page;Feedback=rows.Length==0?"Không có lịch hẹn phù hợp.":"Chọn lịch hẹn để xem và ghi kết luận. Chưa xác nhận người bệnh đã đến khám.";
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
@@ -152,7 +152,7 @@ public sealed class ScreeningViewModel : ViewModelBase
     private void Accept(ClinicalAssessment result)
     {
         _assessment=result;_pending=null;_committed=false;_reconciled=false;ClearDraft();OnPropertyChanged(nameof(Assessment));
-        Feedback="Đã đọc kết luận và chỉ định từ API / SQL. Thông tin chỉ đọc; chưa phải ghi nhận mũi tiêm.";
+        Feedback="Đã đọc kết luận và chỉ định từ hệ thống. Thông tin chỉ đọc; chưa phải ghi nhận mũi tiêm.";
     }
     private async Task SendPendingAsync()
     {
@@ -167,10 +167,10 @@ public sealed class ScreeningViewModel : ViewModelBase
     public async Task ReconcileAsync()
     {
         if(!HasAccess || _busy || _pending is null)return;
-        _busy=true;_reconciled=false;Feedback="Đang GET đối chiếu kết quả…";Refresh();
+        _busy=true;_reconciled=false;Feedback="Đang đối chiếu kết quả…";Refresh();
         try {var result=await _service.GetAssessmentAsync(_pendingId);if(!IsCurrent || _denied)return;
             if(result is not null)Accept(result);
-            else{_reconciled=true;Feedback=_committed?"API đã trả 201. Tiếp tục GET, không gửi lại.":"GET chưa thấy kết luận. Có thể thử lại đúng yêu cầu cũ; API chặn phiếu trùng.";}
+            else{_reconciled=true;Feedback=_committed?"Yêu cầu có thể đã được lưu nhưng chưa đọc được kết quả. Không gửi lại; hãy tải lại và đối chiếu trạng thái hiện tại.":"Chưa tìm thấy kết luận sau đối chiếu. Chỉ thử lại nếu trạng thái hiện tại xác nhận yêu cầu chưa được ghi.";}
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public async Task RetryAsync()

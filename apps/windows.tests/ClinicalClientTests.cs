@@ -58,13 +58,19 @@ public sealed class ClinicalClientTests
     public async Task PostErrorsAreSafeAndNeverAutomaticallyRetried(int status,string code)
     {
         var handler=new Handler{PostStatus=(HttpStatusCode)status};var api=new ScreeningApiService(await Login(handler));
-        var e=await Assert.ThrowsAsync<ClinicalApiException>(()=>api.CreateAsync(7,Request));Assert.Equal(code,e.Code);Assert.DoesNotContain("PRIVATE",e.Message);Assert.Equal(1,handler.PostCount);Assert.Equal(0,handler.RefreshCount);
+        var e=await Assert.ThrowsAsync<ClinicalApiException>(()=>api.CreateAsync(7,Request));Assert.Equal(code,e.Code);Assert.DoesNotContain("PRIVATE",e.Message);
+        Assert.False(new[]{"API","SQL","GET","POST","201","HTTP"}.Any(token=>e.Message.Contains(token,StringComparison.OrdinalIgnoreCase)),e.Message);
+        Assert.Equal(1,handler.PostCount);Assert.Equal(0,handler.RefreshCount);
     }
     [Theory]
     [InlineData("network","outcomeUnknown")][InlineData("timeout","outcomeUnknown")][InlineData("invalid201","recordedUnreadable")]
     public async Task UncertainResponsesRequireGet(string failure,string code)
     {
-        var handler=new Handler{Failure=failure};var api=new ScreeningApiService(await Login(handler));Assert.Equal(code,(await Assert.ThrowsAsync<ClinicalApiException>(()=>api.CreateAsync(7,Request))).Code);Assert.Equal(1,handler.PostCount);
+        var handler=new Handler{Failure=failure};var api=new ScreeningApiService(await Login(handler));
+        var error=await Assert.ThrowsAsync<ClinicalApiException>(()=>api.CreateAsync(7,Request));Assert.Equal(code,error.Code);
+        Assert.False(new[]{"API","SQL","GET","POST","201","HTTP"}.Any(token=>error.Message.Contains(token,StringComparison.OrdinalIgnoreCase)),error.Message);
+        if(code=="recordedUnreadable")Assert.Contains("không gửi lại",error.Message,StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1,handler.PostCount);
     }
     [Fact]
     public async Task ExplicitConclusionAndSelectionConfirmationAndReadOnlyResult()

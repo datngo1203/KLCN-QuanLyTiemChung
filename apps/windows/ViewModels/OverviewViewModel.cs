@@ -2,8 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using TiemChung.Desktop.Services;
-using TiemChung.Desktop.ViewsV2;
 using TiemChung.Desktop.ViewModels.Samples;
+using TiemChung.Desktop.ViewsV2;
 
 namespace TiemChung.Desktop.ViewModels;
 
@@ -32,7 +32,9 @@ public sealed class OverviewViewModel : ViewModelBase
     {
         _navigate = navigate;
         _canAccess = canAccess ?? NavigationRegistry.IsVisible;
-        _dashboardService = dashboardService ?? new SampleDashboardService();
+        // Production path uses NullDashboardService (empty/neutral state) until a real dashboard endpoint exists.
+        // SampleDashboardService is injected only by tests or design-time hosts.
+        _dashboardService = dashboardService ?? new NullDashboardService();
         var initialSnapshot = _dashboardService.GetSnapshot(DateTime.Today, DateTime.Today);
         WorkItems = new ObservableCollection<OverviewWorkItem>(initialSnapshot.WorkItems.Where(item => _canAccess(item.ScreenId)));
         WorkItemsView = CollectionViewSource.GetDefaultView(WorkItems);
@@ -57,6 +59,7 @@ public sealed class OverviewViewModel : ViewModelBase
     public IReadOnlyList<OverviewMetric> Metrics => _metrics;
     public bool HasPeriodData => _hasPeriodData;
     public bool HasNoPeriodData => !_hasPeriodData;
+    public bool HasNoDashboardData => HasValidPeriod && !_hasPeriodData;
     public RelayCommand RefreshCommand { get; }
     public RelayCommand ClearFiltersCommand { get; }
     public RelayCommand SelectWorkModeCommand { get; }
@@ -68,7 +71,7 @@ public sealed class OverviewViewModel : ViewModelBase
     public RelayCommand OpenStageCommand { get; }
     public RelayCommand CheckApiCommand { get; }
     public bool IsSampleData => _dashboardService.UseSampleData;
-    public string DataSourceLabel => IsSampleData ? "Dữ liệu mẫu" : "Chưa có nguồn dữ liệu";
+    public string DataSourceLabel => IsSampleData ? "Chưa có dữ liệu tổng quan từ hệ thống." : "Chưa có nguồn dữ liệu";
     public DateTime? FromDate { get => _fromDate; set { if (Set(ref _fromDate, value)) PeriodChanged(); } }
     public DateTime? ToDate { get => _toDate; set { if (Set(ref _toDate, value)) PeriodChanged(); } }
     public bool HasValidPeriod => FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date <= ToDate.Value.Date;
@@ -110,6 +113,7 @@ public sealed class OverviewViewModel : ViewModelBase
         OnPropertyChanged(nameof(Metrics));
         OnPropertyChanged(nameof(HasPeriodData));
         OnPropertyChanged(nameof(HasNoPeriodData));
+        OnPropertyChanged(nameof(HasNoDashboardData));
     }
 
     private bool MatchesFilters(object candidate) => candidate is OverviewWorkItem row && HasValidPeriod &&

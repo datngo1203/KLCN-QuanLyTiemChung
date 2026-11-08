@@ -37,11 +37,11 @@ public sealed class AftercareApiService(IdentityApiService? identity=null):IAfte
     {
         var post=method==HttpMethod.Post;HttpResponseMessage response;
         try{response=await _identity.SendCatalogAsync(method,Root+path,body,retryUnauthorized:!post,expectedSessionRevision:_revision);}
-        catch(Exception e)when(post && e is HttpRequestException or OperationCanceledException){throw new AftercareApiException("outcomeUnknown","Chưa xác định kết quả lưu. Giữ nội dung và đọc lại để đối chiếu trước khi thử lại.");}
+        catch(Exception e)when(post && e is HttpRequestException or OperationCanceledException){throw new AftercareApiException("outcomeUnknown","Chưa xác định kết quả lưu. Giữ nội dung, tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");}
         if(response.IsSuccessStatusCode)return response;
         using(response){
             if(post && response.StatusCode is not(HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.Conflict))
-                throw new AftercareApiException("outcomeUnknown","Chưa xác định kết quả lưu. Giữ nội dung và đọc lại để đối chiếu trước khi thử lại.");
+                throw new AftercareApiException("outcomeUnknown","Chưa xác định kết quả lưu. Giữ nội dung, tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
             string? code=null;
             try{using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());if(json.RootElement.TryGetProperty("code",out var value) && value.ValueKind==JsonValueKind.String)code=value.GetString();}catch(JsonException){}
             code=response.StatusCode switch{HttpStatusCode.Unauthorized=>"invalidSession",HttpStatusCode.Forbidden=>"permissionDenied",HttpStatusCode.BadRequest=>"validation",_=>code??"requestFailed"};
@@ -89,9 +89,9 @@ public sealed class AftercareApiService(IdentityApiService? identity=null):IAfte
     public async Task<FollowUpRecord> RecordAsync(int id,FollowUpRequest request)
     {
         using var response=await Send(HttpMethod.Post,Path(id),request);
-        if(response.StatusCode!=HttpStatusCode.Created)throw new AftercareApiException("outcomeUnknown","Cần đọc lại để đối chiếu kết quả lưu theo dõi.");
+        if(response.StatusCode!=HttpStatusCode.Created)throw new AftercareApiException("outcomeUnknown","Chưa xác định kết quả lưu theo dõi. Hãy tải lại và đối chiếu trạng thái hiện tại trước khi thử lại.");
         try{var result=await response.Content.ReadFromJsonAsync<FollowUpRecord>()??throw new JsonException();
             if(!Valid(result,id)||result.RecordedBy is null||result.Condition!=request.Condition.Trim()||result.Severity!=request.Severity.Trim()||result.Treatment!=request.Treatment.Trim())throw new JsonException();return result;
-        }catch(Exception e)when(e is JsonException or HttpRequestException or OperationCanceledException){throw new AftercareApiException("recordedUnreadable","Đã nhận xác nhận lưu. Chỉ đọc lại để đối chiếu, không gửi lại.");}
+        }catch(Exception e)when(e is JsonException or HttpRequestException or OperationCanceledException){throw new AftercareApiException("recordedUnreadable","Yêu cầu đã được xác nhận lưu nhưng chưa đọc được kết quả. Hãy tải lại để đối chiếu; không gửi lại.");}
     }
 }

@@ -20,3 +20,13 @@ public sealed class SampleDashboardService : IDashboardService
     public OverviewSnapshot GetSnapshot(DateTime from, DateTime to) =>
         UseSampleData ? OverviewSampleData.CreateSnapshot(from, to) : OverviewSampleData.CreateEmptySnapshot();
 }
+
+/// <summary>
+/// Production-runtime dashboard service: returns empty/neutral state.
+/// Used when no reviewed dashboard API endpoint exists yet. Sample data must not appear in production shell.
+/// </summary>
+public sealed class NullDashboardService : IDashboardService
+{
+    public bool UseSampleData { get; set; } = false;
+    public OverviewSnapshot GetSnapshot(DateTime from, DateTime to) => OverviewSampleData.CreateEmptySnapshot();
+}

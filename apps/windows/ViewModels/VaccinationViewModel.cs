@@ -89,7 +89,7 @@ public sealed class VaccinationViewModel : ViewModelBase
             _detail = _detail with { BlockReason = blocked.Code }; ClearDraft(); Lots.Clear(); OnPropertyChanged(nameof(Detail));
         }
         if(error is VaccinationApiException{Code:"invalidSession" or "permissionDenied"}){_denied=true;ClearSessionData();}
-        Feedback=error is VaccinationApiException?error.Message:"Không kết nối hoặc đọc được API. Bản nháp được giữ lại; hãy thử lại.";
+        Feedback=error is VaccinationApiException?error.Message:"Không kết nối hoặc tải được dữ liệu. Bản nháp được giữ lại; hãy thử lại.";
     }
     private void Refresh()
     {
@@ -101,7 +101,7 @@ public sealed class VaccinationViewModel : ViewModelBase
         if(!CanBrowse || page<1)return;
         if(SearchText.Trim().Length>100){Feedback="Tìm kiếm tối đa 100 ký tự.";return;}
         _busy=true;_loadError=false;_selected=null;OnPropertyChanged(nameof(Selected));ClearDetail();Queue.Clear();
-        Feedback="Đang tải chỉ định từ API / SQL…";Refresh();
+        Feedback="Đang tải danh sách chỉ định…";Refresh();
         try{var rows=await _service.ListAsync(page,SearchText);if(!IsCurrent || _denied)return;
             foreach(var row in rows)Queue.Add(row);_page=page;Feedback=rows.Length==0?"Không có chỉ định chưa ghi mũi phù hợp.":"Chọn chỉ định để đối chiếu người tiêm, thanh toán và lô. Danh sách chưa xác nhận đủ mọi điều kiện ghi.";
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
@@ -109,7 +109,7 @@ public sealed class VaccinationViewModel : ViewModelBase
     public async Task LoadDetailAsync()
     {
         if(!CanBrowse || Selected is not {} selected)return;
-        _busy=true;_loadError=false;ClearDetail();Feedback="Đang GET đối chiếu chỉ định và mũi đã ghi…";Refresh();
+        _busy=true;_loadError=false;ClearDetail();Feedback="Đang đối chiếu chỉ định và mũi đã ghi…";Refresh();
         try{
             var result=await _service.GetResultAsync(selected.Id);if(!IsCurrent || _denied)return;
             if(result is not null){Accept(result);return;}
@@ -127,7 +127,7 @@ public sealed class VaccinationViewModel : ViewModelBase
     {
         if(!CanSave)return null;
         _confirmation=new(Detail!.Indication.Id,SelectedLot!.Number,InjectionSite.Trim());_confirming=true;Refresh();
-        return $"{Detail.Indication.Label}\n{Detail.Indication.SourceLabel}\nVắc xin: {Detail.Indication.Vaccine.Name}\nLô: {_confirmation.LotNumber}\nVị trí: {_confirmation.InjectionSite}\n\nXác nhận đã thực hiện mũi tiêm này? Ghi nhận sẽ trừ 1 tồn SQL. Sau khi lưu chỉ xem, không sửa/xóa. Chưa phải hoàn tất theo dõi sau tiêm.";
+        return $"{Detail.Indication.Label}\n{Detail.Indication.SourceLabel}\nVắc xin: {Detail.Indication.Vaccine.Name}\nLô: {_confirmation.LotNumber}\nVị trí: {_confirmation.InjectionSite}\n\nXác nhận đã thực hiện mũi tiêm này? Ghi nhận sẽ trừ 1 đơn vị tồn kho. Sau khi lưu chỉ xem, không sửa/xóa. Chưa phải hoàn tất theo dõi sau tiêm.";
     }
     public async Task ConfirmAsync(bool confirmed)
     {
@@ -139,7 +139,7 @@ public sealed class VaccinationViewModel : ViewModelBase
     {
         _result=result;_pending=null;_committed=false;_reconciled=false;ClearDraft();Lots.Clear();
         _lookup=result.IndicationId.ToString();OnPropertyChanged(nameof(ResultIndicationId));OnPropertyChanged(nameof(Result));
-        Feedback="Đã đọc mũi ghi nhận từ API / SQL. Chỉ đọc; chưa ghi theo dõi sau tiêm hoặc xác nhận cho về.";
+        Feedback="Đã đọc mũi ghi nhận từ hệ thống. Chỉ đọc; chưa ghi theo dõi sau tiêm hoặc xác nhận cho về.";
     }
     private async Task SendPendingAsync()
     {
@@ -154,10 +154,10 @@ public sealed class VaccinationViewModel : ViewModelBase
     public async Task ReconcileAsync()
     {
         if(!HasAccess || _busy || _pending is null)return;
-        _busy=true;_reconciled=false;Feedback="Đang GET đối chiếu mũi đã ghi…";Refresh();
+        _busy=true;_reconciled=false;Feedback="Đang đối chiếu mũi đã ghi…";Refresh();
         try{var result=await _service.GetResultAsync(_pending.IndicationId);if(!IsCurrent || _denied)return;
             if(result is not null)Accept(result);
-            else{_reconciled=true;Feedback=_committed?"API đã trả 201. Tiếp tục GET, không POST lại.":"GET chưa thấy mũi. Có thể thử lại đúng yêu cầu cũ; API chặn ghi trùng và trừ tồn hai lần.";}
+            else{_reconciled=true;Feedback=_committed?"Yêu cầu có thể đã được lưu nhưng chưa đọc được kết quả. Không gửi lại; hãy tải lại và đối chiếu trạng thái hiện tại.":"Chưa tìm thấy mũi sau đối chiếu. Chỉ thử lại nếu trạng thái hiện tại xác nhận yêu cầu chưa được ghi.";}
         }catch(Exception e){Error(e);}finally{_busy=false;Refresh();}
     }
     public async Task RetryAsync()

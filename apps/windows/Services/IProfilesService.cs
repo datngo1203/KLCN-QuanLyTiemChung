@@ -40,7 +40,7 @@ public sealed class ProfilesApiService(IdentityApiService? identity = null) : IP
                 "profileReferenced" => "Hồ sơ đang được sử dụng, không thể xóa.",
                 "resourceNotFound" => "Hồ sơ không còn tồn tại. Hãy tải lại.",
                 "invalidSession" => "Phiên hết hạn. Vui lòng đăng nhập lại.",
-                _ => $"Không thực hiện được yêu cầu (HTTP {(int)response.StatusCode})."
+                _ => "Không thể hoàn tất yêu cầu. Vui lòng thử lại."
             });
         }
     }

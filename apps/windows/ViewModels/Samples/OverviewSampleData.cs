@@ -25,10 +25,10 @@ public static class OverviewSampleData
 
     public static IReadOnlyList<OverviewMetric> CreateMetrics(bool hasData = true) =>
     [
-        new("Lượt đăng ký", hasData ? "6" : "0", "Đăng ký dịch vụ"),
-        new("Lịch hẹn", hasData ? "4" : "0", "Ví dụ tổng hợp lịch hẹn"),
-        new("Lượt tiêm", hasData ? "2" : "0", "Mũi tiêm đã ghi nhận"),
-        new("Thanh toán thành công", hasData ? "1,5 triệu đ" : "0 đ", "Các khoản thu thành công")
+        new("Lượt đăng ký", hasData ? "6" : "—", "Đăng ký dịch vụ"),
+        new("Lịch hẹn", hasData ? "4" : "—", "Lịch hẹn được ghi nhận"),
+        new("Lượt tiêm", hasData ? "2" : "—", "Mũi tiêm đã ghi nhận"),
+        new("Thanh toán thành công", hasData ? "1,5 triệu đ" : "—", "Các khoản thu thành công")
     ];
 
     public static OverviewSnapshot CreateSnapshot(DateTime from, DateTime to)

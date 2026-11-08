@@ -6,8 +6,14 @@ using TiemChung.Desktop.Services;
 namespace TiemChung.Desktop.ViewModels;
 
 public sealed record EmployeeAccessRow(int AccountId, int EmployeeId, string FullName, string Username, string Title,
-    string EmployeeStatus, string AccountStatus, byte[] Version);
-public sealed record EmployeeRoleOption(string Title, string Label, string Access);
+    string EmployeeStatus, string AccountStatus, byte[] Version)
+{
+    public override string ToString() => FullName;
+}
+public sealed record EmployeeRoleOption(string Title, string Label, string Access)
+{
+    public override string ToString() => Label;
+}
 public sealed record EmployeeAccessResponse(EmployeeAccessRow[] Items, EmployeeRoleOption[] Roles);
 
 public sealed class AccountViewModel : ViewModelBase

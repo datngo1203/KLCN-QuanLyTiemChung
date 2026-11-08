@@ -28,7 +28,9 @@ public sealed partial class ComboBoxTemplateTests
         Assert.True((await identity.LoginAsync("synthetic", "synthetic")).Succeeded);
         await host.Run(app => {
             var shell = new ShellViewModel("synthetic", identity);
-            var expected = screens.Split(',');
+        Assert.False(shell.Overview.IsSampleData);
+        Assert.True(shell.Overview.HasNoDashboardData);
+        var expected = screens.Split(',');
             Assert.Equal(expected.Order(), shell.NavigationGroups.SelectMany(g => g.Screens).Select(s => s.Id).Order());
             Assert.All(shell.NavigationGroups, g => Assert.NotEmpty(g.Screens));
             Assert.Equal("A01", shell.SelectedScreen.Id); Assert.IsType<OverviewView>(shell.CurrentView);
@@ -48,6 +50,10 @@ public sealed partial class ComboBoxTemplateTests
             try {
                 window.Show(); shell.ToggleNavigationCommand.Execute(null);
                 window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle); window.UpdateLayout();
+                Assert.Contains(VisualChildren<TextBlock>(window), t => t.IsVisible && t.Text == "Chưa có dữ liệu tổng quan");
+                Assert.Contains(VisualChildren<TextBlock>(window), t => t.IsVisible && t.Text == "Kết nối hệ thống");
+                Assert.DoesNotContain(VisualChildren<TextBlock>(window), t => t.IsVisible && (t.Text.Contains("API", StringComparison.OrdinalIgnoreCase) || t.Text.Contains("SQL", StringComparison.OrdinalIgnoreCase) || t.Text.Contains("Ví dụ", StringComparison.OrdinalIgnoreCase)));
+                Assert.All(shell.Overview.Metrics, metric => Assert.Equal("—", metric.Value));
                 foreach (var item in shell.NavigationGroups.SelectMany(g => g.Screens))
                     Assert.Contains(VisualChildren<TextBlock>(window), t => t.IsVisible && t.Text == item.Title);
                 foreach (var denied in NavigationRegistry.Groups.SelectMany(g => g.Screens).Where(s => !expected.Contains(s.Id)))
@@ -70,14 +76,17 @@ public sealed partial class ComboBoxTemplateTests
         await host.Run(_ => {
             var shell = new ShellViewModel("synthetic", identity);
             Assert.False(shell.CanAccess("A04"));
+            Assert.Equal("Nhân viên thử nghiệm", new EmployeeAccessRow(1, 1, "Nhân viên thử nghiệm", "synthetic", "Admin", "Active", "Active", []).ToString());
             var model = new AccountViewModel("synthetic", identity);
             model.LoadAsync().GetAwaiter().GetResult();
+            model.Roles.Add(new EmployeeRoleOption("DisplayTest", "Chức danh kiểm thử", "Tổng quan"));
+            model.SelectedRole = model.Roles[^1];
             var view = new AccountView { DataContext=model };
             using var source = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("A12 authorization regression") { Width=1000, Height=650, WindowStyle=0 }) { RootVisual=view };
             view.Measure(new Size(1000,650)); view.Arrange(new Rect(0,0,1000,650)); view.UpdateLayout();
             Assert.Empty(VisualChildren<CheckBox>(view));
             var picker = Assert.Single(VisualChildren<ComboBox>(view));
-            Assert.Equal("Label", picker.DisplayMemberPath);
+            Assert.Equal("Chức danh kiểm thử", picker.SelectedItem?.ToString());
             Assert.DoesNotContain(VisualChildren<TextBlock>(view), t => t.Text is "QuanLyTaiKhoan" or "GhiThanhToan" or "ThuKho");
         });
     }

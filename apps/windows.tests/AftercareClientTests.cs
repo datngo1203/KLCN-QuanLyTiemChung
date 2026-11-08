@@ -41,7 +41,11 @@ public sealed class AftercareClientTests
     [InlineData("network","outcomeUnknown")][InlineData("timeout","outcomeUnknown")][InlineData("invalid201","recordedUnreadable")][InlineData("wrong201","recordedUnreadable")]
     public async Task UnknownOutcomeAndUnreadable201RequireReconciliation(string failure,string code)
     {
-        var h=new Handler{Failure=failure};var service=new AftercareApiService(await Login(h));Assert.Equal(code,(await Assert.ThrowsAsync<AftercareApiException>(()=>service.RecordAsync(8,Request))).Code);Assert.Equal(1,h.PostCount);
+        var h=new Handler{Failure=failure};var service=new AftercareApiService(await Login(h));
+        var error=await Assert.ThrowsAsync<AftercareApiException>(()=>service.RecordAsync(8,Request));Assert.Equal(code,error.Code);
+        Assert.False(new[]{"API","SQL","GET","POST","201","HTTP"}.Any(token=>error.Message.Contains(token,StringComparison.OrdinalIgnoreCase)),error.Message);
+        if(code=="recordedUnreadable")Assert.Contains("không gửi lại",error.Message,StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1,h.PostCount);
     }
     [Theory]
     [InlineData("missingWrapper")][InlineData("wrongShot")][InlineData("wrongFollowup")][InlineData("beforeShot")]
