@@ -18,6 +18,53 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 ### ACTIVE
 - **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2B DONE:** toàn bộ Chương 2 đã được tái bố trí theo góp ý giảng viên: mỗi bảng đặc tả nghiệp vụ đặt ngay trước activity diagram tương ứng; mỗi bảng đặc tả hệ thống đặt ngay trước sequence diagram tương ứng; UC hệ thống được xếp theo dependency tạm thời nhưng vẫn giữ mã UC cũ để chưa phá tham chiếu. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2B.docx`, SHA-256 `199c1dc3ea473b440a5ce2b1b86fa0c8bdfcfe9f32506bd3cdfa35b861120aff`. Render QA 82 trang PASS; TOC/danh mục hình/bảng đã đồng bộ theo vị trí mới. **ACTIVE tiếp theo:** Patch 2C viết lại nội dung Chương 2 theo dependency spine, sau đó mới đánh lại mã UC/caption và redraw sơ đồ.
 
+### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
+
+Nguồn tinh chế: tài liệu người dùng cung cấp `Hướng dẫn giảm đạo văn và AI trong văn bảng học thuật.pdf` (08/11/2026). Mục tiêu là **tính học thuật, tính nguyên gốc và khả năng truy vết nguồn**, không tối ưu để "qua" AI detector hoặc chạy theo một ngưỡng Similarity/AI Detection cụ thể.
+
+#### A. Nguyên tắc bắt buộc khi viết/sửa
+- Viết theo **ý nghĩa và bằng chứng**, không thay từ đồng nghĩa trên cùng một cấu trúc câu rồi coi là paraphrase.
+- Với nội dung lấy từ nguồn ngoài: **đọc hiểu → tách khỏi câu chữ nguồn → viết lại theo cách hiểu của nhóm → vẫn phải trích dẫn nguồn**. Paraphrase không làm mất nghĩa vụ trích dẫn.
+- Không sao chép nguyên cấu trúc lập luận, thứ tự mệnh đề hoặc chuỗi từ đặc trưng của nguồn nếu có thể diễn đạt lại mà không mất nghĩa.
+- Khi cần viết lại, được phép: đổi cấu trúc câu, gộp/tách câu, đổi thứ tự nguyên nhân-kết quả, đổi chủ động-bị động/chủ thể, khái quát hóa/cụ thể hóa — **chỉ khi ngữ nghĩa và quan hệ nghiệp vụ vẫn đúng**.
+- Mỗi đoạn có một ý chính rõ; ưu tiên mạch: **bối cảnh/đầu vào → diễn biến hoặc bằng chứng → nhận xét/ý nghĩa → liên kết sang bước tiếp theo**.
+- Nhịp câu được phép đa dạng tự nhiên (ngắn/vừa/dài), tránh lặp một mẫu câu máy móc hoặc kết luận giống nhau ở mọi đoạn; **không cố tình làm câu ngẫu nhiên chỉ để đánh lừa detector**.
+- Hạn chế khẳng định tuyệt đối khi nguồn hoặc implementation không hỗ trợ. Dùng các mức độ như "trong phạm vi đề tài", "theo khảo sát", "có thể", "phù hợp với", "kết quả kiểm thử cho thấy" khi đúng ngữ cảnh.
+- Với fact đã được repo/test/contract xác minh, diễn đạt dứt khoát và chính xác; không "hedge" làm mờ sự thật kỹ thuật.
+- Giữ thuật ngữ nghiệp vụ/kỹ thuật, tên bảng, field, trạng thái, API contract khi độ chính xác quan trọng; **không paraphrase thuật ngữ kỹ thuật chỉ để khác chữ**.
+- Văn phong phải mang dấu ấn của đề tài này: nêu **quyết định thiết kế, giới hạn phạm vi, evidence từ implementation/test, và quan hệ giữa các bước nghiệp vụ** thay vì các câu học thuật chung chung có thể dùng cho mọi đề tài.
+
+#### B. "Giọng người nghiên cứu" chỉ được dùng khi có căn cứ
+- Có thể dùng các cách diễn đạt như "Trong phạm vi đề tài, nhóm lựa chọn...", "Từ kết quả kiểm thử...", "Qua đối chiếu với implementation...", "Theo nội dung khảo sát công khai...".
+- **Không bịa trải nghiệm cá nhân, phỏng vấn, quan sát thực địa, ý kiến chuyên gia hoặc dữ liệu thực nghiệm** để làm văn bản "giống người".
+- Các cụm kiểu "qua phỏng vấn", "trong quá trình quan sát thực tế", "các bác sĩ cho biết..." chỉ dùng khi có bằng chứng nguồn thật trong tài liệu dự án.
+
+#### C. Quy tắc chống đạo văn
+- Không dùng kiểu thay vài từ đồng nghĩa nhưng giữ nguyên cấu trúc nguồn.
+- Ưu tiên "hiểu rồi viết lại": xác định ý cốt lõi, viết lại từ memory/logic của chính đoạn, sau đó quay lại kiểm tra độ chính xác và gắn citation.
+- Khi nguồn cung cấp fact/số liệu/quy trình/chính sách: citation phải đứng gần claim tương ứng.
+- Có thể thêm phân tích của nhóm để tạo giá trị mới, nhưng phải phân biệt rõ **fact từ nguồn** và **nhận xét/thiết kế của đồ án**.
+- Nếu một claim không có nguồn hoặc evidence repo đủ mạnh, không viết như một fact đã được chứng minh.
+
+#### D. Quy tắc sử dụng AI khi chỉnh khóa luận
+- AI được dùng để hỗ trợ cấu trúc, diễn đạt, rà logic và kiểm tính nhất quán; **không được dùng làm nguồn sự thật**.
+- Mọi đoạn do AI hỗ trợ phải qua 4 gate: **Source-of-Truth → semantic accuracy → citation/evidence → human academic voice**.
+- Không đưa vào báo cáo nguồn tham khảo, số liệu, quy trình, policy hoặc kết quả test do AI tự sinh mà chưa xác minh.
+- Không đặt mục tiêu "AI Detection < X%" hoặc "Similarity < X%" như acceptance của THESIS-R1. Các con số minh họa trong tài liệu hướng dẫn không thay thế quy định chính thức của trường/công cụ.
+- Nếu Khoa/Trường có quy định khai báo việc sử dụng AI, phải tuân theo quy định chính thức đó; không tự suy đoán chính sách.
+
+#### E. Checklist cho mỗi đoạn được sửa
+1. Đoạn này trả lời câu hỏi gì trong mạch nghiệp vụ/hệ thống?
+2. Claim nào là fact từ repo/tài liệu? Claim nào là phân tích/thiết kế của nhóm?
+3. Fact từ nguồn ngoài đã có citation chưa?
+4. Có câu nào quá giống cấu trúc nguồn hoặc chỉ đổi từ đồng nghĩa không?
+5. Câu dài/ngắn có tự nhiên và phục vụ ý nghĩa không?
+6. Có khẳng định tuyệt đối vượt quá evidence không?
+7. Có chi tiết "giống trải nghiệm thật" nhưng thực tế không có nguồn không?
+8. Thuật ngữ kỹ thuật/clinical/business có bị paraphrase làm sai nghĩa không?
+9. Đoạn có nối logic với bước trước/sau trong dependency spine không?
+10. Đọc lại như người viết khóa luận: có cụ thể cho KLCN090 hay vẫn là văn bản generic?
+
 ### THESIS-R1 — khóa bố cục đặc tả và sơ đồ
 
 Theo góp ý giảng viên, **mỗi sơ đồ phải đặt ngay sau bảng đặc tả tương ứng để người đọc quan sát liên tục**:
