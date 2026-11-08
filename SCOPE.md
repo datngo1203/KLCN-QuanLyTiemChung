@@ -12,6 +12,10 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 - Source of truth để **xác minh capability implementation** là `main` mới nhất hoặc active implementation branch nếu feature chưa merge.
 - Không sửa source code ứng dụng, không mở feature implementation, không cherry-pick/rebase/merge code trong THESIS session.
 - Không dùng trạng thái code của nhánh thesis để kết luận capability nếu nhánh thesis đang behind `main`; phải verify claim trên implementation HEAD hiện hành.
+- **Evidence-first / no invention:** không tự bịa, không suy diễn, không “điền chỗ trống” capability. Mọi claim về hệ thống hiện có trong prose/UML/spec phải truy vết được tới **code/contract/test trên exact `main` HEAD** hoặc checkpoint **DONE đã merge** và vẫn còn hiệu lực.
+- **ACTIVE/NEXT/PARKED ≠ implemented.** Issue/roadmap/menu/module name chỉ cho biết ý định/phạm vi; không được dùng làm bằng chứng rằng chức năng đã tồn tại.
+- Không suy capability từ tên endpoint, màn hình, class, permission code hoặc dữ liệu nếu chưa kiểm semantic/behavior liên quan. Khi bằng chứng chỉ hỗ trợ một phần, claim phải thu hẹp đúng phần đó.
+- Trước mỗi audit System UC/Sequence/Class có claim implementation đáng kể, ghi nhận **exact `main` HEAD**; nếu `main` đổi trong lúc audit, re-check phần bị ảnh hưởng trước khi khóa semantic.
 - Chat điều phối **CODE** không được recovery từ nhánh thesis; chat điều phối **THESIS** không được dùng `main` làm nơi lưu rule/checkpoint báo cáo.
 
 
@@ -495,6 +499,16 @@ Trình bày/in ấn:
 - **NEXT candidate:** phục hồi context rồi audit/chốt **System Use Case Diagram tổng thể** trước; sau khi PASS mới đi từng System Use Case + Sequence. Không sửa Sequence/Class Analysis trước khi System Use Case set/actors/relations được khóa.
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
+
+### THESIS-R1 — implementation-evidence gate 09/11/2026
+
+- User requirement: **mọi mô hình hệ thống phải bám chức năng thực sự hiện có trên GitHub; không tự bịa hoặc suy luận capability**.
+- Exact `main` HEAD tại checkpoint: `20a4ce2c686e87d09a8978d9bc9e41819f437f88`.
+- So với main HEAD đã audit trước `d59868c0459e0361e952785df01260a1060fb5a8`, có **2 commit mới nhưng chỉ thay tài liệu/routing** (`.github/copilot-instructions.md`, `AGENTS.md`, `SCOPE.md`); không có source-code implementation change.
+- `RF-02C #186` hiện **ACTIVE** trên main: Active-only public catalog + search/filter/detail/package detail là phạm vi đang triển khai, **không được ghi như capability DONE** cho tới khi có code/test/merge evidence trên main.
+- Bộ **19 System UC** vừa đề xuất trong chat là **DRAFT, chưa khóa**. Phải re-audit từng UC/actor theo evidence gate này trước khi checkpoint semantic Hình 2.9.
+- Quy tắc khi thiếu evidence: **thu hẹp claim → đánh dấu chưa xác minh → hoặc bỏ khỏi UML/prose**; không suy diễn từ nghiệp vụ mong muốn, đề cương, tên module, UI/menu hay issue title.
+- Bài giảng HUIT quyết định **phương pháp mô hình hóa**; repo `main` quyết định **capability thực tế đã có**. Hai nguồn không thay thế cho nhau.
 
 ### THESIS-R1 — HUIT course-source re-audit 09/11/2026
 
