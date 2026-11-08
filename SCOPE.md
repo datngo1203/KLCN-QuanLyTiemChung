@@ -500,6 +500,21 @@ Trình bày/in ấn:
 - Khi mở session mới, đọc theo thứ tự: `AGENTS.md` → `SCOPE.md` → issue #182 → artifact Word hiện hành khi cần layout/Word evidence → code/contracts chỉ khi cần xác minh claim hệ thống.
 - Binary DOCX không được coi là lưu trong GitHub chỉ vì tên/hash đã checkpoint; khi session mới cần sửa/chèn Word, **đính kèm lại artifact hiện hành**.
 
+### THESIS-R1 — Hình 2.9 layout prototype v3 — APPROVED 09/11/2026
+
+- User review: **APPROVED**.
+- Prototype artifact: `Hinh_2_9_layout_prototype_v3.png`.
+- Đây là **visual contract reference**, không phải final thesis artifact.
+- Geometry khóa:
+  - trái boundary: **Khách hàng** ở cụm trên; **Lễ tân** ở cụm dưới;
+  - phải boundary: **Bác sĩ → Thu ngân → Điều dưỡng** theo top-down;
+  - cụm customer: UC09 → UC10 → UC11 → UC19 top-down;
+  - cụm reception: UC12 → UC13 top-down, đặt thấp hơn để không trộn dây với Customer;
+  - cụm clinical: UC15 → UC16 → UC17 → UC18 top-down;
+  - title safe zone sạch;
+  - association đi trực tiếp actor↔UC, không crossing, không duplicate actor.
+- NEXT: triển khai đúng geometry này trong PlantUML canonical; renderer/post-process chỉ được phép phục vụ geometry đã duyệt.
+
 ### THESIS-R1 — UML production discipline / visual gate v3 — 09/11/2026
 
 Áp dụng cho toàn bộ UML thesis từ Hình 2.9 trở đi. Mục tiêu: **semantic quyết định hình; renderer chỉ thi công**, không để auto-layout làm thay đổi cách hiểu mô hình.
