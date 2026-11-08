@@ -553,7 +553,23 @@ Trình bày/in ấn:
 - **0 include / 0 extend / 0 UC generalization** trên Hình 2.9.
 - Title safe zone phải sạch hoàn toàn; mọi association ngắn, rõ, không curve/crossing.
 
-### THESIS-R1 — Hình 2.9 visual candidate v15 — 09/11/2026
+### THESIS-R1 — Hình 2.9 layout prototype v3 — CANDIDATE 09/11/2026
+
+- Đây là **renderer-independent layout prototype**, không phải final PlantUML artifact và không chèn Word.
+- Prototype hiện đáp ứng:
+  - một visible symbol cho mỗi actor;
+  - actor bên trái: Khách hàng, Lễ tân; bên phải: Bác sĩ, Thu ngân, Điều dưỡng;
+  - title safe zone sạch;
+  - không connector crossing;
+  - không curve/spline; association là các đoạn thẳng rõ;
+  - clinical reading order top-down: UC15 khám → UC16 thanh toán → UC17 mũi tiêm → UC18 theo dõi sau tiêm;
+  - customer/front-office cluster tách khỏi clinical cluster;
+  - 10 UC và primary actor mapping giữ nguyên; 0 include / 0 extend.
+- Human-review caveat: đây mới là **layout contract candidate**. Chỉ sau khi người dùng/QA chấp nhận cách đọc mới chuyển geometry này sang PlantUML + deterministic post-process nếu renderer không tự giữ được đường nối.
+- File prototype trong conversation: `Hinh_2_9_layout_prototype_v3.png`.
+- NEXT nếu prototype được chấp nhận: implement geometry vào canonical `.puml`, render CI thật, post-process connector geometry nếu cần, rồi visual QA A4.
+
+### THESIS-R1 — Hình 2.9 visual candidate v15 — SUPERSEDED / STALE 09/11/2026
 
 - Source commit: `77507a0a687224fe14c1c4ad4d21783d03b99edd`.
 - Render CI: run `42530657648` — PASS.
@@ -566,7 +582,7 @@ Trình bày/in ấn:
   - không connector crossing;
   - 10 UC summary và primary actor mapping không đổi.
 - Chưa gọi final visual PASS vì ELK kết thúc association ở actor-node bounding box, tạo một khoảng hở nhỏ trước stick figure ở một số actor. Đây là renderer/layout artifact, không phải semantic disconnect.
-- Nếu review chấp nhận readability của v15, dùng làm visual baseline; nếu không, chỉ post-process đoạn actor endpoint, không mở lại UC semantic/layout model.
+- v15 **không còn là visual baseline** sau human review. Visual baseline mới phải theo `UML production discipline / visual gate v3` + `Hình 2.9 visual contract v2`.
 
 ### THESIS-R1 — Hình 2.9 System Use Case tổng quan — VISUAL REOPENED 09/11/2026
 
