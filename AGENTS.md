@@ -30,7 +30,7 @@
 4. Nested `AGENTS.md` của vùng code sẽ sửa, nếu có.
 5. Code/test hiện hành mà task chạm tới.
 
-**Riêng THESIS/UML:** sau bước 2 phải đọc mục `THESIS-R1 — HUIT UML Visual & Semantic Profile v2` và checkpoint/handoff THESIS-R1 mới nhất trong `SCOPE.md` trước khi audit/vẽ. Không dùng chat memory để nhớ shape/notation. Khi bắt đầu **một loại sơ đồ mới**, nếu bộ bài giảng gốc đang khả dụng thì chỉ spot-check đúng chương/trang nguồn đã ghi trong profile; không cần tải lại toàn bộ bài giảng.
+**Riêng THESIS/UML:** đây là **THESIS session, không implement code; chỉ dùng `main` để verify claim implementation**. Mọi chỉnh sửa báo cáo/UML/checkpoint thực hiện trên nhánh thesis hiện hành; không sửa source code ứng dụng trong session này. Khi cần xác minh capability thật, đọc `main`/active implementation branch mới nhất làm evidence nhưng không chuyển source of truth THESIS sang nhánh code. Sau bước 2 phải đọc mục `THESIS-R1 — HUIT UML Visual & Semantic Profile v2` và checkpoint/handoff THESIS-R1 mới nhất trong `SCOPE.md` trước khi audit/vẽ. Không dùng chat memory để nhớ shape/notation. Khi bắt đầu **một loại sơ đồ mới**, nếu bộ bài giảng gốc đang khả dụng thì chỉ spot-check đúng chương/trang nguồn đã ghi trong profile; không cần tải lại toàn bộ bài giảng.
 
 Chỉ đọc thêm khi cần:
 - `backend/contracts/README.md`: khi endpoint/DTO/error/contract liên quan.
