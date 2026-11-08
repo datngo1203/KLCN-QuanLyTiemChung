@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact print layout
+' HUIT UML Visual Profile v1 - compact-fixed layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -20,14 +20,16 @@ start
 :Đánh giá tình trạng\ntại thời điểm khám;
 :Ghi nhận kết quả khám sàng lọc\nvà kết luận chuyên môn;
 
-if (Kết luận chuyên môn?) then (Đủ điều kiện)
+if (Đủ điều kiện tiêm?) then (Có)
   :Ghi nhận chỉ định vắc xin\nphù hợp cho lần phục vụ;
   stop
-elseif (Tạm hoãn) then (Tạm hoãn)
-  :Ghi nhận kết quả\nvà lý do tạm hoãn;
-  stop
-else (Chống chỉ định / cần đánh giá thêm)
-  :Ghi nhận kết luận tương ứng\nvà dừng luồng thông thường;
-  stop
+else (Không)
+  if (Tạm hoãn?) then (Có)
+    :Ghi nhận kết quả\nvà lý do tạm hoãn;
+    stop
+  else (Không)
+    :Ghi nhận kết luận chống chỉ định\nhoặc cần đánh giá thêm;
+    stop
+  endif
 endif
 @enduml

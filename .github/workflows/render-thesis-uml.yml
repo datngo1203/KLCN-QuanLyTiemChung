@@ -37,6 +37,33 @@ jobs:
           for f in "${files[@]}"; do
             java -Djava.awt.headless=true -jar plantuml.jar -charset UTF-8 -tpng "$f"
           done
+
+      - name: Add full outer frame to Activity diagrams
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops, ImageDraw, ImageOps
+
+          for path in sorted(Path("docs/thesis/uml").glob("Hinh_2_*_Activity_*.png")):
+              img = Image.open(path).convert("RGB")
+              white = Image.new("RGB", img.size, "white")
+              bbox = ImageChops.difference(img, white).getbbox()
+              if bbox:
+                  img = img.crop(bbox)
+              img = ImageOps.expand(img, border=14, fill="white")
+              draw = ImageDraw.Draw(img)
+              w, h = img.size
+              draw.rectangle((1, 1, w - 2, h - 2), outline="black", width=2)
+              img.save(path, dpi=(180, 180))
+          PY
+
+      - name: Collect rendered UML
+        shell: bash
+        run: |
+          set -euo pipefail
           cp docs/thesis/uml/*.png uml-rendered/
           ls -lh uml-rendered
 

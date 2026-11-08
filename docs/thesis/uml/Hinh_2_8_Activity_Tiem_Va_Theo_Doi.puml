@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact print layout
+' HUIT UML Visual Profile v1 - compact-fixed layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -20,21 +20,21 @@ start
 
 if (Thông tin trước tiêm\nđã thống nhất?) then (Có)
 else (Không)
-  :Chưa thực hiện mũi tiêm;\nlàm rõ sai lệch và chỉ tiếp tục\nkhi thông tin đã thống nhất;
+  :Chưa thực hiện mũi tiêm;\nlàm rõ sai lệch trước khi tiếp tục;
 endif
 
 :Thực hiện mũi tiêm theo chỉ định;
-:Ghi nhận mũi tiêm đã thực hiện\ngắn với đúng Người được tiêm,\nvắc xin/lô và thời điểm tiêm;
+:Ghi nhận mũi tiêm đã thực hiện\ngắn với Người được tiêm,\nvắc xin/lô và thời điểm tiêm;
 
 |Người được tiêm|
 :Theo dõi sau tiêm tại trung tâm;
 
 |Điều dưỡng|
-if (Phát sinh tình trạng\ncần xử lý chuyên môn?) then (Có)
+if (Có tình trạng cần\nxử lý chuyên môn?) then (Có)
   :Ghi nhận diễn biến và kết quả\nxử lý theo quy trình của cơ sở;
 else (Không)
 endif
 :Ghi nhận tình trạng theo dõi sau tiêm\nvà hướng dẫn tiếp tục theo dõi;
-:Xác nhận mũi tiêm và thông tin theo dõi\nđược bổ sung vào lịch sử tiêm chủng;
+:Xác nhận thông tin mũi tiêm và theo dõi\nđược bổ sung vào lịch sử tiêm chủng;
 stop
 @enduml

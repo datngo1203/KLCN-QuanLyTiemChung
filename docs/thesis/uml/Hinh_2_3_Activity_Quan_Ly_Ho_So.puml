@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact print layout
+' HUIT UML Visual Profile v1 - compact-fixed layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -14,7 +14,7 @@ skinparam dpi 180
 
 |Khách hàng|
 start
-:Cung cấp thông tin cần thiết\nkhi yêu cầu sử dụng dịch vụ;
+:Cung cấp thông tin cần thiết\ncho việc sử dụng dịch vụ;
 
 |Lễ tân|
 :Làm rõ Khách hàng, Người được tiêm\nvà mối liên hệ giữa hai đối tượng;
@@ -29,9 +29,9 @@ endif
 if (Thông tin nhận dạng và\nmối liên hệ đã rõ?) then (Có)
 else (Không)
   |Khách hàng|
-  :Bổ sung/làm rõ thông tin;
+  :Bổ sung hoặc làm rõ thông tin;
   |Lễ tân|
-  :Đối chiếu lại thông tin\nvà xác định đúng chủ thể;
+  :Đối chiếu lại và xác định\nđúng chủ thể;
 endif
 
 :Xác nhận mối liên hệ giữa\nKhách hàng và Người được tiêm khi cần;

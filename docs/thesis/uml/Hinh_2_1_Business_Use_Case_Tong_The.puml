@@ -5,11 +5,12 @@ skinparam shadowing false
 skinparam backgroundColor white
 skinparam defaultFontName "Times New Roman"
 skinparam defaultFontSize 16
-skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
+skinparam UsecaseBackgroundColor white
 skinparam RectangleBorderColor black
-skinparam packageStyle rectangle
+skinparam RectangleBackgroundColor white
+skinparam linetype ortho
 skinparam dpi 180
 
 top to bottom direction
@@ -34,13 +35,13 @@ rectangle "TRUNG TÂM TIÊM CHỦNG" as BusinessBoundary {
   BUC6 -[hidden]down- BUC7
 }
 
-' Association Actor–Use Case: solid line, no arrowhead
 Supplier -right- BUC1
-BUC4 -right- Customer
-Customer -- BUC2
-Customer -- BUC3
-Customer -- BUC5
-Customer -- BUC6
-Customer -- BUC7
+Customer -left- BUC2
+Customer -left- BUC3
+Customer -left- BUC4
+Customer -left- BUC5
+Customer -left- BUC6
+Customer -left- BUC7
+BUC4 -[hidden]right- Customer
 
 @enduml

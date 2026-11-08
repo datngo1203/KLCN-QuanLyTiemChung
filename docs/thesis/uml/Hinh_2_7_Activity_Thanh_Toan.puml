@@ -1,5 +1,5 @@
 @startuml
-' HUIT UML Visual Profile v1 - compact print layout
+' HUIT UML Visual Profile v1 - compact-fixed layout
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -34,7 +34,7 @@ if (Giao dịch hoàn tất?) then (Có)
   stop
 else (Không)
   :Ghi nhận trạng thái không thành công,\nbị hủy hoặc còn chờ xử lý;
-  :Nghĩa vụ tài chính\nchưa được xem là hoàn tất;
+  :Xác nhận nghĩa vụ tài chính\nchưa hoàn tất;
   stop
 endif
 @enduml
