@@ -18,6 +18,16 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 ### ACTIVE
 - **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2A DONE:** đã đưa sequence diagram sang Chương 3, giữ sơ đồ lớp mức phân tích ở Chương 2, giữ lớp mức thiết kế + mô hình quan hệ ở Chương 3. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2A.docx`, SHA-256 `1619cd517a5701ea70d099b090faaea42b378232b0e0192c2cf93a4e1d5c4e10`. **ACTIVE tiếp theo:** Patch 2B chuẩn hóa Chương 2 theo dependency flow đã khóa.
 
+### THESIS-R1 — khóa bố cục đặc tả và sơ đồ
+
+Theo góp ý giảng viên, **mỗi sơ đồ phải đặt ngay sau bảng đặc tả tương ứng để người đọc quan sát liên tục**:
+- Phần nghiệp vụ: mỗi bảng đặc tả Use Case nghiệp vụ → ngay sau đó là sơ đồ hoạt động/luồng nghiệp vụ tương ứng.
+- Phần hệ thống: mỗi bảng đặc tả Use Case hệ thống → ngay sau đó là sơ đồ tuần tự tương ứng.
+- Không gom toàn bộ activity diagram hoặc sequence diagram thành một cụm xa bảng đặc tả.
+- Thứ tự các cặp **đặc tả → sơ đồ** phải đi theo dependency của quy trình thực tế, không theo mã UC cũ nếu mã cũ làm sai luồng.
+- Chương 3 vẫn dành cho thiết kế tổng thể/dữ liệu/lớp và các nội dung thiết kế không gắn trực tiếp với một bảng đặc tả Use Case cụ thể.
+- Quy tắc này ưu tiên tính dễ theo dõi theo góp ý giảng viên, kể cả khi một sequence diagram về mặt UML có thể được xem là nội dung thiết kế.
+
 ### THESIS-R1 — khóa thể thức trình bày
 
 Khi chỉnh `CNTT_KLCN090_Tuan12.docx`, **bắt buộc bám đúng mẫu chính thức của Khoa; không tự đổi format**:
