@@ -22,28 +22,27 @@ CFG = {
         dict(label=": Lô vắc xin", y=1080, target=(610,1115), mode="write"),
         dict(label=": Tồn kho", y=1240, target=(610,1115), mode="write"),
     ]),
-    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(side="right", panel=340, entities=[
+    "Hinh_2_3_Activity_Quan_Ly_Ho_So.png": dict(side="right", panel=260, entities=[
         dict(label=": Hồ sơ khách hàng", y=465, target=(930,465), mode="read"),
         dict(label=": Hồ sơ người được tiêm", y=660, target=(1080,620), mode="write"),
     ]),
-    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(side="right", panel=340, entities=[
+    "Hinh_2_4_Activity_Dang_Ky_Dich_Vu.png": dict(side="right", panel=320, entities=[
         dict(label=": Hồ sơ người được tiêm", y=330, target=(650,330), mode="read"),
         dict(label=": Đăng ký dịch vụ", y=875, target=(625,870), mode="write"),
     ]),
-    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(side="right", panel=340, entities=[
+    "Hinh_2_5_Activity_Quan_Ly_Lich_Hen.png": dict(side="right", panel=260, entities=[
         dict(label=": Đăng ký dịch vụ", y=335, target=(1030,350), mode="read"),
         dict(label=": Lịch hẹn", y=520, target=(1015,495), mode="write"),
     ]),
-    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(side="right", panel=360, title="Bác sĩ", top_pad=34, entities=[
-        dict(label=": Hồ sơ người được tiêm", y=240, target=(650,260), mode="read"),
-        dict(label=": Lịch sử tiêm chủng", y=365, target=(650,260), mode="read"),
+    "Hinh_2_6_Activity_Kham_Sang_Loc.png": dict(side="right", panel=260, title="Bác sĩ", top_pad=34, entities=[
+        dict(label=": Hồ sơ người được tiêm", y=260, target=(650,260), mode="read"),
         dict(label=": Kết quả khám / chỉ định", y=575, target=(650,515), mode="write"),
     ]),
-    "Hinh_2_7_Activity_Thanh_Toan.png": dict(side="left", panel=340, entities=[
+    "Hinh_2_7_Activity_Thanh_Toan.png": dict(side="left", panel=260, entities=[
         dict(label=": Đăng ký dịch vụ", y=240, target=(430,235), mode="read"),
         dict(label=": Giao dịch thanh toán", y=1090, target=(420,1100), mode="write"),
     ]),
-    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(side="left", panel=340, entities=[
+    "Hinh_2_8_Activity_Tiem_Va_Theo_Doi.png": dict(side="left", panel=320, entities=[
         dict(label=": Lô vắc xin", y=340, target=(335,335), mode="read"),
         dict(label=": Mũi tiêm đã thực hiện", y=765, target=(330,760), mode="write"),
         dict(label=": Theo dõi sau tiêm", y=1360, target=(340,1360), mode="write"),
