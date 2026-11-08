@@ -388,32 +388,24 @@ Trình bày/in ấn:
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 - **UML density optimization:** giữ Hình 2.1 nếu bố cục tổng thể đang rõ; với Activity ưu tiên compact wording/merge/gộp action trước khi đổi hướng bố cục. Không đổi sang landscape hoặc hai cột chỉ để tiết kiệm trang nếu làm giảm khả năng đọc. Mục tiêu thực tế là giảm khoảng trắng thị giác và số trang khi có thể, không ép đạt một số trang cụ thể.
 
-### THESIS-R1 — Patch 2D.3e Business Entity/ObjectFlow cleanup DONE
+### THESIS-R1 — Patch 2D.3f Shape-aware ObjectFlow anchoring DONE
 
 - **Hình 2.1** giữ nguyên layout Business Use Case đã duyệt.
-- **Hình 2.2–2.8** tiếp tục dùng bản compact của 2D.3d: Activity ưu tiên thể hiện flow, không lặp bảng đặc tả; không giảm font.
-- **Entity justification gate đã áp thật vào từng sơ đồ**: chỉ giữ entity khi có activity cụ thể đọc/nhận hoặc tạo/ghi/cập nhật nó.
-  - **2.2 Nhập vắc xin:** giữ `Chứng từ giao nhận` (đầu vào cho bước đối chiếu) và `Lô vắc xin` (đầu ra được ghi nhận khi xác nhận tiếp nhận); **bỏ `Tồn kho` khỏi hình** vì trong sơ đồ này nó làm tăng nhiễu hơn giá trị giải thích, trong khi action `ghi nhận lô/tồn` đã thể hiện hệ quả tồn kho.
-  - **2.3 Quản lý hồ sơ:** `Hồ sơ khách hàng` là dữ liệu được tra cứu; `Hồ sơ người được tiêm` là dữ liệu được tạo/cập nhật trong nhánh quản lý hồ sơ.
-  - **2.4 Đăng ký dịch vụ:** `Hồ sơ người được tiêm` là đầu vào để xác định đúng chủ thể; `Đăng ký dịch vụ` là đầu ra của bước ghi nhận đăng ký.
-  - **2.5 Quản lý lịch hẹn:** `Đăng ký dịch vụ` là nguồn để tiếp nhận/sắp xếp lịch; `Lịch hẹn` là dữ liệu được tạo/xác nhận và tiếp tục được thay đổi trong vòng đời lịch.
-  - **2.6 Khám sàng lọc:** `Hồ sơ người được tiêm` là đầu vào cho bước xem hồ sơ; đầu ra đổi thành **`Kết quả khám sàng lọc`** thay vì `Kết quả khám/chỉ định` để không gộp mơ hồ hai khái niệm; chỉ định vẫn được thể hiện bằng action riêng ở nhánh đủ điều kiện.
-  - **2.7 Thanh toán:** `Đăng ký dịch vụ` là dữ liệu đầu vào để đối chiếu nghĩa vụ; `Giao dịch thanh toán` là bằng chứng nghiệp vụ được ghi nhận khi giao dịch hoàn tất. Trạng thái chưa hoàn tất vẫn thể hiện bằng action nhánh phụ, không thêm entity thứ ba.
-  - **2.8 Tiêm và theo dõi:** `Lô vắc xin` là đầu vào đối chiếu trước tiêm; `Mũi tiêm đã thực hiện` là kết quả của hành động tiêm; `Theo dõi sau tiêm` là dữ liệu được ghi nhận sau quan sát/xử lý.
-- **ObjectFlow geometry đã khóa:** entity đặt gần activity liên quan nhất, ưu tiên cùng cao độ; connector **thẳng từ rìa entity đến rìa activity**, không đi qua gutter, không nối vào tâm shape, không cắt activity/decision khác. Entity có thể đặt trái/phải khác nhau giữa các hình nếu giúp đường ngắn và sạch.
-- **Shape-aware anchoring bắt buộc:** pipeline phải xác định **biên thật của Activity/Decision sau khi PlantUML render** rồi mới tính điểm neo. Tọa độ cấu hình/hint chỉ dùng để nhận diện node mục tiêu, **không được dùng trực tiếp làm endpoint ObjectFlow**.
-- Với Activity/action, endpoint nằm tại giao điểm giữa đường nối và **mép rounded rectangle** gần entity nhất; với Decision/Merge, endpoint nằm tại **mép hình thoi**; với Business Entity, endpoint nằm tại **chu vi hình tròn**, không nối từ tâm.
-- Nếu pipeline không xác định chắc chắn được biên shape, phải **fail render để review**, không fallback âm thầm về hard-coded pixel endpoint.
-- Shape-aware rule này áp dụng cho **mọi sơ đồ về sau có ObjectFlow/entity connector**, không chỉ Hình 2.2–2.8.
-- Quy ước hướng vẫn giữ: **Business Entity → Activity = đọc/nhận**, **Activity → Business Entity = tạo/ghi/cập nhật**.
-- Pipeline render reproducible vẫn dùng PlantUML → `docs/thesis/uml/postprocess_activity.py`; script có guard kích thước base để fail nếu source đổi mà chưa review lại tọa độ ObjectFlow.
-- Paragraph chứa Activity vẫn **Before = 8 pt / After = 0**; ảnh chèn Word khóa aspect ratio.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3e_BusinessEntityRouting_Final.docx`, SHA-256 `9467cc971426188f309746b76d819a73b8f467e7ae5988bcd5b93864194186ea`.
+- **Hình 2.2–2.8** giữ semantic/entity set của 2D.3e; patch này chỉ sửa **geometry/routing ObjectFlow** và cách chèn kích thước ảnh.
+- **Shape-aware anchoring đã áp thật trong pipeline:** mỗi entity config chỉ giữ một `hint` nằm bên trong Activity/Decision mục tiêu; sau PlantUML render, `postprocess_activity.py` dùng contour thật của node để xác định bounding box và giao điểm cạnh gần entity nhất. `hint` không còn là endpoint.
+- Endpoint:
+  - Business Entity: chu vi hình tròn;
+  - Activity/action: mép rounded rectangle gần entity;
+  - Decision/Merge: contour hình thoi nếu dùng về sau.
+- ObjectFlow giữ **đường ngang thẳng edge-to-edge**, ưu tiên khoảng cách ngắn; pipeline kiểm route/overlap và **fail render** nếu không tìm được shape, hint mơ hồ hoặc không đặt entity sạch được. Không fallback về hard-coded endpoint.
+- Rule shape-aware này là **mặc định bắt buộc cho mọi sơ đồ về sau có entity/ObjectFlow connector**.
+- Render workflow `.github/workflows/render-thesis-uml.yml` cài OpenCV để nhận diện contour; workflow run `42511622316` PASS.
+- Khi chèn Word, ảnh mới giữ **chiều cao vật lý của từng hình theo baseline 2D.3e** và tính lại width theo aspect ratio mới; không kéo độc lập width/height. Cách này giữ readability và pagination **88 trang**.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3f_ShapeAwareObjectFlow_Final.docx`, SHA-256 `1730215ea9f81d2c08ea5166f77c52e408e45d620d1d7603c1ee18433644d776`.
 - Render QA: **88 trang PASS**.
-  - **81/88 trang pixel-identical** với baseline 2D.3d.
+  - **81/88 trang pixel-identical** với 2D.3e.
   - Chỉ trang **39, 41, 43, 45, 46, 47, 49** thay đổi; toàn bộ đã kiểm trực quan ở 100%.
-  - System UC/đặc tả hệ thống không bị sửa semantic/layout.
-- Khoảng trắng còn lại tiếp tục được chấp nhận có chủ đích khi nguyên nhân là hàng bảng đặc tả `cantSplit`; không phá bảng hoặc giảm font UML chỉ để tiết kiệm thêm trang.
+  - Trang 50–88 pixel-identical baseline 2D.3e; System UC/đặc tả hệ thống không bị sửa semantic/layout.
 - **System UML vẫn PARKED**; chưa redraw/chỉnh.
 - **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
