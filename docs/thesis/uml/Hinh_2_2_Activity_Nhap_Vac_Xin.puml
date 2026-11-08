@@ -1,0 +1,31 @@
+@startuml
+' HUIT UML Visual Profile v1 - compact print layout
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+
+|Nhà cung cấp|
+start
+:Bàn giao lô vắc xin\nvà chứng từ giao nhận;
+
+|Nhân viên kho|
+:Đối chiếu lô thực nhận với chứng từ;\nKiểm tra bao bì, điều kiện giao nhận\nvà nhiệt độ vận chuyển (nếu có);
+
+if (Đủ căn cứ tiếp nhận?) then (Có)
+else (Không)
+  :Giữ lô tách biệt và\nlàm rõ sai lệch với Nhà cung cấp;
+  if (Sai lệch đã được xử lý?) then (Có)
+  else (Không)
+    :Ghi nhận trạng thái\nchưa tiếp nhận;
+    stop
+  endif
+endif
+
+:Xác nhận tiếp nhận;\nGhi nhận thông tin lô;
+:Phân loại, sắp xếp lô\nđể tiếp tục bảo quản;
+:Cập nhật nguồn lô/tồn;
+stop
+@enduml
