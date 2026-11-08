@@ -513,14 +513,15 @@ Trình bày/in ấn:
      - UC10 Tra cứu dịch vụ tiêm chủng
      - UC11 Đăng ký dịch vụ tiêm chủng
      - UC12 Quản lý lịch hẹn
-     - UC14 Tự động nhắc lịch và liên hệ theo lịch
+     - UC13 Gửi nhắc lịch
      - UC15 Ghi nhận khám sàng lọc và chỉ định
      - UC16 Thanh toán dịch vụ
      - UC17 Ghi nhận mũi tiêm
      - UC18 Ghi nhận theo dõi sau tiêm
      - UC19 Theo dõi hành trình tiêm chủng
-   - Actor hiển thị: **Khách hàng, Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng, Thời gian**.
-   - Không hiển thị actor hierarchy, Dịch vụ thư điện tử, Admin, Nhân viên kho hay các UC account/admin/support ở summary; các quan hệ đó được thể hiện ở detail view.
+   - Actor hiển thị: **Khách hàng, Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng**.
+   - Không hiển thị actor hierarchy, **Thời gian**, Dịch vụ thư điện tử, Admin, Nhân viên kho hay các UC account/admin/support ở summary; các quan hệ đó được thể hiện ở detail view.
+   - UC14 **Tự động nhắc lịch và liên hệ theo lịch** vẫn thuộc model 21 UC nhưng chỉ xuất hiện ở Hình 2.11 chi tiết; summary dùng UC13 **Gửi nhắc lịch** để giữ góc nhìn actor–goal trực quan.
    - Không dùng mũi tên UC→UC để kể thứ tự. Vị trí chỉ phục vụ đọc từ trái/phải và trên/xuống.
 
 2. **Hình 2.10 — Sơ đồ Use Case nhóm tài khoản và hồ sơ**
