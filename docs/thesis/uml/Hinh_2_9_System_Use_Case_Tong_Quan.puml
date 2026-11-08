@@ -1,7 +1,6 @@
 @startuml
-!pragma layout elk
 ' THESIS-R1 — Hình 2.9 System Use Case summary
-' One visible symbol per actor; orthogonal connectors for print readability.
+' One visible symbol per actor. Graphviz polyline routing, no directional association hints.
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -11,9 +10,9 @@ skinparam ArrowColor black
 skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
-skinparam linetype ortho
-skinparam nodesep 30
-skinparam ranksep 32
+skinparam linetype polyline
+skinparam nodesep 28
+skinparam ranksep 30
 skinparam dpi 180
 
 top to bottom direction
@@ -38,12 +37,11 @@ rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
 
-  ' Left customer-facing column.
+  ' Two-column semantic-free layout constraints.
   UC09 -[hidden]down- UC10
   UC10 -[hidden]down- UC11
   UC11 -[hidden]down- UC19
 
-  ' Right operational column.
   UC12 -[hidden]down- UC13
   UC13 -[hidden]down- UC15
   UC15 -[hidden]down- UC16
@@ -63,17 +61,17 @@ Doctor -[hidden]down- Cashier
 Cashier -[hidden]down- Nurse
 
 ' Primary/representative actor associations only.
-Customer -right- UC09
-Customer -right- UC10
-Customer -right- UC11
-Customer -right- UC19
+Customer -- UC09
+Customer -- UC10
+Customer -- UC11
+Customer -- UC19
 
-Reception -right- UC12
-Reception -right- UC13
+Reception -- UC12
+Reception -- UC13
 
-UC15 -right- Doctor
-UC16 -right- Cashier
-UC17 -right- Nurse
-UC18 -right- Nurse
+UC15 -- Doctor
+UC16 -- Cashier
+UC17 -- Nurse
+UC18 -- Nurse
 
 @enduml
