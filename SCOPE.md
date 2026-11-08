@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.4 DONE:** mở rộng riêng mục `1.3. CÁC QUY TRÌNH NGHIỆP VỤ` bằng chi tiết thực tế có nguồn và relevance gate; P1–P7 hiện mỗi quy trình khoảng nửa trang trở lên, vẫn giữ trigger → actor/action → dữ liệu đọc/ghi → nhánh → kết quả/next process. Không sửa nội dung biểu mẫu 1.4 và chưa viết lại Chương 2. Bổ sung nguồn VNVC/WHO/Bộ Y tế [17]–[23]; P1 có thêm packaging/presentation, số liều/lọ, quy cách, dung môi, cold-chain và trạng thái biệt trữ; P5 giới hạn QĐ 1575/QĐ-BYT đúng phạm vi trẻ em; P7 bổ sung đối chiếu vắc xin/lô/hạn/dung môi/liều/đường dùng và theo dõi sau tiêm. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C4_Final.docx`, SHA-256 `71dd4993a6e68656e36c372569ebec759aae174cedec4d124ef6d27780dbc90f`. Render QA 88 trang PASS; TOC đã có field thật và cache số trang cùng danh mục hình/bảng đã đồng bộ. **ACTIVE tiếp theo:** Patch 2D viết lại Chương 2 theo đúng P1–P7/canonical terminology; redraw UML chỉ sau khi đặc tả text PASS.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.4a DONE:** làm sạch văn phong Chương 1 sau khi mở rộng khảo sát: bỏ toàn bộ ký hiệu P1–P7 khỏi văn xuôi, thay bằng tên nghiệp vụ đầy đủ; bỏ các mốc T-48/T-24, D+3/D+7 khỏi phần khảo sát lịch hẹn vì đây là rule hệ thống, không phải fact khảo sát; chuyển citation `[n]` trong thân bài thành internal hyperlink tới đúng mục `[n]` ở Tài liệu tham khảo. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C4a_Final.docx`, SHA-256 `3f80ff4eb705f08a8699726e81371301ab160fc205b60290dc514f5b96016f56`. Render QA 88 trang PASS; 23 reference bookmarks + 19 internal citation links đã kiểm cấu trúc. **ACTIVE tiếp theo:** mở chat mới rồi Patch 2D Chương 2.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -180,6 +180,14 @@ Có thể khảo sát và trình bày khi có nguồn chính thức:
 - Với nguồn thực tế, ưu tiên VNVC chính thức, văn bản Chính phủ/Bộ Y tế hoặc nguồn chính thức tương đương; không lấy bản cũ của sinh viên làm Source of Truth.
 - P1 **Nhập vắc xin từ nhà cung cấp** là luồng hỗ trợ; P2→P7 là hành trình phục vụ chính; P4 lịch hẹn và P6 thanh toán có thể là nhánh điều kiện.
 - Nội dung biểu mẫu ở 1.4 được xử lý ở patch riêng; không dùng việc chỉnh 1.1–1.3 để âm thầm thay đổi nội dung biểu mẫu.
+
+### THESIS-R1 — khóa cách gọi nghiệp vụ trong văn xuôi và citation navigation
+
+- Các ký hiệu kỹ thuật nội bộ như `P1`…`P7` chỉ được dùng trong planning/audit nội bộ; **không xuất hiện trong văn xuôi khóa luận**. Trong báo cáo phải dùng tên nghiệp vụ đầy đủ hoặc cách gọi ngắn đã rõ ngữ cảnh.
+- Các mốc automation riêng của hệ thống như T-48/T-24, D+3/D+7 **không đặt trong phần khảo sát nghiệp vụ thực tế**. Nếu cần, chúng thuộc yêu cầu/chức năng hệ thống hoặc phần cài đặt/kiểm thử.
+- Citation số dạng `[n]` trong thân bài phải là **internal hyperlink** tới đúng mục `[n]` trong Tài liệu tham khảo khi file DOCX cho phép.
+- Mỗi mục Tài liệu tham khảo giữ bookmark ổn định để citation có thể nhảy tới đúng nguồn; không dùng hyperlink để thay thế nghĩa vụ trích dẫn hoặc nội dung nguồn.
+- Khi citation nằm cạnh nhau, có thể giữ dạng `[20][21]` hoặc chuẩn hóa sau theo format citation cuối cùng; mỗi số phải trỏ đúng bookmark tương ứng.
 
 ### THESIS-R1 — khóa từ điển nghiệp vụ, actor và dữ liệu canonical
 
