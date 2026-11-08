@@ -1,4 +1,5 @@
 @startuml
+!pragma layout elk
 ' HUIT UML Visual Profile v1
 skinparam monochrome true
 skinparam shadowing false
@@ -10,7 +11,6 @@ skinparam UsecaseBorderColor black
 skinparam UsecaseBackgroundColor white
 skinparam RectangleBorderColor black
 skinparam RectangleBackgroundColor white
-skinparam linetype polyline
 skinparam dpi 180
 
 top to bottom direction
