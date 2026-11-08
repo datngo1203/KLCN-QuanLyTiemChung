@@ -368,6 +368,14 @@ Trình bày/in ấn:
 - Mỗi tiểu mục giữ adjacency đã khóa: **heading → bảng đặc tả → sơ đồ/caption**, không thêm prose lặp lại nội dung bảng/hình.
 - Một sơ đồ chỉ đưa các thành phần có ý nghĩa cho mục tiêu của sơ đồ; ưu tiên rõ ràng hơn “đầy đủ mọi object”.
 
+### THESIS-R1 — Patch 2D.3 figure checkpoint
+
+- **Hình 2.1 Business Use Case tổng thể PASS.**
+- Source PlantUML canonical: `docs/thesis/uml/Hinh_2_1_Business_Use_Case_Tong_The.puml`.
+- Business Actor chỉ gồm **Nhà cung cấp** và **Khách hàng**; Lễ tân/Bác sĩ/Thu ngân/Điều dưỡng/Nhân viên kho là vai trò nội bộ và không được vẽ thành Business Actor ngoài business boundary.
+- Association Actor–Use Case dùng **đường liền không mũi tên** theo HUIT UML Visual Profile v1.
+- **ACTIVE:** Activity Diagram `Nhập vắc xin từ nhà cung cấp`, dựng trực tiếp từ bảng Business Use Case đã khóa; chưa chèn DOCX trước khi hình PASS.
+
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
 - **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Ví dụ trong bài giảng không tự mở rộng chức năng của đồ án.
