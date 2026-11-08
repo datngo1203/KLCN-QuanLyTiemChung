@@ -368,16 +368,25 @@ Trình bày/in ấn:
 - Mỗi tiểu mục giữ adjacency đã khóa: **heading → bảng đặc tả → sơ đồ/caption**, không thêm prose lặp lại nội dung bảng/hình.
 - Một sơ đồ chỉ đưa các thành phần có ý nghĩa cho mục tiêu của sơ đồ; ưu tiên rõ ràng hơn “đầy đủ mọi object”.
 
-### THESIS-R1 — Patch 2D.3 figure checkpoint
+### THESIS-R1 — Patch 2D.3 business UML checkpoint
 
-- **Hình 2.1 Business Use Case tổng thể PASS.**
-- Source PlantUML canonical: `docs/thesis/uml/Hinh_2_1_Business_Use_Case_Tong_The.puml`.
-- Business Actor chỉ gồm **Nhà cung cấp** và **Khách hàng**; Lễ tân/Bác sĩ/Thu ngân/Điều dưỡng/Nhân viên kho là vai trò nội bộ và không được vẽ thành Business Actor ngoài business boundary.
-- Association Actor–Use Case dùng **đường liền không mũi tên** theo HUIT UML Visual Profile v1.
-- **Hình 2.2 Activity “Nhập vắc xin từ nhà cung cấp” PASS.**
-- Source PlantUML canonical: `docs/thesis/uml/Hinh_2_2_Activity_Nhap_Vac_Xin.puml`.
-- Layout Hình 2.2 dùng bản **compact print layout** đã duyệt: 2 swimlane Nhà cung cấp/Nhân viên kho, nhánh sai lệch merge về luồng tiếp nhận khi xử lý được, không dùng `left to right direction` vì xung đột cú pháp Activity swimlane mới của PlantUML.
-- **ACTIVE tiếp theo:** Activity Diagram `Tiếp nhận và quản lý hồ sơ khách hàng/người được tiêm`, dựng trực tiếp từ bảng Business Use Case đã khóa; chưa chèn DOCX trước khi hình PASS.
+- **Hình 2.1 Business Use Case tổng thể PASS** và đã chèn vào artifact; source canonical: `docs/thesis/uml/Hinh_2_1_Business_Use_Case_Tong_The.puml`.
+- **Hình 2.2–2.8 Activity Diagram của 7 Business Use Case PASS** và đã chèn một lượt vào artifact.
+- Source canonical:
+  - `docs/thesis/uml/Hinh_2_2_Activity_Nhap_Vac_Xin.puml`
+  - `docs/thesis/uml/Hinh_2_3_Activity_Quan_Ly_Ho_So.puml`
+  - `docs/thesis/uml/Hinh_2_4_Activity_Dang_Ky_Dich_Vu.puml`
+  - `docs/thesis/uml/Hinh_2_5_Activity_Quan_Ly_Lich_Hen.puml`
+  - `docs/thesis/uml/Hinh_2_6_Activity_Kham_Sang_Loc.puml`
+  - `docs/thesis/uml/Hinh_2_7_Activity_Thanh_Toan.puml`
+  - `docs/thesis/uml/Hinh_2_8_Activity_Tiem_Va_Theo_Doi.puml`
+- PlantUML render được thực hiện reproducibly bằng workflow `.github/workflows/render-thesis-uml.yml`; workflow run `42501071781` PASS và artifact PNG được dùng để chèn Word.
+- Layout dùng **compact print layout**: không page-break cưỡng bức; hình được scale theo max width ~14 cm / max height ~19,5 cm để giảm khoảng trắng nhưng vẫn đọc được khi in.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3_BusinessUML_Final.docx`, SHA-256 `1d405e9042b9310321b2c2f5b8e93075f7753f1e871b7debeb515ca0c759d2ba`.
+- Render QA: **88 trang PASS**. Trang 1–35 pixel-identical với baseline; trang 36–49 (vùng Business UML) đã kiểm trực quan; từ trang 50 trở đi thân trang pixel-identical baseline sau khi bù dịch +1 trang, tức **phần System Use Case/đặc tả hệ thống không bị sửa semantic/layout**, ngoài số trang dịch do 2.1 dài thêm.
+- **System Use Case Diagram Hình 2.9 và phần system UML vẫn PARKED/stale theo checkpoint trước; chưa redraw/chỉnh trong Patch 2D.3.**
+- TOC/Danh mục hình chưa refresh cuối vì System UML còn PARKED và sẽ tiếp tục làm thay đổi pagination/figure list ở patch sau.
+
 
 ### THESIS-R1 — checkpoint Patch 2D.2 / chuyển sang 2D.3
 
