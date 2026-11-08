@@ -393,24 +393,26 @@ Trình bày/in ấn:
 - Chọn kích thước bằng render QA thực tế: chỉ giữ mức scale nếu chữ/guard/entity/caption vẫn đọc rõ ở bản in và pagination/khoảng trắng thực sự tốt hơn. Không giảm font UML hoặc phá bảng chỉ để đạt một số trang cụ thể.
 - Rule này áp dụng lại cho các sơ đồ sau: sau khi semantic/layout của hình PASS, tối ưu **kích thước chèn** như một bước riêng trước checkpoint cuối.
 
-### THESIS-R1 — Patch 2D.3f Shape-aware ObjectFlow anchoring DONE
+### THESIS-R1 — Patch 2D.3g Adaptive figure sizing DONE
 
-- **Hình 2.1** giữ nguyên layout Business Use Case đã duyệt.
-- **Hình 2.2–2.8** giữ semantic/entity set của 2D.3e; patch này chỉ sửa **geometry/routing ObjectFlow** và cách chèn kích thước ảnh.
-- **Shape-aware anchoring đã áp thật trong pipeline:** mỗi entity config chỉ giữ một `hint` nằm bên trong Activity/Decision mục tiêu; sau PlantUML render, `postprocess_activity.py` dùng contour thật của node để xác định bounding box và giao điểm cạnh gần entity nhất. `hint` không còn là endpoint.
-- Endpoint:
-  - Business Entity: chu vi hình tròn;
-  - Activity/action: mép rounded rectangle gần entity;
-  - Decision/Merge: contour hình thoi nếu dùng về sau.
-- ObjectFlow giữ **đường ngang thẳng edge-to-edge**, ưu tiên khoảng cách ngắn; pipeline kiểm route/overlap và **fail render** nếu không tìm được shape, hint mơ hồ hoặc không đặt entity sạch được. Không fallback về hard-coded endpoint.
-- Rule shape-aware này là **mặc định bắt buộc cho mọi sơ đồ về sau có entity/ObjectFlow connector**.
-- Render workflow `.github/workflows/render-thesis-uml.yml` cài OpenCV để nhận diện contour; workflow run `42511622316` PASS.
-- Khi chèn Word, ảnh mới giữ **chiều cao vật lý của từng hình theo baseline 2D.3e** và tính lại width theo aspect ratio mới; không kéo độc lập width/height. Cách này giữ readability và pagination **88 trang**.
-- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3f_ShapeAwareObjectFlow_Final.docx`, SHA-256 `1730215ea9f81d2c08ea5166f77c52e408e45d620d1d7603c1ee18433644d776`.
-- Render QA: **88 trang PASS**.
-  - **81/88 trang pixel-identical** với 2D.3e.
-  - Chỉ trang **39, 41, 43, 45, 46, 47, 49** thay đổi; toàn bộ đã kiểm trực quan ở 100%.
-  - Trang 50–88 pixel-identical baseline 2D.3e; System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- **Semantic/UML source giữ nguyên 2D.3f**; patch này chỉ tối ưu **kích thước chèn DOCX** theo rule final-size readability, không sửa nội dung, entity set hoặc ObjectFlow.
+- Hình 2.1–2.8 được scale theo một hệ số đồng nhất/ảnh, **khóa aspect ratio**:
+  - Hình 2.1: ~11,33 × 14,50 cm.
+  - Hình 2.2: ~9,84 × 13,50 cm.
+  - Hình 2.3: ~11,55 × 11,50 cm.
+  - Hình 2.4: ~9,02 × 14,50 cm.
+  - Hình 2.5: ~10,43 × 10,80 cm.
+  - Hình 2.6: ~11,56 × 9,00 cm.
+  - Hình 2.7: ~12,13 × 10,20 cm.
+  - Hình 2.8: ~10,26 × 13,50 cm.
+- Đây là **adaptive sizing**, không phải kích thước cứng áp cho mọi sơ đồ sau. Rule tái sử dụng: chọn final size bằng render QA; ưu tiên ~10,5–13,5 cm rộng / 10–15 cm cao, soft cap ~15,5 cm, nhưng readability quyết định cuối cùng.
+- Working artifact: `CNTT_KLCN090_THESIS-R1_Patch2D3g_AdaptiveFigureSizing_Final.docx`, SHA-256 `bcbb73be5e27edf6351dec62e66e02e8b848ada1b6dcfdb77ac21dbf050737b2`.
+- Render QA: **86 trang PASS**, giảm **2 trang** so với 2D.3f mà không giảm font trong source UML.
+  - Trang 1–35 pixel-identical baseline 2D.3f.
+  - Trang 36–47 là vùng reflow Business UML; đã kiểm trực quan từng trang ở 100%.
+  - Trang 48–86: toàn bộ **thân trang pixel-identical** với baseline 2D.3f trang 50–88 sau khi bù dịch +2 trang; System UC/đặc tả hệ thống không bị sửa semantic/layout.
+- Khoảng trắng còn lại ở một số trang bảng đặc tả được chấp nhận có chủ đích vì nguyên nhân là row lớn/cantSplit; không phá bảng hoặc thu nhỏ UML thêm chỉ để ép số trang.
+- **Shape-aware ObjectFlow rule của 2D.3f vẫn giữ nguyên và bắt buộc cho các sơ đồ sau có entity/ObjectFlow.**
 - **System UML vẫn PARKED**; chưa redraw/chỉnh.
 - **Rule persistence:** mọi visual/layout rule người dùng chốt phải được ghi vào `SCOPE.md` trước khi áp sang phần tiếp theo.
 
