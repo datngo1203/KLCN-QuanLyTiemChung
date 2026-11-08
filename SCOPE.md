@@ -16,7 +16,7 @@ Cập nhật: **08/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2C.7b DONE:** hotfix toàn bộ paragraph trong bảng để không kế thừa first-line indent ~0,75 cm từ style thân bài; đặt left/right/first-line indent = 0, xóa tab stop thừa, giữ Times New Roman 12 pt, Multiple 1.3, Before/After 0. Bảng Danh mục ký hiệu/chữ viết tắt đã cân đúng tâm; các bảng Chương 2/4/5 cũng được chuẩn hóa formatting mà không đổi semantic. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2C7b_Final.docx`, SHA-256 `abb6981b1c24557b983f3fb576ec8f7c93a54267415e4d51b2376b35f8689f81`. Render QA 87 trang PASS; 39 trang có bảng thay đổi đã kiểm, các trang còn lại pixel-identical baseline. **Chương 1 vẫn khóa. ACTIVE tiếp theo:** mở chat mới rồi Patch 2D — Chương 2.
+- **THESIS-R1 #182** — đồng bộ báo cáo khóa luận với trạng thái repo hiện tại. **Patch 2D.1 DONE:** khóa phương pháp mô hình hóa nghiệp vụ theo bộ bài giảng PTTKHTTT; áp micro-patch thuật ngữ Chương 1 từ “actor/tác nhân nghiệp vụ” sang “vai trò nghiệp vụ” nhưng không đổi semantic 7 quy trình; viết lại toàn bộ 7 bảng đặc tả Business Use Case theo format **Giới thiệu Use Case → Các dòng cơ bản → Các dòng thay thế**; sắp lại đúng dependency, trong đó Nhập vắc xin là luồng hỗ trợ, Lịch hẹn và Thanh toán là nhánh điều kiện. Các Activity Diagram cũ chỉ được di chuyển theo đúng bảng tương ứng và vẫn **PARKED để redraw sau**, chưa dùng hình cũ làm Source of Truth cho semantic. Working artifact `CNTT_KLCN090_THESIS-R1_Patch2D1b_BusinessUC_Text.docx`, SHA-256 `8351ba5b0b4ea602679d24d5b110e0ff3a5d923cab028e00e977184374451962`. Render/TOC/Danh mục hình-bảng QA PASS trên bản 86 trang. **Chương 1 tiếp tục khóa, ngoại trừ micro-patch thuật ngữ đã duyệt. ACTIVE tiếp theo:** Patch 2D.2 — audit và khóa tập System Use Case + đặc tả text theo bài giảng, **chưa redraw Sequence Diagram**.
 
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
@@ -143,7 +143,7 @@ Mục tiêu của thứ tự này:
 ### THESIS-R1 — khóa mục đích từng phần, chống lặp ngữ nghĩa
 
 - **Mở đầu** chỉ trả lời: vì sao chọn bài toán, mục tiêu gì, đối tượng/phạm vi nào, phương pháp thực hiện ra sao và báo cáo được tổ chức thế nào.
-- **Chương 1** chỉ trả lời: bối cảnh khảo sát cụ thể, actor nghiệp vụ, quy trình thực tế, biểu mẫu/dữ liệu và các yêu cầu rút ra từ khảo sát. Không kể lại lý do chọn đề tài/mục tiêu/phạm vi như Mở đầu.
+- **Chương 1** chỉ trả lời: bối cảnh khảo sát cụ thể, vai trò nghiệp vụ, quy trình thực tế, biểu mẫu/dữ liệu và các yêu cầu rút ra từ khảo sát. Không kể lại lý do chọn đề tài/mục tiêu/phạm vi như Mở đầu.
 - **Chương 2** trả lời: từ nghiệp vụ đã khảo sát, hệ thống cần hỗ trợ những chức năng nào và chúng được đặc tả/mô hình hóa ra sao.
 - **Chương 3** trả lời: hệ thống được thiết kế như thế nào để đáp ứng Chương 2.
 - **Chương 4** trả lời: các thiết kế đã được cài đặt thành sản phẩm/giao diện như thế nào.
@@ -242,7 +242,7 @@ Quy tắc:
 - P2→P7 là hành trình phục vụ chính; P4 và P6 có thể là nhánh điều kiện tùy trường hợp nghiệp vụ.
 - Không đổi lại sang các tên cũ như “đăng ký thông tin…”, “quản lý lịch tiêm…”, “khám/chỉ định” nếu không có lý do nghiệp vụ cụ thể.
 
-#### 2. Sáu actor nghiệp vụ canonical
+#### 2. Sáu vai trò nghiệp vụ cốt lõi
 - **Khách hàng**
 - **Lễ tân**
 - **Bác sĩ**
@@ -251,10 +251,13 @@ Quy tắc:
 - **Nhân viên kho**
 
 Quy tắc:
-- Không dùng các cụm mơ hồ như “bộ phận tiếp nhận”, “nhân viên tiếp nhận”, “nhân viên phụ trách”, “bộ phận chuyên môn” nếu đã xác định được actor cụ thể.
-- Khi một thao tác do automation thực hiện, ghi rõ **Hệ thống** hoặc thành phần kỹ thuật phù hợp; không gán cho một actor nghiệp vụ không thực hiện thao tác đó.
+- Đây là **sáu vai trò nghiệp vụ cốt lõi của đề tài**, không đồng nghĩa cả sáu đều là Business Actor trong UML.
+- Trong **Business Use Case**, Business Actor là đối tượng **bên ngoài ranh giới nghiệp vụ** cung cấp đầu vào/nhận đầu ra. Khách hàng là Business Actor; Nhà cung cấp có thể là Business Actor của nghiệp vụ nhập vắc xin. Các vai trò nội bộ như Lễ tân, Bác sĩ, Thu ngân, Điều dưỡng, Nhân viên kho được hiểu là **Business Worker/thừa tác viên** khi mô hình hóa quy trình.
+- Trong **System Use Case**, bất kỳ người/hệ thống nào trực tiếp tương tác với phần mềm đều có thể là **System Actor**; vì vậy các vai trò nội bộ nêu trên có thể là System Actor ở mục 2.2.
+- Không dùng các cụm mơ hồ như “bộ phận tiếp nhận”, “nhân viên tiếp nhận”, “nhân viên phụ trách”, “bộ phận chuyên môn” nếu đã xác định được vai trò cụ thể.
+- Khi một thao tác do automation thực hiện, ghi rõ **Hệ thống** hoặc thành phần kỹ thuật phù hợp; không gán cho một vai trò nghiệp vụ không thực hiện thao tác đó.
 - **Người được tiêm** là đối tượng nghiệp vụ, không mặc định là actor riêng.
-- CSKH/Admin/CNTT nếu cần nhắc tới chỉ là vai trò hỗ trợ, không làm thay đổi 6 actor nghiệp vụ cốt lõi.
+- CSKH/Admin/CNTT nếu cần nhắc tới chỉ là vai trò hỗ trợ, không làm thay đổi sáu vai trò nghiệp vụ cốt lõi.
 
 #### 3. Thuật ngữ dữ liệu canonical
 - **Khách hàng**: người sở hữu tài khoản hoặc thực hiện đăng ký cho mình/người khác.
@@ -321,13 +324,15 @@ Quy tắc trình bày:
 - Cùng một thứ tự phải được dùng lại xuyên Chương 1 → Chương 2 → Chương 3 → Chương 4 → Chương 5 để người đọc theo được một hành trình duy nhất.
 - Không đổi thứ tự chỉ vì mã UC cũ. Mã UC/số hình sẽ được đánh lại sau khi khóa nội dung.
 
-### THESIS-R1 — checkpoint chuyển sang Chương 2
+### THESIS-R1 — checkpoint Patch 2D.1 / chuyển sang 2D.2
 
-Trước khi Patch 2D bắt đầu:
-- Patch 2C.7 phải hoàn tất toàn bộ hình biểu mẫu 1.4 và QA bản in.
-- Sau khi Chương 1 PASS, mở chat mới và recovery theo: `AGENTS.md → SCOPE.md → Issue #182 → artifact Chương 1 mới nhất → code/test cần thiết`.
-- Patch 2D bắt đầu bằng audit cấu trúc Chương 2, khóa text/specification trước; **chưa redraw UML khi đặc tả chưa PASS**.
-- Chương 2 phải kế thừa nguyên vẹn 7 nghiệp vụ, 6 actor, canonical data terminology, writing guardrail, anti-repetition rule và đặc tả→sơ đồ adjacency đã khóa.
+- **Repo hiện hành là Source of Truth cho capability đã triển khai; bộ bài giảng PTTKHTTT là chuẩn phương pháp cho cách phân tích và mô hình hóa UML.** Không dùng ví dụ trong bài giảng để tự mở rộng chức năng của đồ án.
+- Patch 2D.1 đã khóa text phần mô hình hóa nghiệp vụ: 7 Business Use Case canonical theo đúng dependency và template **Giới thiệu Use Case → Các dòng cơ bản → Các dòng thay thế**.
+- Ở các tiểu mục nhỏ dành cho bảng/sơ đồ, dùng **heading → bảng → hình/caption**, không thêm prose dẫn nhập/kết luận chỉ để lặp lại nội dung bảng hoặc sơ đồ.
+- Business Actor / Business Worker / System Actor phải được phân biệt theo mục “Sáu vai trò nghiệp vụ cốt lõi”; không gọi mọi vai trò tham gia là Business Actor.
+- Activity Diagram hiện tại chưa được xem là semantic đã khóa; redraw để ở patch sau khi text tương ứng PASS.
+- Recovery phiên tiếp theo: `AGENTS.md → SCOPE.md → Issue #182 → CNTT_KLCN090_THESIS-R1_Patch2D1b_BusinessUC_Text.docx → code/test/contract chỉ khi audit System Use Case cần`.
+- **Patch 2D.2:** audit và khóa tập System Use Case + đặc tả text theo bài giảng; chưa renumber/redraw Sequence Diagram trước khi text PASS.
 
 ### NEXT
 1. **#168 UI-F03**.
@@ -363,7 +368,7 @@ Trước khi Patch 2D bắt đầu:
 6. Thanh toán dịch vụ.
 7. Thực hiện tiêm chủng và theo dõi sau tiêm.
 
-### 6 actor nghiệp vụ
+### 6 vai trò nghiệp vụ cốt lõi
 Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 
 ### Invariant nghiệp vụ
