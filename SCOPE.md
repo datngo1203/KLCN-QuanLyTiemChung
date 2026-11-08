@@ -401,6 +401,10 @@ Trình bày/in ấn:
   - **2.7 Thanh toán:** `Đăng ký dịch vụ` là dữ liệu đầu vào để đối chiếu nghĩa vụ; `Giao dịch thanh toán` là bằng chứng nghiệp vụ được ghi nhận khi giao dịch hoàn tất. Trạng thái chưa hoàn tất vẫn thể hiện bằng action nhánh phụ, không thêm entity thứ ba.
   - **2.8 Tiêm và theo dõi:** `Lô vắc xin` là đầu vào đối chiếu trước tiêm; `Mũi tiêm đã thực hiện` là kết quả của hành động tiêm; `Theo dõi sau tiêm` là dữ liệu được ghi nhận sau quan sát/xử lý.
 - **ObjectFlow geometry đã khóa:** entity đặt gần activity liên quan nhất, ưu tiên cùng cao độ; connector **thẳng từ rìa entity đến rìa activity**, không đi qua gutter, không nối vào tâm shape, không cắt activity/decision khác. Entity có thể đặt trái/phải khác nhau giữa các hình nếu giúp đường ngắn và sạch.
+- **Shape-aware anchoring bắt buộc:** pipeline phải xác định **biên thật của Activity/Decision sau khi PlantUML render** rồi mới tính điểm neo. Tọa độ cấu hình/hint chỉ dùng để nhận diện node mục tiêu, **không được dùng trực tiếp làm endpoint ObjectFlow**.
+- Với Activity/action, endpoint nằm tại giao điểm giữa đường nối và **mép rounded rectangle** gần entity nhất; với Decision/Merge, endpoint nằm tại **mép hình thoi**; với Business Entity, endpoint nằm tại **chu vi hình tròn**, không nối từ tâm.
+- Nếu pipeline không xác định chắc chắn được biên shape, phải **fail render để review**, không fallback âm thầm về hard-coded pixel endpoint.
+- Shape-aware rule này áp dụng cho **mọi sơ đồ về sau có ObjectFlow/entity connector**, không chỉ Hình 2.2–2.8.
 - Quy ước hướng vẫn giữ: **Business Entity → Activity = đọc/nhận**, **Activity → Business Entity = tạo/ghi/cập nhật**.
 - Pipeline render reproducible vẫn dùng PlantUML → `docs/thesis/uml/postprocess_activity.py`; script có guard kích thước base để fail nếu source đổi mà chưa review lại tọa độ ObjectFlow.
 - Paragraph chứa Activity vẫn **Before = 8 pt / After = 0**; ảnh chèn Word khóa aspect ratio.
