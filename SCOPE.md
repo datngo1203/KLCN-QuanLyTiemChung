@@ -387,6 +387,11 @@ Trình bày/in ấn:
 - Giữa **bảng đặc tả và sơ đồ ngay sau nó** phải có khoảng trắng thị giác rõ ràng; paragraph chứa hình đặt **Before tối thiểu 6 pt** (ưu tiên 8–12 pt nếu trang vẫn cân), không để outer frame chạm hoặc dính sát đường viền dưới của bảng.
 - **Rule persistence:** mọi visual/layout rule đã được người dùng chốt phải được checkpoint vào `SCOPE.md` (và issue nếu là gate lớn) **trước khi áp sang các hình/phần tiếp theo**, để recovery session sau không lặp lại lỗi đã sửa.
 - **UML density optimization:** giữ Hình 2.1 nếu bố cục tổng thể đang rõ; với Activity ưu tiên compact wording/merge/gộp action trước khi đổi hướng bố cục. Không đổi sang landscape hoặc hai cột chỉ để tiết kiệm trang nếu làm giảm khả năng đọc. Mục tiêu thực tế là giảm khoảng trắng thị giác và số trang khi có thể, không ép đạt một số trang cụ thể.
+- **Adaptive figure sizing / final-size readability:** HUIT không khóa một kích thước cm cố định cho hình; hình được scale theo **kích thước cuối khi in**, không ép tất cả cùng width/height. Với A4 và lề hiện hành, vùng nội dung ngang tối đa khoảng 15 cm; chỉ dùng gần full-width khi sơ đồ thực sự cần.
+- Mục tiêu nội bộ cho UML: ưu tiên chiều rộng khoảng **10,5–13,5 cm**, chiều cao khoảng **10–15 cm**; **soft cap ~15,5 cm**. Chỉ cho phép 16–18 cm khi giảm thêm làm chữ/ký hiệu khó đọc; 19 cm trở lên chỉ khi thật sự cần.
+- Khi scale DOCX phải **khóa aspect ratio** và chỉ thay đổi theo một hệ số đồng nhất. Không chỉnh width/height độc lập.
+- Chọn kích thước bằng render QA thực tế: chỉ giữ mức scale nếu chữ/guard/entity/caption vẫn đọc rõ ở bản in và pagination/khoảng trắng thực sự tốt hơn. Không giảm font UML hoặc phá bảng chỉ để đạt một số trang cụ thể.
+- Rule này áp dụng lại cho các sơ đồ sau: sau khi semantic/layout của hình PASS, tối ưu **kích thước chèn** như một bước riêng trước checkpoint cuối.
 
 ### THESIS-R1 — Patch 2D.3f Shape-aware ObjectFlow anchoring DONE
 
