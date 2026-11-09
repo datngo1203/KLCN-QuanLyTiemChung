@@ -6,6 +6,63 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — System Use Case core-model reset: 10 core UC — 09/11/2026
+
+**USER DECISION / SEMANTIC RESET.** For the thesis model, only the core vaccination-management actor goals are modeled as top-level System Use Cases. This decision supersedes the earlier 21-top-level-UC semantic lock/reconciliation and the 18-UC Hình 2.9 final visual checkpoint.
+
+#### 1. Exact core System Use Case set — 10
+1. **UC08 — Quản lý lô và tồn kho vắc xin**
+2. **UC09 — Quản lý hồ sơ khách hàng/người được tiêm**
+3. **UC10 — Tra cứu dịch vụ tiêm chủng**
+4. **UC11 — Đăng ký dịch vụ tiêm chủng**
+5. **UC12 — Quản lý lịch hẹn**
+6. **UC13 — Gửi nhắc lịch**
+7. **UC15 — Ghi nhận khám sàng lọc và chỉ định**
+8. **UC16 — Thanh toán dịch vụ**
+9. **UC17 — Ghi nhận mũi tiêm**
+10. **UC18 — Ghi nhận theo dõi sau tiêm**
+
+These 10 are the System UC model used for **2.2.1 diagram, 2.2.2 System UC specification tables, and 3.2 Sequence Diagrams**.
+
+#### 2. Supporting implemented capabilities — not top-level thesis System UC
+- UC01 Đăng ký tài khoản khách hàng
+- UC02 Đăng nhập hệ thống
+- UC03 Đổi mật khẩu
+- UC04 Đăng xuất hệ thống
+- UC05 Thay đổi chức danh tài khoản nhân viên
+- UC06 Quản lý danh mục tiêm chủng
+- UC07 Quản lý ưu đãi
+- UC14 Tự động gửi nhắc lịch
+- UC19 Theo dõi hành trình tiêm chủng
+- UC20 Tra cứu lịch sử tiêm chủng
+- UC21 Báo cáo hoạt động
+
+These capabilities are **not deleted from the implementation**. They may still be described under functional requirements, supporting mechanisms, interface/installation/testing sections, or as conditions/supporting behavior where relevant. Do not generate a separate 2.2.2 table or 3.2 Sequence solely because the capability exists.
+
+#### 3. Core actor–UC associations
+- **Khách hàng** — UC09, UC10, UC11, UC12, UC16.
+- **Lễ tân** — UC09, UC11, UC12, UC13.
+- **Bác sĩ** — UC15.
+- **Thu ngân** — UC16.
+- **Điều dưỡng** — UC17, UC18.
+- **Nhân viên kho** — UC08.
+- **Dịch vụ thư điện tử** — UC13 as secondary/external delivery actor.
+- Actor hierarchy and the special actor `Thời gian` are outside this 10-core overview because UC14 is supporting, not top-level.
+- **0 include / 0 extend / 0 UC generalization** unless re-audited separately.
+
+#### 4. Business-model impact
+- **No change to 2.1 Business Modeling:** the 7 core business processes/use cases remain unchanged.
+- This reset changes only the thesis **System Use Case abstraction level** so Chương 2–3 focus on the vaccination-center core flow rather than every supporting implementation capability.
+
+#### 5. Report consequence
+- 2.2.1: redraw Hình 2.9 with the exact 10 core UC.
+- 2.2.2: **10 System UC specification tables**.
+- 3.2: **10 Sequence Diagrams**, one per core System UC under the faculty template reading.
+- The previously approved run #58 image is now **STALE/HISTORICAL** and must not be inserted as the final Hình 2.9.
+
+**Scope stop:** redraw/render/visual-QA the new 10-core Hình 2.9 before drafting 2.2.2.
+
+
 ### THESIS-R1 — Auth UC scope clarification — 09/11/2026
 
 **User clarification:** UC02 `Đăng nhập hệ thống`, UC03 `Đổi mật khẩu`, UC04 `Đăng xuất hệ thống` are **omitted from Hình 2.9 only**.
