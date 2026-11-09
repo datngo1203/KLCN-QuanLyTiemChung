@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^[a-z0-9][a-z0-9_-]*$')]
-    [string]$ComposeProject = ("vac-final-" + (Get-Date -Format 'yyyyMMdd-HHmm')),
+    [string]$ComposeProject = ("vac-final-" + (Get-Date -Format 'yyyyMMdd-HHmmss')),
     [switch]$SkipInventory,
     [switch]$SkipBackup
 )
@@ -171,6 +171,7 @@ Write-Host '  - Web Catalog mở được, không có Vắc xin A/B hoặc gói 
 Write-Host '  - Windows Catalog mở được.'
 Write-Host '  - Thấy vaccine curated như Gardasil 9, Qdenga, Prevenar 13, Hexaxim.'
 Write-Host '  - Không có lỗi API/SQL rõ ràng.'
+Write-Host '  - Không nhập email/số điện thoại/thông tin sức khỏe thật trong DB final.'
 Write-Host ''
 if (-not (Confirm-Yes 'Bạn đã kiểm Web + Windows và xác nhận PASS?')) {
     Write-Host 'Dừng trước backup. Môi trường final vẫn giữ nguyên để bạn kiểm/sửa.' -ForegroundColor Yellow
