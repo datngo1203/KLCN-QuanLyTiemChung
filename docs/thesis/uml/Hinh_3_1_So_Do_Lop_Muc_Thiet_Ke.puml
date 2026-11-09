@@ -1,0 +1,251 @@
+@startuml
+' THESIS-R1 - Hình 3.1 Sơ đồ lớp mức thiết kế
+' Source: HUIT Chương 7 + main Domain entities / EF Core model
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 14
+skinparam dpi 180
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+left to right direction
+hide empty methods
+hide circle
+
+package "Hồ sơ và nhân sự" {
+  class NhanVien <<entity>> {
+    +MaNhanVien : int
+    +HoTen : string
+    +ChucDanh : string
+    +TrangThai : string
+  }
+
+  class KhachHang <<entity>> {
+    +MaKhachHang : int
+    +HoTen : string
+    +SoDienThoai : string
+    +Email : string
+  }
+
+  class NguoiDuocTiem <<entity>> {
+    +MaNguoiDuocTiem : int
+    +MaHoSo : string
+    +MaKhachHang : int
+    +HoTen : string
+    +NgaySinh : DateOnly
+    +GioiTinh : string
+  }
+}
+
+package "Danh mục và kho" {
+  class VacXin <<entity>> {
+    +MaVacXin : int
+    +Code : string
+    +TenVacXin : string
+    +NhaSanXuat : string
+    +Gia : decimal
+    +TrangThai : string
+  }
+
+  class GoiVacXin <<entity>> {
+    +MaGoi : int
+    +Code : string
+    +TenGoi : string
+    +GiaGoi : decimal
+    +TrangThai : string
+  }
+
+  class GoiVacXin_VacXin <<association>> {
+    +MaGoi : int
+    +MaVacXin : int
+    +SoLuong : int
+  }
+
+  class KhuyenMai <<entity>> {
+    +MaKhuyenMai : int
+    +TenKhuyenMai : string
+    +ThoiGianBatDau : DateTime
+    +ThoiGianKetThuc : DateTime
+    +MucUuDai : decimal
+    +IsEnabled : bool
+  }
+
+  class LoVacXin <<entity>> {
+    +SoLo : string
+    +MaVacXin : int
+    +HanSuDung : DateOnly
+    +SoLuongBanDau : int
+    +SoLuongTon : int
+    +TrangThai : string
+  }
+
+  class BienDongKho <<entity>> {
+    +MaBienDong : int
+    +MaMuiTiem : int?
+    +SoLo : string
+    +MaNhanVien : int
+    +LoaiBienDong : string
+    +SoLuong : int
+    +ThoiDiem : DateTime
+  }
+
+  class InventoryReceipt <<entity>> {
+    +SoLo : string
+    +SupplierName : string
+    +DocumentNumber : string
+    +StorageLocation : string
+    +MovementId : int
+  }
+}
+
+package "Đăng ký, lịch hẹn và thanh toán" {
+  class DangKyDichVu <<entity>> {
+    +MaDangKy : int
+    +MaKhachHang : int
+    +MaNguoiDuocTiem : int
+    +MaNhanVien : int?
+    +MaKhuyenMai : int?
+    +NgayDangKy : DateTime
+    +TrangThai : string
+  }
+
+  class ChiTietVacXinLe <<entity>> {
+    +MaChiTietVacXin : int
+    +MaDangKy : int
+    +MaVacXin : int
+    +SoLuong : int
+    +GiaTaiThoiDiemDangKy : decimal
+  }
+
+  class ChiTietGoiVacXin <<entity>> {
+    +MaChiTietGoi : int
+    +MaDangKy : int
+    +MaGoi : int
+    +SoLuongGoi : int
+    +GiaTaiThoiDiemDangKy : decimal
+  }
+
+  class ThanhToan <<entity>> {
+    +MaThanhToan : int
+    +MaDangKy : int
+    +MaNhanVien : int?
+    +SoTien : decimal
+    +PhuongThuc : string
+    +LoaiThanhToan : string
+    +TrangThai : string
+  }
+
+  class LichHenTiem <<entity>> {
+    +MaLichHen : int
+    +MaDangKy : int?
+    +MaChiTietVacXin : int?
+    +MaChiTietGoi : int?
+    +MaNguoiDuocTiem : int
+    +ThoiGianHen : DateTime
+    +TrangThai : string
+  }
+
+  class NhacLich <<entity>> {
+    +MaNhacLich : int
+    +MaLichHen : int
+    +ScheduledAt : DateTime?
+    +KenhGui : string
+    +TrangThai : string
+  }
+}
+
+package "Khám, tiêm và theo dõi" {
+  class PhieuKhamSangLoc <<entity>> {
+    +MaPhieuKham : int
+    +MaLichHen : int?
+    +MaDangKy : int
+    +MaNguoiDuocTiem : int
+    +MaNhanVien : int
+    +KetLuan : string
+  }
+
+  class ChiDinhTiem <<entity>> {
+    +MaChiDinh : int
+    +MaPhieuKham : int
+    +MaVacXin : int
+    +KetQuaChiDinh : string
+    +ThoiGian : DateTime
+  }
+
+  class MuiTiem <<entity>> {
+    +MaMuiTiem : int
+    +MaChiDinh : int?
+    +MaNguoiDuocTiem : int
+    +SoLo : string
+    +MaNhanVien : int
+    +ThoiDiemTiem : DateTime
+    +TrangThai : string
+  }
+
+  class TheoDoiSauTiem <<entity>> {
+    +MaTheoDoi : int
+    +MaMuiTiem : int
+    +MaNhanVien : int?
+    +TinhTrang : string
+    +MucDoPhanUng : string
+    +ThoiDiem : DateTime
+  }
+}
+
+' Core profile relations
+KhachHang "1" -- "0..*" NguoiDuocTiem : quản lý hồ sơ
+KhachHang "1" -- "0..*" DangKyDichVu
+NguoiDuocTiem "1" -- "0..*" DangKyDichVu
+NhanVien "0..1" -- "0..*" DangKyDichVu
+KhuyenMai "0..1" -- "0..*" DangKyDichVu
+
+DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
+DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
+VacXin "1" -- "0..*" ChiTietVacXinLe
+GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
+
+GoiVacXin "1" -- "0..*" GoiVacXin_VacXin
+VacXin "1" -- "0..*" GoiVacXin_VacXin
+
+VacXin "1" -- "0..*" LoVacXin
+LoVacXin "1" -- "0..*" BienDongKho
+NhanVien "1" -- "0..*" BienDongKho
+LoVacXin "1" -- "0..1" InventoryReceipt : tiếp nhận
+
+DangKyDichVu "1" -- "0..1" ThanhToan
+NhanVien "0..1" -- "0..*" ThanhToan
+DangKyDichVu "1" -- "0..*" LichHenTiem
+NguoiDuocTiem "1" -- "0..*" LichHenTiem
+LichHenTiem "1" -- "0..*" NhacLich
+
+LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
+DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
+NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
+NhanVien "1" -- "0..*" PhieuKhamSangLoc
+
+PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
+VacXin "1" -- "0..*" ChiDinhTiem
+
+ChiDinhTiem "0..1" -- "0..1" MuiTiem
+NguoiDuocTiem "1" -- "0..*" MuiTiem
+LoVacXin "1" -- "0..*" MuiTiem
+NhanVien "1" -- "0..*" MuiTiem
+MuiTiem "1" -- "0..1" TheoDoiSauTiem
+NhanVien "0..1" -- "0..*" TheoDoiSauTiem
+MuiTiem "0..1" -- "0..1" BienDongKho : xuất kho
+
+' Layout hints
+KhachHang -[hidden]- NguoiDuocTiem
+VacXin -[hidden]- LoVacXin
+DangKyDichVu -[hidden]- ThanhToan
+PhieuKhamSangLoc -[hidden]- MuiTiem
+
+note bottom
+  Hình chỉ hiển thị thuộc tính thiết kế chính.
+  Kiểu dữ liệu và quan hệ được đối chiếu từ domain model/EF Core hiện hành.
+  Index, check constraint, bảng identity/hạ tầng và chi tiết cột đầy đủ được dành cho 3.1.2.
+end note
+@enduml
