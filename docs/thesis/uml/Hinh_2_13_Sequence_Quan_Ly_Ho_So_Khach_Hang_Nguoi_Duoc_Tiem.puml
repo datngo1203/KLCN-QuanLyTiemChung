@@ -1,0 +1,83 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Khách hàng" as Customer
+actor "Lễ tân" as Reception
+boundary "Profiles" as Web
+boundary "ProfilesView" as Win
+control "ProfilesViewModel" as VM
+participant "ProfilesApiService" as Service
+
+alt Khách hàng
+  Customer -> Web : moQuanLyHoSo()
+  activate Web
+  Web -> Service : taiHoSoLienKet()
+  activate Service
+  Service --> Web : hoSoTrongPhamVi
+  deactivate Service
+  Web --> Customer : hienThiHoSo()
+else Lễ tân
+  Reception -> Win : moQuanLyHoSo()
+  activate Win
+  Win -> VM : taiDanhSachHoSo(tuKhoa)
+  activate VM
+  VM -> Service : taiKhachHangVaNguoiDuocTiem(tuKhoa)
+  activate Service
+  Service --> VM : danhSachHoSo
+  deactivate Service
+  VM --> Win : capNhatDanhSach(danhSachHoSo)
+  deactivate VM
+  Win --> Reception : hienThiHoSo()
+end
+
+alt Tạo hoặc cập nhật hồ sơ
+  alt Khách hàng
+    Customer -> Web : nhapThongTinHoSo(duLieu)
+    Web -> Service : luuHoSo(duLieu)
+    activate Service
+    alt Dữ liệu hoặc quan hệ không hợp lệ
+      Service --> Web : loiNghiepVu
+      Web --> Customer : hienThiLoi(loiNghiepVu)
+    else Lưu thành công
+      Service --> Web : hoSoDaLuu
+      Web --> Customer : hienThiHoSo(hoSoDaLuu)
+    end
+    deactivate Service
+  else Lễ tân
+    Reception -> Win : nhapThongTinHoSo(duLieu)
+    Win -> VM : luuHoSo(duLieu)
+    activate VM
+    alt Dữ liệu không hợp lệ hoặc phát hiện hồ sơ trùng
+      VM --> Win : hienThiLoi(validation)
+    else Dữ liệu hợp lệ
+      VM -> Service : luuKhachHangHoacNguoiDuocTiem(duLieu)
+      activate Service
+      Service --> VM : hoSoDaLuu
+      deactivate Service
+      VM --> Win : capNhatHoSo(hoSoDaLuu)
+    end
+    deactivate VM
+    Win --> Reception : hienThiKetQua()
+  end
+else Tra cứu
+  alt Khách hàng
+    Customer -> Web : timHoSo(tuKhoa)
+    Web --> Customer : hienThiKetQua()
+  else Lễ tân
+    Reception -> Win : timHoSo(tuKhoa)
+    Win -> VM : locHoSo(tuKhoa)
+    VM --> Win : ketQuaTraCuu
+    Win --> Reception : hienThiKetQua()
+  end
+end
+
+deactivate Web
+deactivate Win
+@enduml
