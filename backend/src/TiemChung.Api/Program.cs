@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TiemChung.Api;
 using TiemChung.Contracts;
 using TiemChung.Infrastructure.Data;
+using TiemChung.Api.Payments;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddProblemDetails();
@@ -23,6 +24,7 @@ builder.Services.AddScoped<ReminderEmailDelivery>();
 builder.Services.AddScoped<AppointmentNotifications>();
 builder.Services.AddHostedService<ReminderEmailDispatcher>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<PayOsPaymentOptions>(builder.Configuration.GetSection("Payment:PayOS"));
 builder.Services.AddScoped<ReminderScheduler>();
 builder.Services.AddHostedService<ReminderSchedulerWorker>();
 builder.Services.AddDbContext<TiemChungDbContext>((services, options) =>

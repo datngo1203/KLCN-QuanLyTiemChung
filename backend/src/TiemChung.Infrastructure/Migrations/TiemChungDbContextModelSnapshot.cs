@@ -1685,6 +1685,24 @@ namespace TiemChung.Infrastructure.Migrations
                     b.Property<string>("NhaCungCapThanhToan")
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("PayOsCheckoutUrl")
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("PayOsLifecycleState")
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<long?>("PayOsOrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PayOsPaymentLinkId")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PayOsQrCode")
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("PayOsReference")
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("PhuongThuc")
                         .IsRequired()
                         .HasColumnType("nvarchar(50)");
@@ -1734,9 +1752,21 @@ namespace TiemChung.Infrastructure.Migrations
 
                     b.HasIndex("MaNhanVien");
 
+                    b.HasIndex("PayOsOrderCode")
+                        .IsUnique()
+                        .HasFilter("[PayOsOrderCode] IS NOT NULL");
+
+                    b.HasIndex("PayOsPaymentLinkId")
+                        .IsUnique()
+                        .HasFilter("[PayOsPaymentLinkId] IS NOT NULL");
+
                     b.ToTable("ThanhToan", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ThanhToan_NhanVien", "([PhuongThuc] IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') AND [MaNhanVien] IS NOT NULL AND [TrangThai] = 'ThanhCong') OR ([PhuongThuc] IN ('TheQuocTe','TheNoiDia') AND [MaNhanVien] IS NULL AND [TrangThai] = 'ThanhCong' AND [DongYDieuKhoanLuc] IS NOT NULL) OR ([PhuongThuc] = 'ChuyenKhoanOnline' AND [DongYDieuKhoanLuc] IS NOT NULL AND (([TrangThai] = 'ChoXacNhan' AND [MaNhanVien] IS NULL) OR ([TrangThai] = 'ThanhCong' AND [MaNhanVien] IS NOT NULL)))");
+                            t.HasCheckConstraint("CK_ThanhToan_NhanVien", "([PhuongThuc] IN ('MoPhong','TienMat','TheTaiQuay','ChuyenKhoanQR') AND [MaNhanVien] IS NOT NULL AND [TrangThai] = 'ThanhCong') OR ([PhuongThuc] IN ('TheQuocTe','TheNoiDia') AND [MaNhanVien] IS NULL AND [TrangThai] = 'ThanhCong' AND [DongYDieuKhoanLuc] IS NOT NULL) OR ([PhuongThuc] = 'ChuyenKhoanOnline' AND [DongYDieuKhoanLuc] IS NOT NULL AND (([TrangThai] = 'ChoXacNhan' AND [MaNhanVien] IS NULL) OR ([TrangThai] = 'ThanhCong' AND [MaNhanVien] IS NOT NULL))) OR ([PhuongThuc] = 'PayOsQr' AND [MaNhanVien] IS NULL AND [DongYDieuKhoanLuc] IS NOT NULL AND (([TrangThai] = 'ChoXacNhan' AND [PayOsLifecycleState] IN ('Creating','CreateOutcomeUnknown','Pending')) OR ([TrangThai] = 'ThanhCong' AND [PayOsLifecycleState] = 'Paid')))");
+
+                            t.HasCheckConstraint("CK_ThanhToan_PayOsFields", "([PhuongThuc] = 'PayOsQr') OR ([PayOsOrderCode] IS NULL AND [PayOsPaymentLinkId] IS NULL AND [PayOsLifecycleState] IS NULL AND [PayOsCheckoutUrl] IS NULL AND [PayOsQrCode] IS NULL AND [PayOsReference] IS NULL)");
+
+                            t.HasCheckConstraint("CK_ThanhToan_PayOsQr", "([PhuongThuc] <> 'PayOsQr' OR ([LoaiThanhToan] = 'ToanBo' AND [SoTien] > 0 AND [PayOsOrderCode] IS NOT NULL AND [PayOsOrderCode] > 0 AND [PayOsLifecycleState] IS NOT NULL AND [PayOsLifecycleState] IN ('Creating','CreateOutcomeUnknown','Pending','Paid') AND NULLIF(LTRIM(RTRIM([TenNguoiThanhToan])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([SoDienThoaiThanhToan])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([TinhThanhThanhToan])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([PhuongXaThanhToan])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([DiaChiThanhToan])),N'') IS NOT NULL AND ([PayOsPaymentLinkId] IS NULL OR NULLIF(LTRIM(RTRIM([PayOsPaymentLinkId])),N'') IS NOT NULL) AND ([PayOsCheckoutUrl] IS NULL OR NULLIF(LTRIM(RTRIM([PayOsCheckoutUrl])),N'') IS NOT NULL) AND ([PayOsQrCode] IS NULL OR NULLIF(LTRIM(RTRIM([PayOsQrCode])),N'') IS NOT NULL) AND ([PayOsReference] IS NULL OR NULLIF(LTRIM(RTRIM([PayOsReference])),N'') IS NOT NULL) AND (([PayOsLifecycleState] IN ('Creating','CreateOutcomeUnknown') AND [TrangThai] = 'ChoXacNhan') OR ([PayOsLifecycleState] = 'Pending' AND [TrangThai] = 'ChoXacNhan' AND NULLIF(LTRIM(RTRIM([PayOsPaymentLinkId])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([PayOsCheckoutUrl])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([PayOsQrCode])),N'') IS NOT NULL) OR ([PayOsLifecycleState] = 'Paid' AND [TrangThai] = 'ThanhCong' AND NULLIF(LTRIM(RTRIM([PayOsPaymentLinkId])),N'') IS NOT NULL AND NULLIF(LTRIM(RTRIM([PayOsReference])),N'') IS NOT NULL))))");
 
                             t.HasCheckConstraint("CK_ThanhToan_SoTien", "[SoTien] > 0");
 

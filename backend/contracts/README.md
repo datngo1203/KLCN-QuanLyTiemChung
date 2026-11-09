@@ -382,6 +382,14 @@ Lỗi có `{ type, title, status, code, traceId, errors? }`: 400 `validation` ch
 
 A08 đọc biên nhận bằng GET sau khi nhận 201 (thu tại quầy), 200 (xác nhận) hoặc gặp 409 nghiệp vụ. Nếu mất phản hồi, timeout hoặc lỗi 5xx, A08 khóa gửi lại. Nếu GET chưa thấy kết quả thành công, người dùng phải xác nhận đã đối chiếu trước khi mở lại thao tác.
 
+### PAY-R1 P1 — PayOS provider boundary và persistence
+
+P1 bổ sung nullable PayOS metadata vào `ThanhToan` hiện hành, không tạo payment aggregate mới và giữ nguyên unique `IX_ThanhToan_MaDangKy`. `PayOsQr` là phương thức riêng; trạng thái vòng đời `Creating`, `CreateOutcomeUnknown`, `Pending`, `Paid` được lưu cùng giao dịch. Pending/Paid không gán nhân viên, không thể xác nhận thủ công tại quầy; chỉ giao dịch `Paid` hợp lệ mới được tính vào `paidAmount`. Dữ liệu provider chỉ được phép trên `PayOsQr`; order code và payment-link ID có unique filtered index.
+
+`Payment:PayOS` chứa `Enabled`, `Mode`, `ClientId`, `ApiKey`, `ChecksumKey`, `ReturnUrl`, `CancelUrl`, `WebhookUrl`. Provider chỉ sẵn sàng khi bật, mode là `Live`, đủ credentials và callback URLs là HTTPS hợp lệ không chứa user info. Thiếu cấu hình không làm API startup thất bại; P1 không gọi PayOS, không tạo checkout/webhook route và không chứa secret trong provider result contracts.
+
+Migration `20261109011825_PAYR1PayOsPaymentPersistence` là additive; dữ liệu legacy giữ nguyên với PayOS columns null. Down từ chối nếu có `PayOsQr` history vì các cột đó không thể bị xóa an toàn.
+
 ### Migration và ranh giới
 
 `20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.
