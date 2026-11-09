@@ -17,7 +17,7 @@ left to right direction
 hide empty methods
 hide circle
 
-package "Hồ sơ" {
+package "Hồ sơ" as P_HOSO {
   class KhachHang <<entity>> {
     +MaKhachHang : int
     +HoTen : string
@@ -40,7 +40,7 @@ package "Hồ sơ" {
   }
 }
 
-package "Đăng ký và lịch hẹn" {
+package "Đăng ký và lịch hẹn" as P_DANGKY {
   class KhuyenMai <<entity>> {
     +MaKhuyenMai : int
     +TenKhuyenMai : string
@@ -93,7 +93,7 @@ package "Đăng ký và lịch hẹn" {
   }
 }
 
-package "Khám, tiêm và theo dõi" {
+package "Khám, tiêm và theo dõi" as P_LAMSANG {
   class PhieuKhamSangLoc <<entity>> {
     +MaPhieuKham : int
     +MaLichHen : int?
@@ -125,7 +125,7 @@ package "Khám, tiêm và theo dõi" {
   }
 }
 
-package "Danh mục và kho" {
+package "Danh mục và kho" as P_DANHMUC {
   class VacXin <<entity>> {
     +MaVacXin : int
     +Code : string
@@ -252,21 +252,21 @@ NhanVien "1" -- "0..*" BienDongKho
 LoVacXin "1" -- "0..1" InventoryReceipt : tiếp nhận
 LoVacXin "1" -- "0..*" MuiTiem : sử dụng
 
-' Layout spine
-KhachHang -[hidden]right- DangKyDichVu
-DangKyDichVu -[hidden]right- PhieuKhamSangLoc
-PhieuKhamSangLoc -[hidden]right- VacXin
-
-NguoiDuocTiem -[hidden]right- LichHenTiem
-LichHenTiem -[hidden]right- MuiTiem
-MuiTiem -[hidden]right- LoVacXin
-
+' Intra-package layout hints
+KhachHang -[hidden]down- NguoiDuocTiem
 KhuyenMai -[hidden]down- DangKyDichVu
+DangKyDichVu -[hidden]down- LichHenTiem
+LichHenTiem -[hidden]down- ThanhToan
+PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
+ChiDinhTiem -[hidden]down- MuiTiem
+MuiTiem -[hidden]down- TheoDoiSauTiem
 VacXin -[hidden]down- GoiVacXin
 GoiVacXin -[hidden]down- LoVacXin
+LoVacXin -[hidden]down- BienDongKho
 
-note bottom
-  Hình 3.1 chỉ giữ thuộc tính thiết kế chính để bảo đảm khả năng đọc trên A4 ngang.
-  Chi tiết cột, index, check constraint và bảng hạ tầng được trình bày ở mô hình quan hệ.
-end note
+' Package layout: one landscape row
+P_HOSO -[hidden]right- P_DANGKY
+P_DANGKY -[hidden]right- P_LAMSANG
+P_LAMSANG -[hidden]right- P_DANHMUC
+
 @enduml
