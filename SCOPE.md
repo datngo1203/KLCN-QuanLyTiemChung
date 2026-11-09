@@ -2084,3 +2084,38 @@ UC1 là template pilot về bố cục/notation; **không phải ngoại lệ v�
 
 **Scope stop:** không chuyển UC3 thành ACTIVE nếu chưa có xác nhận; giữ global Sequence profile FINAL.
 
+### THESIS-R1 — Sequence UC3–UC14 FINAL image set — 09/11/2026
+
+**USER APPROVED GLOBAL PROFILE / ALL REMAINING SEQUENCE IMAGES DRAWN AND QA PASS.**
+
+- Baseline profile giữ nguyên: HUIT/Rational Rose notation + logical operation labels + code traceability.
+- Source range từ checkpoint UC2 đến image-set head chỉ thêm **12 PlantUML source files**, tương ứng UC3–UC14; không thay application code.
+- Final render source head: `cf01472a90701e466873bceba951b8dd98eb30f8`.
+- GitHub Actions: **run #82**, run id `42592904069`, attempt 1, conclusion **success**.
+- Artifact id: `13661941963`.
+- Artifact digest: `sha256:5cd5fb34820e7aabcb441c05b9c9178f02276955d27a16741836dffd3b3af366`.
+- Visual review: 3 contact sheets + A4-size simulation for dense/wide diagrams PASS.
+- Automated edge/clipping sanity: **12/12 PASS**; no content touches image edges.
+- Semantic/code-traceability audit completed per UC against current Word specification and relevant `main` implementation.
+- These are **FINAL image candidates** for Word integration; Word has not yet been bulk-integrated with UC3–UC14 in this checkpoint.
+- Hình 2.12 — Quản lý lô và tồn kho vắc xin: `38d20171a12a7f9b043b735dc414646a10075b1467f102d3cb72d229a8925596`
+- Hình 2.13 — Quản lý hồ sơ khách hàng/người được tiêm: `32dc51d777f68e2ebd53b2c84a058c2b2b5eb76a3aee3293d09ede22b862caee`
+- Hình 2.14 — Tra cứu dịch vụ tiêm chủng: `fe301c0030e1ab52463d6b53e8414cf9bab5923fcf85657ead78ba218b803b28`
+- Hình 2.15 — Đăng ký dịch vụ tiêm chủng: `cdc33cd4db1d227861fc7d4fe5e637d5f03f3ae0ffe5694ff95b92e971dc88c3`
+- Hình 2.16 — Quản lý lịch hẹn: `115a7e8fff9d05a3fbd2cc8b2eb39ca944f66123b92be7620a2c87c73ea55b42`
+- Hình 2.17 — Gửi nhắc lịch: `522f5d9137af36fa28725f57cdcf010aeab7cdc2b4f69f47787c8dfd0f335901`
+- Hình 2.18 — Ghi nhận khám sàng lọc và chỉ định: `10b212c4172ad9f5442fbecd8f17eb02015dbf8028d095d885be3fa204755f4b`
+- Hình 2.19 — Thanh toán dịch vụ: `0187d74b2c51103202f5702cabdd3a78e543e1fa5cc2ae2d031ed4e112d31e7d`
+- Hình 2.20 — Ghi nhận mũi tiêm: `f71501a7c12bb83fa8adb076e2a6ec40671415d4e81770c73b79699a57260339`
+- Hình 2.21 — Ghi nhận theo dõi sau tiêm: `1ac56e7c1872f818ae45ca7aac0caac2d3c044f6322dd7273e3f6cd38fb2a7ff`
+- Hình 2.22 — Theo dõi hành trình tiêm chủng: `e07d990442ba15e7a5d0b776fe9a898f61226310726a41b08f888b8b03fb7fa1`
+- Hình 2.23 — Báo cáo hoạt động: `8bde3783084ede89eec1469b633c57148f1d2b738ade37242135b01736e064a8`
+
+**DONE:** Sequence image source/render/QA for UC1–UC14.
+
+**ACTIVE:** none.
+
+**NEXT:** bulk integrate Hình 2.12–2.23 into Word immediately after Bảng 2.10–2.21 respectively; renumber existing analysis class diagram to Hình 2.24; synchronize Mục lục / Danh mục hình / Danh mục bảng and full-document render QA.
+
+**PARKED:** semantic redesign of already-approved System UC/Sequence profile.
+
