@@ -104,6 +104,37 @@ public sealed class DevelopmentCatalogSeedSqlTests
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
+    public async Task CatalogAuditIsReadOnlyAndSeparatesGraphFromBusinessReferences()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
+            await SyntheticCatalogFixture.RunAsync(f.Db, Development);
+            var vaccine = await f.Db.Vaccines.SingleAsync(x => x.Code == "VX-DEMO-VAC-XIN-A");
+            f.Db.Add(new LoVacXin {
+                SoLo = "[DEMO] AUDIT-BUSINESS-REF", MaVacXin = vaccine.MaVacXin,
+                NgaySanXuat = new DateOnly(2026,1,1), HanSuDung = new DateOnly(2027,1,1),
+                SoLuongBanDau = 1, SoLuongTon = 1, TrangThai = "Active"
+            });
+            await f.Db.SaveChangesAsync();
+            f.Db.ChangeTracker.Clear();
+            var before = await Snapshot(f.Db);
+
+            var report = await DevelopmentCatalogAudit.RunAsync(f.Db, Development);
+            Assert.True(report.CandidateCount >= 7);
+            Assert.Contains(report.Candidates, x => x.EntityType == "Vaccine" && x.Code == "VX-DEMO-VAC-XIN-A"
+                && x.BusinessDataReferences == 1 && !x.SafeToDeleteAfterGraphCleanup);
+            Assert.Contains(report.Candidates, x => x.EntityType == "Vaccine" && x.Code == "VX-DEMO-VAC-XIN-B"
+                && x.BusinessDataReferences == 0 && x.CatalogGraphReferences > 0 && x.SafeToDeleteAfterGraphCleanup);
+            Assert.Contains(report.Candidates, x => x.EntityType == "Package" && x.Code.StartsWith("GOI-DEMO-")
+                && x.BusinessDataReferences == 0);
+            Assert.Contains(report.Candidates.SelectMany(x => x.References), x => x.Table == "LoVacXin" && x.Kind == "BusinessData");
+            Assert.Contains("businessDataReferences", DevelopmentCatalogAudit.ToJson(report));
+            Assert.Equal(before, await Snapshot(f.Db));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                DevelopmentCatalogAudit.RunAsync(f.Db, new SeedEnvironment("Production")));
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
     public async Task ConcurrentSeedCreatesOneGraphAndKeepsLegacyIdentifiersAndReferences()
     {
         await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
