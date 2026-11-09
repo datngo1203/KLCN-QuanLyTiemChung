@@ -59,7 +59,7 @@ def parse_source(text):
     for a,b in re.findall(r'^\s*(\w+)\s+-[^\n]*\|>\s+(\w+)\s*$',text,re.M):
         if a in actors and b in actors: gens.add((a,b))
     assoc=set()
-    parts=re.split(r"^'\s*-+\s*27 direct actor–UC associations\s*-+\s*$", text, maxsplit=1, flags=re.M)
+    parts=re.split(r"^'[^\n]*27 direct actor–UC associations[^\n]*$", text, maxsplit=1, flags=re.M)
     if len(parts) != 2:
         raise SystemExit('Cannot find 27 direct association section in PUML')
     for line in parts[1].splitlines():
