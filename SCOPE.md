@@ -18,13 +18,13 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **PAY-R1 #191** — tích hợp một phương thức QR ngân hàng thật qua payOS trên nền Payment hiện hành: server-owned exact TotalDue; provider adapter/config secret; persisted provider identity; webhook signature + idempotency + auto-confirm; outcome-unknown reconcile; Customer Web QR UX. Giữ RF-04B1/B2/manual transfer tương thích; không refund/partial/installment/thẻ thật. Triển khai theo P1→P3 với exact-head review sau mỗi checkpoint.
+- **DATA-R2 #194** — final curated real dataset cho Catalog/demo. Bắt đầu bằng research/source matrix có provenance + checkedAt, ưu tiên VNVC cho catalog/giá và nguồn chính thức/nhà sản xuất cho metadata y khoa; chưa import DB cho tới khi research được review. Final/demo không giữ dữ liệu user-visible kiểu [DEMO]/synthetic; seed/cutover phải reproducible và không xóa mù dữ liệu đang tham chiếu.
 
 ### NEXT
-1. **DATA-R2**.
-2. **S8** final integration/end-to-end.
+1. **S8** final integration/end-to-end.
 
-### PARKED sau core/S8
+### PARKED
+- **PAY-R1 #191 / Draft PR #193** — implementation provider/create/webhook/reconcile/Web QR đã có trên branch riêng và CI #420 xanh ở `28f46a2b2f3058d3c491288d4656163d47102e9a`; desktop/mobile browser smoke và real payOS acceptance P3B chưa chạy. Issue giữ OPEN, PR giữ Draft/unmerged để quay lại sau DATA-R2/S8 hoặc khi người dùng ưu tiên.
 - **REGIMEN-WORDING follow-up** — rà và chuẩn hóa các wording người dùng nhìn thấy như “phác đồ tham khảo”, “đối tượng tham khảo”, disclaimer lịch/chỉ định theo quy định/hướng dẫn chính thức còn hiệu lực; không tự mở lại clinical rule engine.
 - **#173 NOTIFY-R1** — shared Email/SMS delivery + provider SMS thật.
 - AUTH-PWLESS.
@@ -70,9 +70,9 @@ Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 |---|---|
 | S0 nền SQL/API/CI | DONE |
 | S1 Identity/Auth | Core DONE; expansion parked |
-| S2 Catalog | Core/Windows refinement + RF-02C #186 Web DONE; RF-02D compatibility PARKED |
+| S2 Catalog | Core/Windows refinement + RF-02C #186 Web DONE; DATA-R2 #194 ACTIVE; RF-02D compatibility PARKED |
 | S3 Customer/Recipient profiles | DONE |
-| S4 Registration/Payment core | Core DONE; PAY-R1 #191 ACTIVE |
+| S4 Registration/Payment core | Core DONE; PAY-R1 #191 PARKED trước real-provider acceptance |
 | S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1/RF-05G #170 DONE |
 | S6 Promotion | DONE |
 | S7 Reports | DONE |
