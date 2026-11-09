@@ -1996,3 +1996,43 @@ Nguồn khóa: `Bai giang TH PTTK HT_14DHTH.pdf`, phần Sơ đồ tuần tự v
 
 UC1 là template pilot về bố cục/notation; **không phải ngoại lệ về phương pháp**. UC2–UC14 dùng cùng profile và audit naming riêng theo code của từng module.
 
+### THESIS-R1 — UC1 Sequence FINAL integrated — 09/11/2026
+
+**USER APPROVED METHOD / UC1 FINAL.**
+
+- System UC: **Quản lý danh mục tiêm chủng** (Bảng 2.8 / UC06).
+- Placement: Sequence đặt **ngay sau Bảng 2.8**, trước `2.2.2.2. Quản lý ưu đãi`, theo chỉ đạo GVHD.
+- Final PlantUML source: `docs/thesis/uml/Hinh_2_10_Sequence_Quan_Ly_Danh_Muc_Tiem_Chung.puml`.
+- Final source commit: `cf3985be192440eefbffb5f9f44f16f9500dee93`.
+- GitHub Actions: **run #69**, run id `42580535558`, attempt 3, conclusion **success**.
+- Artifact id: `13657406029`.
+- PNG SHA-256: `01695f6576bca6ef8dd457f0d5adc700fbf3607560471728086d13f25ed63875`.
+- Notation/profile:
+  - Actor `Quản trị viên`;
+  - Boundary `CatalogView`;
+  - Control `CatalogViewModel`;
+  - service participant `CatalogApiService`;
+  - logical operation labels dạng `dongTu(...)`;
+  - code-traceability về `CatalogView.LoadCatalog()`, `CatalogViewModel.InitializeAsync()/SelectResourceAsync()/Load()/Save()/Delete()`, `CatalogApiService.ListAsync/SaveAsync/DeleteAsync`, guard `CanWrite/CanEdit` và backend `RequireWrite/RequirePermission`.
+- Không copy framework/API literal như `Execute()`, generic `<T>`, endpoint hoặc EF Core call lên hình.
+- Diagram được compact còn **32 messages**, giữ đầy đủ nhánh quyền + lưu/cập nhật + xóa + lỗi nghiệp vụ; A4 readability PASS.
+- Word artifact tích hợp:
+  - `CNTT_KLCN090_THESIS-R1_UC1_Sequence_Integrated_Final.docx`
+  - SHA-256: `be90554b3d934ba6058bc5faae6b5c7b023d4d9abf6a226973e268ae95f9312d`
+  - Render: **86 trang**
+  - Hình 2.10: Sequence UC1, logical page **38**
+  - Sơ đồ lớp mức phân tích tạm renumber thành **Hình 2.11**, logical page **56**
+  - Mục lục / Danh mục hình / Danh mục bảng synchronized PASS
+  - 14/14 System UC tables vẫn đủ 10 trường HUIT
+  - Hình 2.9 embedded SHA-256 vẫn `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`
+  - UC1 Sequence embedded PNG hash PASS
+  - Full-document visual QA 86/86 pages PASS.
+
+**DONE:** UC1 Sequence semantic + notation + traceability + Word integration.
+
+**ACTIVE:** UC2 — `Quản lý ưu đãi` Sequence audit/draft.
+
+**NEXT:** chỉ sau UC2 PASS mới chuyển UC3.
+
+**Scope stop:** giữ global Sequence profile FINAL; không quay lại code-literal labels; không đổi semantic 14 UC.
+
