@@ -2149,3 +2149,24 @@ UC1 là template pilot về bố cục/notation; **không phải ngoại lệ v�
 **NEXT:** continue only after user selects the next thesis slice; do not redesign approved System UC/Sequence semantics unless explicitly reopened.
 
 **PARKED:** semantic redesign of 14 System UC / locked Sequence profile.
+
+
+### THESIS-R1 — 3.1.1 Design Class Diagram ACTIVE — 09/11/2026
+
+**USER CONFIRMED.**
+
+Source of truth:
+- HUIT Chương 7 — Thiết kế lớp: tinh chế thuộc tính, mối kết hợp, phương thức; hiển thị kiểu dữ liệu và visibility ở mức thiết kế.
+- `main` domain entities + EF Core model là implementation evidence.
+- Không dump toàn bộ schema/constraint vào Hình 3.1; chi tiết CSDL dành cho 3.1.2.
+
+**ACTIVE:** vẽ thử Hình 3.1 — Sơ đồ lớp mức thiết kế.
+
+**Acceptance pilot:**
+- bám lớp/thuộc tính/quan hệ thật của repo;
+- đủ để trace 14 System UC;
+- kiểu dữ liệu và multiplicity rõ;
+- không đưa identity/infrastructure tables nếu không cần cho nghiệp vụ chính;
+- A4 readability PASS.
+
+**Scope stop:** chưa sửa Hình 3.2 / mô hình quan hệ trong slice này.
