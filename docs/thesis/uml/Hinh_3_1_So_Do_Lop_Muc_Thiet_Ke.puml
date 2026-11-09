@@ -128,99 +128,102 @@ class TheoDoiSauTiem <<entity>> {
 }
 
 ' ---------------------------------------------------------------------------
-' Layout hints only — preserve the portrait arrangement approved by the user.
+' Layout strategy
+' - Catalog/package/inventory above.
+' - Registration in the middle.
+' - Appointment -> screening -> indication -> vaccination -> aftercare downward.
+' - Directional association links are used as layout hints; semantic remains
+'   the multiplicities at both ends.
 ' ---------------------------------------------------------------------------
 
+' Catalog top row.
 GoiVacXin -[hidden]right- GoiVacXin_VacXin
 GoiVacXin_VacXin -[hidden]right- VacXin
 VacXin -[hidden]right- LoVacXin
 
+' Registration row.
 ChiTietGoiVacXin -[hidden]right- KhachHang
 KhachHang -[hidden]right- KhuyenMai
 KhuyenMai -[hidden]right- DangKyDichVu
-DangKyDichVu -[hidden]right- NguoiDuocTiem
-NguoiDuocTiem -[hidden]right- ThanhToan
+DangKyDichVu -[hidden]right- ThanhToan
 ThanhToan -[hidden]right- ChiTietVacXinLe
 
-GoiVacXin -[hidden]down- ChiTietGoiVacXin
-VacXin -[hidden]down- ChiTietVacXinLe
-LoVacXin -[hidden]down- ChiTietVacXinLe
-KhachHang -[hidden]down- NguoiDuocTiem
+' Main vertical flow and local side classes.
 DangKyDichVu -[hidden]down- LichHenTiem
-
 LichHenTiem -[hidden]right- NhacLich
 LichHenTiem -[hidden]down- PhieuKhamSangLoc
 NhanVien -[hidden]right- PhieuKhamSangLoc
 PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
 ChiDinhTiem -[hidden]left- MuiTiem
 MuiTiem -[hidden]down- TheoDoiSauTiem
+KhachHang -[hidden]down- NguoiDuocTiem
 
 ' ---------------------------------------------------------------------------
 ' Catalog / package / inventory
 ' ---------------------------------------------------------------------------
 
-GoiVacXin "1" -- "0..*" GoiVacXin_VacXin
-VacXin "1" -- "0..*" GoiVacXin_VacXin
-VacXin "1" -- "0..*" LoVacXin
+GoiVacXin "1" -right- "0..*" GoiVacXin_VacXin
+VacXin "1" -left- "0..*" GoiVacXin_VacXin
+VacXin "1" -right- "0..*" LoVacXin
 
-' Registration detail classes are refined association classes.
-DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
-GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
+' Refined association classes for registered services.
+GoiVacXin "1" -down- "0..*" ChiTietGoiVacXin
+DangKyDichVu "1" -left- "0..*" ChiTietGoiVacXin
 
-DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
-VacXin "1" -- "0..*" ChiTietVacXinLe
+VacXin "1" -down- "0..*" ChiTietVacXinLe
+DangKyDichVu "1" -right- "0..*" ChiTietVacXinLe
 
 ' ---------------------------------------------------------------------------
 ' Profile / registration / payment
 ' ---------------------------------------------------------------------------
 
-KhachHang "1" -- "0..*" NguoiDuocTiem
-KhachHang "1" -- "0..*" DangKyDichVu
-NguoiDuocTiem "1" -- "0..*" DangKyDichVu
-KhuyenMai "0..1" -- "0..*" DangKyDichVu
+KhachHang "1" -down- "0..*" NguoiDuocTiem
+KhachHang "1" -right- "0..*" DangKyDichVu
+NguoiDuocTiem "1" -right- "0..*" DangKyDichVu
+KhuyenMai "0..1" -down- "0..*" DangKyDichVu
 
 ' MaDangKy in ThanhToan is required and unique.
-DangKyDichVu "1" -- "0..1" ThanhToan
+DangKyDichVu "1" -right- "0..1" ThanhToan
 
 ' ---------------------------------------------------------------------------
 ' Appointment / reminder
 ' ---------------------------------------------------------------------------
 
-' MaDangKy in LichHenTiem is nullable: an appointment may have no registration.
-DangKyDichVu "0..1" -- "0..*" LichHenTiem
-NguoiDuocTiem "1" -- "0..*" LichHenTiem
-LichHenTiem "1" -- "0..*" NhacLich
+' MaDangKy in LichHenTiem is nullable.
+DangKyDichVu "0..1" -down- "0..*" LichHenTiem
+NguoiDuocTiem "1" -right- "0..*" LichHenTiem
+LichHenTiem "1" -right- "0..*" NhacLich
 
 ' ---------------------------------------------------------------------------
 ' Screening / indication
 ' ---------------------------------------------------------------------------
 
 ' MaLichHen is nullable but unique when present.
-LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
+LichHenTiem "0..1" -down- "0..1" PhieuKhamSangLoc
 
 ' Screening always belongs to a registration and recipient.
-DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
-NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
-NhanVien "1" -- "0..*" PhieuKhamSangLoc
+DangKyDichVu "1" -down- "0..*" PhieuKhamSangLoc
+NguoiDuocTiem "1" -right- "0..*" PhieuKhamSangLoc
+NhanVien "1" -right- "0..*" PhieuKhamSangLoc
 
-PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
-VacXin "1" -- "0..*" ChiDinhTiem
+PhieuKhamSangLoc "1" -down- "0..*" ChiDinhTiem
+VacXin "1" -down- "0..*" ChiDinhTiem
 
 ' ---------------------------------------------------------------------------
 ' Vaccination / aftercare
 ' ---------------------------------------------------------------------------
 
 ' MaChiDinh is nullable and unique when present.
-ChiDinhTiem "0..1" -- "0..1" MuiTiem
+ChiDinhTiem "0..1" -left- "0..1" MuiTiem
 
-NguoiDuocTiem "1" -- "0..*" MuiTiem
-LoVacXin "1" -- "0..*" MuiTiem
-NhanVien "1" -- "0..*" MuiTiem
+NguoiDuocTiem "1" -down- "0..*" MuiTiem
+LoVacXin "1" -down- "0..*" MuiTiem
+NhanVien "1" -down- "0..*" MuiTiem
 
 ' MaMuiTiem in TheoDoiSauTiem is required and unique.
-MuiTiem "1" -- "0..1" TheoDoiSauTiem
+MuiTiem "1" -down- "0..1" TheoDoiSauTiem
 
 ' MaNhanVien in TheoDoiSauTiem is nullable.
-NhanVien "0..1" -- "0..*" TheoDoiSauTiem
+NhanVien "0..1" -down- "0..*" TheoDoiSauTiem
 
 @enduml
