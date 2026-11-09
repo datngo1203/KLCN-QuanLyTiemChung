@@ -1,192 +1,112 @@
-@startuml
-' THESIS-R1 - Hình 3.1 Sơ đồ lớp mức thiết kế - single landscape
-' HUIT Chương 7 + current Domain/EF evidence
-skinparam monochrome true
-skinparam shadowing false
-skinparam backgroundColor white
-skinparam defaultFontName "Times New Roman"
-skinparam defaultFontSize 14
-skinparam classAttributeIconSize 0
-skinparam linetype ortho
-skinparam nodesep 28
-skinparam ranksep 45
-skinparam dpi 180
-left to right direction
-hide empty methods
-hide circle
+@startdot
+digraph G {
+  graph [
+    rankdir=TB,
+    splines=ortho,
+    nodesep=0.28,
+    ranksep=0.58,
+    pad=0.15,
+    bgcolor="white",
+    fontname="Times New Roman"
+  ];
+  node [
+    shape=record,
+    fontname="Times New Roman",
+    fontsize=12,
+    color="black",
+    penwidth=1.0,
+    margin="0.08,0.05"
+  ];
+  edge [
+    fontname="Times New Roman",
+    fontsize=10,
+    color="black",
+    penwidth=1.0,
+    dir=none,
+    labeldistance=1.3,
+    labelangle=25,
+    constraint=false
+  ];
 
-class KhachHang <<entity>> {
-  +MaKhachHang : int
-  +HoTen : string
-  +SoDienThoai : string
-}
-class NguoiDuocTiem <<entity>> {
-  +MaNguoiDuocTiem : int
-  +MaHoSo : string
-  +NgaySinh : DateOnly
-}
-class NhanVien <<entity>> {
-  +MaNhanVien : int
-  +HoTen : string
-  +ChucDanh : string
-}
-class KhuyenMai <<entity>> {
-  +MaKhuyenMai : int
-  +TenKhuyenMai : string
-  +MucUuDai : decimal
-}
+  kh [label="{«entity»\nKhachHang|+MaKhachHang : int\l+HoTen : string\l+SoDienThoai : string\l}"];
+  ndt [label="{«entity»\nNguoiDuocTiem|+MaNguoiDuocTiem : int\l+MaHoSo : string\l+NgaySinh : DateOnly\l}"];
+  nv [label="{«entity»\nNhanVien|+MaNhanVien : int\l+HoTen : string\l+ChucDanh : string\l}"];
+  km [label="{«entity»\nKhuyenMai|+MaKhuyenMai : int\l+TenKhuyenMai : string\l+MucUuDai : decimal\l}"];
 
-class DangKyDichVu <<entity>> {
-  +MaDangKy : int
-  +MaKhachHang : int
-  +MaNguoiDuocTiem : int
-  +TrangThai : string
-}
-class ChiTietVacXinLe <<entity>> {
-  +MaChiTietVacXin : int
-  +MaVacXin : int
-  +SoLuong : int
-}
-class ChiTietGoiVacXin <<entity>> {
-  +MaChiTietGoi : int
-  +MaGoi : int
-  +SoLuongGoi : int
-}
-class ThanhToan <<entity>> {
-  +MaThanhToan : int
-  +SoTien : decimal
-  +TrangThai : string
-}
-class LichHenTiem <<entity>> {
-  +MaLichHen : int
-  +ThoiGianHen : DateTime
-  +TrangThai : string
-}
-class NhacLich <<entity>> {
-  +MaNhacLich : int
-  +ScheduledAt : DateTime?
-  +TrangThai : string
-}
+  dk [label="{«entity»\nDangKyDichVu|+MaDangKy : int\l+MaKhachHang : int\l+MaNguoiDuocTiem : int\l+TrangThai : string\l}"];
+  ctv [label="{«entity»\nChiTietVacXinLe|+MaChiTietVacXin : int\l+MaVacXin : int\l+SoLuong : int\l}"];
+  ctg [label="{«entity»\nChiTietGoiVacXin|+MaChiTietGoi : int\l+MaGoi : int\l+SoLuongGoi : int\l}"];
+  tt [label="{«entity»\nThanhToan|+MaThanhToan : int\l+SoTien : decimal\l+TrangThai : string\l}"];
+  lh [label="{«entity»\nLichHenTiem|+MaLichHen : int\l+ThoiGianHen : DateTime\l+TrangThai : string\l}"];
+  nl [label="{«entity»\nNhacLich|+MaNhacLich : int\l+ScheduledAt : DateTime?\l+TrangThai : string\l}"];
 
-class PhieuKhamSangLoc <<entity>> {
-  +MaPhieuKham : int
-  +KetLuan : string
-}
-class ChiDinhTiem <<entity>> {
-  +MaChiDinh : int
-  +KetQuaChiDinh : string
-}
-class MuiTiem <<entity>> {
-  +MaMuiTiem : int
-  +SoLo : string
-  +ThoiDiemTiem : DateTime
-}
-class TheoDoiSauTiem <<entity>> {
-  +MaTheoDoi : int
-  +TinhTrang : string
-  +MucDoPhanUng : string
-}
+  pk [label="{«entity»\nPhieuKhamSangLoc|+MaPhieuKham : int\l+KetLuan : string\l}"];
+  cd [label="{«entity»\nChiDinhTiem|+MaChiDinh : int\l+KetQuaChiDinh : string\l}"];
+  mt [label="{«entity»\nMuiTiem|+MaMuiTiem : int\l+SoLo : string\l+ThoiDiemTiem : DateTime\l}"];
+  td [label="{«entity»\nTheoDoiSauTiem|+MaTheoDoi : int\l+TinhTrang : string\l+MucDoPhanUng : string\l}"];
 
-class VacXin <<entity>> {
-  +MaVacXin : int
-  +Code : string
-  +TenVacXin : string
-  +Gia : decimal
-}
-class GoiVacXin <<entity>> {
-  +MaGoi : int
-  +Code : string
-  +TenGoi : string
-  +GiaGoi : decimal
-}
-class Benh <<entity>> {
-  +MaBenh : int
-  +TenBenh : string
-}
-class CongNgheVacXin <<entity>> {
-  +MaCongNghe : int
-  +TenCongNghe : string
-}
-class VaccineRegimen <<entity>> {
-  +Id : int
-  +Name : string
-}
-class VaccineRegimenDose <<entity>> {
-  +Id : int
-  +DoseOrder : int
-  +TimingLabel : string
-}
-class LoVacXin <<entity>> {
-  +SoLo : string
-  +HanSuDung : DateOnly
-  +SoLuongTon : int
-}
-class InventoryReceipt <<entity>> {
-  +SoLo : string
-  +SupplierName : string
-  +DocumentNumber : string
-}
-class BienDongKho <<entity>> {
-  +MaBienDong : int
-  +LoaiBienDong : string
-  +SoLuong : int
-}
+  vx [label="{«entity»\nVacXin|+MaVacXin : int\l+Code : string\l+TenVacXin : string\l+Gia : decimal\l}"];
+  gv [label="{«entity»\nGoiVacXin|+MaGoi : int\l+Code : string\l+TenGoi : string\l+GiaGoi : decimal\l}"];
+  benh [label="{«entity»\nBenh|+MaBenh : int\l+TenBenh : string\l}"];
+  cn [label="{«entity»\nCongNgheVacXin|+MaCongNghe : int\l+TenCongNghe : string\l}"];
+  reg [label="{«entity»\nVaccineRegimen|+Id : int\l+Name : string\l}"];
+  dose [label="{«entity»\nVaccineRegimenDose|+Id : int\l+DoseOrder : int\l+TimingLabel : string\l}"];
+  lo [label="{«entity»\nLoVacXin|+SoLo : string\l+HanSuDung : DateOnly\l+SoLuongTon : int\l}"];
+  rec [label="{«entity»\nInventoryReceipt|+SoLo : string\l+SupplierName : string\l+DocumentNumber : string\l}"];
+  bd [label="{«entity»\nBienDongKho|+MaBienDong : int\l+LoaiBienDong : string\l+SoLuong : int\l}"];
 
-' Core business relations
-KhachHang "1" -- "0..*" NguoiDuocTiem
-KhachHang "1" -- "0..*" DangKyDichVu
-NguoiDuocTiem "1" -- "0..*" DangKyDichVu
-KhuyenMai "0..1" -- "0..*" DangKyDichVu
+  // Fixed landscape rows.
+  { rank=same; kh; dk; lh; pk; cd; mt; td; }
+  { rank=same; ndt; ctv; tt; nl; vx; lo; rec; }
+  { rank=same; nv; km; ctg; gv; reg; dose; bd; }
+  { rank=same; benh; cn; }
 
-DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
-DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
-DangKyDichVu "1" -- "0..1" ThanhToan
-DangKyDichVu "1" -- "0..*" LichHenTiem
-LichHenTiem "1" -- "0..*" NhacLich
-NguoiDuocTiem "1" -- "0..*" LichHenTiem
+  // Strong invisible ordering.
+  kh -> dk -> lh -> pk -> cd -> mt -> td [style=invis, weight=100, constraint=true];
+  ndt -> ctv -> tt -> nl -> vx -> lo -> rec [style=invis, weight=100, constraint=true];
+  nv -> km -> ctg -> gv -> reg -> dose -> bd [style=invis, weight=100, constraint=true];
+  benh -> cn [style=invis, weight=100, constraint=true];
 
-LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
-NhanVien "1" -- "0..*" PhieuKhamSangLoc
-PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
-ChiDinhTiem "0..1" -- "0..1" MuiTiem
-NguoiDuocTiem "1" -- "0..*" MuiTiem
-MuiTiem "1" -- "0..1" TheoDoiSauTiem
+  kh -> ndt -> nv [style=invis, weight=30, constraint=true];
+  dk -> ctv -> km [style=invis, weight=30, constraint=true];
+  lh -> tt -> ctg [style=invis, weight=30, constraint=true];
+  pk -> nl -> gv [style=invis, weight=30, constraint=true];
+  cd -> vx -> reg [style=invis, weight=30, constraint=true];
+  mt -> lo -> dose [style=invis, weight=30, constraint=true];
+  td -> rec -> bd [style=invis, weight=30, constraint=true];
 
-VacXin "1" -- "0..*" ChiTietVacXinLe
-GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
-VacXin "1" -- "0..*" ChiDinhTiem
-GoiVacXin "0..*" -- "0..*" VacXin : thành phần
-VacXin "0..*" -- "0..*" Benh : phòng bệnh
-VacXin "0..*" -- "0..*" CongNgheVacXin : công nghệ
-VacXin "1" -- "0..*" VaccineRegimen
-VaccineRegimen "1" -- "1..*" VaccineRegimenDose
+  // Core associations (layout-neutral).
+  kh -> ndt [taillabel="1", headlabel="0..*"];
+  kh -> dk [taillabel="1", headlabel="0..*"];
+  ndt -> dk [taillabel="1", headlabel="0..*"];
+  km -> dk [taillabel="0..1", headlabel="0..*"];
 
-VacXin "1" -- "0..*" LoVacXin
-LoVacXin "1" -- "0..*" MuiTiem : sử dụng
-LoVacXin "1" -- "0..1" InventoryReceipt : tiếp nhận
-LoVacXin "1" -- "0..*" BienDongKho
+  dk -> ctv [taillabel="1", headlabel="0..*"];
+  dk -> ctg [taillabel="1", headlabel="0..*"];
+  dk -> tt [taillabel="1", headlabel="0..1"];
+  dk -> lh [taillabel="1", headlabel="0..*"];
+  ndt -> lh [taillabel="1", headlabel="0..*"];
+  lh -> nl [taillabel="1", headlabel="0..*"];
 
-' Layout rows for A4 landscape
-KhachHang -[hidden]right-> DangKyDichVu
-DangKyDichVu -[hidden]right-> LichHenTiem
-LichHenTiem -[hidden]right-> PhieuKhamSangLoc
-PhieuKhamSangLoc -[hidden]right-> ChiDinhTiem
-ChiDinhTiem -[hidden]right-> MuiTiem
-MuiTiem -[hidden]right-> TheoDoiSauTiem
+  lh -> pk [taillabel="0..1", headlabel="0..1"];
+  nv -> pk [taillabel="1", headlabel="0..*"];
+  pk -> cd [taillabel="1", headlabel="0..*"];
+  cd -> mt [taillabel="0..1", headlabel="0..1"];
+  ndt -> mt [taillabel="1", headlabel="0..*"];
+  mt -> td [taillabel="1", headlabel="0..1"];
 
-NguoiDuocTiem -[hidden]right-> ChiTietVacXinLe
-ChiTietVacXinLe -[hidden]right-> ThanhToan
-ThanhToan -[hidden]right-> VacXin
-VacXin -[hidden]right-> LoVacXin
-LoVacXin -[hidden]right-> InventoryReceipt
+  vx -> ctv [taillabel="1", headlabel="0..*"];
+  gv -> ctg [taillabel="1", headlabel="0..*"];
+  vx -> cd [taillabel="1", headlabel="0..*"];
+  gv -> vx [taillabel="0..*", headlabel="0..*", xlabel="thành phần"];
+  vx -> benh [taillabel="0..*", headlabel="0..*", xlabel="phòng bệnh"];
+  vx -> cn [taillabel="0..*", headlabel="0..*", xlabel="công nghệ"];
+  vx -> reg [taillabel="1", headlabel="0..*"];
+  reg -> dose [taillabel="1", headlabel="1..*"];
 
-NhanVien -[hidden]right-> KhuyenMai
-KhuyenMai -[hidden]right-> ChiTietGoiVacXin
-ChiTietGoiVacXin -[hidden]right-> GoiVacXin
-GoiVacXin -[hidden]right-> VaccineRegimen
-VaccineRegimen -[hidden]right-> VaccineRegimenDose
-VaccineRegimenDose -[hidden]right-> BienDongKho
-
-Benh -[hidden]right-> CongNgheVacXin
-CongNgheVacXin -[hidden]right-> NhacLich
-@enduml
+  vx -> lo [taillabel="1", headlabel="0..*"];
+  lo -> mt [taillabel="1", headlabel="0..*", xlabel="sử dụng"];
+  lo -> rec [taillabel="1", headlabel="0..1", xlabel="tiếp nhận"];
+  lo -> bd [taillabel="1", headlabel="0..*"];
+}
+@enddot
