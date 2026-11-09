@@ -1,81 +1,167 @@
 @startdot
 digraph G {
   graph [
-    rankdir=TB,
-    splines=polyline,
+    rankdir=LR,
+    splines=ortho,
     overlap=false,
     concentrate=false,
+    pack=true,
+    packmode="cluster",
     nodesep=0.38,
-    ranksep=0.72,
+    ranksep=0.65,
     pad=0.18,
-    bgcolor="white"
+    bgcolor="white",
+    fontname="Times New Roman"
   ];
-  node [shape=plain, fontname="Times New Roman"];
+
+  node [
+    shape=plain,
+    fontname="Times New Roman"
+  ];
+
   edge [
     fontname="Times New Roman",
     fontsize=9,
-    dir=none,
-    color=black,
-    penwidth=0.9
+    color="black",
+    penwidth=0.9,
+    dir=none
   ];
 
-  kh [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>KhachHang</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaKhachHang : int<BR ALIGN="LEFT"/>+HoTen : string</TD></TR></TABLE>>];
-  ndt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>NguoiDuocTiem</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaNguoiDuocTiem : int<BR ALIGN="LEFT"/>+MaHoSo : string</TD></TR></TABLE>>];
-  dk [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>DangKyDichVu</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaDangKy : int<BR ALIGN="LEFT"/>+TrangThai : string</TD></TR></TABLE>>];
-  lh [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>LichHenTiem</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaLichHen : int<BR ALIGN="LEFT"/>+ThoiGianHen : DateTime<BR ALIGN="LEFT"/>+TrangThai : string</TD></TR></TABLE>>];
-  pk [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>PhieuKhamSangLoc</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaPhieuKham : int<BR ALIGN="LEFT"/>+KetLuan : string</TD></TR></TABLE>>];
-  cd [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>ChiDinhTiem</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaChiDinh : int<BR ALIGN="LEFT"/>+KetQuaChiDinh : string</TD></TR></TABLE>>];
-  mt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>MuiTiem</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaMuiTiem : int<BR ALIGN="LEFT"/>+ThoiDiemTiem : DateTime</TD></TR></TABLE>>];
-  td [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>TheoDoiSauTiem</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaTheoDoi : int<BR ALIGN="LEFT"/>+TinhTrang : string</TD></TR></TABLE>>];
+  // ---------- ZONE 1: HỒ SƠ & ĐĂNG KÝ ----------
+  subgraph cluster_profile {
+    label="Hồ sơ và đăng ký";
+    color="#777777";
+    penwidth=0.8;
+    style="rounded";
 
-  tt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>ThanhToan</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaThanhToan : int<BR ALIGN="LEFT"/>+SoTien : decimal</TD></TR></TABLE>>];
-  km [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>KhuyenMai</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaKhuyenMai : int<BR ALIGN="LEFT"/>+MucUuDai : decimal</TD></TR></TABLE>>];
-  nl [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>NhacLich</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaNhacLich : int<BR ALIGN="LEFT"/>+ScheduledAt : DateTime?</TD></TR></TABLE>>];
-  nv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>NhanVien</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaNhanVien : int<BR ALIGN="LEFT"/>+ChucDanh : string</TD></TR></TABLE>>];
-  vx [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>VacXin</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaVacXin : int<BR ALIGN="LEFT"/>+TenVacXin : string</TD></TR></TABLE>>];
-  lo [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>LoVacXin</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+SoLo : string<BR ALIGN="LEFT"/>+HanSuDung : DateOnly<BR ALIGN="LEFT"/>+SoLuongTon : int</TD></TR></TABLE>>];
+    kh [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>KhachHang</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaKhachHang : int<BR ALIGN="LEFT"/>+HoTen : string</TD></TR>
+    </TABLE>>];
 
-  gv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>GoiVacXin</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaGoi : int<BR ALIGN="LEFT"/>+TenGoi : string</TD></TR></TABLE>>];
-  ctg [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>ChiTietGoiVacXin</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaChiTietGoi : int<BR ALIGN="LEFT"/>+SoLuongGoi : int</TD></TR></TABLE>>];
-  ctv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD>«entity»<BR/><B>ChiTietVacXinLe</B></TD></TR><HR/><TR><TD ALIGN="LEFT">+MaChiTietVacXin : int<BR ALIGN="LEFT"/>+SoLuong : int</TD></TR></TABLE>>];
+    ndt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>NguoiDuocTiem</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaNguoiDuocTiem : int<BR ALIGN="LEFT"/>+MaHoSo : string</TD></TR>
+    </TABLE>>];
 
-  {rank=same; kh; ndt; dk; lh; pk; cd; mt; td;}
-  {rank=same; tt; km; nl; nv; vx; lo;}
-  {rank=same; gv; ctg; ctv;}
+    dk [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>DangKyDichVu</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaDangKy : int<BR ALIGN="LEFT"/>+TrangThai : string</TD></TR>
+    </TABLE>>];
 
-  // Main business spine.
-  kh -> ndt [label="1   /   0..*", weight=100];
-  ndt -> dk [label="1   /   0..*", weight=100];
-  dk -> lh [label="1   /   0..*", weight=100];
-  lh -> pk [label="0..1 / 0..1", weight=100];
-  pk -> cd [label="1   /   0..*", weight=100];
-  cd -> mt [label="0..1 / 0..1", weight=100];
-  mt -> td [label="1   /   0..1", weight=100];
+    km [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>KhuyenMai</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaKhuyenMai : int<BR ALIGN="LEFT"/>+MucUuDai : decimal</TD></TR>
+    </TABLE>>];
 
-  // Support-lane ordering and anchors.
-  tt -> km -> nl -> nv -> vx -> lo [style=invis, weight=90];
-  gv -> ctg -> ctv [style=invis, weight=80];
-  dk -> tt [style=invis, weight=35];
-  dk -> km [style=invis, weight=35];
-  lh -> nl [style=invis, weight=35];
-  pk -> nv [style=invis, weight=35];
-  cd -> vx [style=invis, weight=35];
-  mt -> lo [style=invis, weight=35];
-  dk -> ctg [style=invis, weight=45, minlen=2];
-  dk -> ctv [style=invis, weight=45, minlen=2];
-  vx -> gv [style=invis, weight=45, minlen=2];
+    tt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>ThanhToan</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaThanhToan : int<BR ALIGN="LEFT"/>+SoTien : decimal</TD></TR>
+    </TABLE>>];
 
-  // Local support relations. Full FK/multiplicity detail is deferred to 3.1.2.
-  tt -> dk [constraint=false];
-  km -> dk [constraint=false];
-  nl -> lh [constraint=false];
-  nv -> pk [constraint=false];
-  dk -> ctg [constraint=false];
-  dk -> ctv [constraint=false];
-  gv -> ctg [constraint=false];
-  vx -> ctv [constraint=false];
+    ctv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>ChiTietVacXinLe</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaChiTietVacXin : int<BR ALIGN="LEFT"/>+SoLuong : int</TD></TR>
+    </TABLE>>];
+
+    ctg [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>ChiTietGoiVacXin</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaChiTietGoi : int<BR ALIGN="LEFT"/>+SoLuongGoi : int</TD></TR>
+    </TABLE>>];
+
+    kh -> ndt [label="1 / 0..*", weight=8];
+    ndt -> dk [label="1 / 0..*", weight=8];
+    km -> dk [constraint=false];
+    tt -> dk [constraint=false];
+    ctv -> dk [constraint=false];
+    ctg -> dk [constraint=false];
+  }
+
+  // ---------- ZONE 2: QUY TRÌNH TIÊM ----------
+  subgraph cluster_clinical {
+    label="Quy trình tiêm chủng";
+    color="#777777";
+    penwidth=0.8;
+    style="rounded";
+
+    lh [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>LichHenTiem</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaLichHen : int<BR ALIGN="LEFT"/>+ThoiGianHen : DateTime<BR ALIGN="LEFT"/>+TrangThai : string</TD></TR>
+    </TABLE>>];
+
+    nl [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>NhacLich</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaNhacLich : int<BR ALIGN="LEFT"/>+ScheduledAt : DateTime?</TD></TR>
+    </TABLE>>];
+
+    pk [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>PhieuKhamSangLoc</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaPhieuKham : int<BR ALIGN="LEFT"/>+KetLuan : string</TD></TR>
+    </TABLE>>];
+
+    nv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>NhanVien</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaNhanVien : int<BR ALIGN="LEFT"/>+ChucDanh : string</TD></TR>
+    </TABLE>>];
+
+    cd [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>ChiDinhTiem</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaChiDinh : int<BR ALIGN="LEFT"/>+KetQuaChiDinh : string</TD></TR>
+    </TABLE>>];
+
+    mt [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>MuiTiem</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaMuiTiem : int<BR ALIGN="LEFT"/>+ThoiDiemTiem : DateTime</TD></TR>
+    </TABLE>>];
+
+    td [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>TheoDoiSauTiem</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaTheoDoi : int<BR ALIGN="LEFT"/>+TinhTrang : string</TD></TR>
+    </TABLE>>];
+
+    lh -> pk [label="0..1 / 0..1", weight=8];
+    pk -> cd [label="1 / 0..*", weight=8];
+    cd -> mt [label="0..1 / 0..1", weight=8];
+    mt -> td [label="1 / 0..1", weight=8];
+
+    nl -> lh [constraint=false];
+    nv -> pk [constraint=false];
+  }
+
+  // ---------- ZONE 3: DANH MỤC & KHO ----------
+  subgraph cluster_catalog {
+    label="Danh mục và kho";
+    color="#777777";
+    penwidth=0.8;
+    style="rounded";
+
+    vx [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>VacXin</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaVacXin : int<BR ALIGN="LEFT"/>+TenVacXin : string</TD></TR>
+    </TABLE>>];
+
+    gv [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>GoiVacXin</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+MaGoi : int<BR ALIGN="LEFT"/>+TenGoi : string</TD></TR>
+    </TABLE>>];
+
+    lo [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5">
+      <TR><TD>«entity»<BR/><B>LoVacXin</B></TD></TR><HR/>
+      <TR><TD ALIGN="LEFT">+SoLo : string<BR ALIGN="LEFT"/>+HanSuDung : DateOnly<BR ALIGN="LEFT"/>+SoLuongTon : int</TD></TR>
+    </TABLE>>];
+
+    vx -> lo [label="1 / 0..*", weight=8];
+  }
+
+  // ---------- CROSS-ZONE CORE LINKS ----------
+  dk -> lh [label="1 / 0..*", weight=12];
   vx -> cd [constraint=false];
-  vx -> lo [label="1 / 0..*", constraint=false];
   lo -> mt [constraint=false];
+  vx -> ctv [constraint=false];
+  gv -> ctg [constraint=false];
+
+  // Gentle alignment hints only; not fixed coordinates.
+  dk -> pk [style=invis, weight=2];
+  cd -> vx [style=invis, weight=2];
 }
 @enddot
