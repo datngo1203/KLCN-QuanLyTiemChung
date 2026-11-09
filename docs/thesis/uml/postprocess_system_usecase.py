@@ -330,8 +330,11 @@ def main():
     draw.rectangle((x1, y1, x2, y2), outline="black", width=2)
 
     title = "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG"
-    draw.rectangle((x1+10, y1+6, x1+520, y1+42), fill="white")
-    draw.text((x1+18, y1+10), title, font=f_title, fill="black")
+    title_box = draw.textbbox((0, 0), title, font=f_title)
+    title_w = title_box[2] - title_box[0]
+    title_x = (x1 + x2 - title_w) / 2.0
+    draw.rectangle((x1+2, y1+2, x2-2, y1+58), fill="white")
+    draw.text((title_x, y1+10), title, font=f_title, fill="black")
 
     for alias in UC_BOX:
         draw_uc(draw, alias, f_uc)
