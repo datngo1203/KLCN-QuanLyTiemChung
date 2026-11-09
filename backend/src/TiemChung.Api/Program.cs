@@ -70,6 +70,14 @@ if (args.Contains("--seed-catalog"))
     await DevelopmentCatalogSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment);
     return;
 }
+if (args.Contains("--audit-catalog"))
+{
+    using var scope = app.Services.CreateScope();
+    var report = await DevelopmentCatalogAudit.RunAsync(
+        scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment);
+    Console.WriteLine(DevelopmentCatalogAudit.ToJson(report));
+    return;
+}
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     if (context.Request.Path.StartsWithSegments("/api/v1/inventory")) context.Response.Headers.CacheControl = "no-store";
