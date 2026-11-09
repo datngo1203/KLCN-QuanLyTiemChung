@@ -20,13 +20,23 @@
 .vaccine-detail-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
 .vaccine-detail-layout > .product-placeholder { min-height: 300px; border: 1px solid var(--line); border-radius: 18px; }
 .vaccine-detail-info { min-width: 0; }
-.vaccine-detail-info > .vac-reference:first-child { margin-top: 0; }
+.vaccine-availability { display: inline-flex; align-items: center; min-height: 36px; margin-bottom: 12px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.vaccine-availability.available { background: #e8f5ed; color: #17653a; }
+.vaccine-availability.unavailable { background: #fff3e7; color: #8a4510; }
 .vaccine-facts { margin: 0 0 28px; }
 .vaccine-facts > div { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; padding-block: 18px; border-bottom: 1px solid var(--line); }
 .vaccine-facts dt { color: var(--muted); font-size: 13px; }
 .vaccine-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .vaccine-price { color: var(--primary); font-size: 22px; }
-.catalog-clinical-note { overflow-wrap: anywhere; padding: 22px; margin-top: 32px; background: var(--blue-soft); border-radius: 14px; color: var(--ink); line-height: 1.8; font-size: 14px; }
+.vaccine-description, .vaccine-details { margin-top: 36px; }
+.vaccine-description h2, .vaccine-details h2 { margin-bottom: 14px; }
+.vaccine-description p { line-height: 1.8; overflow-wrap: anywhere; white-space: pre-line; }
+.vaccine-details > .vaccine-facts { margin-bottom: 0; }
+.vaccine-provenance { margin-top: 24px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; overflow-wrap: anywhere; }
+.vaccine-provenance h3 { margin: 0 0 8px; font-size: 16px; }
+.vaccine-provenance p { margin: 6px 0 0; line-height: 1.6; }
+.vaccine-provenance a { overflow-wrap: anywhere; }
+.vaccine-detail-info > .button:disabled { cursor: not-allowed; opacity: .58; }
 .vaccine-regimens { margin-top: 32px; overflow-wrap: anywhere; }
 .regimen-reference { margin-top: 16px; padding: clamp(16px, 3vw, 24px); border: 1px solid var(--line); border-radius: 16px; background: white; }
 .regimen-reference h3 { margin: 0; }
@@ -34,12 +44,66 @@
 .regimen-doses li { padding: 6px 16px; }
 .regimen-doses strong { color: var(--primary); }
 .catalog-page .notice { flex-wrap: wrap; align-items: center; }
+.catalog-controls { display: grid; gap: 18px; margin: 24px 0 32px; padding: clamp(16px, 2.4vw, 24px); border: 1px solid var(--line); border-radius: 18px; background: white; }
+.catalog-page .search-box { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.catalog-page .search-box > span { display: grid; flex: none; place-items: center; color: var(--primary); }
+.catalog-page .search-box svg { width: 20px; height: 20px; }
+.catalog-page .search-box input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.catalog-page .search-box input:focus-visible,
+.catalog-filters input:focus-visible,
+.catalog-filters select:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.catalog-page .search-box .button { flex: none; }
+.catalog-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.catalog-filters label { display: grid; flex: initial; gap: 6px; min-width: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+.catalog-filters input, .catalog-filters select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); }
+.filter-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.filter-tab { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 24px; background: white; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.filter-tab.selected { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+.filter-tab:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.catalog-item { display: grid; gap: 4px; min-width: 0; }
+.catalog-code { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.catalog-diseases { margin: 0; color: var(--muted); font-size: 13px; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalog-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+.catalog-info h3 { margin: 6px 0 12px; color: var(--ink); font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+.catalog-info .card-kicker { color: var(--muted); font-size: 12px; font-weight: 700; }
+.catalog-package-doses, .catalog-components { margin: 12px 0 0; color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
+.catalog-package-doses strong { color: var(--primary); }
+.catalog-package-price { margin-top: 16px; color: var(--primary); font-size: 20px; font-weight: 700; }
+.catalog-package-link { display: inline-flex; margin-top: 16px; }
+.package-detail { padding-top: 28px; }
+.package-detail .page-intro { padding-top: 24px; }
+.package-detail h1 { overflow-wrap: anywhere; }
+.package-detail-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 40px; align-items: start; margin-top: 24px; }
+.package-detail-summary, .package-detail-items { min-width: 0; }
+.package-detail-items { padding: clamp(18px, 3vw, 28px); border: 1px solid var(--line); border-radius: 16px; background: white; }
+.package-detail-items h2 { margin: 0 0 16px; }
+.package-detail-items ul { list-style: none; margin: 0; padding: 0; }
+.package-detail-items li { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); line-height: 1.6; }
+.package-detail-items li span { min-width: 0; overflow-wrap: anywhere; }
+.package-detail-items li strong { flex: none; color: var(--primary); white-space: nowrap; }
+.package-description, .package-audience { margin-top: 36px; }
+.package-description p, .package-audience p { line-height: 1.8; overflow-wrap: anywhere; white-space: pre-line; }
+.package-detail-summary > .button { min-height: 48px; }
+.package-detail-summary > .button:disabled { cursor: not-allowed; opacity: .58; }
 @media (max-width: 700px) {
   .catalog-table-hint { display: block; margin-top: 8px; }
   .catalog-table { min-width: 760px; }
   .catalog-table th, .catalog-table td { padding: 14px 16px; }
+  .catalog-filters, .catalog-grid { grid-template-columns: minmax(0, 1fr); }
+  .catalog-package-link { width: 100%; justify-content: center; min-height: 48px; }
+  .catalog-page .search-box { display: grid; grid-template-columns: 24px minmax(0, 1fr); height: auto; }
+  .catalog-page .search-box .button { grid-column: 1 / -1; width: 100%; }
+  .filter-tab { min-height: 44px; }
   .vaccine-detail-layout { grid-template-columns: 1fr; gap: 24px; }
   .vaccine-detail-layout > .product-placeholder { min-height: 170px; }
   .vaccine-facts > div { grid-template-columns: 1fr; gap: 8px; }
-  .vaccine-detail-info > .button { width: 100%; }
+  .vaccine-detail-info > .button { width: 100%; min-height: 48px; }
+  .package-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .package-detail-summary > .button { width: 100%; min-height: 48px; }
+  .package-detail-items { padding: 18px; }
+  .package-detail-items li { gap: 10px; }
+  .package-description, .package-audience { margin-top: 28px; }
+  .vaccine-description, .vaccine-details, .vaccine-regimens { margin-top: 28px; }
+  .vaccine-provenance { padding: 16px; }
 }

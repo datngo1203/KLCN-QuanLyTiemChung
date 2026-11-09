@@ -4,7 +4,11 @@ const baseUrl = (import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5080').
 
 export async function apiGet(path, exactMoney = false) {
   const response = await fetch(`${baseUrl}${path}`, { signal: AbortSignal.timeout(8000) })
-  if (!response.ok) throw new Error(`API trả HTTP ${response.status}`)
+  if (!response.ok) {
+    const error = new Error(`API trả HTTP ${response.status}`)
+    error.status = response.status
+    throw error
+  }
   return exactMoney ? parseRegistrationJson(await response.text()) : response.json()
 }
 
@@ -16,6 +20,7 @@ export async function getRegistrationCatalog() {
 }
 
 export const getHealth = () => apiGet('/health')
+
 function catalogQuery(search = '', filters = {}) {
   const params = new URLSearchParams({ search })
   for (const [key, value] of Object.entries(filters)) {
@@ -23,15 +28,22 @@ function catalogQuery(search = '', filters = {}) {
   }
   return params.toString()
 }
+
 export const getVaccines = (search = '', filters = {}) => apiGet(`/api/v1/catalog/vaccines?${catalogQuery(search, filters)}`, true)
-// Catalog currently exposes a list endpoint only; resolve the exact ID from it.
-export async function getVaccine(id) {
+async function getCatalogDetail(resource, id) {
   if (!/^[1-9]\d*$/.test(String(id)) || !Number.isSafeInteger(Number(id))) return null
-  const catalog = await getVaccines()
-  if (catalog.source !== 'database') throw new Error('Chưa có danh mục từ cơ sở dữ liệu.')
-  return catalog.items.find(item => item.id === Number(id)) || null
+  try {
+    return await apiGet(`/api/v1/catalog/${resource}/${id}`, true)
+  } catch (error) {
+    if (error.status === 404) return null
+    throw error
+  }
 }
+
+export const getVaccine = id => getCatalogDetail('vaccines', id)
 export const getPackages = (search = '', filters = {}) => apiGet(`/api/v1/catalog/packages?${catalogQuery(search, filters)}`, true)
-export const getVaccineTechnologies = () => apiGet('/api/v1/catalog/vaccine-technologies')
+export const getPackage = id => getCatalogDetail('packages', id)
+export const getDiseases = () => apiGet('/api/v1/catalog/diseases?status=Active')
+export const getVaccineTechnologies = () => apiGet('/api/v1/catalog/vaccine-technologies?status=Active')
 
 export const getValidPromotions = () => apiGet('/api/v1/promotions/valid', true)

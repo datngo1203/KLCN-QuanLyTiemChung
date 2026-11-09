@@ -9,6 +9,14 @@ export function ProductPlaceholder() {
 }
 
 const intervalUnits = new Map([['Days', 'ngày'], ['Weeks', 'tuần'], ['Months', 'tháng'], ['Years', 'năm']])
+const routeNames = new Map([
+  ['Intramuscular', 'Tiêm bắp'],
+  ['Subcutaneous', 'Tiêm dưới da'],
+  ['Intradermal', 'Tiêm trong da'],
+  ['Oral', 'Đường uống'],
+  ['Nasal', 'Đường mũi'],
+  ['Other', 'Khác'],
+])
 
 function doseTiming(dose, doses) {
   const unit = intervalUnits.get(dose.intervalUnit)
@@ -27,8 +35,17 @@ function referenceUrl(value) {
   if (!/^https?:\/\//i.test(value)) return null
   try {
     const url = new URL(value)
-    return url.username || url.password ? null : url.href
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null
   } catch { return null }
+}
+
+function informationDate(value) {
+  if (!value || !Number.isFinite(Date.parse(value))) return null
+  return new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(value))
+}
+
+function referenceList(items) {
+  return items?.map(item => customerDisplayName(item.name)).filter(Boolean).join(', ')
 }
 
 function RegimenReference({ regimen }) {
@@ -64,6 +81,19 @@ export default function VaccineDetail({ id, go }) {
     return () => { active = false }
   }, [id, reload])
 
+  const active = vaccine?.status === 'Active'
+  const availability = active ? 'Đang cung cấp'
+    : vaccine?.status === 'Inactive' ? 'Tạm ngừng cung cấp' : 'Chưa có thông tin về tình trạng cung cấp'
+  const sourceUrl = referenceUrl(vaccine?.sourceUrl)
+  const updatedDate = informationDate(vaccine?.informationUpdatedAt)
+  const routeName = routeNames.get(vaccine?.administrationRoute)
+  const volume = Number(vaccine?.volume)
+  const volumeLabel = Number.isFinite(volume) && volume > 0
+    ? `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(volume)} mL`
+    : 'Chưa có thông tin'
+  const diseases = referenceList(vaccine?.diseases)
+  const technologies = referenceList(vaccine?.technologies)
+
   return <section className="catalog-page vaccine-detail wrap">
     <a className="button text-button" href="#catalog"><ArrowLeft aria-hidden="true" />Về danh mục</a>
     <div className="page-intro"><div className="eyebrow">CHI TIẾT VẮC XIN</div><h1>{customerDisplayName(vaccine?.name) || 'Thông tin vắc xin'}</h1></div>
@@ -74,23 +104,41 @@ export default function VaccineDetail({ id, go }) {
       <div className="vaccine-detail-layout">
         <ProductPlaceholder />
         <div className="vaccine-detail-info">
-          {vaccine.sourceUrl && /^https?:\/\//i.test(vaccine.sourceUrl) && <p className="vac-reference">
-            <a href={vaccine.sourceUrl} target="_blank" rel="noreferrer">Nguồn thông tin sản phẩm</a>
-            {vaccine.informationUpdatedAt && Number.isFinite(Date.parse(vaccine.informationUpdatedAt)) && <> · Kiểm tra {new Date(vaccine.informationUpdatedAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</>}
-          </p>}
+          <div className={active ? 'vaccine-availability available' : 'vaccine-availability unavailable'} role="status">{availability}</div>
           <dl className="vaccine-facts">
+            {vaccine.code && <div><dt>Mã vắc xin</dt><dd>{customerDisplayName(vaccine.code)}</dd></div>}
             <div><dt>Nhà sản xuất</dt><dd>{customerDisplayName(vaccine.manufacturer) || 'Chưa có thông tin'}</dd></div>
             <div><dt>Nước sản xuất / xuất xứ</dt><dd>{customerDisplayName(vaccine.origin) || 'Chưa có thông tin'}</dd></div>
-            <div><dt>Giá niêm yết</dt><dd className="vaccine-price">{money(vaccine.price)}</dd></div>
+            <div><dt>Giá niêm yết</dt><dd className="vaccine-price">{vaccine.price === null || vaccine.price === undefined ? 'Chưa có thông tin' : money(vaccine.price)}</dd></div>
           </dl>
-          <button className="button primary" onClick={() => go('register')}>Đăng ký dịch vụ<ArrowRight aria-hidden="true" /></button>
-          <p className="vac-reference">Chọn vắc xin và người được tiêm trong trang đăng ký. Đăng ký dịch vụ không xác nhận đủ điều kiện tiêm.</p>
+          <button className="button primary" disabled={!active} onClick={() => go('register')}>Đăng ký dịch vụ<ArrowRight aria-hidden="true" /></button>
+          <p className="vac-reference">Chọn vắc xin và người được tiêm trong trang đăng ký. Đăng ký dịch vụ không đồng nghĩa đủ điều kiện tiêm; lịch và chỉ định cá nhân do quy trình chuyên môn xác nhận.</p>
         </div>
       </div>
-      {vaccine.sourceName && <p className="catalog-clinical-note">{vaccine.sourceName}</p>}
+      <section className="vaccine-description" aria-labelledby="vaccine-description-heading">
+        <h2 id="vaccine-description-heading">Mô tả</h2>
+        {vaccine.description?.trim() ? <p>{vaccine.description}</p> : <p className="muted">Chưa có thông tin mô tả.</p>}
+      </section>
+      <section className="vaccine-details" aria-labelledby="vaccine-information-heading">
+        <h2 id="vaccine-information-heading">Thông tin vắc xin</h2>
+        <dl className="vaccine-facts">
+          <div><dt>Phòng bệnh</dt><dd>{diseases || 'Chưa có thông tin'}</dd></div>
+          <div><dt>Công nghệ vắc xin</dt><dd>{technologies || 'Chưa có thông tin'}</dd></div>
+          <div><dt>Đối tượng tham khảo</dt><dd>{customerDisplayName(vaccine.targetAudience) || 'Chưa có thông tin'}</dd></div>
+          <div><dt>Đường dùng</dt><dd>{routeName || 'Chưa có thông tin'}{vaccine.administrationRoute === 'Other' && vaccine.administrationRouteNote && ` · ${customerDisplayName(vaccine.administrationRouteNote)}`}</dd></div>
+          <div><dt>Liều lượng</dt><dd>{customerDisplayName(vaccine.dosage) || 'Chưa có thông tin'}</dd></div>
+          <div><dt>Thể tích</dt><dd>{volumeLabel}</dd></div>
+        </dl>
+        {vaccine.sourceName || sourceUrl || updatedDate ? <div className="vaccine-provenance">
+          <h3>Nguồn thông tin</h3>
+          {sourceUrl ? <p><a href={sourceUrl} target="_blank" rel="noreferrer">{customerDisplayName(vaccine.sourceName) || 'Nguồn thông tin sản phẩm'}</a></p>
+            : vaccine.sourceName && <p>{customerDisplayName(vaccine.sourceName)}</p>}
+          {updatedDate && <p>Ngày cập nhật thông tin: {updatedDate}</p>}
+        </div> : null}
+      </section>
       <section aria-labelledby="regimen-heading" className="vaccine-regimens">
         <h2 id="regimen-heading">Phác đồ tham khảo</h2>
-        <p>Lịch tiêm cá nhân và chỉ định tiêm cần được nhân viên y tế xác nhận.</p>
+        <p>Phác đồ chỉ mang tính tham khảo. Đăng ký dịch vụ không xác nhận đủ điều kiện tiêm; lịch tiêm và chỉ định cá nhân do quy trình chuyên môn xác nhận.</p>
         {vaccine.regimens?.length
           ? vaccine.regimens.map(regimen => <RegimenReference key={regimen.id} regimen={regimen} />)
           : <p className="empty-state">Chưa có phác đồ tham khảo cho vắc xin này.</p>}

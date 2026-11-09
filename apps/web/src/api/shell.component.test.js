@@ -21,6 +21,13 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
     const path = request.pathname
     catalogRequests.push(request)
     if (path.endsWith('/vaccine-technologies')) return Response.json({ items: [{ id: 12, name: '[DEMO] Công nghệ thử' }] })
+    if (path === '/api/v1/catalog/vaccines/42') {
+      return Response.json({ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000, sourceName: 'Nguồn tham khảo kiểm thử, kiểm tra 05/11/2026', sourceUrl: 'https://example.invalid/vaccine', informationUpdatedAt: '2026-11-05T00:00:00+07:00' })
+    }
+    if (path === '/api/v1/catalog/packages/43') {
+      return Response.json({ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', code: 'PK-43', status: 'Active', price: 300000,
+        totalDoses: 1, items: [{ vaccineCode: 'VX-43', vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] })
+    }
     const items = path.endsWith('/vaccines')
       ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000, sourceName: 'Nguồn tham khảo kiểm thử, kiểm tra 05/11/2026', sourceUrl: 'https://example.invalid/vaccine', informationUpdatedAt: '2026-11-05T00:00:00+07:00' }]
       : [{ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', price: 300000, items: [{ vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] }]
@@ -90,11 +97,27 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.match(guidance.textContent, /Sau khi tiêm.*ít nhất 30 phút/)
   await act(async () => home.querySelector('.vac-service-preview button').click())
   assert.equal(window.location.hash, '#catalog')
-  assert.equal(home.querySelector('input[aria-label="Tìm theo tên"]').value, 'Gói tiêm kiểm thử API')
+  assert.equal(home.querySelector('input[aria-label="Tìm theo mã, tên, hãng hoặc phòng bệnh"]').value, 'Gói tiêm kiểm thử API')
   assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages' && url.searchParams.get('search') === '[DEMO] Gói tiêm kiểm thử API'))
   assert.match(home.textContent, /Gói tiêm kiểm thử API/)
   assert.match(home.textContent, /Thành phần kiểm thử × 1/)
   assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
+  const packageDetails = home.querySelector('a[aria-label="Xem chi tiết gói Gói tiêm kiểm thử API"]')
+  assert.equal(packageDetails.getAttribute('href'), '#catalog/packages/43')
+  await act(async () => {
+    window.location.hash = packageDetails.getAttribute('href')
+    window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+  })
+  assert.equal(home.querySelector('.package-detail h1').textContent, 'Gói tiêm kiểm thử API')
+  assert.match(home.querySelector('.package-detail').textContent, /Đang cung cấp.*PK-43.*VX-43 — Thành phần kiểm thử × 1/s)
+  assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages/43'))
+  const packageBack = home.querySelector('.package-detail > a[href="#catalog"]')
+  assert.ok(packageBack)
+  await act(async () => {
+    window.location.hash = packageBack.getAttribute('href')
+    window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+  })
+  assert.ok(home.querySelector('.catalog-page'))
   const details = home.querySelector('a[aria-label="Xem chi tiết Vắc xin kiểm thử API"]')
   assert.equal(details.getAttribute('href'), '#catalog/vaccines/42')
   await act(async () => {
@@ -102,11 +125,12 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
     window.dispatchEvent(new window.HashChangeEvent('hashchange'))
   })
   assert.equal(home.querySelector('.vaccine-detail h1').textContent, 'Vắc xin kiểm thử API')
-  const source = home.querySelector('.vaccine-detail-info .vac-reference a')
+  const source = home.querySelector('.vaccine-provenance a')
   assert.equal(source.getAttribute('href'), 'https://example.invalid/vaccine')
   assert.equal(source.getAttribute('rel'), 'noreferrer')
-  assert.match(source.parentElement.textContent, /Kiểm tra 5\/11\/2026/)
+  assert.match(home.querySelector('.vaccine-provenance').textContent, /Ngày cập nhật thông tin: 5\/11\/2026/)
   assert.match(home.textContent, /Nguồn tham khảo kiểm thử/)
+  assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/vaccines/42'))
   assert.doesNotMatch(home.textContent, /Danh mục từ cơ sở dữ liệu/)
 
   assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)
@@ -157,6 +181,13 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.equal(window.location.hash, '#account')
   assert.ok(document.querySelector('dialog[open]'))
   assert.equal(document.querySelector('input[placeholder="VAC-XXXXXXXXXXXX"]').value, 'VAC-ABCDEF123456')
+  await act(async () => {
+    window.location.hash = '#catalog/packages/not-an-id'
+    window.dispatchEvent(new window.HashChangeEvent('hashchange'))
+  })
+  assert.equal(window.location.hash, '#catalog/packages/not-an-id')
+  assert.equal(home.querySelector('h1').textContent, 'VNVC Hoàng Văn Thụ')
+  assert.equal(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages/not-an-id'), false)
 
 })
 
