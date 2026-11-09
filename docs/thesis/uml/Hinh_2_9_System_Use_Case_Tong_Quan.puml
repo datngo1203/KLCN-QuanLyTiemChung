@@ -1,7 +1,10 @@
 @startuml
-' THESIS-R1 — Hình 2.9 System Use Case summary
-' Visual contract: approved layout prototype v3.
-' Semantic model is locked in SCOPE.md.
+' THESIS-R1 — Hình 2.9 System Use Case tổng quan
+' Supervisor presentation rule: omit common authentication use cases from this overview.
+' Canonical presentation: 18 visible System Use Cases / 9 visible actors / 24 direct associations.
+' UC aliases remain internal for traceability; visible labels omit UC01..UC21 codes.
+' No include / extend / UC generalization in this overview.
+
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -12,71 +15,113 @@ skinparam ActorBorderColor black
 skinparam UsecaseBorderColor black
 skinparam RectangleBorderColor black
 skinparam linetype ortho
-skinparam nodesep 34
-skinparam ranksep 34
+skinparam nodesep 30
+skinparam ranksep 28
 skinparam dpi 180
 
 left to right direction
 
 actor "Khách hàng" as Customer
-actor "Lễ tân" as Reception
+actor "Dịch vụ thư điện tử" as Email
+actor "Thời gian" as Time
 
 rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
-  usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
+  usecase "Đăng ký tài khoản\nkhách hàng" as UC01
   usecase "Tra cứu dịch vụ\ntiêm chủng" as UC10
-  usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
   usecase "Theo dõi hành trình\ntiêm chủng" as UC19
+  usecase "Tra cứu lịch sử\ntiêm chủng" as UC20
 
+  usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
+  usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
   usecase "Quản lý lịch hẹn" as UC12
-  usecase "Gửi nhắc lịch" as UC13
-
-  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
   usecase "Thanh toán dịch vụ" as UC16
+  usecase "Gửi nhắc lịch" as UC13
+  usecase "Tự động gửi nhắc lịch" as UC14
+
+  usecase "Thay đổi chức danh\ntài khoản nhân viên" as UC05
+  usecase "Quản lý danh mục\ntiêm chủng" as UC06
+  usecase "Quản lý ưu đãi" as UC07
+  usecase "Báo cáo hoạt động" as UC21
+  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
   usecase "Ghi nhận mũi tiêm" as UC17
   usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
+  usecase "Quản lý lô và tồn kho\nvắc xin" as UC08
 
-  ' Left-side customer stack.
-  UC09 -[hidden]down- UC10
-  UC10 -[hidden]down- UC11
-  UC11 -[hidden]down- UC19
+  ' Layout helpers only; no semantic meaning.
+  UC01 -[hidden]down- UC10
+  UC10 -[hidden]down- UC19
+  UC19 -[hidden]down- UC20
 
-  ' Reception stack below customer stack.
-  UC19 -[hidden]down- UC12
-  UC12 -[hidden]down- UC13
+  UC09 -[hidden]down- UC11
+  UC11 -[hidden]down- UC12
+  UC12 -[hidden]down- UC16
+  UC16 -[hidden]down- UC13
+  UC13 -[hidden]down- UC14
 
-  ' Right-side clinical stack.
-  UC15 -[hidden]down- UC16
-  UC16 -[hidden]down- UC17
+  UC05 -[hidden]down- UC06
+  UC06 -[hidden]down- UC07
+  UC07 -[hidden]down- UC21
+  UC21 -[hidden]down- UC15
+  UC15 -[hidden]down- UC17
   UC17 -[hidden]down- UC18
+  UC18 -[hidden]down- UC08
 
-  ' Keep clinical cluster to the right.
-  UC09 -[hidden]right- UC15
-  UC10 -[hidden]right- UC16
-  UC11 -[hidden]right- UC17
-  UC19 -[hidden]right- UC18
+  UC01 -[hidden]right- UC09
+  UC09 -[hidden]right- UC05
+  UC10 -[hidden]right- UC11
+  UC11 -[hidden]right- UC06
+  UC19 -[hidden]right- UC12
+  UC12 -[hidden]right- UC07
+  UC20 -[hidden]right- UC16
+  UC16 -[hidden]right- UC21
+  UC13 -[hidden]right- UC15
+  UC14 -[hidden]right- UC17
 }
 
-actor "Bác sĩ" as Doctor
+actor "Quản trị viên" as Admin
+actor "Lễ tân" as Reception
 actor "Thu ngân" as Cashier
+actor "Bác sĩ" as Doctor
 actor "Điều dưỡng" as Nurse
+actor "Nhân viên kho" as Warehouse
 
-' Actor column ordering only.
-Customer -[hidden]down- Reception
-Doctor -[hidden]down- Cashier
-Cashier -[hidden]down- Nurse
+Customer -[hidden]down- Email
+Email -[hidden]down- Time
 
-' Primary/representative actor associations only.
+Admin -[hidden]down- Reception
+Reception -[hidden]down- Cashier
+Cashier -[hidden]down- Doctor
+Doctor -[hidden]down- Nurse
+Nurse -[hidden]down- Warehouse
+
+' 24 direct actor–UC associations.
+Customer -right- UC01
 Customer -right- UC09
 Customer -right- UC10
 Customer -right- UC11
+Customer -right- UC12
+Customer -right- UC16
 Customer -right- UC19
+Customer -right- UC20
 
-Reception -right- UC12
-Reception -right- UC13
+UC09 -right- Reception
+UC11 -right- Reception
+UC12 -right- Reception
+UC13 -right- Reception
 
-UC15 -right- Doctor
+UC05 -right- Admin
+UC06 -right- Admin
+UC07 -right- Admin
+UC21 -right- Admin
+
 UC16 -right- Cashier
+UC15 -right- Doctor
 UC17 -right- Nurse
 UC18 -right- Nurse
+UC08 -right- Warehouse
+
+Email -right- UC13
+Email -right- UC14
+Time -right- UC14
 
 @enduml
