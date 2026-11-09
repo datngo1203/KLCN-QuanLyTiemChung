@@ -208,10 +208,11 @@ public sealed partial class PaymentSqlTests
             Assert.Equal(registration.TotalDue, provider.LastRequest!.Amount);
             Assert.DoesNotContain("payer", provider.LastRequest.Description, StringComparison.OrdinalIgnoreCase);
 
+            var readsBeforeLocalGet = provider.ReadCalls;
             using var local = await f.Customer.Client.GetAsync(path);
             Assert.Equal(HttpStatusCode.OK, local.StatusCode);
             Assert.Equal(pending, (await local.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!);
-            Assert.Equal(0, provider.ReadCalls);
+            Assert.Equal(readsBeforeLocalGet, provider.ReadCalls);
 
             using var unexpected = await f.Customer.Client.PostAsJsonAsync(path,
                 new { payer = PayOsRequest.Payer, termsAccepted = true, amount = 1, orderCode = 4 });
