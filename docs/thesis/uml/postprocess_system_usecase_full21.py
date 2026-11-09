@@ -61,21 +61,21 @@ EXPECTED_ASSOC = {
     ('Time','UC14'), ('Email','UC13'), ('Email','UC14'),
 }
 
-# Straight-first geometry. 25/27 associations are direct straight segments.
-# Only Admin->UC21 and Reception->UC13 use orthogonal detours, because the
-# direct segments would collide with the central/right routing.
+# Straight-first geometry. All 27 direct actor–UC associations are rendered
+# as independent straight segments. Placement was audited before rendering for
+# ellipse intrusion and proper segment crossing; no bus/shared trunk is used.
 UC_POS = {
     'UC02': (500, 470),  'UC03': (820, 470),  'UC04': (1140, 470),
 
-    'UC01': (470, 650),  'UC05': (1140, 650),
-    'UC10': (470, 850),  'UC06': (1140, 850),
-    'UC09': (820, 950),  'UC07': (1140, 1050),
-    'UC11': (820, 1150),
-    'UC12': (820, 1400), 'UC21': (1140, 1550),
+    'UC01': (470, 650),  'UC05': (1160, 620),
+    'UC10': (470, 850),  'UC06': (1160, 800),
+    'UC09': (820, 950),  'UC07': (1160, 980),
+    'UC11': (820, 1150), 'UC21': (1160, 1160),
+    'UC12': (820, 1400),
 
     'UC19': (470, 1650), 'UC16': (820, 1700),
+    'UC20': (350, 2050), 'UC13': (820, 1850),
     'UC15': (1140, 1850),
-    'UC20': (470, 2050), 'UC13': (850, 2050),
     'UC17': (1140, 2150),
     'UC18': (1140, 2350), 'UC14': (650, 2400),
     'UC08': (1140, 2550),
@@ -83,14 +83,14 @@ UC_POS = {
 ACTOR_POS = {
     'User': (820, 110),
     'Customer': (105, 1100),
-    'Admin': (1530, 850),
-    'Reception': (1530, 1400),
+    'Admin': (1530, 820),
+    'Reception': (1530, 1700),
     'Cashier': (1530, 1700),
     'Doctor': (1530, 1850),
     'Nurse': (1530, 2250),
     'Warehouse': (1530, 2550),
     'Time': (650, 2860),
-    'Email': (850, 2860),
+    'Email': (800, 2860),
 }
 
 REGULAR = '/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf'
@@ -279,38 +279,6 @@ def draw_ortho(draw, points):
         draw.line((p1[0], p1[1], p2[0], p2[1]), fill='black', width=3)
 
 
-def right_edge(alias):
-    cx, cy = UC_POS[alias]
-    w, _ = uc_size(alias)
-    return (cx+w/2, cy)
-
-
-def draw_exception_routes(draw):
-    # Admin -> UC21.
-    # Direct line would cross Reception's straight rays. Route completely outside
-    # the actor column, then enter horizontally through a clear row.
-    ax, ay = ACTOR_POS['Admin']
-    ex, ey = right_edge('UC21')
-    draw_ortho(draw, [
-        (ax+24, ay-6),
-        (1690, ay-6),
-        (1690, ey),
-        (ex, ey),
-    ])
-
-    # Reception -> UC13.
-    # Direct line would cut UC15 / the payment line. Use a separate outer channel
-    # and re-enter at UC13's clear row. No shared trunk with Admin -> UC21.
-    rx, ry = ACTOR_POS['Reception']
-    ex, ey = right_edge('UC13')
-    draw_ortho(draw, [
-        (rx+24, ry-6),
-        (1650, ry-6),
-        (1650, ey),
-        (ex, ey),
-    ])
-
-
 def main():
     verify_semantics()
 
@@ -322,12 +290,8 @@ def main():
     ft = ImageFont.truetype(BOLD, 31)
 
     # Draw connectors first so UC/actor outlines remain visually dominant.
-    bent = {('Admin','UC21'), ('Reception','UC13')}
     for actor, uc in sorted(EXPECTED_ASSOC):
-        if (actor, uc) in bent:
-            continue
         draw_straight(draw, actor, uc)
-    draw_exception_routes(draw)
 
     x1, y1, x2, y2 = BOUNDARY
     draw.rectangle((x1,y1,x2,y2), outline='black', width=3)
@@ -347,7 +311,7 @@ def main():
     img.save(PNG, dpi=(180,180))
     print(f'postprocessed {PNG.name}: {img.size}')
     print('verified: 21 UC / 10 visible actors / 27 direct associations')
-    print('routing: 25 straight / 2 orthogonal / 0 visible actor generalizations')
+    print('routing: 27 straight / 0 orthogonal / 0 visible actor generalizations')
 
 
 if __name__ == '__main__':
