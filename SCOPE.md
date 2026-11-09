@@ -7,6 +7,7 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 ## Current State
 
 ### DONE gần nhất
+- **RF-02C #186 / PR #189** — Customer Web Catalog hoàn thiện theo dữ liệu Catalog hiện hành: public list Active-only; search mã/tên/hãng/phòng bệnh; filter Phòng bệnh/Công nghệ/giá; vaccine + package detail dùng endpoint thật; Active/Inactive CTA an toàn; không mở rộng medical content/backend/schema. Web regression 142 PASS; browser smoke desktop/mobile PASS cho dữ liệu runtime khả dụng; CI exact final HEAD PASS đủ backend/windows/web. Squash main: `b58057b9814b2b23db63ffe1127601b6dff156c9`.
 - **UI-F03 #168 / PR #183** — Windows đồng bộ branding VNVC với Web, loại wording kỹ thuật/demo ở presentation runtime, bỏ sample dashboard khỏi production A01, giữ disclaimer A11 theo `IsSimulated`, cải thiện accessibility A09/DatePicker. Full Windows tests 387 PASS + 9 skipped; UI tests 26 PASS; Release build sạch; native full-shell PASS các màn trọng tâm với các nhánh lỗi/unknown-outcome không bị giả tạo để vượt gate. CI #390 PASS đủ backend/windows/web trên exact implementation HEAD. Squash main: `224e40080e2775ceada4e4d497ffc4350c980a9a`.
 - **REGIMEN-R1 #180 / PR #181** — Catalog hỗ trợ calendar interval theo mũi neo với `Days|Weeks|Months|Years`, giữ legacy day intervals; Windows A04 quản trị structured regimen; Customer Web hiển thị timeline + provenance tham khảo. Native A04 full-shell smoke PASS sau fix hiển thị selector; CI #387 PASS đủ backend/windows/web. Squash main: `04b932e8e4df6ec865ea90f19ad2ea731c1d77ac`.
 - **RF-05G #170 / PR #179** — tự động nhắc trước lịch hẹn 48/24 giờ và liên hệ sau lịch hẹn 3/7 ngày trên appointment hiện hành; DB idempotency + retry/revalidation + A09 history/wording người dùng. CI #382 PASS; native WPF keyboard smoke PASS ở HEAD trước wording-only patch. Squash main: `19f8218da0e6a505bf11ed3ad5daf8b087abe72b`.
@@ -17,7 +18,7 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đã nghiệm thu, AUTHZ-R1, AUTH-R2, DATA-R1, RF-05B/C/D, S6 integration, X1 kho đọc, X2.1 nhập lô mới, X2.2.1 lịch sử tiếp nhận. Bằng chứng chi tiết giữ trong issue/PR tương ứng.
 
 ### ACTIVE
-- **RF-02C #186** — hoàn thiện Customer Web Catalog theo dữ liệu Catalog hiện hành: Active-only public catalog; search theo mã/tên/hãng/phòng bệnh; filter Phòng bệnh + Công nghệ + giá; vaccine detail dùng detail endpoint và dữ liệu API có sẵn; thêm package detail. Mặc định không migration/schema/backend redesign; medical-content expansion tiếp tục defer/out of scope. Triển khai theo checkpoint C1→C4 với exact-head review sau mỗi checkpoint.
+- **Không có business slice ACTIVE.** RF-02C #186 đã merge; chờ người dùng xác nhận trước khi activate PAY-R1.
 
 ### NEXT
 1. **PAY-R1**.
@@ -70,7 +71,7 @@ Khách hàng, Lễ tân, Bác sĩ, Điều dưỡng, Thu ngân, Nhân viên kho.
 |---|---|
 | S0 nền SQL/API/CI | DONE |
 | S1 Identity/Auth | Core DONE; expansion parked |
-| S2 Catalog | Core/Windows refinement DONE; RF-02C #186 Web ACTIVE |
+| S2 Catalog | Core/Windows refinement + RF-02C #186 Web DONE; RF-02D compatibility PARKED |
 | S3 Customer/Recipient profiles | DONE |
 | S4 Registration/Payment core | DONE; PAY-R1 NEXT |
 | S5 Appointment/Clinical/Vaccination/Aftercare/Reminder | Core DONE; RF-05F/RF-05F.1/RF-05G #170 DONE |
