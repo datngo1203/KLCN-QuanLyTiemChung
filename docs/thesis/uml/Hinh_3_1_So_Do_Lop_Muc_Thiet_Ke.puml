@@ -15,9 +15,9 @@ skinparam classBackgroundColor white
 skinparam classBorderColor black
 skinparam classFontColor black
 skinparam arrowColor black
-skinparam linetype ortho
-skinparam nodesep 40
-skinparam ranksep 52
+skinparam linetype polyline
+skinparam nodesep 34
+skinparam ranksep 44
 hide circle
 hide empty methods
 top to bottom direction
@@ -129,25 +129,29 @@ class TheoDoiSauTiem <<entity>> {
 
 ' ---------------------------------------------------------------------------
 ' Layout strategy
-' Compact portrait topology: central business spine, support classes on sides.
+' Portrait A4 candidate.
+' Root-cause mitigation for multiplicity overlap:
+'   - polyline routing instead of ortho (ortho has known edge-label limitations)
+'   - central vertical business spine
+'   - support classes distributed left/right so labels do not compete for one side
 ' ---------------------------------------------------------------------------
 
-' Catalog top.
+' Top catalog row.
 GoiVacXin -[hidden]right- GoiVacXin_VacXin
 GoiVacXin_VacXin -[hidden]right- VacXin
-VacXin -[hidden]right- LoVacXin
-
-' Local vertical alignment for service details.
-GoiVacXin -[hidden]down- ChiTietGoiVacXin
-VacXin -[hidden]down- ChiTietVacXinLe
 
 ' Registration neighborhood.
-KhachHang -[hidden]down- NguoiDuocTiem
-NguoiDuocTiem -[hidden]right- DangKyDichVu
-KhuyenMai -[hidden]left- DangKyDichVu
-DangKyDichVu -[hidden]right- ThanhToan
+GoiVacXin -[hidden]down- ChiTietGoiVacXin
+ChiTietGoiVacXin -[hidden]right- DangKyDichVu
+DangKyDichVu -[hidden]right- ChiTietVacXinLe
+VacXin -[hidden]down- ChiTietVacXinLe
 
-' Central clinical spine.
+KhachHang -[hidden]right- DangKyDichVu
+KhachHang -[hidden]down- NguoiDuocTiem
+DangKyDichVu -[hidden]right- KhuyenMai
+KhuyenMai -[hidden]down- ThanhToan
+
+' Central business/clinical spine.
 DangKyDichVu -[hidden]down- LichHenTiem
 LichHenTiem -[hidden]right- NhacLich
 LichHenTiem -[hidden]down- PhieuKhamSangLoc
@@ -156,7 +160,8 @@ PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
 ChiDinhTiem -[hidden]down- MuiTiem
 MuiTiem -[hidden]down- TheoDoiSauTiem
 
-' Keep inventory close to administration.
+' Right-side vaccine/inventory support near clinical flow.
+VacXin -[hidden]down- LoVacXin
 LoVacXin -[hidden]down- MuiTiem
 
 ' ---------------------------------------------------------------------------
@@ -164,15 +169,15 @@ LoVacXin -[hidden]down- MuiTiem
 ' ---------------------------------------------------------------------------
 
 GoiVacXin "1" -right- "0..*" GoiVacXin_VacXin
-VacXin "1" -left- "0..*" GoiVacXin_VacXin
-VacXin "1" -right- "0..*" LoVacXin
+GoiVacXin_VacXin "0..*" -right- "1" VacXin
 
-' Refined association classes for registered services.
 GoiVacXin "1" -down- "0..*" ChiTietGoiVacXin
-DangKyDichVu "1" -left- "0..*" ChiTietGoiVacXin
+ChiTietGoiVacXin "0..*" -right- "1" DangKyDichVu
 
 VacXin "1" -down- "0..*" ChiTietVacXinLe
 DangKyDichVu "1" -right- "0..*" ChiTietVacXinLe
+
+VacXin "1" -down- "0..*" LoVacXin
 
 ' ---------------------------------------------------------------------------
 ' Profile / registration / payment
@@ -181,16 +186,17 @@ DangKyDichVu "1" -right- "0..*" ChiTietVacXinLe
 KhachHang "1" -down- "0..*" NguoiDuocTiem
 KhachHang "1" -right- "0..*" DangKyDichVu
 NguoiDuocTiem "1" -right- "0..*" DangKyDichVu
-KhuyenMai "0..1" -down- "0..*" DangKyDichVu
 
-' MaDangKy in ThanhToan is required and unique.
+DangKyDichVu "0..*" -right- "0..1" KhuyenMai
+
+' ThanhToan.MaDangKy is required and unique.
 DangKyDichVu "1" -right- "0..1" ThanhToan
 
 ' ---------------------------------------------------------------------------
 ' Appointment / reminder
 ' ---------------------------------------------------------------------------
 
-' MaDangKy in LichHenTiem is nullable.
+' LichHenTiem.MaDangKy is nullable.
 DangKyDichVu "0..1" -down- "0..*" LichHenTiem
 NguoiDuocTiem "1" -right- "0..*" LichHenTiem
 LichHenTiem "1" -right- "0..*" NhacLich
@@ -199,32 +205,32 @@ LichHenTiem "1" -right- "0..*" NhacLich
 ' Screening / indication
 ' ---------------------------------------------------------------------------
 
-' MaLichHen is nullable but unique when present.
+' PhieuKhamSangLoc.MaLichHen is nullable and unique when present.
 LichHenTiem "0..1" -down- "0..1" PhieuKhamSangLoc
 
-' Screening always belongs to a registration and recipient.
-DangKyDichVu "1" -down- "0..*" PhieuKhamSangLoc
-NguoiDuocTiem "1" -right- "0..*" PhieuKhamSangLoc
+' Required semantic ownership of a screening record.
+DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
+NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
 NhanVien "1" -right- "0..*" PhieuKhamSangLoc
 
 PhieuKhamSangLoc "1" -down- "0..*" ChiDinhTiem
-VacXin "1" -down- "0..*" ChiDinhTiem
+VacXin "1" -- "0..*" ChiDinhTiem
 
 ' ---------------------------------------------------------------------------
 ' Vaccination / aftercare
 ' ---------------------------------------------------------------------------
 
-' MaChiDinh is nullable and unique when present.
+' MuiTiem.MaChiDinh is nullable and unique when present.
 ChiDinhTiem "0..1" -down- "0..1" MuiTiem
 
-NguoiDuocTiem "1" -down- "0..*" MuiTiem
-LoVacXin "1" -down- "0..*" MuiTiem
-NhanVien "1" -down- "0..*" MuiTiem
+NguoiDuocTiem "1" -- "0..*" MuiTiem
+LoVacXin "1" -left- "0..*" MuiTiem
+NhanVien "1" -- "0..*" MuiTiem
 
-' MaMuiTiem in TheoDoiSauTiem is required and unique.
+' TheoDoiSauTiem.MaMuiTiem is required and unique.
 MuiTiem "1" -down- "0..1" TheoDoiSauTiem
 
-' MaNhanVien in TheoDoiSauTiem is nullable.
-NhanVien "0..1" -down- "0..*" TheoDoiSauTiem
+' TheoDoiSauTiem.MaNhanVien is nullable.
+NhanVien "0..1" -- "0..*" TheoDoiSauTiem
 
 @enduml
