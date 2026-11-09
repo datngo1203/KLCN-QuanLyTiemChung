@@ -1,0 +1,75 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Khách hàng" as Customer
+actor "Thu ngân" as Cashier
+boundary "PaymentCheckout" as Web
+boundary "PaymentView" as Win
+control "PaymentViewModel" as VM
+participant "PaymentApiService" as Service
+
+alt Khách hàng
+  Customer -> Web : moThanhToan(idDangKy)
+  activate Web
+  Web -> Service : taiChiTietThanhToan(idDangKy)
+  activate Service
+  Service --> Web : chiTiet, soTien, trangThai
+  deactivate Service
+  Web --> Customer : hienThiThongTinThanhToan()
+  Customer -> Web : chonKenhVaXacNhan(duLieu)
+  Web -> Service : ghiNhanThanhToan(duLieu)
+  activate Service
+  alt Giao dịch cần chờ xác nhận hoặc lỗi dữ liệu
+    Service --> Web : trangThaiHienHanh
+    Web --> Customer : hienThiTrangThai(trangThaiHienHanh)
+  else Ghi nhận thành công
+    Service --> Web : bienNhan
+    Web --> Customer : hienThiBienNhan()
+  end
+  deactivate Service
+  deactivate Web
+else Thu ngân
+  Cashier -> Win : moThanhToan()
+  activate Win
+  Win -> VM : timDangKy(tuKhoa)
+  activate VM
+  VM -> Service : taiDanhSachThanhToan(tuKhoa)
+  activate Service
+  Service --> VM : danhSachDangKy
+  deactivate Service
+  VM --> Win : capNhatDanhSach(danhSachDangKy)
+  Cashier -> Win : chonDangKy(id)
+  Win -> VM : taiChiTietThanhToan(id)
+  VM -> Service : taiChiTietThanhToan(id)
+  activate Service
+  Service --> VM : chiTietThanhToan
+  deactivate Service
+
+  alt Ghi nhận giao dịch mới
+    Cashier -> Win : nhapVaXacNhanThanhToan(duLieu)
+    Win -> VM : ghiNhanThanhToan(duLieu)
+    VM -> Service : ghiNhanThanhToan(duLieu)
+    activate Service
+    Service --> VM : ketQuaThanhToan
+    deactivate Service
+  else Xác nhận giao dịch đang chờ
+    Cashier -> Win : xacNhanGiaoDichCho()
+    Win -> VM : xacNhanThanhToanCho(id)
+    VM -> Service : xacNhanThanhToanCho(id)
+    activate Service
+    Service --> VM : ketQuaThanhToan
+    deactivate Service
+  end
+  VM --> Win : capNhatTrangThai(ketQuaThanhToan)
+  deactivate VM
+  Win --> Cashier : hienThiKetQua()
+  deactivate Win
+end
+@enduml
