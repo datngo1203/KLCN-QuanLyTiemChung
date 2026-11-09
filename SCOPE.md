@@ -72,6 +72,50 @@ Các nền tảng/core trước đó đã tích hợp: S0–S7 theo phạm vi đ
 - **Current scope stop:** checkpoint handoff mới ngay dưới đây; **không chỉnh Word, không vẽ đặc tả/Sequence, không chuyển Hình 2.10 thành final** trước khi chốt System UC presentation và visual gate. Latest working report/artifact vẫn theo checkpoint DOCX riêng, không suy rằng UML mới đã chèn.
 - **Main exact implementation evidence HEAD tại handoff:** `1fa336942559047a75400e3c863c08a3b294416e`. Chat mới phải fetch lại HEAD, không dùng SHA này như trạng thái luôn đúng.
 
+### THESIS-R1 — Theory Source Registry & precedence v1 — 09/11/2026
+
+**Mục đích:** đây là bản đồ nguồn bền vững cho toàn bộ THESIS-R1. Các file gốc có thể nằm ở Project/Library/chat attachment và **không cần commit binary vào repo**; `SCOPE.md` chỉ lưu identity, vai trò, thứ tự ưu tiên và route đọc để session sau không phải nhớ từ chat cũ hoặc tải lại toàn bộ tài liệu.
+
+#### 1. Thứ tự ưu tiên nguồn
+1. **Đề cương khóa luận + mẫu báo cáo chính thức của Khoa** quyết định phạm vi học thuật, deliverable bắt buộc, bố cục và thể thức báo cáo. Góp ý GVHD đã được checkpoint rõ trong `SCOPE.md` có thể override cách đặt/trình bày cục bộ của mẫu, nhưng không tự thay đổi ngữ nghĩa UML/HUIT.
+2. **Bộ bài giảng PTTKHTTT HUIT** quyết định phương pháp phân tích/thiết kế, thuật ngữ và semantic/notation UML dùng trong luận văn.
+3. **Exact implementation evidence trên `main`** quyết định hệ thống của đồ án **thực sự đã có capability gì**. Bài giảng quyết định cách mô hình hóa, không phải bằng chứng implementation.
+4. **Nguồn thực tế công khai đáng tin cậy** (VNVC/Bộ Y tế/WHO/nhà sản xuất phù hợp) chỉ dùng để khảo sát nghiệp vụ/y tế thực tế khi cần; phải phân biệt rõ với rule/capability của đồ án.
+5. **Tài liệu hướng dẫn giảm đạo văn/AI** chỉ quyết định cách viết, paraphrase và citation discipline; **không phải nguồn fact nghiệp vụ/kỹ thuật** và không tạo acceptance theo AI detector/Similarity.
+6. **Use Case/reference diagram bên ngoài** chỉ dùng học bố cục khi đã ghi rõ là supplementary; không override HUIT/UML semantic hoặc evidence từ repo.
+
+#### 2. Registry tài liệu đã người dùng cung cấp
+
+| Nhóm | File / identity | Vai trò canonical trong THESIS-R1 |
+|---|---|---|
+| Yêu cầu đề tài | `Đề cương khóa luận.pdf` — SHA-256 `9579eed47a86e9261d4d93e58f206e0b122d6141f6500d7d04e3f71adb5fd591` | Khóa mục tiêu, phạm vi, rubric và các artifact bắt buộc của khóa luận; dùng để kiểm report có bao phủ đúng yêu cầu đề tài hay không. |
+| Mẫu Khoa | `Mau bao cao_Do an_Khoa luan_Huong ung dung12092025.docx` — SHA-256 `c6abb6f6dd9f8504a1a25f0f8788ce59eb534edbae2184842d66dfba948576d6` | Khóa bố cục chương/mục, yêu cầu từng phần, format/caption/TOC và vị trí mặc định của các loại sơ đồ. |
+| Writing | `Hướng dẫn giảm đạo văn và AI trong văn bảng học thuật.pdf` — SHA-256 `adf9fb5c1ac974b4ea7b9327620af40de74e23231dc49b5e349697b81b920b6a` | Nguồn tinh chế writing guardrail: hiểu rồi viết lại, đổi cấu trúc thật, researcher voice chỉ khi có evidence, chống overclaim, giữ citation. Không tối ưu né detector. |
+| PTTKHTTT nền tảng | `Chuong 1_PTTKHTTT_Tong quan ve HTTT.pdf` — SHA-256 `c21a87b80f0f8e18e486a6f3c33b60bea5da492c2db51a95423956fbebc6e7c1` | Khái niệm hệ thống/HTTT, môi trường, tổ chức nghiệp vụ, dữ liệu/xử lý; dùng khi cần nền khái niệm cho khảo sát và phạm vi hệ thống. |
+| PTTKHTTT yêu cầu | `Chuong 2_PTTKHTTT_Xac dinh yeu cau.pdf` — SHA-256 `6c3da354590cf2d8c1de4b3e1887beeee8e40323af1bf0dd02f394c3f49c16e5` | File-name ghi “Chuong 2” nhưng slide mở đầu ghi **Chương 3 — Xác định yêu cầu**. Dùng cho requirement, functional/non-functional requirement, mục tiêu/nội dung/đối tượng khảo sát và kỹ thuật thu thập yêu cầu. Không tự sửa tên file; route theo **nội dung**. |
+| PTTKHTTT nghiệp vụ | `Chuong 4_PTTKHTTT_Mo hinh hoa nghiep vu.pdf` — SHA-256 `05e7115b8dc0e486f5b4f866ef737f818d7db31931f80ba4f16eca9736867875` | Authority HUIT cho Business Modeling: Business Use Case, Business Actor/Worker/Entity, Business Object, Activity, Swimlane, Control/Object Flow và truy vết nghiệp vụ. |
+| PTTKHTTT chức năng | `Chuong 5_PTTKHTTT_Mo hinh hoa chuc nang.pdf` và `Chuong 5_PTTKHTTT_Mo hinh hoa chuc nang_GoiGV.pdf` — **cùng SHA-256** `fe26221f9057332144da9895487eb3e51f28dd5c77e6e1e708eac8adf7cb6a57` | Authority HUIT cho System Modeling: system boundary/actor/use case, single-session/interactivity/complete-result, CRUD grouping, special actor `Thời gian`, include/extend/generalization và format đặc tả System UC. Hai file là duplicate byte-for-byte; chỉ cần đọc một bản. |
+| PTTKHTTT cấu trúc | `Chuong 6_PTTKHTTT_Mo hinh hoa cau truc(2).pdf`, `Chuong 6_PTTKHTTT_Mo hinh hoa cau truc.pdf`, `Chuong 6_PTTKHTTT_Mo hinh hoa cau truc_2.pdf` — **cùng SHA-256** `b813c33adef769d5bb35d90bd3a62d2fed44c2bd83b4a983e8ef981e538093cd` | Authority HUIT cho Class Analysis/structural modeling: class, association, multiplicity, association class, aggregation, composition, generalization và cách phát hiện/tinh chế lớp mức phân tích. Ba file là duplicate byte-for-byte; chỉ cần đọc một bản. |
+| PTTKHTTT thiết kế lớp | `Chuong 7_PTTKHTTT_Thiet ke lop du lieu.pdf` — SHA-256 `7e3ab6fad77d817617ef74b3fb8406a27a68a28cdab8e0e9d8fc9db2c3fd6a6b` | Authority HUIT cho Class Design: tinh chế attribute/association/method/visibility, coupling/cohesion và chuyển từ phân tích sang thiết kế. |
+| PTTKHTTT thực hành | `Bai giang TH PTTK HT_14DHTH.pdf` (Project/Library copy đã được re-audit trong THESIS-R1) | Nguồn **thực hành bổ trợ** cho Rational Rose, Sequence/Collaboration và ví dụ dựng diagram. Dùng để học ký hiệu/thao tác/bố cục; nếu ví dụ công cụ xung đột semantic HUIT/UML profile thì profile/semantic chuẩn được ưu tiên. |
+| Visual reference | `usecasethamkhao.pdf` + dense sample image người dùng đã cung cấp ở phiên System UC trước | **Visual/layout reference only**: học actor placement, clustering, fan-out và cách tận dụng không gian. Không copy `include/extend` hoặc decomposition nếu không đạt HUIT semantic gate. |
+
+#### 3. Route đọc theo phần khóa luận — progressive disclosure
+- **Mở đầu / Chương 1:** Đề cương → Mẫu Khoa → Chương 1 HTTT → file Xác định yêu cầu → nguồn khảo sát thực tế đúng claim. Chỉ đọc Chương 4 nếu cần phân biệt Business role/process.
+- **Chương 2.1 Business Modeling:** Chương 4 là authority; spot-check đúng trang/khái niệm theo HUIT profile v2. Không cần đọc Chương 5–7 nếu task không giao thoa.
+- **Chương 2.2 System Modeling:** Chương 5 là authority; dùng practical lecture/reference diagram chỉ sau khi semantic đã khóa.
+- **Chương 2.3 Class Analysis:** Chương 6 là authority; truy vết từ Business Entity/System UC/Sequence khi cần.
+- **Chương 3 / Class Design:** Chương 6 + Chương 7; practical lecture dùng cho Sequence notation khi cần.
+- **Mọi prose:** áp writing guardrail từ tài liệu giảm đạo văn/AI + canonical terminology trong `SCOPE.md`; không dùng AI làm nguồn fact.
+- **Mọi claim implementation:** chỉ verify trên exact `main`/contract/test theo THESIS evidence gate; không suy từ bài giảng, đề cương hoặc mẫu Khoa.
+
+#### 4. Quy tắc dedup/context
+- Không tải/đọc lại toàn bộ bộ bài giảng ở mỗi session. Sau recovery `AGENTS.md → SCOPE.md → active issue`, đọc **registry này → đúng source/đúng trang cần cho task**.
+- Hai file Chương 5 là cùng binary; ba file Chương 6 là cùng binary. **Không retrieval lặp các bản duplicate**.
+- Khi một file mới được người dùng cung cấp và có giá trị bền vững, cập nhật registry này với **tên file + vai trò + SHA-256 nếu có raw bytes**; không tạo progress/source file riêng chỉ để AI đọc.
+- Page anchors/shape rules cụ thể vẫn nằm ở **HUIT UML Visual & Semantic Profile v2** ngay dưới; registry này không lặp toàn bộ lý thuyết.
+- Nếu nguồn không hỗ trợ một claim, ghi rõ *nguồn không đủ để kết luận*; không tự điền từ kiến thức chung.
+
 ### THESIS-R1 — khóa quy tắc văn phong học thuật, chống đạo văn và sử dụng AI
 
 Nguồn tinh chế: tài liệu người dùng cung cấp `Hướng dẫn giảm đạo văn và AI trong văn bảng học thuật.pdf` (08/11/2026). Mục tiêu là **tính học thuật, tính nguyên gốc và khả năng truy vết nguồn**, không tối ưu để "qua" AI detector hoặc chạy theo một ngưỡng Similarity/AI Detection cụ thể.
