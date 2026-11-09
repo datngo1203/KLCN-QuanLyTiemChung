@@ -1,4 +1,5 @@
 @startuml
+!pragma layout elk
 ' THESIS-R1 — full 21 System Use Case portrait prototype
 ' Semantic baseline: reconciliation v4, 21 UC / 27 direct associations / 8 actor generalizations.
 ' Visual contract: A4 portrait, actor-centric fan-out, orthogonal routing, no include/extend.
