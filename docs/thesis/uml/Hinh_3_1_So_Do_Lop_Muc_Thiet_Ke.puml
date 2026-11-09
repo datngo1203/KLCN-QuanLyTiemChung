@@ -16,8 +16,8 @@ skinparam classBorderColor black
 skinparam classFontColor black
 skinparam arrowColor black
 skinparam linetype polyline
-skinparam nodesep 34
-skinparam ranksep 44
+skinparam nodesep 46
+skinparam ranksep 54
 hide circle
 hide empty methods
 top to bottom direction
@@ -129,40 +129,29 @@ class TheoDoiSauTiem <<entity>> {
 
 ' ---------------------------------------------------------------------------
 ' Layout strategy
-' Portrait A4 candidate.
-' Root-cause mitigation for multiplicity overlap:
-'   - polyline routing instead of ortho (ortho has known edge-label limitations)
-'   - central vertical business spine
-'   - support classes distributed left/right so labels do not compete for one side
+' Portrait A4: minimal constraints.
+' Keep only the catalog header and central clinical spine fixed; let Graphviz
+' compact support classes around their real associations.
 ' ---------------------------------------------------------------------------
 
-' Top catalog row.
+' Catalog header.
 GoiVacXin -[hidden]right- GoiVacXin_VacXin
 GoiVacXin_VacXin -[hidden]right- VacXin
 
-' Registration neighborhood.
-GoiVacXin -[hidden]down- ChiTietGoiVacXin
-ChiTietGoiVacXin -[hidden]right- DangKyDichVu
-DangKyDichVu -[hidden]right- ChiTietVacXinLe
-VacXin -[hidden]down- ChiTietVacXinLe
-
-KhachHang -[hidden]right- DangKyDichVu
-KhachHang -[hidden]down- NguoiDuocTiem
-DangKyDichVu -[hidden]right- KhuyenMai
-KhuyenMai -[hidden]down- ThanhToan
-
-' Central business/clinical spine.
+' Main business / clinical spine.
 DangKyDichVu -[hidden]down- LichHenTiem
-LichHenTiem -[hidden]right- NhacLich
 LichHenTiem -[hidden]down- PhieuKhamSangLoc
-NhanVien -[hidden]left- PhieuKhamSangLoc
 PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
 ChiDinhTiem -[hidden]down- MuiTiem
 MuiTiem -[hidden]down- TheoDoiSauTiem
 
-' Right-side vaccine/inventory support near clinical flow.
-VacXin -[hidden]down- LoVacXin
-LoVacXin -[hidden]down- MuiTiem
+' Keep common side companions close without forcing whole rows.
+GoiVacXin -[hidden]down- ChiTietGoiVacXin
+VacXin -[hidden]down- ChiTietVacXinLe
+KhachHang -[hidden]down- NguoiDuocTiem
+LichHenTiem -[hidden]right- NhacLich
+NhanVien -[hidden]right- PhieuKhamSangLoc
+MuiTiem -[hidden]right- LoVacXin
 
 ' ---------------------------------------------------------------------------
 ' Catalog / package / inventory
@@ -177,15 +166,15 @@ ChiTietGoiVacXin "0..*" -right- "1" DangKyDichVu
 VacXin "1" -down- "0..*" ChiTietVacXinLe
 DangKyDichVu "1" -right- "0..*" ChiTietVacXinLe
 
-VacXin "1" -down- "0..*" LoVacXin
+VacXin "1" -- "0..*" LoVacXin
 
 ' ---------------------------------------------------------------------------
 ' Profile / registration / payment
 ' ---------------------------------------------------------------------------
 
 KhachHang "1" -down- "0..*" NguoiDuocTiem
-KhachHang "1" -right- "0..*" DangKyDichVu
 NguoiDuocTiem "1" -right- "0..*" DangKyDichVu
+KhachHang "1" -- "0..*" DangKyDichVu
 
 DangKyDichVu "0..*" -right- "0..1" KhuyenMai
 
@@ -198,7 +187,7 @@ DangKyDichVu "1" -right- "0..1" ThanhToan
 
 ' LichHenTiem.MaDangKy is nullable.
 DangKyDichVu "0..1" -down- "0..*" LichHenTiem
-NguoiDuocTiem "1" -right- "0..*" LichHenTiem
+NguoiDuocTiem "1" -- "0..*" LichHenTiem
 LichHenTiem "1" -right- "0..*" NhacLich
 
 ' ---------------------------------------------------------------------------
@@ -224,7 +213,7 @@ VacXin "1" -- "0..*" ChiDinhTiem
 ChiDinhTiem "0..1" -down- "0..1" MuiTiem
 
 NguoiDuocTiem "1" -- "0..*" MuiTiem
-LoVacXin "1" -left- "0..*" MuiTiem
+MuiTiem "0..*" -right- "1" LoVacXin
 NhanVien "1" -- "0..*" MuiTiem
 
 ' TheoDoiSauTiem.MaMuiTiem is required and unique.
