@@ -1,6 +1,6 @@
 @startuml
 ' THESIS-R1 - HUIT/Rational Rose Sequence Diagram profile
-' UC1 naming aligned to main implementation
+' UC1 - logical operations with code traceability
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -27,77 +27,87 @@ autonumber
 actor "Quản trị viên" as Admin
 boundary "CatalogView" as View
 control "CatalogViewModel" as VM
-control "CatalogApiService" as Service
+participant "CatalogApiService" as Service
 
 Admin -> View : moQuanLyDanhMuc()
 activate View
-View -> VM : InitializeAsync()
+View -> VM : khoiTaoDanhMuc()
 activate VM
-VM -> VM : Load()
-VM -> Service : ListAsync<T>(resource, search, status)
+VM -> Service : taiDanhSach(nhom, tuKhoa, trangThai)
 activate Service
-Service --> VM : items
+Service --> VM : danhSach
 deactivate Service
-VM --> View : Rows
+VM --> View : capNhatDanhSach(danhSach)
 deactivate VM
 View --> Admin : hienThiDanhSach()
 
-Admin -> View : chonNhomDanhMuc(tab)
-View -> VM : SelectResourceAsync(tab)
+Admin -> View : chonNhomDanhMuc(nhom)
+View -> VM : chuyenNhomDanhMuc(nhom)
 activate VM
-VM -> VM : Load()
-VM -> Service : ListAsync<T>(resource, search, status)
+VM -> Service : taiDanhSach(nhom, tuKhoa, trangThai)
 activate Service
-Service --> VM : items
+Service --> VM : danhSach
 deactivate Service
-VM --> View : Rows
+VM --> View : capNhatDanhSach(danhSach)
 deactivate VM
 View --> Admin : hienThiDanhSach()
 
 Admin -> View : chonThaoTac(hanhDong)
 
-alt CanEdit = false
+alt Không đủ quyền chỉnh sửa
   View --> Admin : thongBaoKhongDuQuyen()
-else CanEdit = true
-  alt Tạo mới hoặc cập nhật
-    View -> VM : SaveCommand.Execute()
+else Có quyền chỉnh sửa
+  alt Thêm mới hoặc cập nhật
+    View --> Admin : hienThiBieuMau()
+    Admin -> View : nhapThongTin(duLieu)
+    View -> VM : luuDanhMuc(duLieu)
     activate VM
-    VM -> VM : Save()
-    VM -> Service : SaveAsync<T>(resource, id, body)
+    VM -> Service : luuDanhMuc(nhom, id, duLieu)
     activate Service
-    Service --> VM : saved
-    deactivate Service
 
-    alt Lưu thành công
-      VM -> VM : Apply(saved)
-      VM -> VM : Load(saved.Id)
-      VM -> Service : ListAsync<T>(resource, search, status)
-      activate Service
-      Service --> VM : items
+    alt Dữ liệu không hợp lệ hoặc vi phạm ràng buộc
+      Service --> VM : loiNghiepVu
       deactivate Service
-      VM --> View : Rows, Feedback
-    else Validation / HttpRequestException
-      VM --> View : Feedback
+      VM --> View : hienThiLoi(loiNghiepVu)
+      deactivate VM
+      View --> Admin : yeuCauDieuChinh()
+    else Lưu thành công
+      Service --> VM : danhMucDaLuu
+      deactivate Service
+      VM -> Service : taiDanhSach(nhom, tuKhoa, trangThai)
+      activate Service
+      Service --> VM : danhSachMoi
+      deactivate Service
+      VM --> View : capNhatDanhSach(danhSachMoi)
+      deactivate VM
+      View --> Admin : thongBaoLuuThanhCong()
     end
-    deactivate VM
   else Xóa
-    View -> VM : DeleteCommand.Execute()
+    View --> Admin : yeuCauXacNhanXoa()
+    Admin -> View : xacNhanXoa()
+    View -> VM : xoaDanhMuc(id)
     activate VM
-    VM -> VM : Delete()
-    VM -> Service : DeleteAsync(resource, id)
+    VM -> Service : xoaDanhMuc(nhom, id)
     activate Service
-    Service --> VM : completed
-    deactivate Service
-    VM -> VM : Load()
-    VM -> Service : ListAsync<T>(resource, search, status)
-    activate Service
-    Service --> VM : items
-    deactivate Service
-    VM --> View : Rows, Feedback
-    deactivate VM
-  end
 
-  View --> Admin : hienThiKetQua()
+    alt Không thể xóa
+      Service --> VM : loiNghiepVu
+      deactivate Service
+      VM --> View : hienThiLoi(loiNghiepVu)
+      deactivate VM
+      View --> Admin : thongBaoKhongTheXoa()
+    else Xóa thành công
+      Service --> VM : ketQuaXoa
+      deactivate Service
+      VM -> Service : taiDanhSach(nhom, tuKhoa, trangThai)
+      activate Service
+      Service --> VM : danhSachMoi
+      deactivate Service
+      VM --> View : capNhatDanhSach(danhSachMoi)
+      deactivate VM
+      View --> Admin : thongBaoXoaThanhCong()
+    end
+  end
 end
 
 deactivate View
