@@ -1,196 +1,130 @@
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
-import math
 import re
 
 ROOT = Path(__file__).resolve().parent
 PUML = ROOT / "Hinh_2_9_System_Use_Case_Tong_Quan.puml"
 PNG = ROOT / "Hinh_2_9_System_Use_Case_Tong_Quan.png"
 
-W, H = 1800, 1400
-BOUNDARY = (300, 120, 1500, 1260)
+# Validator only: canonical Hình 2.9 PNG is the raw PlantUML render.
 
 EXPECTED_ACTORS = {
     "Customer": "Khách hàng",
+    "Admin": "Quản trị viên",
     "Reception": "Lễ tân",
-    "Doctor": "Bác sĩ",
     "Cashier": "Thu ngân",
+    "Doctor": "Bác sĩ",
     "Nurse": "Điều dưỡng",
+    "Warehouse": "Nhân viên kho",
+    "Email": "Dịch vụ thư điện tử",
+    "Time": "Thời gian",
 }
 
 EXPECTED_UCS = {
+    "UC01": "Đăng ký tài khoản\\nkhách hàng",
+    "UC05": "Thay đổi chức danh\\ntài khoản nhân viên",
+    "UC06": "Quản lý danh mục\\ntiêm chủng",
+    "UC07": "Quản lý ưu đãi",
+    "UC08": "Quản lý lô và tồn kho\\nvắc xin",
     "UC09": "Quản lý hồ sơ khách hàng/\\nngười được tiêm",
     "UC10": "Tra cứu dịch vụ\\ntiêm chủng",
     "UC11": "Đăng ký dịch vụ\\ntiêm chủng",
-    "UC19": "Theo dõi hành trình\\ntiêm chủng",
     "UC12": "Quản lý lịch hẹn",
     "UC13": "Gửi nhắc lịch",
+    "UC14": "Tự động gửi nhắc lịch",
     "UC15": "Ghi nhận khám sàng lọc\\nvà chỉ định",
     "UC16": "Thanh toán dịch vụ",
     "UC17": "Ghi nhận mũi tiêm",
     "UC18": "Ghi nhận theo dõi\\nsau tiêm",
+    "UC19": "Theo dõi hành trình\\ntiêm chủng",
+    "UC20": "Tra cứu lịch sử\\ntiêm chủng",
+    "UC21": "Báo cáo hoạt động",
 }
 
 EXPECTED_ASSOCIATIONS = {
-    frozenset(("Customer", "UC09")),
-    frozenset(("Customer", "UC10")),
-    frozenset(("Customer", "UC11")),
-    frozenset(("Customer", "UC19")),
-    frozenset(("Reception", "UC12")),
-    frozenset(("Reception", "UC13")),
-    frozenset(("UC15", "Doctor")),
-    frozenset(("UC16", "Cashier")),
-    frozenset(("UC17", "Nurse")),
-    frozenset(("UC18", "Nurse")),
+    ("Customer","UC01"), ("Customer","UC09"), ("Customer","UC10"),
+    ("Customer","UC11"), ("Customer","UC12"), ("Customer","UC16"),
+    ("Customer","UC19"), ("Customer","UC20"),
+    ("Reception","UC09"), ("Reception","UC11"), ("Reception","UC12"),
+    ("Reception","UC13"),
+    ("Admin","UC05"), ("Admin","UC06"), ("Admin","UC07"), ("Admin","UC21"),
+    ("Cashier","UC16"), ("Doctor","UC15"),
+    ("Nurse","UC17"), ("Nurse","UC18"),
+    ("Warehouse","UC08"),
+    ("Email","UC13"), ("Email","UC14"), ("Time","UC14"),
 }
 
-ACTOR_POS = {
-    "Customer": (145, 440),
-    "Reception": (145, 1030),
-    "Doctor": (1655, 340),
-    "Cashier": (1655, 600),
-    "Nurse": (1655, 930),
-}
+FORBIDDEN_UCS = {"UC02", "UC03", "UC04"}
 
-UC_POS = {
-    "UC09": (560, 300, 420, 105),
-    "UC10": (560, 460, 340, 95),
-    "UC11": (560, 620, 350, 95),
-    "UC19": (560, 780, 360, 95),
-    "UC12": (790, 930, 300, 90),
-    "UC13": (790, 1090, 270, 90),
-    "UC15": (1180, 330, 430, 105),
-    "UC16": (1180, 580, 320, 90),
-    "UC17": (1180, 810, 300, 90),
-    "UC18": (1180, 1040, 340, 100),
-}
-
-FONT_CANDIDATES = [
-    "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf",
-    "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold.ttf",
-    "/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-]
-BOLD_CANDIDATES = [
-    "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold.ttf",
-    "/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
-]
-
-def first_existing(paths):
-    for p in paths:
-        if Path(p).exists():
-            return p
-    raise RuntimeError(f"No usable serif font found: {paths}")
 
 def parse_source(text):
-    actors = dict(re.findall(r'^actor\s+"([^"]+)"\s+as\s+(\w+)\s*$', text, re.M))
-    # invert name->alias to alias->name
-    actors = {alias: name for name, alias in actors.items()}
-
+    actors = {
+        alias: name
+        for name, alias in re.findall(
+            r'^actor\s+"([^"]+)"\s+as\s+(\w+)\s*$', text, re.M
+        )
+    }
     ucs = {}
-    for label, alias in re.findall(r'^\s*usecase\s+"((?:[^"\\]|\\.)*)"\s+as\s+(\w+)\s*$', text, re.M):
+    for label, alias in re.findall(
+        r'^\s*usecase\s+"((?:[^"\\]|\\.)*)"\s+as\s+(UC\d+)\s*$',
+        text,
+        re.M,
+    ):
         ucs[alias] = label
 
     assocs = set()
-    for a, op, b in re.findall(r'^\s*(\w+)\s+(-right-|--|-left-|-[^-\s]+-)\s+(\w+)\s*$', text, re.M):
-        if "hidden" in op:
+    parts = re.split(
+        r"^'\s*24 direct actor–UC associations\.\s*$",
+        text,
+        maxsplit=1,
+        flags=re.M,
+    )
+    if len(parts) != 2:
+        raise SystemExit("Cannot find 24 direct actor–UC association section")
+
+    for line in parts[1].splitlines():
+        line = line.strip()
+        if not line or line.startswith("'") or line.startswith("@"):
             continue
-        if a in actors or a in ucs:
-            if b in actors or b in ucs:
-                assocs.add(frozenset((a, b)))
+        m = re.match(
+            r'^(\w+)\s+(?:--|-right-|-left-|-up-|-down-)\s+(\w+)\s*$',
+            line,
+        )
+        if not m:
+            continue
+        a, b = m.groups()
+        if a in actors and b in ucs:
+            assocs.add((a, b))
+        elif b in actors and a in ucs:
+            assocs.add((b, a))
     return actors, ucs, assocs
 
-def verify_semantics():
-    text = PUML.read_text(encoding="utf-8")
-    actors, ucs, assocs = parse_source(text)
-    if actors != EXPECTED_ACTORS:
-        raise SystemExit(f"Hinh 2.9 actors changed. Expected {EXPECTED_ACTORS}, got {actors}")
-    if ucs != EXPECTED_UCS:
-        raise SystemExit(f"Hinh 2.9 UCs changed. Expected {EXPECTED_UCS}, got {ucs}")
-    if assocs != EXPECTED_ASSOCIATIONS:
-        raise SystemExit(f"Hinh 2.9 associations changed. Expected {EXPECTED_ASSOCIATIONS}, got {assocs}")
-    return actors, ucs
-
-def actor_anchor(alias, actor_xy):
-    cx, cy = actor_xy
-    if alias in ("Customer", "Reception"):
-        return (cx + 30, cy - 5)
-    return (cx - 30, cy - 5)
-
-def ellipse_edge(cx, cy, w, h, toward):
-    tx, ty = toward
-    dx, dy = tx - cx, ty - cy
-    rx, ry = w / 2.0, h / 2.0
-    if dx == 0 and dy == 0:
-        return (cx, cy)
-    scale = 1.0 / math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry))
-    return (cx + dx * scale, cy + dy * scale)
-
-def draw_actor(draw, cx, cy, label, font):
-    r = 18
-    head_y = cy - 55
-    draw.ellipse((cx-r, head_y-r, cx+r, head_y+r), outline="black", width=2)
-    draw.line((cx, head_y+r, cx, cy+18), fill="black", width=2)
-    draw.line((cx-30, cy-5, cx+30, cy-5), fill="black", width=2)
-    draw.line((cx, cy+18, cx-28, cy+55), fill="black", width=2)
-    draw.line((cx, cy+18, cx+28, cy+55), fill="black", width=2)
-    bb = draw.textbbox((0,0), label, font=font)
-    draw.text((cx-(bb[2]-bb[0])/2, cy+67), label, font=font, fill="black")
-
-def draw_uc(draw, alias, label, font):
-    cx, cy, w, h = UC_POS[alias]
-    draw.ellipse((cx-w/2, cy-h/2, cx+w/2, cy+h/2), outline="black", width=2)
-    lines = label.replace("\\n", "\n").split("\n")
-    line_h = 34
-    y = cy - line_h * len(lines) / 2
-    for line in lines:
-        bb = draw.textbbox((0,0), line, font=font)
-        draw.text((cx-(bb[2]-bb[0])/2, y), line, font=font, fill="black")
-        y += line_h
-
-def connect(draw, actor_alias, uc_alias):
-    a = actor_anchor(actor_alias, ACTOR_POS[actor_alias])
-    cx, cy, w, h = UC_POS[uc_alias]
-    e = ellipse_edge(cx, cy, w, h, a)
-    draw.line((a[0], a[1], e[0], e[1]), fill="black", width=2)
 
 def main():
-    actors, ucs = verify_semantics()
+    text = PUML.read_text(encoding="utf-8")
+    actors, ucs, assocs = parse_source(text)
 
-    regular = first_existing(FONT_CANDIDATES)
-    bold = first_existing(BOLD_CANDIDATES)
-    f_uc = ImageFont.truetype(regular, 30)
-    f_actor = ImageFont.truetype(regular, 30)
-    f_title = ImageFont.truetype(bold, 34)
+    if actors != EXPECTED_ACTORS:
+        raise SystemExit(f"actor mismatch: {actors}")
+    if ucs != EXPECTED_UCS:
+        raise SystemExit(f"UC mismatch: {ucs}")
+    if assocs != EXPECTED_ASSOCIATIONS:
+        raise SystemExit(
+            f"association mismatch missing={EXPECTED_ASSOCIATIONS-assocs} "
+            f"extra={assocs-EXPECTED_ASSOCIATIONS}"
+        )
+    if FORBIDDEN_UCS & set(ucs):
+        raise SystemExit(f"authentication UCs leaked into overview: {FORBIDDEN_UCS & set(ucs)}")
+    if re.search(r'<<\s*(include|extend)\s*>>', text, re.I):
+        raise SystemExit("include/extend must not appear in Hình 2.9 overview")
+    if "|>" in text:
+        raise SystemExit("generalization must not appear in Hình 2.9 overview")
+    if not PNG.exists():
+        raise SystemExit("PlantUML PNG was not rendered")
 
-    img = Image.new("RGB", (W, H), "white")
-    draw = ImageDraw.Draw(img)
+    print("validated Hình 2.9: raw PlantUML canonical render")
+    print("18 visible UC / 9 visible actors / 24 direct associations")
+    print("0 include / 0 extend / 0 generalization; UC02/UC03/UC04 omitted from overview")
 
-    x1, y1, x2, y2 = BOUNDARY
-    draw.rectangle((x1, y1, x2, y2), outline="black", width=3)
-
-    title = "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG"
-    bb = draw.textbbox((0,0), title, font=f_title)
-    draw.text(((x1+x2-(bb[2]-bb[0]))/2, 150), title, font=f_title, fill="black")
-
-    for alias, label in actors.items():
-        draw_actor(draw, *ACTOR_POS[alias], label, f_actor)
-
-    for alias, label in ucs.items():
-        draw_uc(draw, alias, label, f_uc)
-
-    for pair in EXPECTED_ASSOCIATIONS:
-        a, b = tuple(pair)
-        if a in EXPECTED_ACTORS:
-            actor_alias, uc_alias = a, b
-        else:
-            actor_alias, uc_alias = b, a
-        connect(draw, actor_alias, uc_alias)
-
-    # Final deterministic print-size target: 180 dpi.
-    img.save(PNG, dpi=(180, 180))
-    print(f"postprocessed {PNG.name}: {img.size}, font={regular}")
 
 if __name__ == "__main__":
     main()
