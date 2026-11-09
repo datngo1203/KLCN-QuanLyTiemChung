@@ -1,5 +1,6 @@
 @startuml
 ' THESIS-R1 - HUIT/Rational Rose Sequence Diagram profile
+' UC1 naming aligned to main implementation
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -24,57 +25,80 @@ hide footbox
 autonumber
 
 actor "Quản trị viên" as Admin
-boundary "QuanLyDanhMucGD" as UI
-control "DieuKhienDanhMuc" as CatalogControl
-entity "QuyenHan" as Permission
-entity "DanhMucTiemChung" as Catalog
+boundary "CatalogView" as View
+control "CatalogViewModel" as VM
+control "CatalogApiService" as Service
 
-Admin -> UI : moQuanLyDanhMuc()
-activate UI
+Admin -> View : moQuanLyDanhMuc()
+activate View
+View -> VM : InitializeAsync()
+activate VM
+VM -> VM : Load()
+VM -> Service : ListAsync<T>(resource, search, status)
+activate Service
+Service --> VM : items
+deactivate Service
+VM --> View : Rows
+deactivate VM
+View --> Admin : hienThiDanhSach()
 
-UI -> CatalogControl : taiDanhSach(nhom, trangThai)
-activate CatalogControl
-CatalogControl -> Catalog : truyVanDanhMuc(nhom, trangThai)
-activate Catalog
-Catalog --> CatalogControl : danhSachHienCo
-deactivate Catalog
-CatalogControl --> UI : duLieuDanhMuc
-deactivate CatalogControl
-UI --> Admin : hienThiDanhSach(duLieuDanhMuc)
+Admin -> View : chonNhomDanhMuc(tab)
+View -> VM : SelectResourceAsync(tab)
+activate VM
+VM -> VM : Load()
+VM -> Service : ListAsync<T>(resource, search, status)
+activate Service
+Service --> VM : items
+deactivate Service
+VM --> View : Rows
+deactivate VM
+View --> Admin : hienThiDanhSach()
 
-Admin -> UI : chonThaoTac(hanhDong)
-UI --> Admin : hienThiBieuMauHoacXacNhan(hanhDong)
-Admin -> UI : nhapThongTinHoacXacNhan(duLieu)
+Admin -> View : chonThaoTac(hanhDong)
 
-UI -> CatalogControl : yeuCauThucHien(hanhDong, duLieu)
-activate CatalogControl
-CatalogControl -> Permission : kiemTraQuyen(hanhDong)
-activate Permission
-Permission --> CatalogControl : ketQuaQuyen
-deactivate Permission
+alt CanEdit = false
+  View --> Admin : thongBaoKhongDuQuyen()
+else CanEdit = true
+  alt Tạo mới hoặc cập nhật
+    View -> VM : SaveCommand.Execute()
+    activate VM
+    VM -> VM : Save()
+    VM -> Service : SaveAsync<T>(resource, id, body)
+    activate Service
+    Service --> VM : saved
+    deactivate Service
 
-alt Không đủ quyền
-  CatalogControl --> UI : tuChoiThaoTac()
-  deactivate CatalogControl
-  UI --> Admin : thongBaoKhongDuQuyen()
-else Được phép
-  CatalogControl -> Catalog : kiemTraDuLieuVaThucThi(hanhDong, duLieu)
-  activate Catalog
-
-  alt Không hợp lệ hoặc vi phạm ràng buộc
-    Catalog --> CatalogControl : loiNghiepVu
-    deactivate Catalog
-    CatalogControl --> UI : thongBaoLoi(loiNghiepVu)
-    deactivate CatalogControl
-    UI --> Admin : yeuCauDieuChinhHoacGiuNguyenDuLieu()
-  else Hợp lệ
-    Catalog --> CatalogControl : duLieuSauThayDoi
-    deactivate Catalog
-    CatalogControl --> UI : ketQuaCapNhat
-    deactivate CatalogControl
-    UI --> Admin : hienThiKetQuaMoiNhat(ketQuaCapNhat)
+    alt Lưu thành công
+      VM -> VM : Apply(saved)
+      VM -> VM : Load(saved.Id)
+      VM -> Service : ListAsync<T>(resource, search, status)
+      activate Service
+      Service --> VM : items
+      deactivate Service
+      VM --> View : Rows, Feedback
+    else Validation / HttpRequestException
+      VM --> View : Feedback
+    end
+    deactivate VM
+  else Xóa
+    View -> VM : DeleteCommand.Execute()
+    activate VM
+    VM -> VM : Delete()
+    VM -> Service : DeleteAsync(resource, id)
+    activate Service
+    Service --> VM : completed
+    deactivate Service
+    VM -> VM : Load()
+    VM -> Service : ListAsync<T>(resource, search, status)
+    activate Service
+    Service --> VM : items
+    deactivate Service
+    VM --> View : Rows, Feedback
+    deactivate VM
   end
+
+  View --> Admin : hienThiKetQua()
 end
 
-deactivate UI
+deactivate View
 @enduml
