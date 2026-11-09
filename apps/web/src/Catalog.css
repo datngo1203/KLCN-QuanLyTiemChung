@@ -34,10 +34,40 @@
 .regimen-doses li { padding: 6px 16px; }
 .regimen-doses strong { color: var(--primary); }
 .catalog-page .notice { flex-wrap: wrap; align-items: center; }
+.catalog-controls { display: grid; gap: 18px; margin: 24px 0 32px; padding: clamp(16px, 2.4vw, 24px); border: 1px solid var(--line); border-radius: 18px; background: white; }
+.catalog-page .search-box { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.catalog-page .search-box > span { display: grid; flex: none; place-items: center; color: var(--primary); }
+.catalog-page .search-box svg { width: 20px; height: 20px; }
+.catalog-page .search-box input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.catalog-page .search-box input:focus-visible,
+.catalog-filters input:focus-visible,
+.catalog-filters select:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.catalog-page .search-box .button { flex: none; }
+.catalog-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; }
+.catalog-filters label { display: grid; flex: initial; gap: 6px; min-width: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+.catalog-filters input, .catalog-filters select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); }
+.filter-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.filter-tab { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 24px; background: white; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.filter-tab.selected { border-color: var(--primary); background: var(--blue-soft); color: var(--primary); }
+.filter-tab:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.catalog-item { display: grid; gap: 4px; min-width: 0; }
+.catalog-code { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+.catalog-diseases { margin: 0; color: var(--muted); font-size: 13px; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalog-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+.catalog-info h3 { margin: 6px 0 12px; color: var(--ink); font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+.catalog-info .card-kicker { color: var(--muted); font-size: 12px; font-weight: 700; }
+.catalog-package-doses, .catalog-components { margin: 12px 0 0; color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
+.catalog-package-doses strong { color: var(--primary); }
+.catalog-package-price { margin-top: 16px; color: var(--primary); font-size: 20px; font-weight: 700; }
 @media (max-width: 700px) {
   .catalog-table-hint { display: block; margin-top: 8px; }
   .catalog-table { min-width: 760px; }
   .catalog-table th, .catalog-table td { padding: 14px 16px; }
+  .catalog-filters, .catalog-grid { grid-template-columns: minmax(0, 1fr); }
+  .catalog-page .search-box { display: grid; grid-template-columns: 24px minmax(0, 1fr); height: auto; }
+  .catalog-page .search-box .button { grid-column: 1 / -1; width: 100%; }
+  .filter-tab { min-height: 44px; }
   .vaccine-detail-layout { grid-template-columns: 1fr; gap: 24px; }
   .vaccine-detail-layout > .product-placeholder { min-height: 170px; }
   .vaccine-facts > div { grid-template-columns: 1fr; gap: 8px; }

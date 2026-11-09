@@ -93,7 +93,7 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.match(guidance.textContent, /Sau khi tiêm.*ít nhất 30 phút/)
   await act(async () => home.querySelector('.vac-service-preview button').click())
   assert.equal(window.location.hash, '#catalog')
-  assert.equal(home.querySelector('input[aria-label="Tìm theo tên"]').value, 'Gói tiêm kiểm thử API')
+  assert.equal(home.querySelector('input[aria-label="Tìm theo mã, tên, hãng hoặc phòng bệnh"]').value, 'Gói tiêm kiểm thử API')
   assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages' && url.searchParams.get('search') === '[DEMO] Gói tiêm kiểm thử API'))
   assert.match(home.textContent, /Gói tiêm kiểm thử API/)
   assert.match(home.textContent, /Thành phần kiểm thử × 1/)
