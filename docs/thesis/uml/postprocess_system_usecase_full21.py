@@ -73,7 +73,7 @@ UC_POS = {
     "UC10": (470, 850), "UC06": (1130, 820),
     "UC09": (800, 1050), "UC07": (1130, 990),
     "UC11": (800, 1250), "UC21": (1130, 1160),
-    "UC19": (570, 1370), "UC12": (950, 1500),
+    "UC19": (610, 1380), "UC12": (950, 1500),
     "UC20": (400, 1600), "UC13": (900, 1650),
     "UC15": (1130, 1850), "UC16": (800, 1970),
     "UC17": (1130, 2100), "UC18": (1130, 2220),
@@ -82,7 +82,7 @@ UC_POS = {
 
 ACTOR_POS = {
     "User": (1400, 100),
-    "Customer": (105, 950),
+    "Customer": (160, 950),
     "Admin": (1500, 850),
     "Reception": (1500, 1500),
     "Doctor": (1500, 1850),
@@ -273,7 +273,7 @@ def actor_label_boxes(draw, font):
         elif actor == "Customer":
             bb = draw.textbbox((0, 0), name, font=font)
             w, h = bb[2]-bb[0], bb[3]-bb[1]
-            boxes[actor] = (55-w/2-5, y-23, 55+w/2+5, y-23+h+10)
+            boxes[actor] = (85-w/2-5, y-23, 85+w/2+5, y-23+h+10)
         elif actor in {"Admin", "Reception", "Doctor", "Cashier", "Nurse", "Warehouse"}:
             lines = textwrap.wrap(name, width=13, break_long_words=False)
             widths = [draw.textbbox((0,0), line, font=font)[2] for line in lines]
@@ -375,7 +375,7 @@ def draw_actor(draw, alias, font):
         draw.text((x-(bb[2]-bb[0])/2, y-105), name, font=font, fill="black")
     elif alias == "Customer":
         bb = draw.textbbox((0,0), name, font=font)
-        draw.text((55-(bb[2]-bb[0])/2, y-18), name, font=font, fill="black")
+        draw.text((85-(bb[2]-bb[0])/2, y-18), name, font=font, fill="black")
     elif alias in {"Admin", "Reception", "Doctor", "Cashier", "Nurse", "Warehouse"}:
         yy = y - 15
         for line in textwrap.wrap(name, width=13, break_long_words=False):
