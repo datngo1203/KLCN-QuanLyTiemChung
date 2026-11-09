@@ -101,6 +101,12 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 - Không merge/xóa/đổi tên UC, đổi actor association hoặc invent UC cha chỉ vì hình khó vẽ.
 - Reading order/position không tạo dependency hoặc workflow relation.
 
+#### 4.1. Prototype rendering discipline — HARD RULE
+- **Không dùng công cụ tạo ảnh/generative image để vẽ hoặc đánh giá UML kỹ thuật.** Generative image có thể tự đổi label, duplicate actor, bịa/mất association, làm sai generalization và không bảo đảm endpoint geometry.
+- Prototype trước human review phải được dựng bằng **deterministic geometry** (ưu tiên SVG/vector hoặc layout script có tọa độ/shape/connector kiểm soát được). Prototype có thể là mockup kỹ thuật, nhưng **không phải canonical final**.
+- Canonical final vẫn là PlantUML source-first + deterministic post-process/CI khi prototype đã được human-approved.
+- Mọi prototype phải có thể audit chính xác số actor/UC/association/generalization từ source dữ liệu, không dựa vào pixels do model ảnh sinh.
+
 #### 5. Quy trình prototype tiếp theo
 1. Dựng **actor placement + 21 ellipse placement trước, chưa nối dây**.
 2. Audit mật độ, khoảng trắng, sector và corridor.
