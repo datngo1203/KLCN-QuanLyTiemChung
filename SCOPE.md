@@ -1643,3 +1643,20 @@ Các mẫu dưới đây **không bị cấm**, nhưng phải tránh dùng liên
 
 **Scope stop:** writing profile này không tự kích hoạt việc rewrite toàn bộ Word hiện hành. Chỉ áp dụng cho phần viết tiếp theo hoặc vòng language-review riêng khi người dùng mở task đó.
 
+### THESIS-R1 — Language-review refinement + Word layout fixes — 09/11/2026
+
+**USER APPROVED.**
+
+#### Language-review refinement
+- Bổ sung tiêu chí **sentence-rhythm variation** vào writing profile: tránh để phần lớn câu trong một đoạn dài có độ dài và nhịp cú pháp quá giống nhau.
+- Không đặt mục tiêu số học cứng cho độ dài câu hay độ lệch chuẩn. Chỉ tách/gộp câu khi chức năng diễn đạt hợp lý: câu ngắn để chốt sự kiện/hành động, câu trung bình để mô tả, câu dài khi cần giải thích quan hệ/điều kiện/liệt kê.
+- Detector chỉ dùng như **diagnostic map**. Không rewrite để đánh lừa detector hoặc hạ điểm bằng mọi giá.
+- Nếu mở vòng rewrite toàn văn, mục tiêu là **tăng tính tự nhiên, cụ thể, source-grounded và dễ bảo vệ**, đồng thời giữ nguyên factual meaning, citation, terminology canonical và implementation truth.
+
+#### Word layout fixes mở lại theo user evidence
+- **Hình 2.9**: user xác nhận khung ảnh trong Word còn dư whitespace lớn quanh nội dung sơ đồ. Được phép chỉnh **Word picture crop/layout** để thu gọn vùng trắng; ưu tiên không thay đổi embedded source image nếu có thể, nhằm giữ semantic/source identity của Hình 2.9.
+- **14 bảng đặc tả System UC**: user xác nhận phần nội dung còn thụt đầu dòng/tab/justification bất thường. Chuẩn hóa cell content: left-align nội dung, first-line/hanging indent = 0, tab stop = 0, Before/After = 0, line spacing giữ theo report style; không đổi semantic.
+- Sau chỉnh sửa phải render QA lại, cập nhật artifact hash/page count nếu thay đổi và ghi checkpoint mới.
+
+**Scope stop:** không đổi semantic 14 UC, không redraw Hình 2.9, không mở Sequence Diagram 3.2 trong patch này.
+
