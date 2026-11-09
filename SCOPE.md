@@ -1801,3 +1801,35 @@ Các nguồn detector/hướng dẫn chỉ là **diagnostic input**, không ph�
 
 **Scope stop:** profile v2 không cho phép đổi semantic, thêm dữ kiện không có nguồn hoặc làm suy giảm độ chính xác chỉ để thay đổi detector score.
 
+### THESIS-R1 — Whole-document language-review FINAL — 09/11/2026
+
+**USER-REQUESTED LANGUAGE REVIEW COMPLETE / QUALITY-FIRST PROFILE v2 APPLIED.**
+
+- Input baseline: `CNTT_KLCN090_THESIS-R1_14UC_LayoutFix_Final.docx`.
+- Writing profile v2 applied to the full academic prose region with two passes:
+  - pass 1: sentence-rhythm, stock-transition, source/implementation separation and general prose cleanup;
+  - pass 2: technical-vocabulary economy, modifier economy, connector discipline, semantic progression, nominalization check, parallel-construction restraint, epistemic calibration and researcher voice without fabrication.
+- Không rewrite máy móc mọi câu. Các factual/citation passages đang chính xác được giữ hoặc chỉ micro-edit.
+- Project source `Hướng dẫn giảm đạo văn và AI trong văn bản học thuật.pdf` được dùng như diagnostic/reference input, nhưng đã **lọc bỏ** các hướng không phù hợp: cố tình tạo lỗi, bịa trải nghiệm/phỏng vấn/quan sát, quota số từ/câu cứng, hoặc coi AI-score gần 0 là acceptance.
+- Rule set người dùng cung cấp cũng được hợp nhất: tránh excessive technical vocabulary, modifier overload, connector repetition, redundant restatement, rigid syntax, nominalization và repeated parallel structures.
+- Một claim stale được sửa theo Source of Truth: Kết luận hiện phản ánh **email reminder thật + hàng đợi + gửi tự động theo các mốc hệ thống**; SMS/shared provider delivery vẫn ngoài phạm vi hiện tại.
+- Canonical terminology regression PASS: không có `vacxin/vaccine/vắc-xin` trong phần văn xuôi trước Tài liệu tham khảo.
+- Hình 2.9 embedded image vẫn giữ SHA-256 `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`.
+- 14/14 System UC tables vẫn đủ **10 trường HUIT**; semantic không đổi.
+- Mục lục/Danh mục được cập nhật theo reflow; chỉ mục `1.7. TỔNG KẾT CHƯƠNG` đổi từ trang 22 xuống 21.
+- Artifact final: `CNTT_KLCN090_THESIS-R1_LanguageReview_Final.docx`
+  - SHA-256: `aef27005fea7d2336a93d41a7fd362900584159a364cb8a22c85cd7cd0c1ca44`
+  - Render: **84 trang**
+  - Full-document visual/layout QA: PASS
+  - Automated edge/clipping sanity check: 84/84 pages PASS
+  - Hình 2.9 identity audit: PASS
+  - 14 System UC structural audit: PASS
+
+**DONE:** whole-document language-review + profile v2 integration + semantic/terminology/layout regression QA.
+
+**ACTIVE:** none.
+
+**NEXT:** Chương 3.2 — Sequence Diagram cho 14 System UC, chỉ mở khi người dùng xác nhận.
+
+**PARKED:** detector-score-only rewrites; semantic changes ngoài evidence; redraw Hình 2.9.
+
