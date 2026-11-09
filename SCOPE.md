@@ -6,6 +6,16 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — Auth UC scope clarification — 09/11/2026
+
+**User clarification:** UC02 `Đăng nhập hệ thống`, UC03 `Đổi mật khẩu`, UC04 `Đăng xuất hệ thống` are **omitted from Hình 2.9 only**.
+
+- They remain part of the **21-UC semantic master**.
+- They remain in **2.2.2 System Use Case specifications**.
+- They remain in the corresponding **Sequence Diagram scope** unless a later explicit supervisor/user decision changes that.
+- Do not reinterpret the supervisor's drawing simplification as deleting/demoting these UC from the thesis model.
+
+
 ### THESIS-R1 — Hình 2.9 FINAL visual PASS — run #58 — 09/11/2026
 
 **USER APPROVED / PRESENTATION LOCKED.** Hình 2.9 dưới đây là System Use Case overview cuối cùng cho báo cáo; không tự render/chọn lại một geometry khác nếu người dùng chưa mở lại quyết định.
