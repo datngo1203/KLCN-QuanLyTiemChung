@@ -6,6 +6,64 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — FINAL handoff after Hình 2.9 + Word integration — 09/11/2026
+
+**USER APPROVED / SESSION STOP.** The final 14-UC Hình 2.9 with centered system title has been persisted through CI and inserted into the current Word artifact. This is the recovery checkpoint for the next THESIS session.
+
+#### A. Final Hình 2.9 — canonical
+- Semantic scope: **14 top-level System UC**, per `THESIS-R1 — System Use Case FINAL semantic scope: 14 core UC`.
+- Semantic source: `docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml`.
+- Deterministic renderer: `docs/thesis/uml/postprocess_system_usecase.py`.
+- Center-title renderer commit / CI HEAD: `02027e7c73f0310f66804e22f1af9def36adea9e`.
+- GitHub Actions: **run #62**, run id `42563119850`, conclusion `success`.
+- Artifact: `thesis-uml-rendered`, id `13649549087`, digest `sha256:ac1484c5dd837703bd8914e984c303fe5c7e5a4b39898176b37d152c6fb4b6c6`.
+- Final PNG: `Hinh_2_9_System_Use_Case_Tong_Quan.png`, 1620×2380 px, SHA-256 `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`.
+- CI artifact PNG and locally approved title-centered PNG are byte-identical.
+- Counts remain: **14 UC / 8 actors / 19 direct associations / 0 include / 0 extend / 0 UC generalization**.
+- Automated geometry invariant remains `connector-through-ellipse=0`; exactly one previously accepted crossing remains.
+- Visual change from run #61: only the title `HỆ THỐNG QUẢN LÝ TIÊM CHỦNG` is horizontally centered at the top inside the system boundary. User explicitly approved this final image.
+
+#### B. Word integration — current working artifact
+- Input baseline: `CNTT_KLCN090_THESIS-R1_TerminologyNormalized.docx`.
+- Current working artifact: **`CNTT_KLCN090_THESIS-R1_Hinh2_9_Final14UC.docx`**.
+- Current working artifact SHA-256: `3bb42e80f96ba9481fcb41f4df2c0425b1ed141a20e358fcc688452320052c9a`.
+- Final Hình 2.9 inserted at section **2.2.1**, caption remains `Hình 2.9. Sơ đồ Use Case hệ thống`.
+- DOCX render QA: **82 pages**, same page count as baseline.
+- Render diff against terminology-normalized baseline: **only physical page 49 changed**; all other rendered pages are pixel-identical.
+- Page 49 visual QA PASS: figure stays within page/text area, caption and page number remain intact, no clipping/overlap.
+- IMPORTANT: the current Word file is **not yet fully semantically synchronized** with the new 14-UC model. Section **2.2.2 still contains the older System UC specification structure/text** and must be rewritten next. Do not infer 2.2.2 is final merely because Hình 2.9 is final.
+
+#### C. Terminology / semantic rules to preserve
+- Canonical Vietnamese terminology comes from `THESIS-R1 — Terminology canonicalization + core-UC coverage reopen`.
+- Use `vắc xin`, `hồ sơ khách hàng/người được tiêm`, `dịch vụ tiêm chủng`, `danh mục tiêm chủng`, `lịch hẹn`, `nhắc lịch`, `ưu đãi`, `báo cáo hoạt động`, etc.; do not regress to `vacxin/vaccine` in Vietnamese prose.
+- 7 Business Use Cases/processes in 2.1 remain unchanged.
+- Supporting implemented capabilities (auth/account-role, automatic reminder, vaccination-history lookup) are **not separate top-level thesis System UC** under the finalized 14-UC abstraction.
+- Hình 2.9 run #58 (18 UC), run #61 pre-centered title and the 10-core candidate are historical/stale for final report use.
+
+#### D. Next-session progressive recovery
+Next THESIS chat must recover in this order:
+1. `AGENTS.md`.
+2. `SCOPE.md`: Current State + Theory Source Registry + HUIT UML Visual & Semantic Profile + this FINAL handoff.
+3. Issue `#182`, latest checkpoint comments.
+4. Current Word artifact `CNTT_KLCN090_THESIS-R1_Hinh2_9_Final14UC.docx` **only when editing/auditing 2.2.2**; if the file is unavailable in the new chat, ask the user to re-upload it rather than guessing its contents.
+5. HUIT Chương 5 exact pages relevant to System UC specification format; only inspect `main` code/test/contracts when a specification claim requires implementation evidence.
+
+#### E. Required first response in the next chat
+Before editing anything, the next chat should report back to the user:
+- exact thesis branch and current remote HEAD;
+- DONE / ACTIVE / NEXT / PARKED;
+- the finalized **14 System UC names**;
+- final Hình 2.9 identity: run #62 + PNG hash + 14/8/19 counts;
+- current Word artifact identity + the warning that **2.2.2 is still stale**;
+- canonical terminology rules that materially affect 2.2.2;
+- proposed first 2.2.2 slice and scope stop.
+
+**DONE:** Hình 2.9 final + Word insertion + visual QA.
+**ACTIVE:** none; user is stopping the session.
+**NEXT:** 2.2.2 System Use Case specifications for the finalized 14-UC set; start with a small reviewed slice rather than drafting all 14 at once.
+**PARKED:** 3.2 Sequence Diagrams until corresponding 2.2.2 specifications PASS; broader Word integration/renumbering beyond the active slice.
+
+
 ### THESIS-R1 — Hình 2.9 FINAL visual PASS — 14 UC / run #61 — 09/11/2026
 
 **USER-REQUESTED RENDER + VISUAL QA COMPLETE.** This checkpoint is the canonical final Hình 2.9 for the 14-UC thesis semantic scope and supersedes the historical 18-UC run #58 image.
