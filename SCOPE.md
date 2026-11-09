@@ -121,6 +121,44 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 - Summary + detail vẫn giữ như **fallback đã biết**, nhưng **không tự quay lại** trong session mới nếu user chưa yêu cầu hoặc full-21 portrait chưa được chứng minh FAIL bằng QA.
 - Prototype v1–v11 trước đây vẫn **STALE**; không dùng làm geometry baseline.
 
+### THESIS-R1 — System UC routing refinement v2 — STRAIGHT-FIRST 09/11/2026
+
+**User refinement:** sau human review của full-21 portrait, ưu tiên **dời actor/UC để association đi thẳng**; chỉ khi đường thẳng thật sự gây va chạm/crossing/shape intrusion mới dùng đường vuông góc ngắn. Không dùng dogleg chỉ vì renderer chọn như vậy.
+
+#### Source review bổ trợ
+- TopDev `Use Case Diagram và 5 sai lầm thường gặp`: dùng được các ý **tránh relationship chồng chéo**, giữ cùng mức requirement, tập trung WHAT/actor goal, có thể gom CRUD khi cohesive. Heuristic “khoảng 10 UC” chỉ là readability suggestion, không dùng để merge/xóa semantic 21 UC.
+- **Không áp dụng** các style suggestion của TopDev về duplicate actor, ép ellipse cùng kích thước hoặc tô màu vì mâu thuẫn visual contract thesis: một semantic actor = một visible actor trong một view; monochrome; adaptive ellipse sizing.
+- `uml-diagrams.org/use-case-diagrams.html`: dùng để cross-check rằng association/actor/use case và include/extend/generalization là quan hệ semantic; **không thêm relationship chỉ để rút dây**. Include chỉ cho behavior bắt buộc/reuse; extend chỉ cho optional behavior tại extension point. Baseline thesis vẫn **0 include / 0 extend / 0 UC→UC generalization**.
+- Thinhnotes `Viết đặc tả Use Case sao đơn giản nhưng hiệu quả?` hữu ích cho **2.2.2** ở cách phân biệt Basic / Alternative / Exception Flow; HUIT table fields vẫn là authority và source này không override HUIT.
+
+#### Routing priority — HARD ORDER
+1. **Dời node cục bộ** nếu có thể tạo một association thẳng, miễn không phá sector/corridor/reading order.
+2. **Straight segment** là mặc định.
+3. Nếu straight gây crossing, xuyên ellipse/label/title hoặc ambiguity, dùng **shortest orthogonal route** với số elbow tối thiểu.
+4. Không dùng curve/spline.
+5. Không dùng shared bus/trunk association.
+6. Không duplicate actor, invent include/extend/generalization, merge UC hoặc đổi actor mapping để chữa geometry.
+
+#### Candidate straight-first v2
+- Full-21 overview giữ **21 UC + 27 direct actor–UC associations**.
+- Sau local geometry audit: **26/27 direct associations straight**.
+- Chỉ `Dịch vụ thư điện tử → UC13 Gửi nhắc lịch` dùng orthogonal route **2 elbow**.
+- `Thời gian → UC14` **straight**.
+- `Dịch vụ thư điện tử → UC14` **straight**.
+- Direct-association QA: crossing = 0; connector-through-ellipse = 0; connector-through-actor-label = 0; connector-through-title = 0.
+- UC19 và một số actor/UC được dịch cục bộ để fan-out thẳng không xuyên UC khác; semantic không đổi.
+
+#### Actor-generalization presentation policy
+- Semantic model vẫn có **11 actor symbols nếu hiện cả 2 general actors** và **8 actor generalizations**.
+- Với **full-21 overview**, actor-generalization hierarchy được **OMIT khỏi view** để tránh trộn hierarchy wiring với 27 direct associations; visible view có **10 actor** vì không hiện abstract `Nhân viên`.
+- Đây là **presentation omission, không phải semantic deletion**. 8 actor generalizations phải được giữ/audit trong detail actor/identity view(s) theo SCOPE.
+- Không được dùng omission này để suy rằng các vai trò nhân viên không kế thừa `Nhân viên → Người dùng`.
+
+#### Acceptance tiếp theo
+- Render CI phải PASS từ PlantUML source + deterministic post-process.
+- Human review ảnh A4 portrait; nếu đường duy nhất còn orthogonal vẫn quá dài, thử reposition thêm nhưng **không hy sinh zero-crossing / zero-intrusion**.
+- Chưa gọi final visual PASS và chưa chèn Word cho tới khi user duyệt.
+
 ### DONE gần nhất
 - **REGIMEN-R1 #180 / PR #181** — Catalog hỗ trợ calendar interval theo mũi neo với `Days|Weeks|Months|Years`, giữ legacy day intervals; Windows A04 quản trị structured regimen; Customer Web hiển thị timeline + provenance tham khảo. Native A04 full-shell smoke PASS sau fix hiển thị selector; CI #387 PASS đủ backend/windows/web. Squash main: `04b932e8e4df6ec865ea90f19ad2ea731c1d77ac`.
 - **RF-05G #170 / PR #179** — tự động nhắc trước lịch hẹn 48/24 giờ và liên hệ sau lịch hẹn 3/7 ngày trên appointment hiện hành; DB idempotency + retry/revalidation + A09 history/wording người dùng. CI #382 PASS; native WPF keyboard smoke PASS ở HEAD trước wording-only patch. Squash main: `19f8218da0e6a505bf11ed3ad5daf8b087abe72b`.
