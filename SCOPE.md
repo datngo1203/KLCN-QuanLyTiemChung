@@ -6,6 +6,23 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — PlantUML routing root-cause / CI guard — 09/11/2026
+
+**Root cause confirmed from run #56 (job 128964578696):**
+- The job ran on **GitHub Actions Ubuntu 26.04.1 image 20261101.186.1**.
+- The workflow downloaded only PlantUML 1.2026.9 and **did not install or verify Graphviz**.
+- The exact runner-image software manifest contains **no Graphviz/dot entry**. PlantUML documentation lists `skinparam linetype ortho`/`polyline` as Graphviz layout options; without Graphviz, raw render can fall back to a different layout engine and the expected orthogonal/straight routing is not guaranteed.
+- This explains run #56: despite `skinparam linetype ortho`, Hình 2.9 rendered with long spline/curved associations and a wide auto-layout.
+- **Important second cause:** `-right-`, `-down-` and hidden links are **layout hints, not fixed coordinates**. Even with Graphviz available, raw PlantUML is not allowed to replace a human-approved manual geometry when exact placement matters.
+- The earlier System UC versions that looked fully straight were not raw PlantUML routing: their deterministic postprocessor explicitly drew actor–UC associations as straight line segments. The current Hình 2.9 keeps that deterministic geometry approach after semantic validation.
+
+**Permanent prevention rule:**
+1. Any THESIS UML relying on PlantUML `linetype ortho` or `linetype polyline` must run with Graphviz explicitly installed; CI must execute both `dot -V` and `java -jar plantuml.jar -testdot` before rendering.
+2. Pin the UML workflow OS instead of depending on moving `ubuntu-latest` when renderer behavior matters.
+3. Never infer visual PASS from successful PlantUML/CI execution. Inspect the produced PNG/SVG.
+4. For human-approved exact geometry, PlantUML remains semantic source-of-truth and deterministic geometry/postprocess remains presentation source; do not switch back to raw auto-layout without a new human approval.
+
+
 ### THESIS-R1 — Hình 2.9 System Use Case overview FINAL presentation lock — 09/11/2026
 
 **User + supervisor decision overrides the earlier full-21 presentation contract for Hình 2.9.** The user supplied a manually adjusted draw.io layout and approved it as the visual baseline; the supervisor had instructed that common authentication functions such as login/logout should be omitted when drawing the System Use Case overview.
