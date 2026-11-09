@@ -12,14 +12,14 @@ Set-StrictMode -Version Latest
 function MustHave([string]$name) {
   if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "Missing $name." }
 }
-function Call([string[]]$args, [string]$label) {
+function Call([string[]]$arguments, [string]$label) {
   Write-Host "[STEP] $label" -ForegroundColor Cyan
-  & docker @args
+  & docker @arguments
   if ($LASTEXITCODE -ne 0) { throw "$label failed. No database or volume was removed." }
 }
-function Capture([string[]]$args, [string]$label) {
+function Capture([string[]]$arguments, [string]$label) {
   Write-Host "[STEP] $label" -ForegroundColor Cyan
-  $lines = @(& docker @args 2>&1)
+  $lines = @(& docker @arguments 2>&1)
   if ($LASTEXITCODE -ne 0) { throw "$label failed. Inspect logs privately; do not post credentials." }
   return ($lines | Out-String)
 }
@@ -41,7 +41,8 @@ if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') {
 $head = (& git rev-parse HEAD).Trim()
 $origin = (& git rev-parse origin/main).Trim()
 if ($LASTEXITCODE -ne 0 -or $head -ne $origin) { throw 'Local main must match origin/main.' }
-if (@(& git status --porcelain).Count -gt 0) { throw 'Worktree is dirty; review local changes.' }
+$dirty = @(& git status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $dirty.Count -gt 0) { throw 'Worktree is dirty; review local changes.' }
 $engine = (& docker info --format '{{.OSType}}' 2>$null | Out-String).Trim()
 if ($LASTEXITCODE -ne 0 -or $engine -ne 'linux') { throw 'Start Docker Desktop Linux engine.' }
 if (-not $ResumeExisting) {
