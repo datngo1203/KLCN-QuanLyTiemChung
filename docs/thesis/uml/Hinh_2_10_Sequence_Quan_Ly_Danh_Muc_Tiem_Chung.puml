@@ -50,7 +50,6 @@ Service --> VM : danhSach
 deactivate Service
 VM --> View : capNhatDanhSach(danhSach)
 deactivate VM
-View --> Admin : hienThiDanhSach()
 
 Admin -> View : chonThaoTac(hanhDong)
 
@@ -58,7 +57,6 @@ alt Không đủ quyền chỉnh sửa
   View --> Admin : thongBaoKhongDuQuyen()
 else Có quyền chỉnh sửa
   alt Thêm mới hoặc cập nhật
-    View --> Admin : hienThiBieuMau()
     Admin -> View : nhapThongTin(duLieu)
     View -> VM : luuDanhMuc(duLieu)
     activate VM
@@ -69,8 +67,6 @@ else Có quyền chỉnh sửa
       Service --> VM : loiNghiepVu
       deactivate Service
       VM --> View : hienThiLoi(loiNghiepVu)
-      deactivate VM
-      View --> Admin : yeuCauDieuChinh()
     else Lưu thành công
       Service --> VM : danhMucDaLuu
       deactivate Service
@@ -79,11 +75,10 @@ else Có quyền chỉnh sửa
       Service --> VM : danhSachMoi
       deactivate Service
       VM --> View : capNhatDanhSach(danhSachMoi)
-      deactivate VM
-      View --> Admin : thongBaoLuuThanhCong()
     end
+    deactivate VM
+
   else Xóa
-    View --> Admin : yeuCauXacNhanXoa()
     Admin -> View : xacNhanXoa()
     View -> VM : xoaDanhMuc(id)
     activate VM
@@ -94,8 +89,6 @@ else Có quyền chỉnh sửa
       Service --> VM : loiNghiepVu
       deactivate Service
       VM --> View : hienThiLoi(loiNghiepVu)
-      deactivate VM
-      View --> Admin : thongBaoKhongTheXoa()
     else Xóa thành công
       Service --> VM : ketQuaXoa
       deactivate Service
@@ -104,10 +97,11 @@ else Có quyền chỉnh sửa
       Service --> VM : danhSachMoi
       deactivate Service
       VM --> View : capNhatDanhSach(danhSachMoi)
-      deactivate VM
-      View --> Admin : thongBaoXoaThanhCong()
     end
+    deactivate VM
   end
+
+  View --> Admin : hienThiKetQua()
 end
 
 deactivate View
