@@ -71,10 +71,10 @@ digraph G {
 
     kh -> ndt [taillabel="1", headlabel="0..*", weight=8];
     ndt -> dk [taillabel="1", headlabel="0..*", weight=8];
-    km -> dk [constraint=false];
-    tt -> dk [constraint=false];
-    ctv -> dk [constraint=false];
-    ctg -> dk [constraint=false];
+    km -> dk [constraint=true, weight=4];
+    tt -> dk [constraint=true, weight=4];
+    ctv -> dk [constraint=true, weight=4];
+    ctg -> dk [constraint=true, weight=4];
   }
 
   // ---------- ZONE 2: QUY TRÌNH TIÊM ----------
@@ -124,8 +124,8 @@ digraph G {
     cd -> mt [taillabel="0..1", headlabel="0..1", weight=8];
     mt -> td [taillabel="1", headlabel="0..1", weight=8];
 
-    nl -> lh [constraint=false];
-    nv -> pk [constraint=false];
+    nl -> lh [constraint=true, weight=4];
+    nv -> pk [constraint=true, weight=4];
   }
 
   // ---------- ZONE 3: DANH MỤC & KHO ----------
@@ -158,7 +158,7 @@ digraph G {
   vx -> cd [constraint=true, weight=12];
   lo -> mt [constraint=true, weight=12];
   vx -> ctv [constraint=true, weight=2];
-  gv -> ctg [constraint=true, weight=4];
+  gv -> ctg [constraint=true, weight=5];
 
   // Gentle alignment hints only; not fixed coordinates.
   dk -> pk [style=invis, weight=2];
