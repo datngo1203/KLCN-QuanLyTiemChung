@@ -46,9 +46,6 @@ public static class PayOsPaymentEndpoints
             try {
                 created = await provider.CreateAsync(new(reserved.OrderCode, checked((long)reserved.Amount),
                     SafeDescription(reserved.OrderCode), reserved.ReturnUrl, reserved.CancelUrl), ct);
-            } catch (ApiException error) when (IsDefinitiveRejection(error)) {
-                await AbandonRejectedReservationAsync(reserved, context, db, CancellationToken.None);
-                throw new IdentityFailure(502, "paymentProviderRejected");
             } catch (Exception error) when (IsProviderFailure(error)) {
                 logger.LogWarning("payOS create outcome unknown. TraceId={TraceId}; ExceptionType={ExceptionType}",
                     context.TraceIdentifier, error.GetType().Name);
@@ -106,8 +103,7 @@ public static class PayOsPaymentEndpoints
             }
 
             if (remote is null) {
-                await AbandonNotFoundAsync(id, actor, snapshot!, context, db, ct);
-                throw new IdentityFailure(409, "paymentIntentNotFound");
+                return Results.Ok(await RetainNotFoundIntentAsync(id, actor, snapshot!, db, ct));
             }
             if (remote.OrderCode != snapshot!.OrderCode || remote.Amount != snapshot.Amount ||
                 !CounterPaymentRules.Text(remote.PaymentLinkId, 50) ||
@@ -253,23 +249,6 @@ public static class PayOsPaymentEndpoints
         return Status(payment, payment.SoTien);
     }
 
-    private static async Task AbandonRejectedReservationAsync(Reservation reserved, HttpContext context,
-        TiemChungDbContext db, CancellationToken ct)
-    {
-        db.ChangeTracker.Clear();
-        await using var tx = await IdentityTransactions.BeginAsync(db, ct);
-        var registrationId = await RegistrationIdAsync(db, reserved.PaymentId, ct);
-        await PaymentEndpoints.LockRegistration(db, registrationId, ct);
-        var payment = await db.Payments.SingleOrDefaultAsync(p => p.MaThanhToan == reserved.PaymentId, ct);
-        EnsureReservation(payment, reserved);
-        if (payment!.PayOsLifecycleState == "Creating") {
-            PaymentEndpoints.Audit(db, context, reserved.Actor, payment, "payments.payosRejected");
-            db.Payments.Remove(payment);
-            await db.SaveChangesAsync(ct);
-        }
-        await tx.CommitAsync(ct);
-    }
-
     private static async Task<(IdentityActor Actor, ReconcileSnapshot Snapshot, PayOsPaymentStatusDto? Current)>
         CaptureAsync(int id, HttpContext context, IdentityAuthorization auth, TiemChungDbContext db, CancellationToken ct)
     {
@@ -288,21 +267,22 @@ public static class PayOsPaymentEndpoints
         return (actor, snapshot, current);
     }
 
-    private static async Task AbandonNotFoundAsync(int registrationId, IdentityActor actor,
-        ReconcileSnapshot snapshot, HttpContext context, TiemChungDbContext db, CancellationToken ct)
+    private static async Task<PayOsPaymentStatusDto> RetainNotFoundIntentAsync(int registrationId,
+        IdentityActor actor, ReconcileSnapshot snapshot, TiemChungDbContext db, CancellationToken ct)
     {
         db.ChangeTracker.Clear();
         await using var tx = await IdentityTransactions.BeginAsync(db, ct);
         var row = await PaymentEndpoints.LockOwnedRegistration(db, actor, registrationId, ct);
         var payment = await db.Payments.SingleOrDefaultAsync(p => p.MaDangKy == registrationId, ct);
         EnsureSameIntent(payment, snapshot);
-        if (payment!.PayOsLifecycleState != "CreateOutcomeUnknown")
-            throw new IdentityFailure(409, "paymentProviderConflict");
-        db.Payments.Remove(payment);
-        PaymentEndpoints.Audit(db, context, actor, payment, "payments.payosNotFound");
-        db.Payments.Remove(payment);
-        await db.SaveChangesAsync(ct);
+        var result = payment!.PayOsLifecycleState switch {
+            "Creating" or "CreateOutcomeUnknown" => Status(payment, payment.SoTien),
+            "Pending" => throw new IdentityFailure(409, "paymentProviderConflict"),
+            "Paid" => Status(payment, payment.SoTien),
+            _ => throw new IdentityFailure(409, "paymentDataConflict")
+        };
         await tx.CommitAsync(ct);
+        return result;
     }
 
     private static void EnsureSameIntent(ThanhToan? payment, ReconcileSnapshot snapshot)
@@ -328,12 +308,8 @@ public static class PayOsPaymentEndpoints
         string.Equals(created.Status, "PENDING", StringComparison.OrdinalIgnoreCase) &&
         PaymentEndpoints.SecurePayOsUrl(created.CheckoutUrl) && CounterPaymentRules.Text(created.QrCode, 2048);
 
-    private static bool IsDefinitiveRejection(ApiException error) =>
-        error.StatusCode is (int)HttpStatusCode.BadRequest or (int)HttpStatusCode.Unauthorized or
-            (int)HttpStatusCode.Forbidden or 422;
-
     private static bool IsProviderFailure(Exception error) =>
-        error is ApiException or HttpRequestException or OperationCanceledException or TimeoutException or
+        error is PayOSException or HttpRequestException or OperationCanceledException or TimeoutException or
             System.Text.Json.JsonException or IOException;
 
     private static long NewOrderCode()

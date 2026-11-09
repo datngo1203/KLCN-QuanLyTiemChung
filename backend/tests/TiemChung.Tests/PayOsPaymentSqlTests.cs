@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Data.SqlClient;
+using PayOS.Exceptions;
 using TiemChung.Api.Payments;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
@@ -179,8 +180,16 @@ public sealed partial class PaymentSqlTests
             var firstTask = f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
             try {
                 await provider.CreateEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+                using var unknown = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+                Assert.Equal(HttpStatusCode.OK, unknown.StatusCode);
+                Assert.Equal("Preparing", (await unknown.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+
+                var cashierTask = f.Cashier.Client.PostAsJsonAsync(Path(registration.Id), Cash(registration.TotalDue));
+                var completed = await Task.WhenAny(cashierTask, Task.Delay(TimeSpan.FromSeconds(10)));
+                Assert.Same(cashierTask, completed);
+                await Problem(await cashierTask, 409, "paymentAlreadyRecorded");
+
                 using var concurrent = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
-                Assert.Equal(HttpStatusCode.OK, concurrent.StatusCode);
                 Assert.Equal("Preparing", (await concurrent.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
                 Assert.Equal(1, provider.CreateCalls);
             } finally {
@@ -219,13 +228,14 @@ public sealed partial class PaymentSqlTests
                 .SingleAsync(a => a.Action == "payments.payosReserved")).Outcome);
             Assert.Equal("Success", (await fresh.Set<SecurityAudit>()
                 .SingleAsync(a => a.Action == "payments.payosPending")).Outcome);
+            Assert.Single(await fresh.Payments.ToArrayAsync());
         });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task UnknownCreateOutcomeCannotBeRetriedAndReconcilePersistsOnlyMatchedProviderFacts()
+    public async Task ProviderNotFoundRetainsUnknownIdentityAndNeverAllowsAnotherCreate()
     {
-        var provider = new FakePayOsProvider { ThrowAfterAcceptance = true };
+        var provider = new FakePayOsProvider { CreateFailure = new TimeoutException("synthetic create timeout") };
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
             var registration = await f.Register("single");
             var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
@@ -241,6 +251,31 @@ public sealed partial class PaymentSqlTests
             Assert.Equal("OutcomeUnknown", (await retry.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
             Assert.Equal(1, provider.CreateCalls);
 
+            provider.ReturnNotFound = true;
+            using var notFound = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            Assert.Equal(HttpStatusCode.OK, notFound.StatusCode);
+            var retained = (await notFound.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!;
+            Assert.Equal("OutcomeUnknown", retained.State);
+            Assert.True(retained.CanReconcile);
+            using var retainedDb = f.NewDb();
+            var intent = await retainedDb.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal(provider.LastRequest!.OrderCode, intent.PayOsOrderCode);
+            Assert.Equal("CreateOutcomeUnknown", intent.PayOsLifecycleState);
+            using var stillUnknown = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("OutcomeUnknown",
+                (await stillUnknown.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal(1, provider.CreateCalls);
+            provider.ReturnNotFound = false;
+
+            provider.RemoteStatus = "PENDING";
+            using var pending = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            Assert.Equal(HttpStatusCode.OK, pending.StatusCode);
+            Assert.Equal("OutcomeUnknown", (await pending.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+
+            await ReconcileAndAssertNoPaymentMutation(f, provider, path, registration, "wrong-order");
+            await ReconcileAndAssertNoPaymentMutation(f, provider, path, registration, "wrong-link");
+            await ReconcileAndAssertNoPaymentMutation(f, provider, path, registration, "paid-without-reference");
+
             provider.ReadFailure = new TimeoutException("synthetic read timeout");
             using var unavailable = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
             await Problem(unavailable, 503, "paymentProviderUnavailable");
@@ -255,57 +290,155 @@ public sealed partial class PaymentSqlTests
                 (await f.Customer.Client.GetFromJsonAsync<PayOsPaymentStatusDto>(path))!.State);
             provider.RemoteAmountOffset = 0;
 
-            provider.RemoteStatus = "PENDING";
-            using var pending = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
-            Assert.Equal(HttpStatusCode.OK, pending.StatusCode);
-            Assert.Equal("OutcomeUnknown", (await pending.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
-            Assert.Equal(3, provider.ReadCalls);
-
             provider.RemoteStatus = "PAID";
             using var paidResponse = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
             Assert.Equal(HttpStatusCode.OK, paidResponse.StatusCode);
-            var paid = (await paidResponse.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!;
-            Assert.Equal("Paid", paid.State);
-            Assert.False(paid.CanReconcile);
-            Assert.Equal(4, provider.ReadCalls);
-
+            Assert.Equal("Paid", (await paidResponse.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
             var detail = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
-            Assert.Equal("ThanhCong", detail!.PaymentState);
-            Assert.Equal(registration.TotalDue, detail.PaidAmount);
-            Assert.Equal("PayOsQr", detail.Payment!.Method);
-            using var fresh = f.NewDb();
-            var saved = await fresh.Payments.AsNoTracking().SingleAsync();
-            Assert.Equal("Paid", saved.PayOsLifecycleState);
-            Assert.Equal("provider-reference", saved.PayOsReference);
-
-            using var alreadyPaid = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
-            Assert.Equal("Paid", (await alreadyPaid.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
-            Assert.Equal(4, provider.ReadCalls);
+            Assert.Equal(registration.TotalDue, detail!.PaidAmount);
+            Assert.Equal(0, detail.RemainingAmount);
+            Assert.Equal(8, provider.ReadCalls);
         });
     }
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task NotFoundReleasesOnlyUnknownIntentAndRequiresAUserInitiatedCreate()
+    public async Task PendingNotFoundConflictsWithoutDowngradingAndPaidReconcileIsLocalOnly()
     {
-        var provider = new FakePayOsProvider { ThrowAfterAcceptance = true };
+        var provider = new FakePayOsProvider();
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
             var registration = await f.Register("single");
             var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
             using var create = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
-            Assert.Equal("OutcomeUnknown", (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal("Pending", (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
             provider.ReturnNotFound = true;
 
             using var reconcile = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
-            await Problem(reconcile, 409, "paymentIntentNotFound");
+            await Problem(reconcile, 409, "paymentProviderConflict");
             using var fresh = f.NewDb();
-            Assert.Empty(await fresh.Payments.ToArrayAsync());
+            Assert.Equal("Pending", (await fresh.Payments.AsNoTracking().SingleAsync()).PayOsLifecycleState);
             Assert.Equal(1, provider.CreateCalls);
 
-            provider.ThrowAfterAcceptance = false;
             provider.ReturnNotFound = false;
-            using var userRetry = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
-            Assert.Equal("Pending", (await userRetry.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
-            Assert.Equal(2, provider.CreateCalls);
+            provider.RemoteStatus = "PAID";
+            provider.RemoteReference = "confirmed-reference";
+            using var paid = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            Assert.Equal("Paid", (await paid.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            var readCalls = provider.ReadCalls;
+            using var paidAgain = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            Assert.Equal("Paid", (await paidAgain.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal(readCalls, provider.ReadCalls);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("wrong-order")]
+    [InlineData("wrong-amount")]
+    [InlineData("invalid-link")]
+    [InlineData("invalid-checkout")]
+    [InlineData("invalid-qr")]
+    public async Task MismatchedCreateResponseStaysUnknownAndDoesNotRetry(string mismatch)
+    {
+        var provider = new FakePayOsProvider { CreateResponseMismatch = mismatch };
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var first = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("OutcomeUnknown", (await first.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            using var second = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("OutcomeUnknown", (await second.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal(1, provider.CreateCalls);
+            using var db = f.NewDb();
+            var saved = await db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal("CreateOutcomeUnknown", saved.PayOsLifecycleState);
+            Assert.Null(saved.PayOsPaymentLinkId);
+            Assert.Equal("ChoXacNhan", saved.TrangThai);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("rate-limit")]
+    [InlineData("server-error")]
+    [InlineData("invalid-signature")]
+    [InlineData("bad-request")]
+    [InlineData("unauthorized")]
+    [InlineData("forbidden")]
+    public async Task ProviderCreateFailuresAreConservativelyUnknownAndNeverRetried(string failure)
+    {
+        var provider = new FakePayOsProvider { CreateFailure = CreateFailure(failure) };
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var first = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+            Assert.Equal("OutcomeUnknown", (await first.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            using var second = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("OutcomeUnknown", (await second.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal(1, provider.CreateCalls);
+            using var db = f.NewDb();
+            Assert.Equal("CreateOutcomeUnknown", (await db.Payments.AsNoTracking().SingleAsync()).PayOsLifecycleState);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task InvalidSignatureDuringReconcileDoesNotMutateLocalPayment()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var created = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("Pending", (await created.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+
+            provider.ReadFailure = new InvalidSignatureException("invalid signature");
+            using var reconcile = await f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            await Problem(reconcile, 503, "paymentProviderUnavailable");
+
+            var detail = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
+            Assert.Equal("ChoXacNhan", detail!.PaymentState);
+            Assert.Equal(0, detail.PaidAmount);
+            Assert.Equal(registration.TotalDue, detail.RemainingAmount);
+            Assert.Equal("Pending", (await f.Customer.Client.GetFromJsonAsync<PayOsPaymentStatusDto>(path))!.State);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task ProviderCreateAmountUsesConsultationFeeAndPromotionSnapshot()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(consultationFee: "50000", payOsProvider: provider), async f => {
+            var admin = await f.Actor("Admin", "QuanLyKhuyenMai");
+            var promotionRequest = new UpsertPromotionRequest("Ưu đãi thử", "Synthetic",
+                DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), 70000m, true);
+            using var promotionResponse = await admin.Client.PostAsJsonAsync("/api/v1/promotions", promotionRequest);
+            Assert.Equal(HttpStatusCode.Created, promotionResponse.StatusCode);
+            var promotion = (await promotionResponse.Content.ReadFromJsonAsync<PromotionDto>())!;
+            var registration = await f.Register("single", promotion.Id);
+            Assert.Equal(registration.Subtotal - 70000m + 50000m, registration.TotalDue);
+
+            using var response = await f.Customer.Client.PostAsJsonAsync(
+                $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(registration.TotalDue, provider.LastRequest!.Amount);
+            Assert.Equal(registration.TotalDue, (await response.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.Amount);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task UnverifiedCustomerCannotCreateOrReconcilePayOsPayment()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            await f.Db.Set<TaiKhoan>().Where(a => a.MaTaiKhoan == f.Customer.Account.MaTaiKhoan)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.EmailVerifiedAt, (DateTimeOffset?)null));
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            await Problem(await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest), 403, "emailVerificationRequired");
+            await Problem(await f.Customer.Client.PostAsync(path + "/reconcile", content: null),
+                403, "emailVerificationRequired");
+            Assert.Equal(0, provider.CreateCalls);
+            Assert.Equal(0, provider.ReadCalls);
+            using var db = f.NewDb();
+            Assert.Empty(await db.Payments.ToArrayAsync());
         });
     }
 
@@ -316,7 +449,7 @@ public sealed partial class PaymentSqlTests
         await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
             var registration = await f.Register("single");
             var otherCustomer = await f.Actor(null);
-            using var anonymousClient = new HttpClient { BaseAddress = f.Customer.Client.BaseAddress };
+            using var anonymousClient = f.Base.Factory.CreateClient();
             using var anonymous = await anonymousClient.PostAsJsonAsync(
                 $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
             Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
@@ -340,14 +473,54 @@ public sealed partial class PaymentSqlTests
         new("[DEMO] PayOS payer", "0900000107", "payos@example.invalid",
             "Tỉnh thử nghiệm", "Phường thử nghiệm", "Địa chỉ thử nghiệm"), true);
 
+    private static Exception CreateFailure(string name)
+    {
+        var details = new Dictionary<string, object>();
+        return name switch {
+            "rate-limit" => new TooManyRequestsException("rate limited", "429", details),
+            "server-error" => new InternalServerErrorException(500, "500", "provider failure", details),
+            "invalid-signature" => new InvalidSignatureException("invalid signature"),
+            "bad-request" => new BadRequestException("bad request", "400", details),
+            "unauthorized" => new UnauthorizedException("unauthorized", "401", details),
+            "forbidden" => new ForbiddenException("forbidden", "403", details),
+            _ => throw new ArgumentOutOfRangeException(nameof(name))
+        };
+    }
+
+    private static async Task ReconcileAndAssertNoPaymentMutation(Fixture f, FakePayOsProvider provider,
+        string path, RegistrationDto registration, string mismatch)
+    {
+        provider.RemoteStatus = "PAID";
+        provider.RemoteOrderCodeOffset = mismatch == "wrong-order" ? 1 : 0;
+        provider.RemotePaymentLinkId = mismatch == "wrong-link" ? "different-link" : "provider-link-id";
+        provider.RemoteReference = mismatch == "paid-without-reference" ? null : "provider-reference";
+        var expectedCode = mismatch == "paid-without-reference"
+            ? "paymentProviderStateUnsupported" : "paymentProviderConflict";
+        await Problem(await f.Customer.Client.PostAsync(path + "/reconcile", content: null), 409, expectedCode);
+
+        var detail = await f.Customer.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
+        Assert.Equal("ChoXacNhan", detail!.PaymentState);
+        Assert.Equal(0, detail.PaidAmount);
+        Assert.Equal(registration.TotalDue, detail.RemainingAmount);
+        Assert.Equal("OutcomeUnknown",
+            (await f.Customer.Client.GetFromJsonAsync<PayOsPaymentStatusDto>(path))!.State);
+        provider.RemoteOrderCodeOffset = 0;
+        provider.RemotePaymentLinkId = "provider-link-id";
+        provider.RemoteReference = "provider-reference";
+    }
+
     private sealed class FakePayOsProvider : IPayOsPaymentProvider
     {
         public bool IsReady { get; set; } = true;
         public bool BlockCreate { get; set; }
-        public bool ThrowAfterAcceptance { get; set; }
+        public Exception? CreateFailure { get; set; }
         public bool ReturnNotFound { get; set; }
         public string RemoteStatus { get; set; } = "PENDING";
         public long RemoteAmountOffset { get; set; }
+        public long RemoteOrderCodeOffset { get; set; }
+        public string RemotePaymentLinkId { get; set; } = "provider-link-id";
+        public string? RemoteReference { get; set; } = "provider-reference";
+        public string? CreateResponseMismatch { get; set; }
         public Exception? ReadFailure { get; set; }
         public int CreateCalls { get; private set; }
         public int ReadCalls { get; private set; }
@@ -362,9 +535,21 @@ public sealed partial class PaymentSqlTests
             LastRequest = request;
             CreateEntered.TrySetResult();
             if (BlockCreate) await ReleaseCreate.Task.WaitAsync(cancellationToken);
-            if (ThrowAfterAcceptance) throw new TimeoutException("synthetic create timeout");
-            return new(request.OrderCode, request.Amount, "provider-link-id", "PENDING",
-                "https://example.invalid/checkout", "qr-data");
+            if (CreateFailure is not null) throw CreateFailure;
+            return CreateResponseMismatch switch {
+                "wrong-order" => new(request.OrderCode + 1, request.Amount, "provider-link-id", "PENDING",
+                    "https://example.invalid/checkout", "qr-data"),
+                "wrong-amount" => new(request.OrderCode, request.Amount + 1, "provider-link-id", "PENDING",
+                    "https://example.invalid/checkout", "qr-data"),
+                "invalid-link" => new(request.OrderCode, request.Amount, "", "PENDING",
+                    "https://example.invalid/checkout", "qr-data"),
+                "invalid-checkout" => new(request.OrderCode, request.Amount, "provider-link-id", "PENDING",
+                    "http://example.invalid/checkout", "qr-data"),
+                "invalid-qr" => new(request.OrderCode, request.Amount, "provider-link-id", "PENDING",
+                    "https://example.invalid/checkout", ""),
+                _ => new(request.OrderCode, request.Amount, "provider-link-id", "PENDING",
+                    "https://example.invalid/checkout", "qr-data")
+            };
         }
 
         public Task<PayOsPaymentSnapshot?> ReadAsync(long orderCode, CancellationToken cancellationToken)
@@ -373,8 +558,9 @@ public sealed partial class PaymentSqlTests
             if (ReadFailure is not null) throw ReadFailure;
             if (ReturnNotFound || LastRequest?.OrderCode != orderCode)
                 return Task.FromResult<PayOsPaymentSnapshot?>(null);
-            return Task.FromResult<PayOsPaymentSnapshot?>(new(orderCode, LastRequest.Amount + RemoteAmountOffset,
-                "provider-link-id", RemoteStatus, RemoteStatus == "PAID" ? "provider-reference" : null));
+            return Task.FromResult<PayOsPaymentSnapshot?>(new(orderCode + RemoteOrderCodeOffset,
+                LastRequest.Amount + RemoteAmountOffset, RemotePaymentLinkId, RemoteStatus,
+                RemoteStatus == "PAID" ? RemoteReference : null));
         }
 
         public Task<PayOsVerifiedWebhook?> VerifyWebhookAsync(PayOsWebhookEnvelope envelope,
