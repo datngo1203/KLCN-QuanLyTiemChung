@@ -1,0 +1,165 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 15
+skinparam dpi 180
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+top to bottom direction
+hide empty methods
+hide circle
+
+class KhachHang <<entity>> {
+  +MaKhachHang : int
+  +HoTen : string
+  +SoDienThoai : string
+  +Email : string
+}
+class NguoiDuocTiem <<entity>> {
+  +MaNguoiDuocTiem : int
+  +MaHoSo : string
+  +MaKhachHang : int
+  +HoTen : string
+  +NgaySinh : DateOnly
+  +GioiTinh : string
+}
+class NhanVien <<entity>> {
+  +MaNhanVien : int
+  +HoTen : string
+  +ChucDanh : string
+  +TrangThai : string
+}
+class DangKyDichVu <<entity>> {
+  +MaDangKy : int
+  +MaKhachHang : int
+  +MaNguoiDuocTiem : int
+  +MaNhanVien : int?
+  +MaKhuyenMai : int?
+  +NgayDangKy : DateTime
+  +TrangThai : string
+}
+class ChiTietVacXinLe <<entity>> {
+  +MaChiTietVacXin : int
+  +MaDangKy : int
+  +MaVacXin : int
+  +SoLuong : int
+  +GiaTaiThoiDiemDangKy : decimal
+}
+class ChiTietGoiVacXin <<entity>> {
+  +MaChiTietGoi : int
+  +MaDangKy : int
+  +MaGoi : int
+  +SoLuongGoi : int
+  +GiaTaiThoiDiemDangKy : decimal
+}
+class ThanhToan <<entity>> {
+  +MaThanhToan : int
+  +MaDangKy : int
+  +MaNhanVien : int?
+  +SoTien : decimal
+  +PhuongThuc : string
+  +LoaiThanhToan : string
+  +TrangThai : string
+}
+class LichHenTiem <<entity>> {
+  +MaLichHen : int
+  +MaDangKy : int?
+  +MaChiTietVacXin : int?
+  +MaChiTietGoi : int?
+  +MaNguoiDuocTiem : int
+  +ThoiGianHen : DateTime
+  +TrangThai : string
+}
+class NhacLich <<entity>> {
+  +MaNhacLich : int
+  +MaLichHen : int
+  +ScheduledAt : DateTime?
+  +KenhGui : string
+  +TrangThai : string
+}
+class PhieuKhamSangLoc <<entity>> {
+  +MaPhieuKham : int
+  +MaLichHen : int?
+  +MaDangKy : int
+  +MaNguoiDuocTiem : int
+  +MaNhanVien : int
+  +KetLuan : string
+}
+class ChiDinhTiem <<entity>> {
+  +MaChiDinh : int
+  +MaPhieuKham : int
+  +MaVacXin : int
+  +KetQuaChiDinh : string
+  +ThoiGian : DateTime
+}
+class MuiTiem <<entity>> {
+  +MaMuiTiem : int
+  +MaChiDinh : int?
+  +MaNguoiDuocTiem : int
+  +SoLo : string
+  +MaNhanVien : int
+  +ThoiDiemTiem : DateTime
+  +TrangThai : string
+}
+class TheoDoiSauTiem <<entity>> {
+  +MaTheoDoi : int
+  +MaMuiTiem : int
+  +MaNhanVien : int?
+  +TinhTrang : string
+  +MucDoPhanUng : string
+  +ThoiDiem : DateTime
+}
+class VacXin <<reference>> {
+  +MaVacXin : int
+  +TenVacXin : string
+}
+class GoiVacXin <<reference>> {
+  +MaGoi : int
+  +TenGoi : string
+}
+class LoVacXin <<reference>> {
+  +SoLo : string
+  +MaVacXin : int
+}
+
+KhachHang "1" -- "0..*" NguoiDuocTiem
+KhachHang "1" -- "0..*" DangKyDichVu
+NguoiDuocTiem "1" -- "0..*" DangKyDichVu
+NhanVien "0..1" -- "0..*" DangKyDichVu
+DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
+DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
+VacXin "1" -- "0..*" ChiTietVacXinLe
+GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
+DangKyDichVu "1" -- "0..1" ThanhToan
+NhanVien "0..1" -- "0..*" ThanhToan
+DangKyDichVu "1" -- "0..*" LichHenTiem
+NguoiDuocTiem "1" -- "0..*" LichHenTiem
+LichHenTiem "1" -- "0..*" NhacLich
+LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
+DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
+NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
+NhanVien "1" -- "0..*" PhieuKhamSangLoc
+PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
+VacXin "1" -- "0..*" ChiDinhTiem
+ChiDinhTiem "0..1" -- "0..1" MuiTiem
+NguoiDuocTiem "1" -- "0..*" MuiTiem
+LoVacXin "1" -- "0..*" MuiTiem
+NhanVien "1" -- "0..*" MuiTiem
+MuiTiem "1" -- "0..1" TheoDoiSauTiem
+NhanVien "0..1" -- "0..*" TheoDoiSauTiem
+
+' layout spine
+KhachHang -[hidden]down- DangKyDichVu
+DangKyDichVu -[hidden]down- LichHenTiem
+LichHenTiem -[hidden]down- PhieuKhamSangLoc
+PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
+ChiDinhTiem -[hidden]down- MuiTiem
+MuiTiem -[hidden]down- TheoDoiSauTiem
+
+note bottom
+  Thuộc tính/kiểu dữ liệu được tinh chế từ domain model hiện hành.
+  Các lớp <<reference>> chỉ giữ thuộc tính định danh cần cho phần quan hệ.
+end note
+@enduml
