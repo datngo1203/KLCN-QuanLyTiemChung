@@ -36,34 +36,34 @@ actor "Thời gian" as Time
 actor "Dịch vụ thư điện tử" as Email
 
 rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
-  usecase "UC02\nĐăng nhập hệ thống" as UC02
-  usecase "UC03\nĐổi mật khẩu" as UC03
-  usecase "UC04\nĐăng xuất hệ thống" as UC04
+  usecase "Đăng nhập hệ thống" as UC02
+  usecase "Đổi mật khẩu" as UC03
+  usecase "Đăng xuất hệ thống" as UC04
 
-  usecase "UC01\nĐăng ký tài khoản\nkhách hàng" as UC01
-  usecase "UC09\nQuản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
-  usecase "UC05\nThay đổi chức danh\ntài khoản nhân viên" as UC05
+  usecase "Đăng ký tài khoản\nkhách hàng" as UC01
+  usecase "Quản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
+  usecase "Thay đổi chức danh\ntài khoản nhân viên" as UC05
 
-  usecase "UC10\nTra cứu dịch vụ\ntiêm chủng" as UC10
-  usecase "UC11\nĐăng ký dịch vụ\ntiêm chủng" as UC11
-  usecase "UC06\nQuản lý danh mục\ntiêm chủng" as UC06
+  usecase "Tra cứu dịch vụ\ntiêm chủng" as UC10
+  usecase "Đăng ký dịch vụ\ntiêm chủng" as UC11
+  usecase "Quản lý danh mục\ntiêm chủng" as UC06
 
-  usecase "UC19\nTheo dõi hành trình\ntiêm chủng" as UC19
-  usecase "UC12\nQuản lý lịch hẹn" as UC12
-  usecase "UC07\nQuản lý ưu đãi" as UC07
+  usecase "Theo dõi hành trình\ntiêm chủng" as UC19
+  usecase "Quản lý lịch hẹn" as UC12
+  usecase "Quản lý ưu đãi" as UC07
 
-  usecase "UC20\nTra cứu lịch sử\ntiêm chủng" as UC20
-  usecase "UC16\nThanh toán dịch vụ" as UC16
-  usecase "UC21\nBáo cáo hoạt động" as UC21
+  usecase "Tra cứu lịch sử\ntiêm chủng" as UC20
+  usecase "Thanh toán dịch vụ" as UC16
+  usecase "Báo cáo hoạt động" as UC21
 
-  usecase "UC13\nGửi nhắc lịch" as UC13
-  usecase "UC15\nGhi nhận khám sàng lọc\nvà chỉ định" as UC15
+  usecase "Gửi nhắc lịch" as UC13
+  usecase "Ghi nhận khám sàng lọc\nvà chỉ định" as UC15
 
-  usecase "UC14\nTự động gửi nhắc lịch" as UC14
-  usecase "UC17\nGhi nhận mũi tiêm" as UC17
+  usecase "Tự động gửi nhắc lịch" as UC14
+  usecase "Ghi nhận mũi tiêm" as UC17
 
-  usecase "UC18\nGhi nhận theo dõi\nsau tiêm" as UC18
-  usecase "UC08\nQuản lý lô và tồn kho\nvắc xin" as UC08
+  usecase "Ghi nhận theo dõi\nsau tiêm" as UC18
+  usecase "Quản lý lô và tồn kho\nvắc xin" as UC08
 
   ' Layout helpers only; no semantic meaning.
   UC02 -[hidden]right- UC03
