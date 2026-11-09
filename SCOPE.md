@@ -6,6 +6,22 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — Hình 2.9 System Use Case overview FINAL presentation lock — 09/11/2026
+
+**User + supervisor decision overrides the earlier full-21 presentation contract for Hình 2.9.** The user supplied a manually adjusted draw.io layout and approved it as the visual baseline; the supervisor had instructed that common authentication functions such as login/logout should be omitted when drawing the System Use Case overview.
+
+- **Canonical Hình 2.9 presentation:** **18 visible System Use Cases / 9 visible actors / 24 direct actor–UC associations**.
+- **Presentation-only omissions:** UC02 Đăng nhập hệ thống, UC03 Đổi mật khẩu, UC04 Đăng xuất hệ thống are **not drawn in Hình 2.9**. This checkpoint does **not** delete them from the 21-UC semantic master or from 2.2.2 automatically; specification scope must be decided separately from the supervisor instruction.
+- **Visible actors:** Khách hàng, Quản trị viên, Lễ tân, Thu ngân, Bác sĩ, Điều dưỡng, Nhân viên kho, Dịch vụ thư điện tử, Thời gian.
+- Người dùng, Nhân viên and the 8 actor-generalization relations are **omitted from this overview presentation**. This is a presentation simplification, not a claim that the semantic hierarchy never exists.
+- **No visible UC codes:** ellipse labels show only use-case names; internal aliases UC01...UC21 remain in PlantUML for traceability/audit.
+- **Relations:** 24 direct associations; **0 include / 0 extend / 0 UC generalization**. No UC-to-UC workflow arrows are introduced.
+- **Human-approved geometry:** actor-centric layout follows the uploaded/edited draw.io reference. The user explicitly accepts the remaining crossing between Lễ tân → Gửi nhắc lịch and Thu ngân → Thanh toán dịch vụ; do not reopen geometry solely to eliminate this crossing.
+- **Canonical source/render:** docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml; final PNG is the **raw PlantUML render** to keep visual format consistent with the other thesis UML figures. postprocess_system_usecase.py is validator-only and must not redraw the diagram.
+- The previous Hinh_System_Use_Case_21UC_Full_Portrait.puml and its custom postprocessor are **retired** to avoid two competing final System Use Case diagrams.
+- **Scope stop:** after CI render + final visual QA on this exact source, Hình 2.9 is considered presentation-locked. Next work is 2.2.2, where the supervisor's authentication-UC instruction must be interpreted explicitly before changing specification count.
+
+
 ### THESIS session routing — hard rule
 - **Đây là THESIS session, không implement code; chỉ dùng `main` để verify claim implementation.**
 - Source of truth cho **báo cáo/UML/checkpoint THESIS** là nhánh thesis hiện hành (hiện tại: `docs/thesis-r1-current-state`).
