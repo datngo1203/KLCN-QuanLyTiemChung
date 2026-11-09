@@ -68,12 +68,12 @@ digraph G {
   // Clinical core.
   nv:s -> pk:e [taillabel="1", headlabel="0..*", constraint=false];
   pk:s -> cd:n [taillabel="1", headlabel="0..*", weight=10];
-  vx:s -> cd:n [taillabel="1", headlabel="0..*", constraint=false];
+  vx:s -> cd:w [taillabel="1", headlabel="0..*", constraint=false];
   cd:e -> mt:w [taillabel="0..1", headlabel="0..1", weight=10];
   ndt:s -> mt:n [taillabel="1", headlabel="0..*", constraint=false];
-  lo:s -> mt:n [taillabel="1", headlabel="0..*", constraint=false];
-  nv:s -> mt:n [taillabel="1", headlabel="0..*", constraint=false];
+  lo:s -> mt:w [taillabel="1", headlabel="0..*", constraint=false];
+  nv:s -> mt:e [taillabel="1", headlabel="0..*", constraint=false];
   mt:e -> td:w [taillabel="1", headlabel="0..1", weight=10];
-  nv:s -> td:n [taillabel="0..1", headlabel="0..*", constraint=false];
+  nv:e -> td:e [taillabel="0..1", headlabel="0..*", constraint=false];
 }
 @enddot
