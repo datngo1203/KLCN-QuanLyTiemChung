@@ -1,0 +1,99 @@
+@startuml
+' THESIS-R1 - HUIT/Rational Rose Sequence Diagram profile
+' UC2 - logical operations with code traceability
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+skinparam sequence {
+  ArrowColor black
+  LifeLineBorderColor black
+  LifeLineBackgroundColor white
+  ParticipantBorderColor black
+  ParticipantBackgroundColor white
+  ActorBorderColor black
+  ActorFontColor black
+  ParticipantFontColor black
+  GroupBorderColor black
+  GroupBackgroundColor white
+  GroupFontColor black
+  MessageAlign center
+}
+hide footbox
+autonumber
+
+actor "Quản trị viên" as Admin
+boundary "PromotionView" as View
+control "PromotionViewModel" as VM
+participant "PromotionApiClient" as Client
+
+Admin -> View : moQuanLyUuDai()
+activate View
+View -> VM : khoiTaoUuDai()
+activate VM
+VM -> Client : taiDanhSachUuDai()
+activate Client
+Client --> VM : danhSachUuDai
+deactivate Client
+VM --> View : capNhatDanhSach(danhSachUuDai)
+deactivate VM
+View --> Admin : hienThiDanhSach()
+
+Admin -> View : chonThaoTac(hanhDong)
+
+alt Không đủ quyền quản lý
+  View --> Admin : thongBaoKhongDuQuyen()
+else Có quyền quản lý
+  alt Thêm mới hoặc cập nhật
+    Admin -> View : nhapThongTinUuDai(duLieu)
+    View -> VM : luuUuDai(duLieu)
+    activate VM
+
+    alt Dữ liệu không hợp lệ
+      VM --> View : hienThiLoi(validation)
+    else Dữ liệu hợp lệ
+      VM -> Client : luuUuDai(id, duLieu)
+      activate Client
+      alt Lỗi nghiệp vụ hoặc dịch vụ
+        Client --> VM : loiNghiepVu
+        deactivate Client
+        VM --> View : hienThiLoi(loiNghiepVu)
+      else Lưu thành công
+        Client --> VM : uuDaiDaLuu
+        deactivate Client
+        VM --> View : capNhatUuDai(uuDaiDaLuu)
+      end
+    end
+    deactivate VM
+
+  else Xóa
+    Admin -> View : xacNhanXoa()
+
+    alt Ưu đãi đã được đăng ký tham chiếu
+      View --> Admin : thongBaoKhongTheXoa()
+    else Có thể xóa
+      View -> VM : xoaUuDai(id)
+      activate VM
+      VM -> Client : xoaUuDai(id)
+      activate Client
+
+      alt Lỗi nghiệp vụ hoặc dịch vụ
+        Client --> VM : loiNghiepVu
+        deactivate Client
+        VM --> View : hienThiLoi(loiNghiepVu)
+      else Xóa thành công
+        Client --> VM : ketQuaXoa
+        deactivate Client
+        VM --> View : capNhatDanhSachSauXoa(id)
+      end
+      deactivate VM
+    end
+  end
+
+  View --> Admin : hienThiKetQua()
+end
+
+deactivate View
+@enduml
