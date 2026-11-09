@@ -1,0 +1,58 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Lễ tân" as Reception
+actor "Dịch vụ thư điện tử" as Email
+boundary "ReminderQueueView" as View
+control "ReminderViewModel" as VM
+participant "ReminderApiService" as Service
+
+Reception -> View : moDanhSachNhacLich()
+activate View
+View -> VM : taiHangDoiNhac(tuKhoa)
+activate VM
+VM -> Service : taiLichCanNhac(tuKhoa)
+activate Service
+Service --> VM : danhSachLich
+deactivate Service
+VM --> View : capNhatHangDoi(danhSachLich)
+deactivate VM
+
+Reception -> View : chonLichHen(id)
+View -> VM : taiChiTietNhac(id)
+activate VM
+VM -> Service : taiNoiDungVaNguoiNhan(id)
+activate Service
+Service --> VM : noiDung, nguoiNhan, trangThai
+deactivate Service
+VM --> View : hienThiBanXemTruoc()
+deactivate VM
+
+alt Lịch hoặc email không đủ điều kiện
+  View --> Reception : thongBaoKhongTheGui()
+else Đủ điều kiện
+  Reception -> View : xacNhanGui()
+  View -> VM : guiNhacLich(id)
+  activate VM
+  VM -> Service : taoYeuCauGui(id)
+  activate Service
+  Service -> Email : guiThuDienTu(noiDung, nguoiNhan)
+  activate Email
+  Email --> Service : ketQuaChuyenPhat
+  deactivate Email
+  Service --> VM : trangThaiGui
+  deactivate Service
+  VM --> View : capNhatTrangThai(trangThaiGui)
+  deactivate VM
+  View --> Reception : hienThiTrangThai()
+end
+
+deactivate View
+@enduml
