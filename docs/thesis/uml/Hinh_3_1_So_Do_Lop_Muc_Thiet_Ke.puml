@@ -150,15 +150,15 @@ digraph G {
       <TR><TD ALIGN="LEFT">+SoLo : string<BR ALIGN="LEFT"/>+HanSuDung : DateOnly<BR ALIGN="LEFT"/>+SoLuongTon : int</TD></TR>
     </TABLE>>];
 
-    vx -> lo [taillabel="1", headlabel="0..*", weight=8];
+    vx -> lo [taillabel="1", headlabel="0..*", weight=10];
   }
 
   // ---------- CROSS-ZONE CORE LINKS ----------
   dk -> lh [taillabel="1", headlabel="0..*", weight=12];
-  vx -> cd [constraint=false];
-  lo -> mt [constraint=false];
-  vx -> ctv [constraint=false];
-  gv -> ctg [constraint=false];
+  vx -> cd [constraint=true, weight=12];
+  lo -> mt [constraint=true, weight=12];
+  vx -> ctv [constraint=true, weight=2];
+  gv -> ctg [constraint=true, weight=4];
 
   // Gentle alignment hints only; not fixed coordinates.
   dk -> pk [style=invis, weight=2];
