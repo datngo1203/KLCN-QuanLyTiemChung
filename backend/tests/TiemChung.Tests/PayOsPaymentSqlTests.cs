@@ -497,7 +497,11 @@ public sealed partial class PaymentSqlTests
                 "wrong-content-type" => await PostWebhookAsync(anonymous, WebhookBody("raw-sentinel"), contentType: "text/plain"),
                 _ => throw new ArgumentOutOfRangeException(nameof(input))
             };
-            await Problem(response, 400, "paymentWebhookInvalid");
+            if (input == "wrong-content-type") {
+                Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+            } else {
+                await Problem(response, 400, "paymentWebhookInvalid");
+            }
             Assert.Equal(input == "malformed" || input == "invalid-signature" ? 1 : 0, provider.VerifyCalls);
             using var db = f.NewDb();
             if (input == "invalid-signature") {
@@ -665,6 +669,8 @@ public sealed partial class PaymentSqlTests
             provider.WebhookResult = Success(payment, "provider-reference");
             await f.Db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE [ThanhToan] NOCHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+            await f.Db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE [ThanhToan] NOCHECK CONSTRAINT [CK_ThanhToan_PayOsFields]");
             try {
                 await f.Db.Database.ExecuteSqlInterpolatedAsync(
                     $"UPDATE [ThanhToan] SET [PhuongThuc] = {"ChuyenKhoanOnline"} WHERE [MaThanhToan] = {payment.MaThanhToan}");
@@ -675,6 +681,8 @@ public sealed partial class PaymentSqlTests
                     $"UPDATE [ThanhToan] SET [PhuongThuc] = {"PayOsQr"} WHERE [MaThanhToan] = {payment.MaThanhToan}");
                 await f.Db.Database.ExecuteSqlRawAsync(
                     "ALTER TABLE [ThanhToan] WITH CHECK CHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+                await f.Db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE [ThanhToan] WITH CHECK CHECK CONSTRAINT [CK_ThanhToan_PayOsFields]");
             }
             Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a => a.Action == "payments.payosWebhookPaid").ToArrayAsync());
         });
@@ -706,6 +714,10 @@ public sealed partial class PaymentSqlTests
 
             var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
             using var anonymous = f.AnonymousClient();
+            provider.WebhookResult = Success(payment, null) with {
+                IsSuccessful = false,
+                ProviderCode = "21"
+            };
             using (var unsuccessful = await PostWebhookAsync(anonymous, WebhookBody()))
                 Assert.Equal(HttpStatusCode.OK, unsuccessful.StatusCode);
             provider.WebhookResult = Success(payment, "provider-reference") with {
