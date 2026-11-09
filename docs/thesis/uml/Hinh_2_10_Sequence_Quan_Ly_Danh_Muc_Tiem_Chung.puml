@@ -1,5 +1,5 @@
 @startuml
-' THESIS-R1 - HUIT Sequence Diagram profile
+' THESIS-R1 - HUIT/Rational Rose Sequence Diagram profile
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
@@ -24,52 +24,55 @@ hide footbox
 autonumber
 
 actor "Quản trị viên" as Admin
-participant "Ứng dụng Windows" as UI
-participant "Quản lý danh mục" as CatalogLogic
-participant "Quyền hạn" as Permission
-participant "Danh mục tiêm chủng" as CatalogData
+boundary "QuanLyDanhMucGD" as UI
+control "DieuKhienDanhMuc" as CatalogControl
+entity "QuyenHan" as Permission
+entity "DanhMucTiemChung" as Catalog
 
-Admin -> UI : Mở chức năng quản lý danh mục
+Admin -> UI : moQuanLyDanhMuc()
 activate UI
-UI -> CatalogLogic : Tải dữ liệu theo nhóm và trạng thái
-activate CatalogLogic
-CatalogLogic -> CatalogData : Tra cứu danh mục
-activate CatalogData
-CatalogData --> CatalogLogic : Danh sách hiện có
-deactivate CatalogData
-CatalogLogic --> UI : Dữ liệu danh mục
-deactivate CatalogLogic
-UI --> Admin : Hiển thị danh sách
 
-Admin -> UI : Chọn thêm mới, cập nhật hoặc xóa
-UI --> Admin : Hiển thị biểu mẫu hoặc yêu cầu xác nhận
-Admin -> UI : Nhập, chỉnh sửa hoặc xác nhận thông tin
-UI -> CatalogLogic : Yêu cầu thực hiện thao tác
-activate CatalogLogic
-CatalogLogic -> Permission : Kiểm tra quyền
+UI -> CatalogControl : taiDanhSach(nhom, trangThai)
+activate CatalogControl
+CatalogControl -> Catalog : truyVanDanhMuc(nhom, trangThai)
+activate Catalog
+Catalog --> CatalogControl : danhSachHienCo
+deactivate Catalog
+CatalogControl --> UI : duLieuDanhMuc
+deactivate CatalogControl
+UI --> Admin : hienThiDanhSach(duLieuDanhMuc)
+
+Admin -> UI : chonThaoTac(hanhDong)
+UI --> Admin : hienThiBieuMauHoacXacNhan(hanhDong)
+Admin -> UI : nhapThongTinHoacXacNhan(duLieu)
+
+UI -> CatalogControl : yeuCauThucHien(hanhDong, duLieu)
+activate CatalogControl
+CatalogControl -> Permission : kiemTraQuyen(hanhDong)
 activate Permission
-Permission --> CatalogLogic : Kết quả quyền
+Permission --> CatalogControl : ketQuaQuyen
 deactivate Permission
 
-alt Không đủ quyền
-  CatalogLogic --> UI : Từ chối thao tác
-  deactivate CatalogLogic
-  UI --> Admin : Thông báo không đủ quyền
-else Được phép
-  CatalogLogic -> CatalogData : Kiểm tra dữ liệu, ràng buộc và thực hiện thao tác
-  activate CatalogData
-  alt Không hợp lệ hoặc vi phạm ràng buộc
-    CatalogData --> CatalogLogic : Lỗi nghiệp vụ
-    deactivate CatalogData
-    CatalogLogic --> UI : Thông báo lỗi
-    deactivate CatalogLogic
-    UI --> Admin : Yêu cầu điều chỉnh hoặc giữ nguyên dữ liệu
-  else Hợp lệ
-    CatalogData --> CatalogLogic : Dữ liệu sau thay đổi
-    deactivate CatalogData
-    CatalogLogic --> UI : Kết quả và dữ liệu cập nhật
-    deactivate CatalogLogic
-    UI --> Admin : Hiển thị kết quả mới nhất
+alt [Không đủ quyền]
+  CatalogControl --> UI : tuChoiThaoTac()
+  deactivate CatalogControl
+  UI --> Admin : thongBaoKhongDuQuyen()
+else [Được phép]
+  CatalogControl -> Catalog : kiemTraDuLieuVaThucThi(hanhDong, duLieu)
+  activate Catalog
+
+  alt [Không hợp lệ hoặc vi phạm ràng buộc]
+    Catalog --> CatalogControl : loiNghiepVu
+    deactivate Catalog
+    CatalogControl --> UI : thongBaoLoi(loiNghiepVu)
+    deactivate CatalogControl
+    UI --> Admin : yeuCauDieuChinhHoacGiuNguyenDuLieu()
+  else [Hợp lệ]
+    Catalog --> CatalogControl : duLieuSauThayDoi
+    deactivate Catalog
+    CatalogControl --> UI : ketQuaCapNhat
+    deactivate CatalogControl
+    UI --> Admin : hienThiKetQuaMoiNhat(ketQuaCapNhat)
   end
 end
 
