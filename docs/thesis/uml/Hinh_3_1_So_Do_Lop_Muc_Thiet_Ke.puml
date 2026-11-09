@@ -1,79 +1,226 @@
-@startdot
-digraph G {
-  graph [rankdir=TB, splines=ortho, overlap=false, concentrate=false, nodesep=0.42, ranksep=0.75, pad=0.16, bgcolor="white"];
-  node [shape=record, fontname="Times New Roman", fontsize=11.5, color="black", penwidth=1.0, margin="0.07,0.05"];
-  edge [fontname="Times New Roman", fontsize=8.2, color="black", penwidth=0.9, dir=none, labeldistance=1.2];
+@startuml
+' THESIS-R1 - Hình 3.1 Sơ đồ lớp mức thiết kế
+' HUIT Chương 6/7 + current Domain/EF evidence
+' PlantUML class syntax; design-level associations, not physical ERD
 
-  vx [label="{«entity»\nVacXin|+MaVacXin : int\l+TenVacXin : string\l}"];
-  gv [label="{«entity»\nGoiVacXin|+MaGoi : int\l+TenGoi : string\l}"];
-  lo [label="{«entity»\nLoVacXin|+SoLo : string\l+HanSuDung : DateOnly\l+SoLuongTon : int\l}"];
-  ctv [label="{«entity»\nChiTietVacXinLe|+MaChiTietVacXin : int\l+SoLuong : int\l}"];
-  ctg [label="{«entity»\nChiTietGoiVacXin|+MaChiTietGoi : int\l+SoLuongGoi : int\l}"];
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 11
+skinparam classFontStyle bold
+skinparam classAttributeFontStyle plain
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor white
+skinparam classBorderColor black
+skinparam classFontColor black
+skinparam arrowColor black
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 52
+hide circle
+hide empty methods
+top to bottom direction
 
-  kh [label="{«entity»\nKhachHang|+MaKhachHang : int\l+HoTen : string\l}"];
-  ndt [label="{«entity»\nNguoiDuocTiem|+MaNguoiDuocTiem : int\l+MaHoSo : string\l}"];
-  km [label="{«entity»\nKhuyenMai|+MaKhuyenMai : int\l+MucUuDai : decimal\l}"];
-  dk [label="{«entity»\nDangKyDichVu|+MaDangKy : int\l+TrangThai : string\l}"];
-  tt [label="{«entity»\nThanhToan|+MaThanhToan : int\l+SoTien : decimal\l}"];
-  nv [label="{«entity»\nNhanVien|+MaNhanVien : int\l+ChucDanh : string\l}"];
-  lh [label="{«entity»\nLichHenTiem|+MaLichHen : int\l+ThoiGianHen : DateTime\l}"];
-  nl [label="{«entity»\nNhacLich|+MaNhacLich : int\l+ScheduledAt : DateTime?\l}"];
-  pk [label="{«entity»\nPhieuKhamSangLoc|+MaPhieuKham : int\l+KetLuan : string\l}"];
-  cd [label="{«entity»\nChiDinhTiem|+MaChiDinh : int\l+KetQuaChiDinh : string\l}"];
-  mt [label="{«entity»\nMuiTiem|+MaMuiTiem : int\l+ThoiDiemTiem : DateTime\l}"];
-  td [label="{«entity»\nTheoDoiSauTiem|+MaTheoDoi : int\l+TinhTrang : string\l}"];
-
-  // Compact portrait rows: catalog/inventory above, business flow below.
-  {rank=same; vx; gv; lo;}
-  {rank=same; ctv; ctg;}
-  {rank=same; kh; ndt; km;}
-  {rank=same; dk; tt; nv;}
-  {rank=same; lh; nl;}
-  {rank=same; pk;}
-  {rank=same; cd; mt; td;}
-
-  // Order helpers.
-  vx -> gv -> lo [style=invis, weight=90];
-  ctv -> ctg [style=invis, weight=70];
-  kh -> ndt -> km [style=invis, weight=90];
-  dk -> tt -> nv [style=invis, weight=90];
-  lh -> nl [style=invis, weight=70];
-  cd -> mt -> td [style=invis, weight=90];
-
-  // Keep the catalog/service block above the business block.
-  ctv -> kh [style=invis, weight=80];
-  ctg -> ndt [style=invis, weight=80];
-  lo -> km [style=invis, weight=80];
-
-  // Catalog/service core.
-  vx:s -> ctv:n [taillabel="1", headlabel="0..*", weight=10];
-  gv:s -> ctg:n [taillabel="1", headlabel="0..*", weight=10];
-  vx:e -> lo:w [taillabel="1", headlabel="0..*", weight=8];
-
-  // Profile/registration core.
-  kh:e -> ndt:w [taillabel="1", headlabel="0..*", weight=10];
-  kh:s -> dk:nw [taillabel="1", headlabel="0..*", constraint=false];
-  ndt:s -> dk:n [taillabel="1", headlabel="0..*", weight=10];
-  km:s -> dk:ne [taillabel="0..1", headlabel="0..*", constraint=false];
-  dk:nw -> ctv:s [taillabel="1", headlabel="0..*", constraint=false];
-  dk:n -> ctg:s [taillabel="1", headlabel="0..*", constraint=false];
-  dk:e -> tt:w [taillabel="1", headlabel="0..1", weight=8];
-
-  // Appointment core.
-  dk:s -> lh:n [taillabel="0..1", headlabel="0..*", weight=10];
-  ndt:s -> lh:n [taillabel="1", headlabel="0..*", constraint=false];
-  lh:e -> nl:w [taillabel="1", headlabel="0..*", weight=8];
-  lh:s -> pk:n [taillabel="0..1", headlabel="0..1", weight=10];
-
-  // Clinical core.
-  nv:s -> pk:e [taillabel="1", headlabel="0..*", constraint=false];
-  pk:s -> cd:n [taillabel="1", headlabel="0..*", weight=10];
-  vx:s -> cd:w [taillabel="1", headlabel="0..*", constraint=false];
-  cd:e -> mt:w [taillabel="0..1", headlabel="0..1", weight=10];
-  ndt:s -> mt:n [taillabel="1", headlabel="0..*", constraint=false];
-  lo:s -> mt:w [taillabel="1", headlabel="0..*", constraint=false];
-  nv:s -> mt:e [taillabel="1", headlabel="0..*", constraint=false];
-  mt:e -> td:w [taillabel="1", headlabel="0..1", weight=10];
-  nv:e -> td:e [taillabel="0..1", headlabel="0..*", constraint=false];
+class GoiVacXin <<entity>> {
+  -MaGoi : int
+  -TenGoi : string
 }
-@enddot
+
+class GoiVacXin_VacXin <<association>> {
+  -MaGoi : int
+  -MaVacXin : int
+  -SoLuong : int
+}
+
+class VacXin <<entity>> {
+  -MaVacXin : int
+  -TenVacXin : string
+}
+
+class LoVacXin <<entity>> {
+  -SoLo : string
+  -HanSuDung : DateOnly
+  -SoLuongTon : int
+  -TrangThai : string
+}
+
+class KhuyenMai <<entity>> {
+  -MaKhuyenMai : int
+  -TenKhuyenMai : string
+  -MucUuDai : decimal
+}
+
+class KhachHang <<entity>> {
+  -MaKhachHang : int
+  -HoTen : string
+  -SoDienThoai : string
+}
+
+class DangKyDichVu <<entity>> {
+  -MaDangKy : int
+  -MaKhachHang : int
+  -MaNguoiDuocTiem : int
+  -TrangThai : string
+}
+
+class ChiTietGoiVacXin <<association>> {
+  -MaChiTietGoi : int
+  -MaGoi : int
+  -SoLuongGoi : int
+}
+
+class NguoiDuocTiem <<entity>> {
+  -MaNguoiDuocTiem : int
+  -MaHoSo : string
+  -NgaySinh : DateOnly
+}
+
+class ThanhToan <<entity>> {
+  -MaThanhToan : int
+  -SoTien : decimal
+  -TrangThai : string
+}
+
+class ChiTietVacXinLe <<association>> {
+  -MaChiTietVacXin : int
+  -MaVacXin : int
+  -SoLuong : int
+}
+
+class LichHenTiem <<entity>> {
+  -MaLichHen : int
+  -ThoiGianHen : DateTime
+  -TrangThai : string
+}
+
+class NhacLich <<entity>> {
+  -MaNhacLich : int
+  -ScheduledAt : DateTime?
+  -TrangThai : string
+}
+
+class NhanVien <<entity>> {
+  -MaNhanVien : int
+  -HoTen : string
+  -ChucDanh : string
+}
+
+class PhieuKhamSangLoc <<entity>> {
+  -MaPhieuKham : int
+  -KetLuan : string
+}
+
+class ChiDinhTiem <<entity>> {
+  -MaChiDinh : int
+  -KetQuaChiDinh : string
+}
+
+class MuiTiem <<entity>> {
+  -MaMuiTiem : int
+  -ThoiDiemTiem : DateTime
+}
+
+class TheoDoiSauTiem <<entity>> {
+  -MaTheoDoi : int
+  -TinhTrang : string
+  -MucDoPhanUng : string
+}
+
+' ---------------------------------------------------------------------------
+' Layout hints only — preserve the portrait arrangement approved by the user.
+' ---------------------------------------------------------------------------
+
+GoiVacXin -[hidden]right- GoiVacXin_VacXin
+GoiVacXin_VacXin -[hidden]right- VacXin
+VacXin -[hidden]right- LoVacXin
+
+ChiTietGoiVacXin -[hidden]right- KhachHang
+KhachHang -[hidden]right- KhuyenMai
+KhuyenMai -[hidden]right- DangKyDichVu
+DangKyDichVu -[hidden]right- NguoiDuocTiem
+NguoiDuocTiem -[hidden]right- ThanhToan
+ThanhToan -[hidden]right- ChiTietVacXinLe
+
+GoiVacXin -[hidden]down- ChiTietGoiVacXin
+VacXin -[hidden]down- ChiTietVacXinLe
+LoVacXin -[hidden]down- ChiTietVacXinLe
+KhachHang -[hidden]down- NguoiDuocTiem
+DangKyDichVu -[hidden]down- LichHenTiem
+
+LichHenTiem -[hidden]right- NhacLich
+LichHenTiem -[hidden]down- PhieuKhamSangLoc
+NhanVien -[hidden]right- PhieuKhamSangLoc
+PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
+ChiDinhTiem -[hidden]left- MuiTiem
+MuiTiem -[hidden]down- TheoDoiSauTiem
+
+' ---------------------------------------------------------------------------
+' Catalog / package / inventory
+' ---------------------------------------------------------------------------
+
+GoiVacXin "1" -- "0..*" GoiVacXin_VacXin
+VacXin "1" -- "0..*" GoiVacXin_VacXin
+VacXin "1" -- "0..*" LoVacXin
+
+' Registration detail classes are refined association classes.
+DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
+GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
+
+DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
+VacXin "1" -- "0..*" ChiTietVacXinLe
+
+' ---------------------------------------------------------------------------
+' Profile / registration / payment
+' ---------------------------------------------------------------------------
+
+KhachHang "1" -- "0..*" NguoiDuocTiem
+KhachHang "1" -- "0..*" DangKyDichVu
+NguoiDuocTiem "1" -- "0..*" DangKyDichVu
+KhuyenMai "0..1" -- "0..*" DangKyDichVu
+
+' MaDangKy in ThanhToan is required and unique.
+DangKyDichVu "1" -- "0..1" ThanhToan
+
+' ---------------------------------------------------------------------------
+' Appointment / reminder
+' ---------------------------------------------------------------------------
+
+' MaDangKy in LichHenTiem is nullable: an appointment may have no registration.
+DangKyDichVu "0..1" -- "0..*" LichHenTiem
+NguoiDuocTiem "1" -- "0..*" LichHenTiem
+LichHenTiem "1" -- "0..*" NhacLich
+
+' ---------------------------------------------------------------------------
+' Screening / indication
+' ---------------------------------------------------------------------------
+
+' MaLichHen is nullable but unique when present.
+LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
+
+' Screening always belongs to a registration and recipient.
+DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
+NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
+NhanVien "1" -- "0..*" PhieuKhamSangLoc
+
+PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
+VacXin "1" -- "0..*" ChiDinhTiem
+
+' ---------------------------------------------------------------------------
+' Vaccination / aftercare
+' ---------------------------------------------------------------------------
+
+' MaChiDinh is nullable and unique when present.
+ChiDinhTiem "0..1" -- "0..1" MuiTiem
+
+NguoiDuocTiem "1" -- "0..*" MuiTiem
+LoVacXin "1" -- "0..*" MuiTiem
+NhanVien "1" -- "0..*" MuiTiem
+
+' MaMuiTiem in TheoDoiSauTiem is required and unique.
+MuiTiem "1" -- "0..1" TheoDoiSauTiem
+
+' MaNhanVien in TheoDoiSauTiem is nullable.
+NhanVien "0..1" -- "0..*" TheoDoiSauTiem
+
+@enduml
