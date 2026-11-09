@@ -2036,3 +2036,51 @@ UC1 là template pilot về bố cục/notation; **không phải ngoại lệ v�
 
 **Scope stop:** giữ global Sequence profile FINAL; không quay lại code-literal labels; không đổi semantic 14 UC.
 
+### THESIS-R1 — UC2 Sequence FINAL integrated — 09/11/2026
+
+**UC2 FINAL / GLOBAL SEQUENCE PROFILE APPLIED.**
+
+- System UC: **Quản lý ưu đãi** (Bảng 2.9 / UC07).
+- Placement: Sequence đặt **ngay sau Bảng 2.9**, trước `2.2.2.3. Quản lý lô và tồn kho vắc xin`.
+- PlantUML source: `docs/thesis/uml/Hinh_2_11_Sequence_Quan_Ly_Uu_Dai.puml`.
+- Source commit: `1ee3816a874c0dac6524b03ed71d40d46c0f4f7c`.
+- GitHub Actions: **run #70**, run id `42581804369`, attempt 3, conclusion **success**.
+  - Attempts 1–2 failed only at `Download PlantUML` before rendering source; attempt 3 rendered successfully.
+- Artifact id: `13656734475`.
+- PNG SHA-256: `1aa5f4afbfc04b59a0501a014c7b41a34773de750df14707c8f342a42dcc8bd8`.
+- Participants/code traceability:
+  - Actor: `Quản trị viên`
+  - Boundary: `PromotionView`
+  - Control: `PromotionViewModel`
+  - service participant: `PromotionApiClient`
+  - logical operations trace về `LoadAsync()`, `SaveAsync()`, `DeleteAsync()`, guards `CanEdit/CanSave/CanDelete`, backend `RequirePromotionManager(...)` + validation + `promotionReferenced`.
+- Diagram giữ luồng quản trị: tải danh sách → thêm/cập nhật/xóa; guard quyền; validation thời gian/mức ưu đãi; lỗi nghiệp vụ; trường hợp ưu đãi đã được đăng ký tham chiếu.
+- Không đưa luồng Website `/valid` vào UC quản trị.
+- Visual profile: HUIT/Rational Rose; **4 lifeline / 25 messages**; A4 readability PASS.
+
+#### Word integration
+- Artifact: `CNTT_KLCN090_THESIS-R1_UC2_Sequence_Integrated_Final.docx`
+- SHA-256: `2c2bc0bfbf5657e43d916cea8c05d420baa9568dc2b59de4e3ebf49293fa81f4`
+- Render: **86 trang**
+- `Hình 2.11. Sơ đồ tuần tự Use Case Quản lý ưu đãi`: logical page **40**
+- `Hình 2.12. Sơ đồ lớp mức phân tích`: logical page **56**
+- Hình 2.10 UC1 được giảm **display size only** từ 5.82 in xuống 5.65 in để tránh orphan một dòng ở cuối Bảng 2.9; embedded UC1 PNG bytes không đổi.
+- Danh mục hình / Danh mục bảng đã đồng bộ page number thực tế; list-page audit: 0 mismatch.
+- 14/14 System UC tables vẫn đủ đúng **10 trường HUIT**.
+- Embedded identity regression:
+  - Hình 2.9: `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`
+  - UC1 Sequence: `01695f6576bca6ef8dd457f0d5adc700fbf3607560471728086d13f25ed63875`
+  - UC2 Sequence: `1aa5f4afbfc04b59a0501a014c7b41a34773de750df14707c8f342a42dcc8bd8`
+- Visual QA:
+  - 65/86 pages pixel-identical to previously QA-passed UC1 artifact under the same renderer;
+  - all 21 changed pages (`9–10, 48–66`) visually reviewed at 100% and PASS;
+  - no clipping/overlap/orphan around UC2 after refinement.
+
+**DONE:** UC1 + UC2 Sequence semantic / HUIT notation / code-traceability / Word integration.
+
+**ACTIVE:** none.
+
+**NEXT:** UC3 — `Quản lý lô và tồn kho vắc xin`, chỉ mở khi người dùng xác nhận tiếp.
+
+**Scope stop:** không chuyển UC3 thành ACTIVE nếu chưa có xác nhận; giữ global Sequence profile FINAL.
+
