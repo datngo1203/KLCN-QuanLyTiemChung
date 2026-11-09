@@ -53,21 +53,21 @@ activate Permission
 Permission --> CatalogControl : ketQuaQuyen
 deactivate Permission
 
-alt [Không đủ quyền]
+alt Không đủ quyền
   CatalogControl --> UI : tuChoiThaoTac()
   deactivate CatalogControl
   UI --> Admin : thongBaoKhongDuQuyen()
-else [Được phép]
+else Được phép
   CatalogControl -> Catalog : kiemTraDuLieuVaThucThi(hanhDong, duLieu)
   activate Catalog
 
-  alt [Không hợp lệ hoặc vi phạm ràng buộc]
+  alt Không hợp lệ hoặc vi phạm ràng buộc
     Catalog --> CatalogControl : loiNghiepVu
     deactivate Catalog
     CatalogControl --> UI : thongBaoLoi(loiNghiepVu)
     deactivate CatalogControl
     UI --> Admin : yeuCauDieuChinhHoacGiuNguyenDuLieu()
-  else [Hợp lệ]
+  else Hợp lệ
     Catalog --> CatalogControl : duLieuSauThayDoi
     deactivate Catalog
     CatalogControl --> UI : ketQuaCapNhat
