@@ -1,0 +1,68 @@
+@startuml
+' THESIS-R1 - System Sequence UC3
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Nhân viên kho" as Staff
+boundary "InventoryView" as View
+control "InventoryViewModel" as VM
+control "InventoryReceivingViewModel" as ReceiveVM
+control "InventoryReceiptHistoryViewModel" as HistoryVM
+
+Staff -> View : moQuanLyKho()
+activate View
+View -> VM : taiDanhSachLo(tuKhoa)
+activate VM
+VM --> View : danhSachLoTonKho
+deactivate VM
+View --> Staff : hienThiLoVaTonKho()
+
+Staff -> View : chonThaoTac(hanhDong)
+
+alt Tiếp nhận lô mới
+  View -> ReceiveVM : khoiTaoTiepNhan()
+  activate ReceiveVM
+  ReceiveVM -> ReceiveVM : taiVacXinCoTheTiepNhan(tuKhoa)
+  ReceiveVM --> View : danhSachVacXin
+  Staff -> View : nhapThongTinLo(duLieu)
+  View -> ReceiveVM : xacNhanTiepNhan(duLieu)
+
+  alt Dữ liệu không hợp lệ
+    ReceiveVM --> View : hienThiLoi(validation)
+  else Dữ liệu hợp lệ
+    ReceiveVM -> ReceiveVM : tiepNhanLo(duLieu)
+    alt Số lô đã tồn tại hoặc kết quả chưa xác định
+      ReceiveVM -> ReceiveVM : doiChieuPhieu(soLo)
+      ReceiveVM --> View : ketQuaDoiChieu
+    else Tiếp nhận thành công
+      ReceiveVM --> View : phieuTiepNhan
+    end
+  end
+  deactivate ReceiveVM
+
+else Tra cứu lô, tồn hoặc biến động
+  Staff -> View : chonLo(soLo)
+  View -> VM : taiBienDong(soLo)
+  activate VM
+  VM --> View : danhSachBienDong
+  deactivate VM
+
+else Tra cứu lịch sử tiếp nhận
+  View -> HistoryVM : taiLichSuTiepNhan(tuKhoa)
+  activate HistoryVM
+  HistoryVM --> View : danhSachPhieu
+  Staff -> View : chonPhieu(soLo)
+  View -> HistoryVM : docChiTietPhieu(soLo)
+  HistoryVM --> View : chiTietPhieu
+  deactivate HistoryVM
+end
+
+View --> Staff : hienThiKetQua()
+deactivate View
+@enduml
