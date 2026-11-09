@@ -1559,3 +1559,35 @@ Không tự mở:
 - PR giữ diff, test/runtime evidence và review.
 - #76 chỉ dùng checkpoint/recovery khi cần, không phải tài liệu bắt buộc phải đọc trong mọi task.
 - Sau mỗi merge: cập nhật DONE/ACTIVE/NEXT/PARKED rồi dừng chờ người dùng xác nhận.
+
+### THESIS-R1 — 2.2.2 FINAL 14 System Use Case specifications + Hình 2.1 compact layout — 09/11/2026
+
+**USER APPROVED / FINAL FOR CURRENT REPORT BASELINE.**
+
+- Hoàn tất **2.2.2 — Đặc tả use case hệ thống** cho đúng **14 top-level System Use Case final** đã khóa ở Hình 2.9.
+- Mỗi bảng đặc tả dùng đúng profile HUIT Chương 5 với 10 trường: **Tên Use Case / Use Case ID / Tác nhân chính / Tổng quan / Độ ưu tiên / Mối quan hệ / Dòng sự kiện chính / Dòng sự kiện phụ / Tiền điều kiện / Hậu điều kiện**. Dòng sự kiện phụ phân biệt **Biến thể** và **Ngoại lệ**.
+- Historical traceability IDs giữ nguyên: **UC06, UC07, UC08, UC09, UC10, UC11, UC12, UC13, UC15, UC16, UC17, UC18, UC19, UC21**. Visible thesis names theo canonical 14-UC scope; không phục hồi 21-UC model.
+- Tất cả 14 bảng giữ semantic Hình 2.9: **0 include / 0 extend**; trường Mối quan hệ chỉ nêu actor liên quan và xác nhận không có include/extend thay vì dùng quan hệ để kể workflow.
+- Implementation evidence được re-audit tại exact **main HEAD `a8ad9a1e97cd59e3c7c66600fd0e7843e51543b0`** cho Catalog, Promotion, Inventory, Profiles, Registration, Appointment, Reminder/Email Reminder, Clinical, Payment, Vaccination, Aftercare, Vaccination Journey/History và Reports.
+- Đã compact **Hình 2.1 — sơ đồ use case nghiệp vụ tổng thể** bằng cách loại vùng trắng dư của bitmap/source canvas và giữ nguyên nội dung, actors, associations, system boundary và caption; mục tiêu chỉ là sửa pagination/layout, **không đổi semantic 7 Business Use Case**.
+- **Hình 2.9 FINAL không đổi**; embedded PNG trong Word vẫn có SHA-256 `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`, đúng run #62 / 14 UC / 8 actors / 19 direct associations.
+- Sau khi loại các Sequence Diagram stale khỏi Chương 2, sơ đồ lớp mức phân tích được canonicalize thành **Hình 2.10**. Sequence Diagram vẫn thuộc Chương 3.2 và tiếp tục PARKED.
+- Đã đồng bộ **Mục lục, Danh mục hình, Danh mục bảng, heading/caption và số trang** với render cuối. 14 bảng System UC là **Bảng 2.8–Bảng 2.21**.
+- Word artifact final hiện hành: `CNTT_KLCN090_THESIS-R1_14UC_Final.docx`
+  - SHA-256: `002139d62b48c0438a162c8cde1668fe8251c234db9dd32272b746ea924ffac5`
+  - Render: **87 trang**
+  - Structural QA: **14/14 HUIT tables PASS**
+  - TOC / Danh mục hình / Danh mục bảng: **PASS**
+  - Full-document visual QA: **PASS**, không phát hiện clipping/overlap/broken glyph
+  - Hình 2.9 embedded-hash QA: **PASS**
+
+**DONE:** 2.2.1 Hình 2.9 final + 2.2.2 full 14 System UC specifications + Hình 2.1 layout fix + Word navigation/list synchronization.
+
+**ACTIVE:** none.
+
+**NEXT:** Chương 3.2 — audit và dựng Sequence Diagram tương ứng với 14 System UC đã PASS, chỉ khi người dùng xác nhận mở slice.
+
+**PARKED:** Sequence Diagram 3.2; các thay đổi semantic Business Modeling 2.1; redraw Hình 2.9; các expansion ngoài THESIS-R1 hiện hành.
+
+**Scope stop:** không tự mở Chương 3.2, không đổi semantic 2.1/Hình 2.9 và không thêm top-level System UC nếu người dùng chưa xác nhận.
+
