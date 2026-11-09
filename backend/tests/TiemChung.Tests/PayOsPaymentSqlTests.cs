@@ -46,6 +46,33 @@ public sealed partial class PaymentSqlTests
     }
 
     [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("Pending")]
+    [InlineData("Paid")]
+    public async Task PaymentReadRejectsPayOsRowsMissingRequiredPaymentLinkId(string lifecycle)
+    {
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(), async f => {
+            var registration = await f.Register();
+            var payment = PayOsPayment(registration, lifecycle);
+            var paymentLinkId = payment.PayOsPaymentLinkId!;
+            f.Db.Add(payment);
+            await f.Db.SaveChangesAsync();
+
+            await f.Db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE [ThanhToan] NOCHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+            try {
+                await f.Db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [ThanhToan] SET [PayOsPaymentLinkId] = NULL WHERE [MaThanhToan] = {payment.MaThanhToan}");
+                await Problem(await f.Cashier.Client.GetAsync(Path(registration.Id)), 409, "paymentDataConflict");
+            } finally {
+                await f.Db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [ThanhToan] SET [PayOsPaymentLinkId] = {paymentLinkId} WHERE [MaThanhToan] = {payment.MaThanhToan}");
+                await f.Db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE [ThanhToan] WITH CHECK CHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+            }
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
     [InlineData("order-code")]
     [InlineData("payment-link-id")]
     public async Task PayOsIdentifiersMustBeUnique(string duplicate)

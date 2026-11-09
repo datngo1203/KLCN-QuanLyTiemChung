@@ -319,11 +319,12 @@ public static class PaymentEndpoints
             payment.SoDinhDanhMasked is not null || payment.ThamChieuThanhToan is not null)
             return false;
 
-        var linkIdValid = payment.PayOsPaymentLinkId is null || CounterPaymentRules.Text(payment.PayOsPaymentLinkId, 50);
+        var linkIdValid = CounterPaymentRules.Text(payment.PayOsPaymentLinkId, 50);
+        var linkIdOptionalAndValid = payment.PayOsPaymentLinkId is null || linkIdValid;
         var checkoutUrlValid = payment.PayOsCheckoutUrl is null || SecurePayOsUrl(payment.PayOsCheckoutUrl);
         var qrCodeValid = payment.PayOsQrCode is null || payment.PayOsQrCode.Length is > 0 and <= 2048;
         var referenceValid = payment.PayOsReference is null || CounterPaymentRules.Text(payment.PayOsReference, 100);
-        if (!linkIdValid || !checkoutUrlValid || !qrCodeValid || !referenceValid ||
+        if (!linkIdOptionalAndValid || !checkoutUrlValid || !qrCodeValid || !referenceValid ||
             payment.PayOsLifecycleState is not ("Creating" or "CreateOutcomeUnknown" or "Pending" or "Paid"))
             return false;
 

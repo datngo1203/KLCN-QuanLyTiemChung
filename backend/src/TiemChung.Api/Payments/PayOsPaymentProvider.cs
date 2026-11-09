@@ -45,17 +45,20 @@ public sealed record PayOsPaymentSnapshot(
     string Status,
     string? Reference);
 
-public sealed record PayOsWebhookNotification(
+public sealed record PayOsWebhookEnvelope(string RawJson);
+
+public sealed record PayOsVerifiedWebhook(
     long OrderCode,
     long Amount,
     string PaymentLinkId,
     string? Reference,
-    string Signature);
+    bool IsSuccessful,
+    string? ProviderCode);
 
 public interface IPayOsPaymentProvider
 {
     bool IsReady { get; }
     Task<PayOsCreatePaymentResult> CreateAsync(PayOsCreatePaymentRequest request, CancellationToken cancellationToken);
     Task<PayOsPaymentSnapshot?> ReadAsync(long orderCode, CancellationToken cancellationToken);
-    bool VerifyWebhook(PayOsWebhookNotification notification);
+    PayOsVerifiedWebhook? VerifyWebhook(PayOsWebhookEnvelope envelope);
 }

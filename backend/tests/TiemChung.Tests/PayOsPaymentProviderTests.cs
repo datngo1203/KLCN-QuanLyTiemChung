@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TiemChung.Api.Payments;
 using Xunit;
 
@@ -42,15 +43,16 @@ public sealed class PayOsPaymentProviderTests
         foreach (var type in new[] {
             typeof(PayOsCreatePaymentResult),
             typeof(PayOsPaymentSnapshot),
-            typeof(PayOsWebhookNotification)
+            typeof(PayOsVerifiedWebhook)
         }) {
             Assert.DoesNotContain(type.GetProperties(), property =>
-                property.Name is "ClientId" or "ApiKey" or "ChecksumKey" or "Secret");
+                property.Name is "ClientId" or "ApiKey" or "ChecksumKey" or "Secret" or "RawJson" or "Signature");
         }
+        Assert.NotNull(typeof(PayOsWebhookEnvelope).GetProperty(nameof(PayOsWebhookEnvelope.RawJson)));
     }
 
     [Fact]
-    public async Task ProviderBoundaryCanBeReplacedByAFake()
+    public async Task ProviderBoundaryVerifiesFullWebhookAndReturnsNormalizedResult()
     {
         IPayOsPaymentProvider provider = new FakePayOsPaymentProvider();
         var request = new PayOsCreatePaymentRequest(123, 500_000, "PAY-123",
@@ -59,7 +61,36 @@ public sealed class PayOsPaymentProviderTests
 
         Assert.Equal(123, created.OrderCode);
         Assert.Equal(created.PaymentLinkId, (await provider.ReadAsync(123, CancellationToken.None))!.PaymentLinkId);
-        Assert.True(provider.VerifyWebhook(new(123, 500_000, created.PaymentLinkId, "REF-123", "test-signature")));
+
+        var verified = provider.VerifyWebhook(Webhook("00", "valid-signature"));
+        Assert.NotNull(verified);
+        Assert.Equal(123, verified.OrderCode);
+        Assert.Equal(500_000, verified.Amount);
+        Assert.Equal(created.PaymentLinkId, verified.PaymentLinkId);
+        Assert.Equal("REF-123", verified.Reference);
+        Assert.True(verified.IsSuccessful);
+        Assert.Equal("00", verified.ProviderCode);
+        var serialized = JsonSerializer.Serialize(verified);
+        Assert.DoesNotContain("RawJson", serialized);
+        Assert.DoesNotContain("Signature", serialized);
+        Assert.DoesNotContain("ClientId", serialized);
+        Assert.DoesNotContain("ApiKey", serialized);
+        Assert.DoesNotContain("ChecksumKey", serialized);
+        Assert.DoesNotContain("valid-signature", serialized);
+        Assert.DoesNotContain("accountNumber", serialized);
+        Assert.DoesNotContain("counterAccountBankId", serialized);
+    }
+
+    [Fact]
+    public void InvalidSignatureIsRejectedAndSignedUnsuccessfulEventStaysUnsuccessful()
+    {
+        IPayOsPaymentProvider provider = new FakePayOsPaymentProvider();
+
+        Assert.Null(provider.VerifyWebhook(Webhook("00", "invalid-signature")));
+        var unsuccessful = provider.VerifyWebhook(Webhook("21", "valid-signature"));
+        Assert.NotNull(unsuccessful);
+        Assert.False(unsuccessful.IsSuccessful);
+        Assert.Equal("21", unsuccessful.ProviderCode);
     }
 
     private sealed class FakePayOsPaymentProvider : IPayOsPaymentProvider
@@ -77,9 +108,23 @@ public sealed class PayOsPaymentProviderTests
                 ? new(_result.OrderCode, 500_000, _result.PaymentLinkId, _result.Status, "REF-123")
                 : null);
 
-        public bool VerifyWebhook(PayOsWebhookNotification notification) =>
-            notification.OrderCode == _result.OrderCode &&
-            notification.PaymentLinkId == _result.PaymentLinkId &&
-            notification.Signature == "test-signature";
+        public PayOsVerifiedWebhook? VerifyWebhook(PayOsWebhookEnvelope envelope)
+        {
+            using var json = JsonDocument.Parse(envelope.RawJson);
+            var root = json.RootElement;
+            if (root.GetProperty("signature").GetString() != "valid-signature") return null;
+            var data = root.GetProperty("data");
+            var code = data.GetProperty("code").GetString()!;
+            return new(
+                data.GetProperty("orderCode").GetInt64(),
+                data.GetProperty("amount").GetInt64(),
+                data.GetProperty("paymentLinkId").GetString()!,
+                data.GetProperty("reference").GetString(),
+                code == "00",
+                code);
+        }
     }
+
+    private static PayOsWebhookEnvelope Webhook(string code, string signature) => new(
+        $$"""{"code":"00","desc":"Webhook","success":true,"data":{"orderCode":123,"amount":500000,"description":"PAY-123","accountNumber":"123456789","reference":"REF-123","transactionDateTime":"2026-11-09 08:00:00","currency":"VND","paymentLinkId":"link-123","code":"{{code}}","desc":"{{(code == "00" ? "success" : "failed")}}","counterAccountBankId":"970000","counterAccountBankName":"Synthetic Bank","counterAccountName":"Synthetic","counterAccountNumber":"000111222"},"signature":"{{signature}}"}""");
 }
