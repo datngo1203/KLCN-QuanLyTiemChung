@@ -13,11 +13,19 @@ on:
 
 jobs:
   render:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Graphviz for PlantUML routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y graphviz
+          dot -V
 
       - name: Download PlantUML
         shell: bash
@@ -27,6 +35,7 @@ jobs:
             https://github.com/plantuml/plantuml/releases/download/v1.2026.9/plantuml-1.2026.9.jar \
             -o plantuml.jar
           echo 'aa4a1d06f8911c4b842beff4828dd955be431692b631a312d04c0e9fab9581de  plantuml.jar' | sha256sum -c -
+          java -Djava.awt.headless=true -jar plantuml.jar -testdot
 
       - name: Render thesis UML PNG
         shell: bash
