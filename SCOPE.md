@@ -6,6 +6,30 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — Hình 2.9 FINAL visual PASS — run #58 — 09/11/2026
+
+**USER APPROVED / PRESENTATION LOCKED.** Hình 2.9 dưới đây là System Use Case overview cuối cùng cho báo cáo; không tự render/chọn lại một geometry khác nếu người dùng chưa mở lại quyết định.
+
+- Branch: `docs/thesis-r1-current-state`.
+- Canonical semantic source: `docs/thesis/uml/Hinh_2_9_System_Use_Case_Tong_Quan.puml`.
+- Deterministic geometry: `docs/thesis/uml/postprocess_system_usecase.py`, geometry theo draw.io người dùng đã chỉnh và duyệt.
+- PlantUML semantic source commit: `4f82f29e77c8962d54114824be4cb31f6a78e674`.
+- Geometry/postprocess commit: `79ae1fbf40a56fdce5732911bd90c4b9aa1ae9b9`.
+- Render workflow head used for approved image: `57add08061f912d66fb97d46a87b7f69f65c7647`.
+- GitHub Actions: **run #58**, run id `42557320571`, conclusion `success`.
+- Artifact: `thesis-uml-rendered`, artifact id `13647847662`.
+- Artifact ZIP digest: `sha256:4bc03f29b4e226922348a661e5379c971cadadb19fe1ca22820334f2d7efe12d`.
+- Approved PNG: `Hinh_2_9_System_Use_Case_Tong_Quan.png`, **1620 × 2380 px**.
+- Approved PNG SHA-256: `69c8ab2116cb4b97cb8f0959c903f4429d09df8b4818b3cd899cce879d48b066`.
+- Presentation semantic: **18 visible UC / 9 visible actors / 24 direct associations / 0 include / 0 extend / 0 generalization**.
+- Presentation omissions locked: UC02 Đăng nhập, UC03 Đổi mật khẩu, UC04 Đăng xuất; actor Người dùng/Nhân viên và actor generalization không hiển thị ở overview.
+- UC codes are not displayed in ellipse labels; aliases remain internal for traceability.
+- Remaining crossing previously reviewed by user is explicitly accepted; do not reopen geometry solely to remove it.
+- Raw PlantUML run #56 was visual FAIL due auto-layout/routing; the later `PlantUML routing root-cause / CI guard` checkpoint records the permanent prevention rule.
+
+**Scope stop:** 2.2.1 System Use Case overview is **DONE**. Next thesis work may move to 2.2.2 only after checking how the supervisor's instruction about authentication UCs should apply to specification tables/Sequence diagrams.
+
+
 ### THESIS-R1 — PlantUML routing root-cause / CI guard — 09/11/2026
 
 **Root cause confirmed from run #56 (job 128964578696):**
