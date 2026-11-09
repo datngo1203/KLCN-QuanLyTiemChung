@@ -104,7 +104,7 @@ test('embedded payment refreshes the same journey and switches to a receipt', as
   identity.getVaccinationJourney = async id => { calls.push(id); return facts }
   await render(Journeys, { account, page: 'vaccinations/42' })
   assert.match(host.textContent, /Chờ thanh toán/)
-  assert.equal(host.querySelectorAll('[name=method]').length, 4)
+  assert.equal(host.querySelectorAll('[name=method]').length, 5)
   facts.payment = { ...payment, paymentState: 'ThanhCong',
     payment: { id: 3, amount: '9007199254740993', method: 'TienMat', occurredAt: facts.createdAt } }
   await act(async () => host.querySelector('.payment-reload').click())

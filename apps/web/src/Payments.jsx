@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { identity } from './api/identity'
 import { consultationFeeLabel, money } from './registrationForm'
 import { paymentError, paymentMethodLabel, paymentOutcome, registrationCode } from './paymentView'
-import PaymentCheckout from './PaymentCheckout'
+import PaymentCheckout, { PayOsGateway } from './PaymentCheckout'
 import './Registrations.css'
 import './Payments.css'
 
@@ -79,6 +79,7 @@ function PaymentWorkspace({ go }) {
 
 export function PaymentDetail({ id, accessDenied, go, initialDetail = null, loadDetail = identity.getRegistrationPayment }) {
   const [state, setState] = useState({ loading: !initialDetail, detail: initialDetail, error: null })
+  const [payOsStatus, setPayOsStatus] = useState(null)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [chooseAgain, setChooseAgain] = useState(false)
@@ -93,6 +94,24 @@ export function PaymentDetail({ id, accessDenied, go, initialDetail = null, load
       const detail = await loadDetail(id)
       if (!active.current) return
       setState({ loading: false, detail, error: null })
+      if (detail.paymentState === 'ThanhCong') {
+        setPayOsStatus(null)
+      } else if (detail.payment?.method === 'PayOsQr') {
+        try {
+          const status = await identity.getPayOsPayment(id)
+          if (!active.current) return
+          setPayOsStatus(status)
+          if (status.state === 'Paid') {
+            const paidDetail = await loadDetail(id)
+            if (active.current) {
+              setState({ loading: false, detail: paidDetail, error: null })
+              setPayOsStatus(null)
+            }
+          }
+        } catch {
+          // Retain detail if status read fails
+        }
+      }
     } catch (error) {
       if (!active.current) return
       if ([401, 403].includes(error.status)) accessDenied(error)
@@ -113,7 +132,11 @@ export function PaymentDetail({ id, accessDenied, go, initialDetail = null, load
 
   const { loading, detail, error } = state
   const center = detail?.expectedChannel === 'TaiTrungTam'
-  const result = detail && (detail.payment || BigInt(detail.totalDue) === 0n || center && !chooseAgain)
+  const isPayOsInProgress = Boolean(
+    (detail?.payment?.method === 'PayOsQr' && detail?.paymentState === 'ChoXacNhan') ||
+    (payOsStatus && payOsStatus.state !== 'Paid')
+  )
+  const result = detail && !isPayOsInProgress && (detail.payment || BigInt(detail.totalDue) === 0n || center && !chooseAgain)
   useEffect(() => {
     if (result && detail !== initialDetail) resultHeading.current?.focus()
   }, [result, detail, initialDetail])
@@ -123,12 +146,123 @@ export function PaymentDetail({ id, accessDenied, go, initialDetail = null, load
     read()
   }
 
+  async function handlePayOsReload() {
+    if (inFlight.current || loading || sending) return
+    inFlight.current = true
+    setSending(true)
+    setMessage('')
+    try {
+      const nextDetail = await loadDetail(id)
+      if (!active.current) return
+      setState({ loading: false, detail: nextDetail, error: null })
+      if (nextDetail.paymentState === 'ThanhCong') {
+        setPayOsStatus(null)
+        return
+      }
+      const nextStatus = await identity.getPayOsPayment(id)
+      if (!active.current) return
+      setPayOsStatus(nextStatus)
+      if (nextStatus.state === 'Paid') {
+        const paidDetail = await loadDetail(id)
+        if (active.current) {
+          setState({ loading: false, detail: paidDetail, error: null })
+          setPayOsStatus(null)
+        }
+      }
+    } catch (failure) {
+      if (!active.current) return
+      if (failure.status === 401 || failure.status === 403) accessDenied(failure)
+      else setMessage('Chưa tải lại được kết quả. Vui lòng thử lại.')
+    } finally {
+      if (active.current) setSending(false)
+      inFlight.current = false
+    }
+  }
+
+  async function handlePayOsReconcile() {
+    if (inFlight.current || loading || sending) return
+    inFlight.current = true
+    setSending(true)
+    setMessage('')
+    try {
+      const nextStatus = await identity.reconcilePayOsPayment(id)
+      if (!active.current) return
+      setPayOsStatus(nextStatus)
+      if (nextStatus.state === 'Paid') {
+        const paidDetail = await loadDetail(id)
+        if (active.current) {
+          setState({ loading: false, detail: paidDetail, error: null })
+          setPayOsStatus(null)
+        }
+      }
+    } catch (failure) {
+      if (!active.current) return
+      if (failure.status === 403) accessDenied(failure)
+      else if (failure.status === 401) {
+        await read()
+        if (active.current) setMessage('Phiên thanh toán vừa hết hạn. Vui lòng đăng nhập lại.')
+      } else if (failure.status === 503) {
+        setMessage('Cổng thanh toán QR hiện chưa sẵn sàng đối chiếu. Vui lòng thử lại sau.')
+      } else if (failure.status === 409) {
+        await read()
+        if (active.current) setMessage(paymentError({ status: 409 }))
+      } else {
+        setMessage('Không thể đối chiếu trạng thái. Vui lòng kiểm tra kết nối và thử lại.')
+      }
+    } finally {
+      if (active.current) setSending(false)
+      inFlight.current = false
+    }
+  }
+
   async function submit(request) {
     if (inFlight.current || loading || error || writeState) return
     inFlight.current = true
     setSending(true)
     setMessage('')
     try {
+      if (request?.method === 'PayOsQr') {
+        const payerRequest = { payer: request.payer, termsAccepted: request.termsAccepted }
+        try {
+          const status = await identity.createPayOsPayment(id, payerRequest)
+          if (!active.current) return
+          setPayOsStatus(status)
+          if (status.state === 'Paid') await read()
+        } catch (failure) {
+          if (!active.current) return
+          // Unknown outcome handling per Section 4:
+          if (!failure.status || failure.status >= 500 || failure.status === 408) {
+            try {
+              const recovered = await identity.getPayOsPayment(id)
+              if (!active.current) return
+              setPayOsStatus(recovered)
+              if (recovered.state === 'Paid') await read()
+              return
+            } catch (recoverError) {
+              if (!active.current) return
+              if (recoverError.status === 404) {
+                setMessage('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.')
+              } else {
+                setMessage('Chưa xác định được kết quả tạo giao dịch. Vui lòng kiểm tra kết nối và thử lại.')
+              }
+              return
+            }
+          }
+          if (failure.status === 403) accessDenied(failure)
+          else if (failure.status === 401) {
+            await read()
+            if (active.current) setMessage('Phiên thanh toán vừa hết hạn. Kiểm tra thông tin rồi xác nhận lại giao dịch.')
+          } else if (failure.status === 409) {
+            await read()
+            if (active.current) setMessage(paymentError({ status: 409 }))
+          } else if (failure.status === 503) {
+            setMessage('Cổng thanh toán QR hiện chưa sẵn sàng. Giao dịch chưa được ghi nhận; vui lòng chọn phương thức khác hoặc thử lại sau.')
+          } else {
+            setMessage('Vui lòng kiểm tra thông tin và xác nhận giao dịch trước khi gửi lại.')
+          }
+        }
+        return
+      }
       if (request) await identity.recordOnlinePayment(id, request)
       else await identity.selectCenterPayment(id)
       if (active.current && !request) setChooseAgain(false)
@@ -173,6 +307,9 @@ export function PaymentDetail({ id, accessDenied, go, initialDetail = null, load
     </div>}
     {result ? <div className="payment-result-layout">
       <PaymentResult detail={detail} heading={resultHeading} onChoose={() => setChooseAgain(true)} disabled={loading || sending || blocked || !!error || !!writeState} />
+      <PaymentSummary detail={detail} />
+    </div> : isPayOsInProgress ? <div className="payment-checkout">
+      <PayOsGateway detail={detail} status={payOsStatus} onReload={handlePayOsReload} onReconcile={handlePayOsReconcile} loading={loading || sending} message={message} />
       <PaymentSummary detail={detail} />
     </div> : detail && <PaymentCheckout detail={detail} summary={<PaymentSummary detail={detail} />}
       disabled={loading || sending || !!error || !!writeState} sending={sending} message={message}

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Building2, CreditCard, QrCode, WalletCards } from 'lucide-react'
+import { Building2, CreditCard, Landmark, QrCode, RefreshCw, WalletCards } from 'lucide-react'
 import qrcode from 'qrcode-generator'
 import { identity } from './api/identity'
 import { cardNumberValid, paymentMethodLabel, registrationCode } from './paymentView'
 import { contactFields, money } from './registrationForm'
 
 const methods = [
-  ['ChuyenKhoanOnline', 'Chuyển khoản / QR', QrCode],
+  ['PayOsQr', paymentMethodLabel('PayOsQr'), QrCode],
+  ['ChuyenKhoanOnline', paymentMethodLabel('ChuyenKhoanOnline'), Landmark],
   ['TheQuocTe', paymentMethodLabel('TheQuocTe'), CreditCard],
   ['TheNoiDia', paymentMethodLabel('TheNoiDia'), WalletCards],
   ['TaiTrungTam', 'Thanh toán tại trung tâm', Building2],
@@ -103,7 +104,7 @@ function TransferGateway({ detail, onReady }) {
   }, [detail.registrationId, detail.totalDue, reload, onReady])
 
   return <fieldset className="payment-gateway">
-    <legend>Chuyển khoản / QR</legend>
+    <legend>{paymentMethodLabel('ChuyenKhoanOnline')}</legend>
     {state.loading && <p role="status">Đang tải hướng dẫn chuyển khoản…</p>}
     {state.error && <div className="registration-message error" role="alert">
       <p>Chưa tải được thông tin nhận chuyển khoản.</p>
@@ -132,6 +133,84 @@ function TransferGateway({ detail, onReady }) {
   </fieldset>
 }
 
+export function PayOsGateway({ detail, status, onReload, onReconcile, loading, message }) {
+  const heading = useRef(null)
+  useEffect(() => {
+    heading.current?.focus()
+  }, [status?.state])
+
+  let qrSrc = null
+  if (status?.qrCode) {
+    try {
+      const qr = qrcode(0, 'M')
+      qr.addData(status.qrCode)
+      qr.make()
+      qrSrc = qr.createDataURL(4)
+    } catch {
+      qrSrc = null
+    }
+  }
+
+  const isPending = status?.state === 'Pending'
+  const isUnknown = status?.state === 'OutcomeUnknown'
+  const isPreparing = !status || status.state === 'Preparing'
+  const exactAmount = status?.amount ?? detail.totalDue
+
+  return <section className="registration-panel payment-gateway-payos" aria-labelledby="payos-title">
+    <h3 id="payos-title" ref={heading} tabIndex={-1}>
+      {isPending ? 'Thanh toán qua QR ngân hàng' : isUnknown ? 'Trạng thái giao dịch QR ngân hàng' : 'Đang chuẩn bị yêu cầu thanh toán'}
+    </h3>
+
+    {isPreparing && <div className="registration-message" role="status">
+      <strong>Đang chuẩn bị yêu cầu thanh toán.</strong>
+      <p>Hệ thống đang khởi tạo hoặc kiểm tra giao dịch QR ngân hàng. Vui lòng chờ trong giây lát hoặc tải lại.</p>
+    </div>}
+
+    {isUnknown && <div className="registration-message warning" role="alert">
+      <strong>Chưa xác định được trạng thái tạo giao dịch.</strong>
+      <p>Hệ thống chưa nhận được phản hồi chắc chắn từ cổng thanh toán. Không thực hiện thanh toán lại lúc này. Hãy bấm &quot;Đối chiếu trạng thái&quot; để kiểm tra kết quả từ ngân hàng.</p>
+    </div>}
+
+    {isPending && <>
+      <div className="registration-message warning" role="status">
+        <strong>Đang chờ thanh toán / xác nhận từ ngân hàng.</strong>
+        <p>Quét mã QR bằng ứng dụng ngân hàng hoặc mở trang thanh toán payOS để hoàn tất giao dịch.</p>
+      </div>
+      <div className="payment-transfer">
+        {qrSrc && <img src={qrSrc} alt="Mã QR thanh toán ngân hàng" width="180" height="180" />}
+        <dl className="payment-transaction">
+          <div><dt>Số tiền</dt><dd>{money(exactAmount)}</dd></div>
+          <div><dt>Đơn vị</dt><dd>{status.currency || 'VND'}</dd></div>
+          <div><dt>Trạng thái</dt><dd>Đang chờ thanh toán</dd></div>
+        </dl>
+      </div>
+    </>}
+
+    {message && <p className="registration-message error" role="alert">{message}</p>}
+
+    <div className="payos-gateway-actions">
+      {isPending && status?.checkoutUrl && (
+        <a className="button primary payos-checkout-link" href={status.checkoutUrl} target="_blank" rel="noopener noreferrer">
+          Mở trang thanh toán payOS
+        </a>
+      )}
+      {isUnknown && (
+        <button className="button primary" type="button" disabled={loading} onClick={onReconcile}>
+          Đối chiếu trạng thái
+        </button>
+      )}
+      {isPending && status?.canReconcile && (
+        <button className="button outline" type="button" disabled={loading} onClick={onReconcile}>
+          Đối chiếu trạng thái
+        </button>
+      )}
+      <button className="button outline" type="button" disabled={loading} onClick={onReload}>
+        <RefreshCw aria-hidden="true" size={16} /> Tải lại kết quả
+      </button>
+    </div>
+  </section>
+}
+
 export default function PaymentCheckout({ detail, summary, disabled, sending, onPayment, onCenter, message }) {
   const [method, setMethod] = useState('')
   const [otpStep, setOtpStep] = useState(false)
@@ -140,6 +219,7 @@ export default function PaymentCheckout({ detail, summary, disabled, sending, on
   const atCenter = method === 'TaiTrungTam'
   const isDomestic = method === 'TheNoiDia'
   const isTransfer = method === 'ChuyenKhoanOnline'
+  const isPayOs = method === 'PayOsQr'
   const action = isDomestic && !otpStep ? 'Tiếp tục xác thực' : isTransfer ? 'Tôi đã chuyển khoản' : 'Thanh toán'
 
   function submit(event) {
@@ -150,6 +230,10 @@ export default function PaymentCheckout({ detail, summary, disabled, sending, on
     const value = name => fields.get(name)?.trim()
     const payer = Object.fromEntries(contactFields.map(([name]) => [name, value(name)]))
     const request = { payer, method, termsAccepted: fields.has('terms') }
+    if (isPayOs) {
+      onPayment(request)
+      return
+    }
     const problems = {}
     if (method === 'TheQuocTe') {
       const card = {
@@ -195,6 +279,11 @@ export default function PaymentCheckout({ detail, summary, disabled, sending, on
           <Icon aria-hidden="true" size={20} /><span>{label}</span>
         </label>)}
       </fieldset>
+      {isPayOs && <fieldset className="payment-gateway">
+        <legend>{paymentMethodLabel('PayOsQr')}</legend>
+        <p>Hệ thống sẽ tạo mã QR thanh toán ngân hàng tự động qua payOS với số tiền chính xác {money(detail.totalDue)}.</p>
+        <p>Sau khi bấm &quot;Thanh toán&quot;, bạn sẽ quét mã QR trên ứng dụng ngân hàng hoặc mở trang thanh toán payOS.</p>
+      </fieldset>}
       {method === 'TheQuocTe' && <CardGateway errors={errors} />}
       {isDomestic && <DomesticGateway otpStep={otpStep} setOtpStep={setOtpStep} />}
       {isTransfer && <TransferGateway detail={detail} onReady={setTransferReady} />}

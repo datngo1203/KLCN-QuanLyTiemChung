@@ -141,6 +141,9 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     getPaymentSettings: () => profiles('payment/settings'),
     recordOnlinePayment: (id, body) => writePayment(id, 'online', body),
     selectCenterPayment: id => writePayment(id, 'channel', { channel: 'TaiTrungTam' }),
+    createPayOsPayment: (id, body) => profiles(`registrations/${id}/payment/payos`, 'POST', body),
+    getPayOsPayment: id => profiles(`registrations/${id}/payment/payos`),
+    reconcilePayOsPayment: id => profiles(`registrations/${id}/payment/payos/reconcile`, 'POST'),
     paymentWriteState: id => paymentWrites.get(id)?.status,
     acknowledgePaymentRetry(id) {
       if (paymentWrites.get(id)?.status === 'unconfirmed') paymentWrites.delete(id)

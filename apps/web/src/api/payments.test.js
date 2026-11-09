@@ -211,3 +211,50 @@ test('financial writes do not refresh/replay on 401 and an old response cannot l
   assert.equal(client.paymentWriteState(7), undefined)
   assert.deepEqual(calls, Array(2).fill(['/api/v1/registrations/7/payment/online', 'POST']))
 })
+
+test('PayOS API client routes POST create, GET status and POST reconcile without sending amount', async () => {
+  const calls = []
+  const client = createIdentityClient('http://localhost', async (url, options) => {
+    const path = new URL(url).pathname
+    if (path.endsWith('/login')) return Response.json({ accessToken: 'payos-token', refreshToken: 'refresh' })
+    if (path.endsWith('/me')) return Response.json({ accountType: 'customer', accountId: 1 })
+    calls.push({ path, method: options.method, body: options.body ? JSON.parse(options.body) : undefined })
+    if (path.endsWith('/payos') && options.method === 'POST') {
+      return Response.json({ registrationId: 7, amount: 550000, currency: 'VND', state: 'Pending', checkoutUrl: 'https://pay.payos.vn/web/test', qrCode: '000201...', canReconcile: true })
+    }
+    if (path.endsWith('/payos') && options.method === 'GET') {
+      return Response.json({ registrationId: 7, amount: 550000, currency: 'VND', state: 'Pending', checkoutUrl: 'https://pay.payos.vn/web/test', qrCode: '000201...', canReconcile: true })
+    }
+    if (path.endsWith('/reconcile') && options.method === 'POST') {
+      return Response.json({ registrationId: 7, amount: 550000, currency: 'VND', state: 'Paid', canReconcile: false })
+    }
+    return Response.json({ code: 'resourceNotFound' }, { status: 404 })
+  })
+  await client.login('customer@example.invalid', 'synthetic')
+  const payer = { fullName: 'Khách hàng PayOS', phoneNumber: '0900000123' }
+  const created = await client.createPayOsPayment(7, { payer, termsAccepted: true })
+  assert.equal(created.state, 'Pending')
+  assert.equal(created.amount, 550000)
+  assert.equal(calls[0].path, '/api/v1/registrations/7/payment/payos')
+  assert.equal(calls[0].method, 'POST')
+  assert.deepEqual(calls[0].body, { payer, termsAccepted: true })
+  assert.equal('amount' in calls[0].body, false)
+  assert.equal('orderCode' in calls[0].body, false)
+
+  const status = await client.getPayOsPayment(7)
+  assert.equal(status.state, 'Pending')
+  assert.equal(calls[1].path, '/api/v1/registrations/7/payment/payos')
+  assert.equal(calls[1].method, 'GET')
+  assert.equal(calls[1].body, undefined)
+
+  const reconciled = await client.reconcilePayOsPayment(7)
+  assert.equal(reconciled.state, 'Paid')
+  assert.equal(calls[2].path, '/api/v1/registrations/7/payment/payos/reconcile')
+  assert.equal(calls[2].method, 'POST')
+  assert.equal(calls[2].body, undefined)
+})
+
+test('paymentMethodLabel returns user wording for PayOsQr and ChuyenKhoanOnline', () => {
+  assert.equal(paymentMethodLabel('PayOsQr'), 'QR ngân hàng')
+  assert.equal(paymentMethodLabel('ChuyenKhoanOnline'), 'Chuyển khoản thủ công')
+})
