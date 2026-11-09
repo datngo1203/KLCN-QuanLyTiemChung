@@ -1888,3 +1888,46 @@ Các nguồn detector/hướng dẫn chỉ là **diagnostic input**, không ph�
 
 **PARKED:** UC3–UC14 Sequence; final batch figure renumbering; semantic changes to Hình 2.9/14 UC.
 
+### THESIS-R1 — Sequence notation FINAL per HUIT/Rational Rose — 09/11/2026
+
+**SOURCE-GROUNDED CORRECTION / SUPERSEDES UC1 PILOT NOTATION.**
+
+Nguồn khóa: `Bai giang TH PTTK HT_14DHTH.pdf`, phần Sơ đồ tuần tự và ví dụ hiện thực hóa chức năng ATM.
+
+#### 1. Mức mô hình và mapping
+- Sequence Diagram mô tả tương tác theo thời gian giữa các đối tượng; ở giai đoạn phân tích dùng để mô tả luồng sự kiện của Use Case, ở giai đoạn thiết kế dùng để biểu diễn chi tiết giao tiếp giữa các đối tượng thực hiện System Use Case.
+- Sequence cho System UC phải có **strong mapping** với các lớp/đối tượng tham gia; không dùng participant chung chung nếu có lớp logic rõ hơn.
+- Vì GVHD yêu cầu đặt Sequence ngay sau bảng đặc tả, hình vẫn đặt tại 2.2.2 nhưng notation phải theo cách HUIT dùng cho **System Function realization**, không theo Business Sequence.
+
+#### 2. Hình dạng participant
+- **Actor**: hình người que.
+- **Boundary**: dùng stereotype/icon Boundary cho lớp/màn hình giao diện tương tác trực tiếp với Actor.
+- **Control**: dùng stereotype/icon Control cho đối tượng điều phối luồng Use Case khi cần.
+- **Domain/Data object**: dùng object/class lifeline tương ứng với lớp nghiệp vụ/dữ liệu; không tự biến mọi domain object thành database cylinder.
+- Business Worker / Business Entity stereotype icon thuộc ví dụ Business Sequence; không áp dụng máy móc cho System Sequence.
+- Lifeline nét đứt; execution/activation đặt dọc lifeline trong thời gian đối tượng đang xử lý.
+
+#### 3. Message naming
+- Call message phải đặt theo **operation/method style**, ưu tiên `dongTu(...)`, ví dụ `moQuanLyDanhMuc()`, `taiDanhSach(nhom, trangThai)`, `kiemTraQuyen(...)`, `capNhat(...)`.
+- Không dùng câu kể dài như `Mở chức năng quản lý danh mục` cho call message nếu đang vẽ System Sequence realization.
+- Tham số chỉ ghi khi giúp hiểu dữ liệu truyền; không cần nhồi toàn bộ DTO.
+- **Return Message** là kết quả trả về, có thể ghi `danhSach`, `ketQuaQuyen`, `loiNghiepVu`; return không bắt buộc mang dấu ngoặc vì không phải lời gọi operation.
+- **Self Message** chỉ dùng khi một operation trên cùng đối tượng gọi operation khác/đệ quy có ý nghĩa cần biểu diễn.
+
+#### 4. UC1 correction
+- Run #64 / source pilot UC1 được giữ như **superseded pilot**, chưa phải final notation.
+- UC1 phải redraw trước UC2.
+- Hướng participant cho UC1:
+  - Actor: `Quản trị viên`
+  - Boundary: giao diện quản lý danh mục trên ứng dụng Windows
+  - Control: điều khiển/quản lý danh mục
+  - Domain objects: ánh xạ vào các lớp danh mục thật liên quan; quyền hạn là domain/security object khi cần kiểm quyền.
+- Message phải chuyển sang operation-style có ngoặc.
+- Chỉ sau UC1 semantic + notation + A4 visual PASS mới nhân profile sang UC2–UC14.
+
+**ACTIVE:** redraw UC1 Sequence theo HUIT/Rational Rose notation.
+
+**NEXT:** UC2 chỉ sau khi UC1 corrected PASS.
+
+**Scope stop:** không tiếp tục từ run #64 như final; không dùng generic participant boxes cho mọi lifeline; không dùng câu kể làm call-message label.
+
