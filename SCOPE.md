@@ -56,6 +56,65 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 **Handoff stop:** user chưa chốt chọn 21-UC overall làm final; chat mới **không tự chuyển prototype v11 thành ACTIVE canonical**. Scope THESIS-R1 vẫn ACTIVE; task khởi động lại là System UC **presentation/visual audit**.
 
+### THESIS-R1 — System Use Case full-21 portrait layout contract v1 — LOCKED 09/11/2026
+
+**User decision:** chốt hướng trình bày thử nghiệm/full-model hiện tại theo **A4 dọc (portrait), actor-centric fan-out**, học cách tận dụng không gian từ hình tham khảo người dùng cung cấp nhưng **không sao chép semantic** của hình mẫu. Đây là **layout contract bắt buộc cho prototype tiếp theo**. Không quay lại grid/cột đối xứng cứng, orthogonal bus/mạch điện hoặc prototype v1–v11 cũ trừ khi user chủ động mở lại.
+
+#### 1. Geometry tổng thể
+- Trang mục tiêu: **A4 portrait** theo lề thesis hiện hành; tận dụng chiều cao để rải 21 ellipse.
+- Actor đặt quanh **perimeter/biên ngoài** theo vùng tương tác, không ép thành hai cột đối xứng.
+- 21 Use Case được rải thành khoảng **2–3 cột so le** trong system boundary; **không ép hàng/cột thẳng tuyệt đối** nếu làm dây chập hoặc dài.
+- Layout ưu tiên **độ gần actor và routing clarity** hơn tính đối xứng hình học.
+- UC chỉ có **1 actor trực tiếp** đặt gần actor đó.
+- UC có **2 actor trực tiếp** đặt tại vùng trung gian/corridor giữa hai actor liên quan.
+- Actor degree cao được dành nhiều không gian fan-out hơn actor degree 1–2.
+
+#### 2. Sector/corridor dự kiến
+- **Khách hàng:** vùng trái / giữa-trái; UC riêng như UC01, UC10, UC19, UC20 đặt gần phía Khách hàng.
+- **Khách hàng + Lễ tân:** UC09, UC11, UC12 nằm trong shared corridor; không ép Khách hàng và Lễ tân cùng một phía nếu làm sáu association chụm vào một mép.
+- **Lễ tân:** UC13 nằm gần Lễ tân hơn các Customer-only UC.
+- **Quản trị viên:** UC05, UC06, UC07, UC21 tạo sector admin riêng ở phía phải/trên-phải.
+- **Bác sĩ / Thu ngân / Điều dưỡng:** UC15 / UC16 / UC17–UC18 đặt gần actor tương ứng; UC16 là bridge **Khách hàng ↔ Thu ngân**, không nhét vào cluster Lễ tân.
+- **Nhân viên kho:** UC08 đặt riêng gần Nhân viên kho; không chen vào cụm Điều dưỡng/clinical chỉ để lấp khoảng trống.
+- **Reminder scheduler:** UC13/UC14 + Dịch vụ thư điện tử + Thời gian đặt ở vùng thấp phù hợp để dây ngắn, rõ.
+- **Actor generalization:** đi ở **gutter/mép ngoài**; direct actor–UC association đi **vào trong boundary**. Không để hai loại đường tranh cùng corridor.
+
+#### 3. Fan-out / connector contract — HARD GATE
+- **Không có association trùng/chập lên nhau trên một đoạn đáng kể.**
+- `overlapped association segments = 0`.
+- Các association từ cùng actor phải **tách sớm gần actor**, không dùng một đường chung rồi tách muộn như bus.
+- Nếu hai đường chạy gần nhau, phải có khoảng cách thị giác đủ để truy vết độc lập.
+- `connector-through-ellipse = 0`.
+- `connector-through-label/text = 0`.
+- `connector-through-title/safe-zone = 0`.
+- `ambiguous crossings = 0`.
+- Crossing đơn lẻ chỉ được chấp nhận khi xảy ra ở **vùng trắng**, góc cắt rõ, không làm nhầm endpoint; crossing count phải được ghi khi QA.
+- Association phải chạm rõ actor và ellipse; không để khoảng hở renderer làm người đọc tưởng disconnected.
+- Không dùng đường cong lớn hoặc vòng tránh dài chỉ để đạt crossing=0.
+- Không duplicate cùng một semantic actor trong cùng view để chữa routing.
+
+#### 4. Semantic invariants không được đổi để cứu layout
+- Giữ đúng **21 top-level System UC** theo reconciliation v4.
+- Giữ đúng **27 direct actor–UC associations**.
+- Giữ actor model/generalization đã khóa; presentation có thể chọn scope hiển thị hierarchy nhưng không được giả xóa semantic.
+- **0 `include`, 0 `extend`, 0 UC→UC generalization** trừ khi semantic được re-audit riêng và user chốt.
+- Không merge/xóa/đổi tên UC, đổi actor association hoặc invent UC cha chỉ vì hình khó vẽ.
+- Reading order/position không tạo dependency hoặc workflow relation.
+
+#### 5. Quy trình prototype tiếp theo
+1. Dựng **actor placement + 21 ellipse placement trước, chưa nối dây**.
+2. Audit mật độ, khoảng trắng, sector và corridor.
+3. Nối association theo actor degree cao trước: **Khách hàng → Lễ tân → Quản trị viên → Điều dưỡng / Dịch vụ thư điện tử → actor degree 1**.
+4. Sau mỗi nhóm, re-audit toàn hình; không fix cục bộ rồi bỏ qua regression ở cụm khác.
+5. Kiểm bản thu ở **kích thước in A4 portrait thực tế**, không chỉ zoom màn hình.
+6. Chỉ sau khi prototype human-approved mới chuyển sang PlantUML canonical/deterministic layout/CI/Word.
+
+#### 6. Status của quyết định
+- **LOCKED:** portrait + actor-centric fan-out + sector/corridor + no-overlap connector contract là hướng phải dùng ở bước tiếp theo.
+- **KHÔNG phải final visual PASS:** full-21 chỉ trở thành hình cuối khi đủ semantic + visual + A4 readability gate.
+- Summary + detail vẫn giữ như **fallback đã biết**, nhưng **không tự quay lại** trong session mới nếu user chưa yêu cầu hoặc full-21 portrait chưa được chứng minh FAIL bằng QA.
+- Prototype v1–v11 trước đây vẫn **STALE**; không dùng làm geometry baseline.
+
 ### DONE gần nhất
 - **REGIMEN-R1 #180 / PR #181** — Catalog hỗ trợ calendar interval theo mũi neo với `Days|Weeks|Months|Years`, giữ legacy day intervals; Windows A04 quản trị structured regimen; Customer Web hiển thị timeline + provenance tham khảo. Native A04 full-shell smoke PASS sau fix hiển thị selector; CI #387 PASS đủ backend/windows/web. Squash main: `04b932e8e4df6ec865ea90f19ad2ea731c1d77ac`.
 - **RF-05G #170 / PR #179** — tự động nhắc trước lịch hẹn 48/24 giờ và liên hệ sau lịch hẹn 3/7 ngày trên appointment hiện hành; DB idempotency + retry/revalidation + A09 history/wording người dùng. CI #382 PASS; native WPF keyboard smoke PASS ở HEAD trước wording-only patch. Squash main: `19f8218da0e6a505bf11ed3ad5daf8b087abe72b`.
