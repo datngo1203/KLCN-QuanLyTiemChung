@@ -22,13 +22,11 @@ function Find-Root {
 }
 
 function Run-Docker([string[]]$Arguments, [switch]$Capture) {
-    if ($Capture) {
-        $lines = @(& docker @Arguments 2>&1)
-        if ($LASTEXITCODE -ne 0) { throw 'Docker command thất bại. Kiểm tra Docker Desktop, infra/.env và port đang dùng.' }
-        return ($lines -join [Environment]::NewLine)
+    $lines = @(& docker @Arguments 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Docker command thất bại. Raw output đã được ẩn để bảo vệ cấu hình; kiểm tra Docker Desktop, infra/.env và port đang dùng.'
     }
-    & docker @Arguments
-    if ($LASTEXITCODE -ne 0) { throw 'Docker command thất bại. Kiểm tra Docker Desktop, infra/.env và port đang dùng.' }
+    if ($Capture) { return ($lines -join [Environment]::NewLine) }
 }
 
 function ComposeArgs([string[]]$Tail) {
@@ -68,6 +66,36 @@ function Try-StopDefaultDemo {
     if ((Port-InUse 14333) -or (Port-InUse 5080) -or (Port-InUse 5173)) {
         throw 'Vẫn còn port bị chiếm. Hãy tự đóng tiến trình/container ngoài launcher rồi chạy lại.'
     }
+}
+
+function Read-PlainPassword {
+    $secure = Read-Host 'Nhập mật khẩu Admin demo (12-128 ký tự, input ẩn)' -AsSecureString
+    $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+    try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+}
+
+function Seed-DemoAdmin {
+    $username = (Read-Host 'Username Admin demo [demo.admin]').Trim()
+    if (-not $username) { $username = 'demo.admin' }
+    $password = Read-PlainPassword
+    if ([string]::IsNullOrWhiteSpace($password)) { throw 'Mật khẩu Admin không được để trống.' }
+
+    $oldUser = $env:DevelopmentSeed__Username
+    $oldPassword = $env:DevelopmentSeed__Password
+    try {
+        $env:DevelopmentSeed__Username = $username
+        $env:DevelopmentSeed__Password = $password
+        Run-Docker (ComposeArgs @('run','--rm','-e','DevelopmentSeed__Username','-e','DevelopmentSeed__Password','api','--seed-admin'))
+    }
+    finally {
+        if ($null -eq $oldUser) { Remove-Item Env:DevelopmentSeed__Username -ErrorAction SilentlyContinue }
+        else { $env:DevelopmentSeed__Username = $oldUser }
+        if ($null -eq $oldPassword) { Remove-Item Env:DevelopmentSeed__Password -ErrorAction SilentlyContinue }
+        else { $env:DevelopmentSeed__Password = $oldPassword }
+        $password = $null
+    }
+    return $username
 }
 
 function Extract-Json([string]$Text) {
@@ -110,7 +138,7 @@ Set-Location $Root
 Write-Host '=== VAC FINAL DEMO BUILDER ===' -ForegroundColor Cyan
 Write-Host "Repository : $Root"
 Write-Host "Compose     : $ComposeProject"
-Write-Host 'Mục tiêu: DB mới độc lập -> curated seed -> audit -> mở app -> bạn smoke -> backup .bak.'
+Write-Host 'Mục tiêu: DB mới độc lập -> curated seed -> Admin demo -> audit -> mở app -> bạn smoke -> backup .bak.'
 Write-Host 'Script KHÔNG xóa/reset DB development cũ và KHÔNG in secret.'
 Write-Host ''
 
@@ -125,27 +153,32 @@ $head = (& git -C $Root rev-parse HEAD).Trim()
 Write-Host "Git HEAD: $head"
 
 Write-Host ''
-Write-Host '[1/6] Build + tạo SQL/API final mới...' -ForegroundColor Cyan
+Write-Host '[1/7] Build + tạo SQL/API final mới...' -ForegroundColor Cyan
 Run-Docker (ComposeArgs @('up','-d','--build','api'))
 
 Write-Host ''
-Write-Host '[2/6] Seed curated Catalog...' -ForegroundColor Cyan
+Write-Host '[2/7] Seed curated Catalog...' -ForegroundColor Cyan
 Run-Docker (ComposeArgs @('run','--rm','api','--seed-catalog'))
+
+Write-Host ''
+Write-Host '[3/7] Tạo Admin demo cho Windows...' -ForegroundColor Cyan
+$demoAdminUsername = Seed-DemoAdmin
+Write-Host "Admin demo đã tạo/giữ nguyên: $demoAdminUsername (password không được lưu/in)." -ForegroundColor Green
 
 if (-not $SkipInventory) {
     Write-Host ''
     if (Confirm-Yes 'Seed inventory demo cho Avaxim/Havax để có dữ liệu kho khi trình diễn?') {
-        Write-Host '[3/6] Seed inventory demo...'
+        Write-Host '[4/7] Seed inventory demo...'
         Run-Docker (ComposeArgs @('run','--rm','api','--seed-inventory'))
     } else {
-        Write-Host '[3/6] Bỏ qua inventory seed theo lựa chọn của bạn.'
+        Write-Host '[4/7] Bỏ qua inventory seed theo lựa chọn của bạn.'
     }
 } else {
-    Write-Host '[3/6] Bỏ qua inventory seed (-SkipInventory).'
+    Write-Host '[4/7] Bỏ qua inventory seed (-SkipInventory).'
 }
 
 Write-Host ''
-Write-Host '[4/6] Audit Catalog final (read-only)...' -ForegroundColor Cyan
+Write-Host '[5/7] Audit Catalog final (read-only)...' -ForegroundColor Cyan
 $auditRaw = Run-Docker (ComposeArgs @('run','--rm','api','--audit-catalog')) -Capture
 $auditJson = Extract-Json $auditRaw
 $audit = $auditJson | ConvertFrom-Json
@@ -161,12 +194,13 @@ if ([int]$audit.candidateCount -ne 0) {
 Write-Host 'Catalog audit sạch.' -ForegroundColor Green
 
 Write-Host ''
-Write-Host '[5/6] Mở Web + Windows để bạn smoke thủ công...' -ForegroundColor Cyan
+Write-Host '[6/7] Mở Web + Windows để bạn smoke thủ công...' -ForegroundColor Cyan
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$Root/scripts/devtools/VAC.ps1" -Mode start -ComposeProject $ComposeProject
 if ($LASTEXITCODE -ne 0) { throw 'VAC launcher không mở được final demo.' }
 
 Write-Host ''
 Write-Host 'CHECK THỦ CÔNG:' -ForegroundColor Yellow
+Write-Host "  - Windows: đăng nhập bằng Admin '$demoAdminUsername' và password bạn vừa nhập."
 Write-Host '  - Web Catalog mở được, không có Vắc xin A/B hoặc gói synthetic.'
 Write-Host '  - Windows Catalog mở được.'
 Write-Host '  - Thấy vaccine curated như Gardasil 9, Qdenga, Prevenar 13, Hexaxim.'
@@ -179,12 +213,12 @@ if (-not (Confirm-Yes 'Bạn đã kiểm Web + Windows và xác nhận PASS?')) 
 }
 
 if ($SkipBackup) {
-    Write-Host '[6/6] Bỏ qua backup (-SkipBackup).' -ForegroundColor Yellow
+    Write-Host '[7/7] Bỏ qua backup (-SkipBackup).' -ForegroundColor Yellow
     exit 0
 }
 
 Write-Host ''
-Write-Host '[6/6] Backup DB final + RESTORE VERIFYONLY...' -ForegroundColor Cyan
+Write-Host '[7/7] Backup DB final + RESTORE VERIFYONLY...' -ForegroundColor Cyan
 $bak = Backup-Database
 
 $manifest = @"
@@ -192,6 +226,8 @@ VAC KLCN FINAL DEMO
 GeneratedAt: $([DateTimeOffset]::Now.ToString('o'))
 GitHead: $head
 ComposeProject: $ComposeProject
+DemoAdminUsername: $demoAdminUsername
+DemoAdminPasswordStored: NO
 CatalogAudit: PASS (candidateCount=0)
 DatabaseBackup: dist/final-demo/Database/FinalDemo.bak
 SecretsIncluded: NO
