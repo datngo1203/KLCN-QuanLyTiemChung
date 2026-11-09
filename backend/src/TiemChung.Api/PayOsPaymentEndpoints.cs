@@ -1,6 +1,9 @@
 using System.Buffers.Binary;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PayOS.Exceptions;
@@ -13,6 +16,8 @@ namespace TiemChung.Api;
 
 public static class PayOsPaymentEndpoints
 {
+    private const int MaxWebhookBodyBytes = 65_536;
+
     private sealed record Reservation(int PaymentId, long OrderCode, decimal Amount, string ReturnUrl,
         string CancelUrl, IdentityActor Actor, PayOsPaymentStatusDto Status);
 
@@ -31,6 +36,42 @@ public static class PayOsPaymentEndpoints
             }
             catch (DbUpdateException) { throw new IdentityFailure(503, "dependencyUnavailable"); }
         });
+
+        group.MapPost("/payment/payos/webhook", async (HttpContext context, TiemChungDbContext db,
+            IPayOsPaymentProvider provider, CancellationToken ct) => {
+            context.Response.Headers.CacheControl = "no-store";
+            if (!MediaTypeHeaderValue.TryParse(context.Request.ContentType, out var contentType) ||
+                !string.Equals(contentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+                throw new IdentityFailure(400, "paymentWebhookInvalid");
+            if (!provider.IsReady) throw new IdentityFailure(503, "paymentProviderUnavailable");
+
+            var rawJson = await ReadWebhookBodyAsync(context.Request, ct);
+            if (rawJson is null) throw new IdentityFailure(400, "paymentWebhookInvalid");
+            var verified = await provider.VerifyWebhookAsync(new(rawJson), ct);
+            if (verified is null) throw new IdentityFailure(400, "paymentWebhookInvalid");
+            if (!verified.IsSuccessful) return Results.Ok(new { received = true });
+
+            var registrationId = await db.Payments.AsNoTracking()
+                .Where(p => p.PayOsOrderCode == verified.OrderCode)
+                .Select(p => (int?)p.MaDangKy)
+                .SingleOrDefaultAsync(ct);
+            if (registrationId is null) return Results.Ok(new { received = true });
+
+            db.ChangeTracker.Clear();
+            await using var tx = await IdentityTransactions.BeginAsync(db, ct);
+            var registration = await PaymentEndpoints.LockRegistration(db, registrationId.Value, ct);
+            var payment = await db.Payments.SingleOrDefaultAsync(p => p.MaDangKy == registration.MaDangKy, ct);
+            if (payment is null || payment.PhuongThuc != "PayOsQr" ||
+                payment.PayOsOrderCode != verified.OrderCode)
+                throw new IdentityFailure(409, "paymentDataConflict");
+            _ = await PaymentEndpoints.Summaries(db, [registration], ct);
+            if (ApplyVerifiedPaidEvidence(db, context, payment, verified, "payments.payosWebhookPaid", null,
+                "paymentProviderConflict"))
+                await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return Results.Ok(new { received = true });
+        }).WithName("ReceivePayOsWebhook").Accepts<JsonElement>("application/json")
+            .Produces(200).Produces(400).Produces(409).Produces(503);
 
         group.MapPost("/registrations/{id:int}/payment/payos", async (int id, PayOsPaymentRequest request,
             HttpContext context, IdentityAuthorization auth, TiemChungDbContext db,
@@ -113,14 +154,9 @@ public static class PayOsPaymentEndpoints
             db.ChangeTracker.Clear();
             await using var tx = await IdentityTransactions.BeginAsync(db, ct);
             var row = await PaymentEndpoints.LockOwnedRegistration(db, actor, id, ct);
-            var payment = await db.Payments.SingleOrDefaultAsync(p => p.MaDangKy == id, ct);
+            var payment = await db.Payments.SingleOrDefaultAsync(p => p.MaDangKy == id, ct)
+                ?? throw new IdentityFailure(409, "paymentProviderConflict");
             EnsureSameIntent(payment, snapshot);
-            if (payment!.PayOsLifecycleState == "Paid") {
-                var paid = Status(payment, payment.SoTien);
-                await tx.CommitAsync(ct);
-                return Results.Ok(paid);
-            }
-
             var status = remote.Status.ToUpperInvariant();
             if (status is "PENDING" or "PROCESSING") {
                 var changed = payment.PayOsLifecycleState == "CreateOutcomeUnknown" && payment.PayOsPaymentLinkId is null;
@@ -133,20 +169,72 @@ public static class PayOsPaymentEndpoints
                 return Results.Ok(Status(payment, payment.SoTien));
             }
 
-            if (status != "PAID" || !CounterPaymentRules.Text(remote.Reference, 100))
+            if (status != "PAID")
                 throw new IdentityFailure(409, "paymentProviderStateUnsupported");
 
-            payment.PayOsPaymentLinkId = remote.PaymentLinkId;
-            payment.PayOsReference = remote.Reference;
-            payment.PayOsLifecycleState = "Paid";
-            payment.TrangThai = "ThanhCong";
-            payment.MaNhanVien = null;
-            payment.ThoiDiem = DateTime.UtcNow;
-            PaymentEndpoints.Audit(db, context, actor, payment, "payments.payosReconciledPaid");
-            await db.SaveChangesAsync(ct);
+            _ = await PaymentEndpoints.Summaries(db, [row], ct);
+            if (ApplyVerifiedPaidEvidence(db, context, payment, new(remote.OrderCode, remote.Amount,
+                remote.PaymentLinkId, remote.Reference, true, null), "payments.payosReconciledPaid", actor,
+                "paymentProviderStateUnsupported"))
+                await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return Results.Ok(Status(payment, payment.SoTien));
         }).WithName("ReconcilePayOsPayment").Produces<PayOsPaymentStatusDto>();
+    }
+
+    private static async Task<string?> ReadWebhookBodyAsync(HttpRequest request, CancellationToken ct)
+    {
+        if (request.ContentLength is > MaxWebhookBodyBytes) return null;
+        using var buffer = new MemoryStream();
+        var chunk = new byte[8192];
+        while (true) {
+            var read = await request.Body.ReadAsync(chunk, ct);
+            if (read == 0) break;
+            if (buffer.Length + read > MaxWebhookBodyBytes) return null;
+            await buffer.WriteAsync(chunk.AsMemory(0, read), ct);
+        }
+
+        try {
+            return new UTF8Encoding(false, true).GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+        } catch (DecoderFallbackException) {
+            return null;
+        }
+    }
+
+    private static bool ApplyVerifiedPaidEvidence(TiemChungDbContext db, HttpContext context, ThanhToan payment,
+        PayOsVerifiedWebhook evidence, string auditAction, IdentityActor? actor, string invalidEvidenceCode)
+    {
+        if (evidence.OrderCode <= 0 || evidence.Amount <= 0 || payment.PhuongThuc != "PayOsQr" ||
+            payment.PayOsOrderCode != evidence.OrderCode ||
+            payment.SoTien != evidence.Amount ||
+            payment.PayOsPaymentLinkId is not null && payment.PayOsPaymentLinkId != evidence.PaymentLinkId)
+            throw new IdentityFailure(409, "paymentProviderConflict");
+        if (!CounterPaymentRules.Text(evidence.PaymentLinkId, 50) ||
+            !CounterPaymentRules.Text(evidence.Reference, 100))
+            throw new IdentityFailure(409, invalidEvidenceCode);
+
+        if (payment.PayOsLifecycleState == "Paid") {
+            if (payment.TrangThai != "ThanhCong" || payment.MaNhanVien is not null ||
+                payment.PayOsReference != evidence.Reference)
+                throw new IdentityFailure(409, "paymentProviderConflict");
+            return false;
+        }
+
+        if (payment.PayOsLifecycleState is not ("Creating" or "CreateOutcomeUnknown" or "Pending") ||
+            payment.TrangThai != "ChoXacNhan" || payment.MaNhanVien is not null)
+            throw new IdentityFailure(409, "paymentDataConflict");
+
+        payment.PayOsPaymentLinkId = evidence.PaymentLinkId;
+        payment.PayOsReference = evidence.Reference;
+        payment.PayOsLifecycleState = "Paid";
+        payment.TrangThai = "ThanhCong";
+        payment.MaNhanVien = null;
+        payment.ThoiDiem = DateTime.UtcNow;
+        var audit = IdentityTransactions.Audit(db, auditAction, context.TraceIdentifier,
+            actor?.Account.MaTaiKhoan, session: actor?.Session.Id);
+        audit.ResourceType = "Payment";
+        audit.ResourceId = payment.MaThanhToan.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return true;
     }
 
     private static async Task<Reservation> ReserveAsync(int id, PaymentPayer payer, HttpContext context,

@@ -543,6 +543,8 @@ public sealed partial class PaymentSqlTests
         Assert.Equal(new[] { "get", "post" }, payOs.EnumerateObject().Select(x => x.Name).Order());
         Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/registrations/{id}/payment/payos/reconcile")
             .EnumerateObject().Select(x => x.Name));
+        Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/payment/payos/webhook")
+            .EnumerateObject().Select(x => x.Name));
         Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.StartsWith("/api/v1/payments"));
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("RecordPaymentRequest");
@@ -872,6 +874,12 @@ public sealed partial class PaymentSqlTests
         private WebApplicationFactory<Program>? _factory;
         private readonly List<HttpClient> _clients = [];
         public TiemChungDbContext NewDb() => new(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(Db.Database.GetConnectionString()).Options);
+        public HttpClient AnonymousClient()
+        {
+            var client = (_factory ?? Base.Factory).CreateClient();
+            _clients.Add(client);
+            return client;
+        }
         public ThanhToan Payment(RegistrationDto registration) => new() {
             MaDangKy = registration.Id, MaNhanVien = Cashier.Employee!.MaNhanVien, SoTien = registration.Subtotal,
             PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = DateTime.UtcNow

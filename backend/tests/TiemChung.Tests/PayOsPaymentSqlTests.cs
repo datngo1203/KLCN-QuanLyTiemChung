@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -470,6 +472,320 @@ public sealed partial class PaymentSqlTests
         });
     }
 
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("malformed")]
+    [InlineData("invalid-signature")]
+    [InlineData("oversized")]
+    [InlineData("wrong-content-type")]
+    public async Task PayOsWebhookRejectsInvalidInputBeforePaymentMutation(string input)
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            if (input == "invalid-signature") {
+                using var create = await f.Customer.Client.PostAsJsonAsync(
+                    $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
+                Assert.Equal("Pending", (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            }
+            using var anonymous = f.AnonymousClient();
+            using var response = input switch {
+                "malformed" => await PostWebhookAsync(anonymous, "{"),
+                "invalid-signature" => await PostWebhookAsync(anonymous,
+                    """{"signature":"invalid-signature","data":{"accountNumber":"raw-sentinel"}}"""),
+                "oversized" => await PostWebhookAsync(anonymous,
+                    """{"signature":"valid-signature","data":" """ + new string('x', 65_540) + """ "}""", chunked: true),
+                "wrong-content-type" => await PostWebhookAsync(anonymous, WebhookBody("raw-sentinel"), contentType: "text/plain"),
+                _ => throw new ArgumentOutOfRangeException(nameof(input))
+            };
+            await Problem(response, 400, "paymentWebhookInvalid");
+            Assert.Equal(input == "malformed" || input == "invalid-signature" ? 1 : 0, provider.VerifyCalls);
+            using var db = f.NewDb();
+            if (input == "invalid-signature") {
+                var unchanged = await db.Payments.SingleAsync();
+                Assert.Equal("Pending", unchanged.PayOsLifecycleState);
+                Assert.Equal("ChoXacNhan", unchanged.TrangThai);
+            } else Assert.Empty(await db.Payments.ToArrayAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PayOsWebhookRequiresReadyProviderAndDoesNotMutateWhenUnavailable()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var create = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("Pending", (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
+            provider.WebhookResult = Success(payment, "provider-reference");
+            provider.IsReady = false;
+
+            using var anonymous = f.AnonymousClient();
+            await Problem(await PostWebhookAsync(anonymous, WebhookBody()), 503, "paymentProviderUnavailable");
+            var unchanged = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal("Pending", unchanged.PayOsLifecycleState);
+            Assert.Equal(0, provider.VerifyCalls);
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("Pending")]
+    [InlineData("Creating")]
+    [InlineData("CreateOutcomeUnknown")]
+    public async Task VerifiedPayOsWebhookCompletesAllowedLocalLifecycle(string lifecycle)
+    {
+        var provider = new FakePayOsProvider {
+            BlockCreate = lifecycle == "Creating",
+            CreateFailure = lifecycle == "CreateOutcomeUnknown" ? new TimeoutException("synthetic create timeout") : null
+        };
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            Task<HttpResponseMessage>? createTask = null;
+            if (lifecycle == "Creating") {
+                createTask = f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+                await provider.CreateEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            } else {
+                using var create = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+                Assert.Equal(lifecycle == "Pending" ? "Pending" : "OutcomeUnknown",
+                    (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            }
+
+            var pending = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal(lifecycle, pending.PayOsLifecycleState);
+            provider.WebhookResult = Success(pending, "provider-reference");
+            var createCallsBeforeWebhook = provider.CreateCalls;
+            var readCallsBeforeWebhook = provider.ReadCalls;
+            using var anonymous = f.AnonymousClient();
+            try {
+                var rawBody = WebhookBody("raw-payload-sentinel");
+                using var response = await PostWebhookAsync(anonymous, rawBody);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+                var responseText = await response.Content.ReadAsStringAsync();
+                Assert.Contains("received", responseText);
+                Assert.DoesNotContain("raw-payload-sentinel", responseText);
+                Assert.DoesNotContain("provider-link-id", responseText);
+                Assert.Equal(rawBody, provider.LastWebhookRawJson);
+                Assert.Equal(createCallsBeforeWebhook, provider.CreateCalls);
+                Assert.Equal(readCallsBeforeWebhook, provider.ReadCalls);
+            } finally {
+                provider.ReleaseCreate.TrySetResult();
+            }
+            if (createTask is not null) {
+                using var created = await createTask;
+                Assert.Equal("Paid", (await created.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            }
+
+            var paid = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal("Paid", paid.PayOsLifecycleState);
+            Assert.Equal("ThanhCong", paid.TrangThai);
+            Assert.Null(paid.MaNhanVien);
+            Assert.Equal(provider.WebhookResult!.PaymentLinkId, paid.PayOsPaymentLinkId);
+            Assert.Equal(provider.WebhookResult.Reference, paid.PayOsReference);
+            var audit = await f.Db.Set<SecurityAudit>().SingleAsync(a => a.Action == "payments.payosWebhookPaid");
+            Assert.Equal("Payment", audit.ResourceType);
+            Assert.Equal(paid.MaThanhToan.ToString(), audit.ResourceId);
+            Assert.Null(audit.ActorAccountId);
+            Assert.Null(audit.SessionId);
+            Assert.Equal("Success", audit.Outcome);
+            Assert.False(string.IsNullOrWhiteSpace(audit.TraceId));
+            Assert.DoesNotContain("raw-payload-sentinel", audit.ChangedFields ?? "");
+            Assert.DoesNotContain("raw-payload-sentinel", audit.TraceId);
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PayOsWebhookAcknowledgesUnknownAndUnsuccessfulEventsWithoutCreatingPayments()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            using var anonymous = f.AnonymousClient();
+            provider.WebhookResult = new(987_654_321, (long)registration.TotalDue, "sample-link",
+                "sample-reference", true, "00");
+            using var unknown = await PostWebhookAsync(anonymous, WebhookBody());
+            Assert.Equal(HttpStatusCode.OK, unknown.StatusCode);
+            Assert.Empty(await f.Db.Payments.ToArrayAsync());
+
+            using var create = await f.Customer.Client.PostAsJsonAsync(
+                $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
+            var pending = await f.Db.Payments.AsNoTracking().SingleAsync();
+            provider.WebhookResult = Success(pending, null) with { IsSuccessful = false, ProviderCode = "21" };
+            using var unsuccessful = await PostWebhookAsync(anonymous, WebhookBody());
+            Assert.Equal(HttpStatusCode.OK, unsuccessful.StatusCode);
+            var unchanged = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal("Pending", unchanged.PayOsLifecycleState);
+            Assert.Equal("ChoXacNhan", unchanged.TrangThai);
+            Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a => a.Action == "payments.payosWebhookPaid").ToArrayAsync());
+        });
+    }
+
+    [Theory, Trait("Category", "SqlIntegration")]
+    [InlineData("amount")]
+    [InlineData("link")]
+    [InlineData("reference")]
+    public async Task PayOsWebhookRejectsSuccessfulEvidenceMismatch(string mismatch)
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            using var create = await f.Customer.Client.PostAsJsonAsync(
+                $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
+            var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
+            var evidence = Success(payment, "provider-reference");
+            provider.WebhookResult = mismatch switch {
+                "amount" => evidence with { Amount = evidence.Amount + 1 },
+                "link" => evidence with { PaymentLinkId = "different-link" },
+                "reference" => evidence with { Reference = " " },
+                _ => throw new ArgumentOutOfRangeException(nameof(mismatch))
+            };
+
+            using var anonymous = f.AnonymousClient();
+            await Problem(await PostWebhookAsync(anonymous, WebhookBody()), 409, "paymentProviderConflict");
+            var unchanged = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal(payment.PayOsLifecycleState, unchanged.PayOsLifecycleState);
+            Assert.Equal(payment.PayOsPaymentLinkId, unchanged.PayOsPaymentLinkId);
+            Assert.Null(unchanged.PayOsReference);
+            Assert.Equal("ChoXacNhan", unchanged.TrangThai);
+            Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a => a.Action == "payments.payosWebhookPaid").ToArrayAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PayOsWebhookDoesNotMutateCorruptNonPayOsRow()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            using var create = await f.Customer.Client.PostAsJsonAsync(
+                $"/api/v1/registrations/{registration.Id}/payment/payos", PayOsRequest);
+            var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
+            provider.WebhookResult = Success(payment, "provider-reference");
+            await f.Db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE [ThanhToan] NOCHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+            try {
+                await f.Db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [ThanhToan] SET [PhuongThuc] = {"ChuyenKhoanOnline"} WHERE [MaThanhToan] = {payment.MaThanhToan}");
+                using var anonymous = f.AnonymousClient();
+                await Problem(await PostWebhookAsync(anonymous, WebhookBody()), 409, "paymentDataConflict");
+            } finally {
+                await f.Db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE [ThanhToan] SET [PhuongThuc] = {"PayOsQr"} WHERE [MaThanhToan] = {payment.MaThanhToan}");
+                await f.Db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE [ThanhToan] WITH CHECK CHECK CONSTRAINT [CK_ThanhToan_PayOsQr]");
+            }
+            Assert.Empty(await f.Db.Set<SecurityAudit>().Where(a => a.Action == "payments.payosWebhookPaid").ToArrayAsync());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PayOsWebhookPaidFactDrivesPaymentAppointmentAndRevenueExactlyOnce()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var create = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            Assert.Equal("Pending", (await create.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            var reception = await f.Actor("LeTan", "QuanLyLichHen");
+            var sourcePath = $"/api/v1/appointments/sources/{registration.Id}";
+            Assert.Equal("pending",
+                (await reception.Client.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcePath))!.Source.ReadinessCode);
+            var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7)).ToString("yyyy-MM-dd");
+            var reportPath = $"/api/v1/reports/monthly-revenue?from={today[..7]}&to={today}";
+            async Task<decimal> Revenue() =>
+                (await f.Base.Client.GetFromJsonAsync<MonthlyRevenueReportDto>(reportPath))!.TotalRevenue;
+            Assert.Equal(0, await Revenue());
+            var appointmentRequest = new CreateAppointmentRequest(registration.Id,
+                registration.Items[0].Kind, registration.Items[0].Id,
+                DateTimeOffset.UtcNow.AddDays(2).ToString("O"));
+            await Problem(await reception.Client.PostAsJsonAsync("/api/v1/appointments", appointmentRequest),
+                409, "appointmentPaymentRequired");
+
+            var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
+            using var anonymous = f.AnonymousClient();
+            using (var unsuccessful = await PostWebhookAsync(anonymous, WebhookBody()))
+                Assert.Equal(HttpStatusCode.OK, unsuccessful.StatusCode);
+            provider.WebhookResult = Success(payment, "provider-reference") with {
+                Amount = (long)payment.SoTien + 1
+            };
+            await Problem(await PostWebhookAsync(anonymous, WebhookBody()), 409, "paymentProviderConflict");
+            Assert.Equal(0, await Revenue());
+            Assert.Equal("pending",
+                (await reception.Client.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcePath))!.Source.ReadinessCode);
+
+            provider.WebhookResult = Success(payment, "provider-reference");
+            using var webhook = await PostWebhookAsync(anonymous, WebhookBody());
+            Assert.Equal(HttpStatusCode.OK, webhook.StatusCode);
+
+            var receipt = await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(registration.Id));
+            Assert.Equal("ThanhCong", receipt!.PaymentState);
+            Assert.Equal(registration.TotalDue, receipt.PaidAmount);
+            Assert.Equal(0, receipt.RemainingAmount);
+            Assert.Equal("paid",
+                (await reception.Client.GetFromJsonAsync<AppointmentSourceDetailDto>(sourcePath))!.Source.ReadinessCode);
+            using var appointment = await reception.Client.PostAsJsonAsync("/api/v1/appointments", appointmentRequest);
+            Assert.Equal(HttpStatusCode.Created, appointment.StatusCode);
+            Assert.Equal(registration.TotalDue, await Revenue());
+            var paid = await f.Db.Payments.AsNoTracking().SingleAsync();
+            var occurredAt = paid.ThoiDiem;
+
+            var duplicateResponses = await Task.WhenAll(
+                PostWebhookAsync(anonymous, WebhookBody()), PostWebhookAsync(anonymous, WebhookBody()));
+            foreach (var duplicate in duplicateResponses) {
+                using (duplicate) Assert.Equal(HttpStatusCode.OK, duplicate.StatusCode);
+            }
+            var afterDuplicate = await f.Db.Payments.AsNoTracking().SingleAsync();
+            Assert.Equal(occurredAt, afterDuplicate.ThoiDiem);
+            Assert.Equal(registration.TotalDue, await Revenue());
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.payosWebhookPaid"));
+
+            provider.WebhookResult = provider.WebhookResult with { Reference = "conflicting-reference" };
+            await Problem(await PostWebhookAsync(anonymous, WebhookBody()), 409, "paymentProviderConflict");
+            Assert.Equal(occurredAt, (await f.Db.Payments.AsNoTracking().SingleAsync()).ThoiDiem);
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "payments.payosWebhookPaid"));
+
+            provider.WebhookResult = provider.WebhookResult with { IsSuccessful = false, ProviderCode = "21" };
+            using var staleUnsuccessful = await PostWebhookAsync(anonymous, WebhookBody());
+            Assert.Equal(HttpStatusCode.OK, staleUnsuccessful.StatusCode);
+            Assert.Equal("Paid", (await f.Db.Payments.AsNoTracking().SingleAsync()).PayOsLifecycleState);
+            Assert.Equal(registration.TotalDue, await Revenue());
+        });
+    }
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task PayOsWebhookSerializesWithReconcileWithoutDoublePaidAudit()
+    {
+        var provider = new FakePayOsProvider();
+        await SqlFixtureLifecycle.RunAsync(() => Fixture.Create(payOsProvider: provider), async f => {
+            var registration = await f.Register("single");
+            var path = $"/api/v1/registrations/{registration.Id}/payment/payos";
+            using var create = await f.Customer.Client.PostAsJsonAsync(path, PayOsRequest);
+            var payment = await f.Db.Payments.AsNoTracking().SingleAsync();
+            provider.RemoteStatus = "PAID";
+            provider.RemoteReference = "provider-reference";
+            provider.BlockRead = true;
+            var reconcileTask = f.Customer.Client.PostAsync(path + "/reconcile", content: null);
+            await provider.ReadEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            provider.WebhookResult = Success(payment, "provider-reference");
+            using var anonymous = f.AnonymousClient();
+            try {
+                using var webhook = await PostWebhookAsync(anonymous, WebhookBody());
+                Assert.Equal(HttpStatusCode.OK, webhook.StatusCode);
+            } finally {
+                provider.ReleaseRead.TrySetResult();
+            }
+            using var reconcile = await reconcileTask;
+            Assert.Equal(HttpStatusCode.OK, reconcile.StatusCode);
+            Assert.Equal("Paid", (await reconcile.Content.ReadFromJsonAsync<PayOsPaymentStatusDto>())!.State);
+            Assert.Equal("Paid", (await f.Db.Payments.AsNoTracking().SingleAsync()).PayOsLifecycleState);
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a =>
+                a.Action == "payments.payosWebhookPaid" || a.Action == "payments.payosReconciledPaid"));
+        });
+    }
+
     private static readonly PayOsPaymentRequest PayOsRequest = new(
         new("[DEMO] PayOS payer", "0900000107", "payos@example.invalid",
             "Tỉnh thử nghiệm", "Phường thử nghiệm", "Địa chỉ thử nghiệm"), true);
@@ -510,10 +826,50 @@ public sealed partial class PaymentSqlTests
         provider.RemoteReference = "provider-reference";
     }
 
+    private static PayOsVerifiedWebhook Success(ThanhToan payment, string? reference) =>
+        new(payment.PayOsOrderCode!.Value, (long)payment.SoTien, "provider-link-id", reference, true, "00");
+
+    private static string WebhookBody(string sentinel = "synthetic-payload") =>
+        "{\"signature\":\"valid-signature\",\"data\":{\"accountNumber\":\"" + sentinel +
+        "\",\"counterAccountNumber\":\"000111222\"}}";
+
+    private static async Task<HttpResponseMessage> PostWebhookAsync(HttpClient client, string raw,
+        string contentType = "application/json", bool chunked = false)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/payment/payos/webhook") {
+            Content = chunked ? new UnknownLengthJsonContent(raw, contentType) :
+                new StringContent(raw, Encoding.UTF8, contentType)
+        };
+        if (chunked) request.Headers.TransferEncodingChunked = true;
+        return await client.SendAsync(request);
+    }
+
+    private sealed class UnknownLengthJsonContent : HttpContent
+    {
+        private readonly string _value;
+
+        public UnknownLengthJsonContent(string value, string contentType)
+        {
+            _value = value;
+            Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        }
+
+        protected override Task SerializeToStreamAsync(Stream stream, System.Net.TransportContext? context) =>
+            stream.WriteAsync(Encoding.UTF8.GetBytes(_value)).AsTask();
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+
+    }
+
     private sealed class FakePayOsProvider : IPayOsPaymentProvider
     {
         public bool IsReady { get; set; } = true;
         public bool BlockCreate { get; set; }
+        public bool BlockRead { get; set; }
         public Exception? CreateFailure { get; set; }
         public bool ReturnNotFound { get; set; }
         public string RemoteStatus { get; set; } = "PENDING";
@@ -522,12 +878,17 @@ public sealed partial class PaymentSqlTests
         public string RemotePaymentLinkId { get; set; } = "provider-link-id";
         public string? RemoteReference { get; set; } = "provider-reference";
         public string? CreateResponseMismatch { get; set; }
+        public PayOsVerifiedWebhook? WebhookResult { get; set; }
         public Exception? ReadFailure { get; set; }
         public int CreateCalls { get; private set; }
         public int ReadCalls { get; private set; }
+        public int VerifyCalls { get; private set; }
+        public string? LastWebhookRawJson { get; private set; }
         public PayOsCreatePaymentRequest? LastRequest { get; private set; }
         public TaskCompletionSource CreateEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource ReleaseCreate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource ReadEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource ReleaseRead { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public async Task<PayOsCreatePaymentResult> CreateAsync(PayOsCreatePaymentRequest request,
             CancellationToken cancellationToken)
@@ -553,19 +914,35 @@ public sealed partial class PaymentSqlTests
             };
         }
 
-        public Task<PayOsPaymentSnapshot?> ReadAsync(long orderCode, CancellationToken cancellationToken)
+        public async Task<PayOsPaymentSnapshot?> ReadAsync(long orderCode, CancellationToken cancellationToken)
         {
             ReadCalls++;
+            ReadEntered.TrySetResult();
+            if (BlockRead) await ReleaseRead.Task.WaitAsync(cancellationToken);
             if (ReadFailure is not null) throw ReadFailure;
             if (ReturnNotFound || LastRequest?.OrderCode != orderCode)
-                return Task.FromResult<PayOsPaymentSnapshot?>(null);
-            return Task.FromResult<PayOsPaymentSnapshot?>(new(orderCode + RemoteOrderCodeOffset,
+                return null;
+            return new(orderCode + RemoteOrderCodeOffset,
                 LastRequest.Amount + RemoteAmountOffset, RemotePaymentLinkId, RemoteStatus,
-                RemoteStatus == "PAID" ? RemoteReference : null));
+                RemoteStatus == "PAID" ? RemoteReference : null);
         }
 
         public Task<PayOsVerifiedWebhook?> VerifyWebhookAsync(PayOsWebhookEnvelope envelope,
-            CancellationToken cancellationToken) => Task.FromResult<PayOsVerifiedWebhook?>(null);
+            CancellationToken cancellationToken)
+        {
+            VerifyCalls++;
+            LastWebhookRawJson = envelope.RawJson;
+            try {
+                using var json = JsonDocument.Parse(envelope.RawJson);
+                if (json.RootElement.ValueKind != JsonValueKind.Object ||
+                    !json.RootElement.TryGetProperty("signature", out var signature) ||
+                    signature.GetString() != "valid-signature")
+                    return Task.FromResult<PayOsVerifiedWebhook?>(null);
+                return Task.FromResult(WebhookResult);
+            } catch (JsonException) {
+                return Task.FromResult<PayOsVerifiedWebhook?>(null);
+            }
+        }
     }
 
     private static ThanhToan PayOsPayment(RegistrationDto registration, string lifecycle)

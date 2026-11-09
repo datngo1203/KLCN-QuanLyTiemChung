@@ -400,6 +400,13 @@ Migration `20261109011825_PAYR1PayOsPaymentPersistence` là additive; dữ liệ
 - Provider GET được phép tối đa một retry; create không retry. Thiếu cấu hình hoặc provider lỗi trả lỗi dependency/provider an toàn, không trả nội dung provider/credential. `409 paymentProviderConflict` hoặc `paymentProviderStateUnsupported` không cập nhật payment. Không có public webhook route ở P2A.
 - Không tạo migration mới: dùng persistence `ThanhToan` của P1. Tất cả mutation payment tiếp tục tuần tự hóa theo registration và ghi audit cùng transaction.
 
+### PAY-R1 P2B — Webhook xác minh và ghi nhận thanh toán
+
+- `POST /api/v1/payment/payos/webhook` là public provider callback, không yêu cầu Customer/Employee session. Chỉ nhận `application/json`, đọc raw envelope có giới hạn 65.536 byte và xác minh bằng provider adapter trước khi tra cứu/mutate payment; không log hoặc lưu payload/signature.
+- Body sai định dạng, quá giới hạn hoặc signature không xác minh được trả 400 `paymentWebhookInvalid`; provider chưa sẵn sàng trả 503 `paymentProviderUnavailable`. Các trường hợp này không tạo payment success. Webhook đã xác minh nhưng unsuccessful hoặc có `orderCode` không thuộc intent PayOS hiện hành được ACK 200, không downgrade/trộn payment.
+- Successful event chỉ hoàn tất intent được tìm theo persisted unique `PayOsOrderCode`, sau khi khớp exact amount, payment-link ID đã lưu (nếu có) và reference hợp lệ. `Creating`, `CreateOutcomeUnknown` và `Pending` có thể chuyển thành `Paid`; evidence trùng với payment đã `Paid` là idempotent ACK, còn evidence mâu thuẫn fail closed.
+- Webhook và reconcile dùng cùng registration lock và cùng quy tắc ghi `ThanhToan.TrangThai = ThanhCong`; chỉ trạng thái này làm căn cứ paid amount, S5 readiness và S7 revenue. Webhook không gọi provider GET/create; `returnUrl`/`cancelUrl` không có authority thanh toán. Mutation provider đầu tiên ghi audit system-driven, duplicate không ghi audit success lần nữa.
+
 ### Migration và ranh giới
 
 `20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.

@@ -142,6 +142,8 @@ public sealed class PayOsPaymentProvider : IPayOsPaymentProvider
             return null;
         } catch (WebhookException) {
             return null;
+        } catch (PayOSException) {
+            return null;
         }
     }
 
