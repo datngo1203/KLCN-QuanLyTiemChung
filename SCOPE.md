@@ -1710,3 +1710,94 @@ Các mẫu dưới đây **không bị cấm**, nhưng phải tránh dùng liên
 
 **Scope stop:** không tối ưu bằng cách làm giảm chất lượng chỉ để hạ AI-detector score.
 
+### THESIS-R1 — Academic writing profile v2: filtered synthesis for natural academic prose — 09/11/2026
+
+**USER APPROVED / APPLIES IMMEDIATELY TO ACTIVE WHOLE-DOCUMENT LANGUAGE REVIEW.**
+
+Profile v2 hợp nhất:
+- writing profile quality-first đã khóa trước đó;
+- rule **sentence-rhythm variation**;
+- Project source `Hướng dẫn giảm đạo văn và AI trong văn bảng học thuật.pdf`;
+- các dấu hiệu người dùng cung cấp từ công cụ phân tích câu/đoạn;
+- bộ cảnh báo phong cách bổ sung: excessive technical vocabulary, modifier overload, connector repetition, semantic repetition, rigid syntax, nominalization và repeated parallel constructions.
+
+Các nguồn detector/hướng dẫn chỉ là **diagnostic input**, không phải authority về tác giả. Chỉ giữ rule làm tăng độ rõ, tính chính xác và khả năng bảo vệ học thuật.
+
+#### 1. Technical vocabulary economy
+- Chỉ dùng thuật ngữ kỹ thuật khi cần cho **độ chính xác, traceability hoặc phân biệt khái niệm**.
+- Ưu tiên thuật ngữ Việt Nam canonical trong văn xuôi; tên code/API/English chỉ giữ khi thật sự cần đối chiếu implementation.
+- Không xếp chồng nhiều thuật ngữ kỹ thuật trong một câu nếu có thể tách thành claim nghiệp vụ và claim kỹ thuật riêng.
+- Không thay thuật ngữ chuẩn bằng từ đời thường chỉ để tạo lexical variation.
+
+#### 2. Modifier economy
+- Rà trạng từ/tính từ như `rất`, `đặc biệt`, `quan trọng`, `hiệu quả`, `toàn diện`, `rõ ràng`, `trực tiếp`, `đồng thời` khi chúng không thêm điều kiện, mức độ hoặc đối chiếu có căn cứ.
+- Giữ modifier khi nó có giá trị kỹ thuật hoặc logic; không xóa cơ học.
+
+#### 3. Connector discipline
+- Không dùng từ nối như đồ trang trí. Nếu quan hệ giữa hai câu đã rõ, có thể bỏ connector.
+- Tránh nhiều câu liên tiếp mở đầu bằng cùng nhóm `Vì vậy / Do đó / Ngoài ra / Bên cạnh đó / Tuy nhiên / Chẳng hạn`.
+- Chọn từ nối theo quan hệ thật: nguyên nhân, đối chiếu, ngoại lệ, tiếp nối hay ví dụ.
+- Tránh chuỗi mở ý quá trơn theo mẫu transition → explanation → summary lặp lại.
+
+#### 4. Semantic progression / no redundant restatement
+- Mỗi câu trong đoạn phải **thêm sự kiện, bằng chứng, điều kiện, hệ quả hoặc quyết định mới**.
+- Không lặp lại cùng một kết luận bằng từ khác chỉ để kéo dài đoạn.
+- Khi cần nhắc lại, phải cho thấy mục đích mới: traceability, chuyển tầng từ nguồn thực tế sang quyết định đề tài, hoặc nối sang implementation.
+
+#### 5. Sentence rhythm and syntax variation
+- Xen kẽ câu ngắn/trung bình/dài theo **chức năng diễn đạt**, không theo quota.
+- Không đặt threshold cứng cho số từ hay độ lệch chuẩn.
+- Câu ngắn dùng để chốt sự kiện/hành động; câu trung bình mô tả; câu dài dành cho quan hệ, điều kiện hoặc liệt kê thật sự cần.
+- Tách câu làm nhiều nhiệm vụ; gộp câu ngắn nếu chúng chỉ là một ý bị chẻ vụn.
+- Tránh nhiều câu liên tiếp có cùng form chủ ngữ → động từ → danh sách → kết luận.
+
+#### 6. Nominalization check
+- Khi hành động và tác nhân quan trọng, ưu tiên động từ cụ thể: `hệ thống kiểm tra`, `Nhân viên kho ghi nhận`, `Bác sĩ kết luận` thay cho chuỗi danh từ hóa như `việc thực hiện kiểm tra...`.
+- Giữ danh từ hóa khi đó là tên khái niệm nghiệp vụ/kỹ thuật chuẩn hoặc giúp câu chính xác hơn.
+- Rà các chuỗi `việc + động từ`, `sự + tính từ/động từ`, `quá trình + động từ` nếu câu trở nên nặng mà không thêm nghĩa.
+
+#### 7. Parallel-construction restraint
+- Các mẫu `không chỉ ... mà còn ...`, `cách A..., cách B..., cách C...`, `vừa ... vừa ...` không bị cấm nhưng không dùng lặp.
+- Nếu các vế có chức năng khác nhau, ưu tiên tách thành các câu có chủ thể/hành động riêng.
+- Tránh danh sách ba vế cân đối khi hai hoặc ba vế thực chất cần mức giải thích khác nhau.
+
+#### 8. Epistemic calibration / hedging
+- Không khẳng định tuyệt đối khi nguồn chỉ hỗ trợ một phạm vi cụ thể.
+- Dùng `có thể`, `trong phạm vi...`, `ở một số trường hợp`, `theo nguồn...` khi **thực sự phản ánh mức độ chắc chắn**.
+- Không thêm hedging cơ học chỉ để tạo “dấu vết con người”.
+- Claim implementation đã xác minh có thể viết dứt khoát; claim thực tế/y khoa phải bám đúng nguồn.
+
+#### 9. Researcher voice without fabrication
+- Không bịa phỏng vấn, quan sát thực địa, trải nghiệm cá nhân hoặc “tôi nhận thấy”.
+- Researcher voice của khóa luận thể hiện qua các câu như: `trong phạm vi đề tài`, `qua đối chiếu nguồn...`, `nhóm lựa chọn mô hình...`, `implementation hiện hành...`, cùng lý do thiết kế và giới hạn đã xác minh.
+- Phân biệt rõ: **nguồn công bố → suy luận/quyết định của đề tài → implementation evidence**.
+
+#### 10. Openings and conclusions
+- Tránh mở đoạn/chương bằng boilerplate quá chung như `Nghiên cứu này nhằm...` nếu heading hoặc câu sau đã nói rõ mục đích.
+- Kết đoạn ưu tiên **hệ quả cụ thể, quyết định thiết kế hoặc giới hạn**, không lặp lại toàn bộ nội dung vừa nêu.
+- Mở đầu/kết luận toàn chương phải phản ánh đúng nội dung thực tế, không dùng câu “tròn ý” nhưng rỗng thông tin.
+
+#### 11. Subject choice
+- Chọn chủ thể theo thông tin cần nhấn: actor khi cần trách nhiệm/hành động; đối tượng/hiện tượng khi cần mô tả trạng thái hoặc quan hệ.
+- Không đổi chủ thể máy móc chỉ để làm câu khác đi.
+
+#### 12. Concrete human/process detail
+- Với nghiệp vụ, ưu tiên actor thật + hành động + dữ liệu/đối tượng + điều kiện.
+- Có thể thêm tình huống cụ thể **chỉ khi đã có trong nguồn hoặc implementation**; không thêm anecdote giả.
+- Nhịp ưu tiên khi phù hợp: **sự việc → dữ liệu → xử lý hệ thống → lý do/hệ quả**.
+
+#### 13. Rewrite threshold
+- Chỉ `viết lại hoàn toàn` khi cấu trúc cũ khiến câu/đoạn nặng, lặp hoặc che mất logic.
+- Nếu câu factual/citation đã chính xác và tự nhiên, giữ nguyên hoặc micro-edit.
+- Mọi rewrite phải PASS: **meaning → citation → terminology → source/implementation truth → document consistency**.
+
+#### Rules explicitly rejected from external guides
+- Không cố tình tạo lỗi ngữ pháp/chính tả hoặc “imperfection” để làm văn bản giống người.
+- Không bịa trải nghiệm, khảo sát, phỏng vấn hoặc quan sát.
+- Không dùng câu ngắn/dài theo công thức số từ cố định.
+- Không coi mục tiêu “AI score gần 0%” là acceptance criterion.
+
+**ACTIVE application:** whole-document language-review đang chạy phải dùng profile v2 này từ vòng tiếp theo.
+
+**Scope stop:** profile v2 không cho phép đổi semantic, thêm dữ kiện không có nguồn hoặc làm suy giảm độ chính xác chỉ để thay đổi detector score.
+
