@@ -2206,3 +2206,32 @@ Source of truth:
 **Acceptance:** 1 hình; A4 landscape readable; no clipping; multiplicity/relations legible; implementation-truth PASS.
 
 **Scope stop:** chưa sửa Hình 3.2 trong slice này.
+
+
+### THESIS-R1 — Hình 3.1 Design Class Diagram FINAL landscape — 09/11/2026
+
+**SUPERVISOR DIRECTION IMPLEMENTED / FINAL.**
+
+- Hình 3.1 is a **single design class diagram** on a dedicated **A4 landscape** page.
+- Split candidates 3.1a/3.1b were superseded and removed.
+- Final source: `docs/thesis/uml/Hinh_3_1_So_Do_Lop_Muc_Thiet_Ke.puml`.
+- Final render: GitHub Actions **run #91**, run id `42609320874`, success.
+- Artifact id: `13669501970`.
+- PNG dimensions: **2057 × 544**.
+- PNG SHA-256: `33a11e7cff68195dc32b57da5c30198c1f6c075141a5fca54f4aff50bfc2ec5f`.
+- Layout is a fixed 3-row landscape graph to keep one overall model readable while preserving the core design relations.
+- Scope is deliberately design-level: key attributes/types + multiplicities + core relations; detailed join tables/indexes/check constraints remain for 3.1.2.
+- Final Word artifact: `CNTT_KLCN090_THESIS-R1_Hinh3_1_Landscape_Final.docx`.
+- Word SHA-256: `9141d648b327b7ea86bb05f0b5312e2672a4b658a0292feb7b04075562f82bdb`.
+- Render: **96 pages**.
+- Hình 3.1 is on logical page **66** as the only landscape page; 3.1.2 resumes portrait on logical page **67**.
+- Navigation after insertion: TOC / List of Figures / List of Tables synchronized; **140 page entries checked, 0 mismatch** after duplicate-heading correction.
+- Full-document regression: no clipping/overlap detected; earlier Sequence/System-UC work remains unchanged.
+
+**DONE:** 3.1.1 — Sơ đồ lớp mức thiết kế.
+
+**ACTIVE:** none.
+
+**NEXT:** 3.1.2 — Mô hình quan hệ, only after user confirms.
+
+**PARKED:** redesign of approved Hình 3.1 / Sequence / System UC semantics.
