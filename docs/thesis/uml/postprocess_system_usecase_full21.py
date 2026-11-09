@@ -9,11 +9,12 @@ PNG = ROOT / 'Hinh_System_Use_Case_21UC_Full_Portrait.png'
 W, H = 1900, 3000
 BOUNDARY = (250, 280, 1380, 2670)
 
-# Full-21 overview presentation intentionally omits the Employee general actor
-# and all 8 actor-generalization edges. The semantic hierarchy remains locked
-# in SCOPE.md and is shown/audited in detail views.
+# Full-21 overview shows the complete actor hierarchy.
+# UC aliases remain internal for source/audit traceability; the rendered ellipses
+# show only thesis-facing use-case names.
 EXPECTED_ACTORS = {
     'User': 'Người dùng',
+    'Employee': 'Nhân viên',
     'Customer': 'Khách hàng',
     'Admin': 'Quản trị viên',
     'Reception': 'Lễ tân',
@@ -47,6 +48,11 @@ EXPECTED_UCS = {
     'UC20': 'Tra cứu lịch sử tiêm chủng',
     'UC21': 'Báo cáo hoạt động',
 }
+EXPECTED_GENS = {
+    ('Customer','User'), ('Employee','User'),
+    ('Admin','Employee'), ('Reception','Employee'), ('Doctor','Employee'),
+    ('Cashier','Employee'), ('Nurse','Employee'), ('Warehouse','Employee'),
+}
 EXPECTED_ASSOC = {
     ('User','UC02'), ('User','UC03'), ('User','UC04'),
     ('Customer','UC01'), ('Customer','UC09'), ('Customer','UC10'),
@@ -69,9 +75,9 @@ UC_POS = {
 
     'UC01': (470, 650),  'UC05': (1160, 620),
     'UC10': (470, 850),  'UC06': (1160, 800),
-    'UC09': (820, 950),  'UC07': (1160, 980),
-    'UC11': (820, 1150), 'UC21': (1160, 1160),
-    'UC12': (820, 1400),
+    'UC09': (780, 930),  'UC07': (1160, 980),
+    'UC11': (780, 1150), 'UC21': (1210, 1110),
+    'UC12': (780, 1400),
 
     'UC19': (470, 1650), 'UC16': (820, 1700),
     'UC20': (350, 2050), 'UC13': (820, 1850),
@@ -82,6 +88,7 @@ UC_POS = {
 }
 ACTOR_POS = {
     'User': (820, 110),
+    'Employee': (1770, 110),
     'Customer': (105, 1100),
     'Admin': (1530, 820),
     'Reception': (1530, 1370),
@@ -119,7 +126,6 @@ def parse_source(text):
         plain = re.sub(r'^UC\d+\s+', '', plain).strip()
         ucs[alias] = plain.replace('/ ', '/').replace('  ', ' ')
 
-    # Overview must not accidentally regain actor generalization.
     gens = set()
     for a, b in re.findall(r'^\s*(\w+)\s+-[^\n]*\|>\s+(\w+)\s*$', text, re.M):
         if a in actors and b in actors:
@@ -164,9 +170,9 @@ def verify_semantics():
         raise SystemExit(
             f'association mismatch missing={EXPECTED_ASSOC-assoc} extra={assoc-EXPECTED_ASSOC}'
         )
-    if gens:
+    if gens != EXPECTED_GENS:
         raise SystemExit(
-            f'full-21 overview must omit actor generalization; found {gens}'
+            f'generalization mismatch missing={EXPECTED_GENS-gens} extra={gens-EXPECTED_GENS}'
         )
 
 
@@ -223,12 +229,10 @@ def draw_uc(draw, alias, font, bold):
     w, h = uc_size(alias)
     draw.ellipse((cx-w/2, cy-h/2, cx+w/2, cy+h/2), outline='black', width=3)
 
-    idbb = draw.textbbox((0,0), alias, font=bold)
+    # Do not render UC01..UC21 codes; aliases remain in PUML/source audit only.
     lines = wrap_text(draw, EXPECTED_UCS[alias], font, w-34)
-    total = 30 + len(lines)*29
-    y = cy - total/2 + 3
-    draw.text((cx-(idbb[2]-idbb[0])/2, y), alias, font=bold, fill='black')
-    y += 31
+    total = len(lines)*29
+    y = cy - total/2 + 2
     for line in lines:
         bb = draw.textbbox((0,0), line, font=font)
         draw.text((cx-(bb[2]-bb[0])/2, y), line, font=font, fill='black')
@@ -279,6 +283,41 @@ def draw_ortho(draw, points):
         draw.line((p1[0], p1[1], p2[0], p2[1]), fill='black', width=3)
 
 
+def triangle(draw, tip, previous, size=16):
+    tx, ty = tip
+    px0, py0 = previous
+    dx, dy = tx-px0, ty-py0
+    length = math.hypot(dx, dy) or 1.0
+    ux, uy = dx/length, dy/length
+    nx, ny = -uy, ux
+    bx, by = tx-ux*size*1.45, ty-uy*size*1.45
+    p1 = (bx+nx*size*0.75, by+ny*size*0.75)
+    p2 = (bx-nx*size*0.75, by-ny*size*0.75)
+    draw.polygon([tip,p1,p2], fill='white', outline='black')
+    draw.line([tip,p1,p2,tip], fill='black', width=2)
+
+
+def draw_generalizations(draw):
+    # Customer -> User must use the outside left/top gutter; a straight segment
+    # would pass through customer use cases.
+    draw_ortho(draw, [(80,1040),(45,1040),(45,78),(795,78),(795,104)])
+    triangle(draw, (795,104), (795,78))
+
+    # Employee -> User stays straight and entirely above the system boundary.
+    draw.line((1740,104, 845,104), fill='black', width=3)
+    triangle(draw, (845,104), (870,104))
+
+    # Staff roles specialize Employee. These straight fan-in lines stay outside
+    # the system boundary and leave actor–UC associations on the left side.
+    ex, ey = ACTOR_POS['Employee']
+    parent_tip = (1744,126)
+    for child in ['Admin','Reception','Cashier','Doctor','Nurse','Warehouse']:
+        cx, cy = ACTOR_POS[child]
+        start = (cx+24, cy-6)
+        draw.line((start[0],start[1],parent_tip[0],parent_tip[1]), fill='black', width=3)
+        triangle(draw, parent_tip, start)
+
+
 def main():
     verify_semantics()
 
@@ -292,6 +331,7 @@ def main():
     # Draw connectors first so UC/actor outlines remain visually dominant.
     for actor, uc in sorted(EXPECTED_ASSOC):
         draw_straight(draw, actor, uc)
+    draw_generalizations(draw)
 
     x1, y1, x2, y2 = BOUNDARY
     draw.rectangle((x1,y1,x2,y2), outline='black', width=3)
@@ -310,8 +350,8 @@ def main():
 
     img.save(PNG, dpi=(180,180))
     print(f'postprocessed {PNG.name}: {img.size}')
-    print('verified: 21 UC / 10 visible actors / 27 direct associations')
-    print('routing: 27 straight / 0 orthogonal / 0 visible actor generalizations')
+    print('verified: 21 UC / 11 visible actors / 27 direct associations / 8 actor generalizations')
+    print('routing: actor-UC straight-first; hierarchy uses straight fan-in plus one left/top orthogonal gutter')
 
 
 if __name__ == '__main__':
