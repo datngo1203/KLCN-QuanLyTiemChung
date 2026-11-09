@@ -81,7 +81,7 @@ UC_POS = {
 }
 
 ACTOR_POS = {
-    "User": (1400, 100),
+    "User": (1700, 100),
     "Customer": (160, 950),
     "Admin": (1500, 850),
     "Reception": (1500, 1500),
