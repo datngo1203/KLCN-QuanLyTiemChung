@@ -35,12 +35,12 @@ public sealed class DevelopmentCatalogSeedSqlTests
             }, vaccines.Select(x => x.Code));
             var prices = vaccines.ToDictionary(x => x.Code, x => x.Gia);
             Assert.Equal(685000, prices["VX-AVAXIM-80U"]);
-            Assert.Equal(1098000, prices["VX-HEXAXIM"]);
-            Assert.Equal(1290000, prices["VX-PREVENAR-13"]);
-            Assert.Equal(1788000, prices["VX-BEXSERO"]);
-            Assert.Equal(3890000, prices["VX-SHINGRIX"]);
-            Assert.Equal(2998000, prices["VX-GARDASIL-9"]);
-            Assert.Equal(1390000, prices["VX-QDENGA"]);
+            Assert.Equal(995000, prices["VX-HEXAXIM"]);
+            Assert.Equal(1190000, prices["VX-PREVENAR-13"]);
+            Assert.Equal(1820000, prices["VX-BEXSERO"]);
+            Assert.Equal(3680000, prices["VX-SHINGRIX"]);
+            Assert.Equal(2948000, prices["VX-GARDASIL-9"]);
+            Assert.Equal(1290000, prices["VX-QDENGA"]);
             Assert.All(vaccines, v => {
                 Assert.Equal("Active", v.TrangThai);
                 Assert.NotEmpty(v.DoiTuongSuDung!); Assert.NotEmpty(v.DuongDung!);
