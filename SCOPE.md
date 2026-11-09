@@ -6,6 +6,50 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — Terminology canonicalization + core-UC coverage reopen — 09/11/2026
+
+**IMPORTANT:** the immediately preceding `10 core UC` reset is now **CANDIDATE / REOPENED**, not final. Direct audit of the approved thesis proposal shows explicit required/scored capability groups for basic auth/authorization, catalog/vaccine management, promotion/benefit, statistics/reporting, appointment/reminder, customer Website search/selection/registration/payment/follow-up. Therefore the final System UC subset must preserve clear traceability to those proposal requirements; do not renumber/rewrite 2.2.2/3.2 from the 10-core candidate until coverage is reconciled.
+
+#### Canonical terminology for the whole thesis
+- Generic product term: **`vắc xin`**. Do not write `vacxin`, `vaccine` or `vắc-xin` in Vietnamese prose/captions, except inside an official source title/company name/URL or literal code/API identifier.
+- Generic organization term in running prose: **`trung tâm tiêm chủng`**. Preserve capitalization only in the thesis title, proper names, headings when stylistically required, or quoted source text.
+- Person concepts: **`khách hàng`** and **`người được tiêm`** are distinct. Do not use `bé` as the system-wide entity name. In UML/table labels use `Khách hàng`, `Người được tiêm` when they are named model roles/entities.
+- Profile term: **`hồ sơ khách hàng/người được tiêm`** in headings/model labels; in prose use grammatical variants such as `hồ sơ của khách hàng và người được tiêm`.
+- Service term: **`dịch vụ tiêm chủng`**. `Gói vắc xin` is a product/package type only, not a synonym for the whole service.
+- Catalog umbrella: **`danh mục tiêm chủng`** for the managed catalog area covering vaccine categories/types, vaccines, service/package data and reference regimen content where applicable.
+- Appointment entity: **`lịch hẹn`**. Use `lịch tiêm chủng` only for a general/official vaccination schedule concept; do not use `lịch tiêm` as the canonical system entity name.
+- Reminder term: **`nhắc lịch`**; canonical system action name when needed is **`Gửi nhắc lịch`**.
+- Clinical process: **`khám sàng lọc và chỉ định tiêm chủng`**; canonical system recording action is **`Ghi nhận khám sàng lọc và chỉ định`**.
+- Administered-dose term: **`mũi tiêm`**; use `tiêm chủng` for the broader process.
+- Post-vaccination term: **`theo dõi sau tiêm`**.
+- Promotion term: **`ưu đãi`** as the report/model umbrella. The proposal wording `khuyến mãi, ưu đãi` may be cited once in traceability, but headings/model names use `ưu đãi`.
+- Reporting term: **`báo cáo hoạt động`** for the capability/model name. Use `thống kê` only for specific metrics/aggregations inside that reporting capability.
+- Inventory term: **`quản lý lô và tồn kho vắc xin`**.
+
+#### Canonical platform/technology names
+- Customer platform: **`Website dành cho khách hàng`** (short form later: `Website`).
+- Staff platform: **`ứng dụng Windows dành cho nhân viên`** (short form later: `ứng dụng Windows`); do not alternate with `phần mềm Windows`.
+- Web framework: **`React`**, not `ReactJS` in prose.
+- Backend first full mention: **`ASP.NET Core Web API`**; later use `API` where unambiguous.
+- Database first full mention: **`Microsoft SQL Server`**; later use `SQL Server`.
+- `Web` remains only where it is part of an official technology name such as `ASP.NET Core Web API`; user-facing platform prose uses `Website`.
+
+#### Actor/case-writing rule
+- UML/diagram/table actor labels: `Khách hàng`, `Lễ tân`, `Bác sĩ`, `Thu ngân`, `Điều dưỡng`, `Nhân viên kho`, `Quản trị viên`, `Dịch vụ thư điện tử`, `Thời gian`.
+- Running prose: actor/common nouns are normally lowercase unless beginning a sentence or intentionally referring to an exact model label.
+- Headings/captions may use `Use Case`; running prose uses `use case` unless reproducing the faculty template wording.
+
+#### Proposal legacy wording → report canonical wording
+- `quản lý thông tin các bé` → `quản lý hồ sơ khách hàng/người được tiêm`.
+- `quản lý loại tiêm chủng; quản lý loại vacxin, vacxin` → `quản lý danh mục tiêm chủng` (with specific vaccine/category terms only where needed).
+- `đăng ký dịch vụ tiêm chủng vacxin, gói vacxin` → `đăng ký dịch vụ tiêm chủng`.
+- `quản lý lịch tiêm chủng, theo dõi và nhắc lịch tiêm` → use the precise report concepts `quản lý lịch hẹn`, `nhắc lịch`, and the chosen follow-up/history capability rather than one overloaded phrase.
+- `khuyến mãi, ưu đãi` → `ưu đãi`.
+- `thống kê, báo cáo` → `báo cáo hoạt động`.
+
+**Word-edit discipline:** safe lexical normalization may be applied immediately, but System UC names/numbering and 2.2.2/3.2 structure remain frozen until proposal-coverage reconciliation finishes.
+
+
 ### THESIS-R1 — System Use Case core-model reset: 10 core UC — 09/11/2026
 
 **USER DECISION / SEMANTIC RESET.** For the thesis model, only the core vaccination-management actor goals are modeled as top-level System Use Cases. This decision supersedes the earlier 21-top-level-UC semantic lock/reconciliation and the 18-UC Hình 2.9 final visual checkpoint.
