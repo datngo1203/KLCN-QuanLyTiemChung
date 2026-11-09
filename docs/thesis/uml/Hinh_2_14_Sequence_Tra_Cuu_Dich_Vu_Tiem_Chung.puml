@@ -1,0 +1,59 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "Catalog" as Catalog
+boundary "VaccineDetail / PackageDetail" as Detail
+participant "api/client" as Api
+
+Customer -> Catalog : moTraCuuDichVu()
+activate Catalog
+Catalog -> Api : taiDanhMucVaBoLoc()
+activate Api
+Api --> Catalog : danhMuc, phongBenh, congNghe
+deactivate Api
+Catalog --> Customer : hienThiDanhMuc()
+
+Customer -> Catalog : nhapDieuKienTraCuu(tuKhoa, boLoc)
+Catalog -> Api : traCuuDichVu(tuKhoa, boLoc)
+activate Api
+Api --> Catalog : danhSachPhuHop
+deactivate Api
+Catalog --> Customer : hienThiKetQua(danhSachPhuHop)
+
+Customer -> Catalog : chonDichVu(id, loai)
+alt Vắc xin
+  Catalog -> Detail : moChiTietVacXin(id)
+  activate Detail
+  Detail -> Api : taiChiTietVacXin(id)
+  activate Api
+  Api --> Detail : thongTinVacXin
+  deactivate Api
+  Detail --> Customer : hienThiChiTietVaTrangThai()
+else Gói vắc xin
+  Catalog -> Detail : moChiTietGoi(id)
+  activate Detail
+  Detail -> Api : taiChiTietGoi(id)
+  activate Api
+  Api --> Detail : thongTinGoi
+  deactivate Api
+  Detail --> Customer : hienThiChiTietVaTrangThai()
+end
+
+alt Dịch vụ đang cung cấp và Khách hàng muốn đăng ký
+  Customer -> Detail : chonDangKyDichVu()
+  Detail --> Customer : chuyenSangDangKy()
+else Chỉ tra cứu
+  Detail --> Customer : tiepTucXemThongTin()
+end
+
+deactivate Detail
+deactivate Catalog
+@enduml
