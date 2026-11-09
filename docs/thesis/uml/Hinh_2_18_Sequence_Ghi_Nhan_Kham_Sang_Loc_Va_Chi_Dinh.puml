@@ -1,0 +1,55 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Bác sĩ" as Doctor
+boundary "ScreeningView" as View
+control "ScreeningViewModel" as VM
+participant "ScreeningApiService" as Service
+
+Doctor -> View : moKhamSangLoc()
+activate View
+View -> VM : taiDanhSachLichCanKham(tuKhoa)
+activate VM
+VM -> Service : taiLichCanKham(tuKhoa)
+activate Service
+Service --> VM : danhSachLich
+deactivate Service
+VM --> View : capNhatDanhSach(danhSachLich)
+deactivate VM
+
+Doctor -> View : chonLichHen(id)
+View -> VM : taiChiTietSangLoc(id)
+activate VM
+VM -> Service : taiNguonVaVacXinDuocPhep(id)
+activate Service
+Service --> VM : chiTiet, vacXinDuocPhep
+deactivate Service
+VM --> View : hienThiChiTiet()
+deactivate VM
+
+Doctor -> View : nhapKetLuan(ketLuan, lyDo)
+alt Đủ điều kiện
+  Doctor -> View : chonVacXinChiDinh(danhSachVacXin)
+end
+View -> VM : luuKetQuaSangLoc(duLieu)
+activate VM
+alt Dữ liệu hoặc nguồn nghiệp vụ không hợp lệ
+  VM --> View : hienThiLoi(validation)
+else Hợp lệ
+  VM -> Service : ghiNhanSangLocVaChiDinh(duLieu)
+  activate Service
+  Service --> VM : ketQuaDaLuu
+  deactivate Service
+  VM --> View : hienThiKetQua(ketQuaDaLuu)
+end
+deactivate VM
+View --> Doctor : thongBaoKetQua()
+deactivate View
+@enduml
