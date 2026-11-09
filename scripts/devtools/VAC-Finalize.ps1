@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidatePattern('^[a-z0-9][a-z0-9_-]*$')]
     [string]$ComposeProject = ("vac-final-" + (Get-Date -Format 'yyyyMMdd-HHmmss')),
