@@ -1660,3 +1660,35 @@ Các mẫu dưới đây **không bị cấm**, nhưng phải tránh dùng liên
 
 **Scope stop:** không đổi semantic 14 UC, không redraw Hình 2.9, không mở Sequence Diagram 3.2 trong patch này.
 
+### THESIS-R1 — Word layout QA final after Hình 2.9 crop + UC table normalization — 09/11/2026
+
+**USER-REPORTED LAYOUT DEFECTS FIXED / QA PASS.**
+
+- **Hình 2.9**: nguyên nhân là embedded PNG có khoảng trắng lớn phía trên nội dung sơ đồ. Đã áp dụng **Word picture crop** để loại vùng trắng hiển thị mà **không thay embedded PNG bytes**.
+- Embedded Hình 2.9 SHA-256 vẫn giữ nguyên: `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`.
+- Semantic Hình 2.9 không đổi: **14 UC / 8 actor / 19 direct associations / 0 include / 0 extend / 0 UC generalization**.
+- **14 bảng System UC**: nguyên nhân định dạng là paragraph trong cell kế thừa style `Normal` có **JUSTIFY + first-line indent**. Đã override trực tiếp toàn bộ 14 bảng:
+  - nội dung cột phải = **LEFT**;
+  - cột nhãn = **CENTER**;
+  - first-line/hanging/left/right indent = **0**;
+  - tab stop = **0**;
+  - Before/After = **0**;
+  - line spacing = **Multiple 1.3**;
+  - Times New Roman 12 pt.
+- Không đổi semantic/nội dung 14 bảng trong patch layout này.
+- Render QA toàn tài liệu: **87/87 trang PASS**.
+- Pagination **không đổi**, vì vậy Mục lục / Danh mục hình / Danh mục bảng không cần renumber lại.
+- Artifact hiện hành: `CNTT_KLCN090_THESIS-R1_14UC_LayoutFix_Final.docx`
+  - SHA-256: `8a5ff148edbbd96e35ce3f137727bdbf753e40b2dbbc9d8640ab14f0fea9e435`
+  - 14/14 System UC table formatting audit: PASS
+  - Hình 2.9 embedded-image identity audit: PASS
+  - Visual QA: PASS
+
+**Language-review note:** sentence-rhythm variation đã được ghi trong writing profile. Không thực hiện bulk rewrite chỉ để thao túng AI-detector score; các vòng rewrite toàn văn phải giữ mục tiêu quality-first, source-grounded và semantic-safe.
+
+**ACTIVE:** none.
+
+**NEXT:** chỉ mở whole-document language-review hoặc Chương 3.2 khi người dùng xác nhận task cụ thể.
+
+**Scope stop:** không đổi semantic Hình 2.9/14 UC và không mở Sequence Diagram trong patch layout này.
+
