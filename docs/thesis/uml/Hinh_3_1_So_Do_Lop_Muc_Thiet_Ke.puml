@@ -1,278 +1,192 @@
 @startuml
-!pragma layout elk
-' THESIS-R1 - Hình 3.1 Sơ đồ lớp mức thiết kế - landscape single diagram
+' THESIS-R1 - Hình 3.1 Sơ đồ lớp mức thiết kế - single landscape
 ' HUIT Chương 7 + current Domain/EF evidence
-
 skinparam monochrome true
 skinparam shadowing false
 skinparam backgroundColor white
 skinparam defaultFontName "Times New Roman"
 skinparam defaultFontSize 14
 skinparam classAttributeIconSize 0
-skinparam packageStyle rectangle
 skinparam linetype ortho
-skinparam nodesep 35
-skinparam ranksep 55
+skinparam nodesep 28
+skinparam ranksep 45
 skinparam dpi 180
 left to right direction
 hide empty methods
 hide circle
 
-package "Hồ sơ" as P_HOSO {
-  class KhachHang <<entity>> {
-    +MaKhachHang : int
-    +HoTen : string
-    +SoDienThoai : string
-    +Email : string
-  }
-
-  class NguoiDuocTiem <<entity>> {
-    +MaNguoiDuocTiem : int
-    +MaHoSo : string
-    +MaKhachHang : int
-    +NgaySinh : DateOnly
-  }
-
-  class NhanVien <<entity>> {
-    +MaNhanVien : int
-    +HoTen : string
-    +ChucDanh : string
-    +TrangThai : string
-  }
+class KhachHang <<entity>> {
+  +MaKhachHang : int
+  +HoTen : string
+  +SoDienThoai : string
+}
+class NguoiDuocTiem <<entity>> {
+  +MaNguoiDuocTiem : int
+  +MaHoSo : string
+  +NgaySinh : DateOnly
+}
+class NhanVien <<entity>> {
+  +MaNhanVien : int
+  +HoTen : string
+  +ChucDanh : string
+}
+class KhuyenMai <<entity>> {
+  +MaKhuyenMai : int
+  +TenKhuyenMai : string
+  +MucUuDai : decimal
 }
 
-package "Đăng ký và lịch hẹn" as P_DANGKY {
-  class KhuyenMai <<entity>> {
-    +MaKhuyenMai : int
-    +TenKhuyenMai : string
-    +MucUuDai : decimal
-    +IsEnabled : bool
-  }
-
-  class DangKyDichVu <<entity>> {
-    +MaDangKy : int
-    +MaKhachHang : int
-    +MaNguoiDuocTiem : int
-    +MaKhuyenMai : int?
-    +TrangThai : string
-  }
-
-  class ChiTietVacXinLe <<entity>> {
-    +MaChiTietVacXin : int
-    +MaDangKy : int
-    +MaVacXin : int
-    +SoLuong : int
-  }
-
-  class ChiTietGoiVacXin <<entity>> {
-    +MaChiTietGoi : int
-    +MaDangKy : int
-    +MaGoi : int
-    +SoLuongGoi : int
-  }
-
-  class ThanhToan <<entity>> {
-    +MaThanhToan : int
-    +MaDangKy : int
-    +SoTien : decimal
-    +TrangThai : string
-  }
-
-  class LichHenTiem <<entity>> {
-    +MaLichHen : int
-    +MaDangKy : int?
-    +MaNguoiDuocTiem : int
-    +ThoiGianHen : DateTime
-    +TrangThai : string
-  }
-
-  class NhacLich <<entity>> {
-    +MaNhacLich : int
-    +MaLichHen : int
-    +ScheduledAt : DateTime?
-    +TrangThai : string
-  }
+class DangKyDichVu <<entity>> {
+  +MaDangKy : int
+  +MaKhachHang : int
+  +MaNguoiDuocTiem : int
+  +TrangThai : string
+}
+class ChiTietVacXinLe <<entity>> {
+  +MaChiTietVacXin : int
+  +MaVacXin : int
+  +SoLuong : int
+}
+class ChiTietGoiVacXin <<entity>> {
+  +MaChiTietGoi : int
+  +MaGoi : int
+  +SoLuongGoi : int
+}
+class ThanhToan <<entity>> {
+  +MaThanhToan : int
+  +SoTien : decimal
+  +TrangThai : string
+}
+class LichHenTiem <<entity>> {
+  +MaLichHen : int
+  +ThoiGianHen : DateTime
+  +TrangThai : string
+}
+class NhacLich <<entity>> {
+  +MaNhacLich : int
+  +ScheduledAt : DateTime?
+  +TrangThai : string
 }
 
-package "Khám, tiêm và theo dõi" as P_LAMSANG {
-  class PhieuKhamSangLoc <<entity>> {
-    +MaPhieuKham : int
-    +MaLichHen : int?
-    +MaDangKy : int
-    +MaNhanVien : int
-    +KetLuan : string
-  }
-
-  class ChiDinhTiem <<entity>> {
-    +MaChiDinh : int
-    +MaPhieuKham : int
-    +MaVacXin : int
-    +KetQuaChiDinh : string
-  }
-
-  class MuiTiem <<entity>> {
-    +MaMuiTiem : int
-    +MaChiDinh : int?
-    +MaNguoiDuocTiem : int
-    +SoLo : string
-    +ThoiDiemTiem : DateTime
-  }
-
-  class TheoDoiSauTiem <<entity>> {
-    +MaTheoDoi : int
-    +MaMuiTiem : int
-    +TinhTrang : string
-    +MucDoPhanUng : string
-  }
+class PhieuKhamSangLoc <<entity>> {
+  +MaPhieuKham : int
+  +KetLuan : string
+}
+class ChiDinhTiem <<entity>> {
+  +MaChiDinh : int
+  +KetQuaChiDinh : string
+}
+class MuiTiem <<entity>> {
+  +MaMuiTiem : int
+  +SoLo : string
+  +ThoiDiemTiem : DateTime
+}
+class TheoDoiSauTiem <<entity>> {
+  +MaTheoDoi : int
+  +TinhTrang : string
+  +MucDoPhanUng : string
 }
 
-package "Danh mục và kho" as P_DANHMUC {
-  class VacXin <<entity>> {
-    +MaVacXin : int
-    +Code : string
-    +TenVacXin : string
-    +Gia : decimal
-    +TrangThai : string
-  }
-
-  class Benh <<entity>> {
-    +MaBenh : int
-    +Code : string
-    +TenBenh : string
-  }
-
-  class CongNgheVacXin <<entity>> {
-    +MaCongNghe : int
-    +Code : string
-    +TenCongNghe : string
-  }
-
-  class VacXin_Benh <<association>> {
-    +MaVacXin : int
-    +MaBenh : int
-  }
-
-  class VacXin_CongNghe <<association>> {
-    +MaVacXin : int
-    +MaCongNghe : int
-  }
-
-  class GoiVacXin <<entity>> {
-    +MaGoi : int
-    +Code : string
-    +TenGoi : string
-    +GiaGoi : decimal
-  }
-
-  class GoiVacXin_VacXin <<association>> {
-    +MaGoi : int
-    +MaVacXin : int
-    +SoLuong : int
-  }
-
-  class VaccineRegimen <<entity>> {
-    +Id : int
-    +VaccineId : int
-    +Name : string
-  }
-
-  class VaccineRegimenDose <<entity>> {
-    +Id : int
-    +RegimenId : int
-    +DoseOrder : int
-    +TimingLabel : string
-  }
-
-  class LoVacXin <<entity>> {
-    +SoLo : string
-    +MaVacXin : int
-    +HanSuDung : DateOnly
-    +SoLuongTon : int
-    +TrangThai : string
-  }
-
-  class BienDongKho <<entity>> {
-    +MaBienDong : int
-    +SoLo : string
-    +MaNhanVien : int
-    +LoaiBienDong : string
-    +SoLuong : int
-  }
-
-  class InventoryReceipt <<entity>> {
-    +SoLo : string
-    +SupplierName : string
-    +DocumentNumber : string
-    +StorageLocation : string
-  }
+class VacXin <<entity>> {
+  +MaVacXin : int
+  +Code : string
+  +TenVacXin : string
+  +Gia : decimal
+}
+class GoiVacXin <<entity>> {
+  +MaGoi : int
+  +Code : string
+  +TenGoi : string
+  +GiaGoi : decimal
+}
+class Benh <<entity>> {
+  +MaBenh : int
+  +TenBenh : string
+}
+class CongNgheVacXin <<entity>> {
+  +MaCongNghe : int
+  +TenCongNghe : string
+}
+class VaccineRegimen <<entity>> {
+  +Id : int
+  +Name : string
+}
+class VaccineRegimenDose <<entity>> {
+  +Id : int
+  +DoseOrder : int
+  +TimingLabel : string
+}
+class LoVacXin <<entity>> {
+  +SoLo : string
+  +HanSuDung : DateOnly
+  +SoLuongTon : int
+}
+class InventoryReceipt <<entity>> {
+  +SoLo : string
+  +SupplierName : string
+  +DocumentNumber : string
+}
+class BienDongKho <<entity>> {
+  +MaBienDong : int
+  +LoaiBienDong : string
+  +SoLuong : int
 }
 
-' Hồ sơ -> đăng ký
+' Core business relations
 KhachHang "1" -- "0..*" NguoiDuocTiem
 KhachHang "1" -- "0..*" DangKyDichVu
 NguoiDuocTiem "1" -- "0..*" DangKyDichVu
-NhanVien "0..1" -- "0..*" DangKyDichVu
 KhuyenMai "0..1" -- "0..*" DangKyDichVu
 
-' Đăng ký -> chi tiết / thanh toán / lịch
 DangKyDichVu "1" -- "0..*" ChiTietVacXinLe
 DangKyDichVu "1" -- "0..*" ChiTietGoiVacXin
 DangKyDichVu "1" -- "0..1" ThanhToan
 DangKyDichVu "1" -- "0..*" LichHenTiem
-NguoiDuocTiem "1" -- "0..*" LichHenTiem
 LichHenTiem "1" -- "0..*" NhacLich
+NguoiDuocTiem "1" -- "0..*" LichHenTiem
 
-' Luồng lâm sàng
 LichHenTiem "0..1" -- "0..1" PhieuKhamSangLoc
-DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
 NhanVien "1" -- "0..*" PhieuKhamSangLoc
 PhieuKhamSangLoc "1" -- "0..*" ChiDinhTiem
 ChiDinhTiem "0..1" -- "0..1" MuiTiem
 NguoiDuocTiem "1" -- "0..*" MuiTiem
 MuiTiem "1" -- "0..1" TheoDoiSauTiem
-NhanVien "0..1" -- "0..*" TheoDoiSauTiem
 
-' Danh mục
 VacXin "1" -- "0..*" ChiTietVacXinLe
 GoiVacXin "1" -- "0..*" ChiTietGoiVacXin
 VacXin "1" -- "0..*" ChiDinhTiem
-
-VacXin "1" -- "0..*" VacXin_Benh
-Benh "1" -- "0..*" VacXin_Benh
-VacXin "1" -- "0..*" VacXin_CongNghe
-CongNgheVacXin "1" -- "0..*" VacXin_CongNghe
-GoiVacXin "1" -- "0..*" GoiVacXin_VacXin
-VacXin "1" -- "0..*" GoiVacXin_VacXin
+GoiVacXin "0..*" -- "0..*" VacXin : thành phần
+VacXin "0..*" -- "0..*" Benh : phòng bệnh
+VacXin "0..*" -- "0..*" CongNgheVacXin : công nghệ
 VacXin "1" -- "0..*" VaccineRegimen
 VaccineRegimen "1" -- "1..*" VaccineRegimenDose
 
-' Kho
 VacXin "1" -- "0..*" LoVacXin
-LoVacXin "1" -- "0..*" BienDongKho
-NhanVien "1" -- "0..*" BienDongKho
-LoVacXin "1" -- "0..1" InventoryReceipt : tiếp nhận
 LoVacXin "1" -- "0..*" MuiTiem : sử dụng
+LoVacXin "1" -- "0..1" InventoryReceipt : tiếp nhận
+LoVacXin "1" -- "0..*" BienDongKho
 
-' Intra-package layout hints
-KhachHang -[hidden]down- NguoiDuocTiem
-KhuyenMai -[hidden]down- DangKyDichVu
-DangKyDichVu -[hidden]down- LichHenTiem
-LichHenTiem -[hidden]down- ThanhToan
-PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
-ChiDinhTiem -[hidden]down- MuiTiem
-MuiTiem -[hidden]down- TheoDoiSauTiem
-VacXin -[hidden]down- GoiVacXin
-GoiVacXin -[hidden]down- LoVacXin
-LoVacXin -[hidden]down- BienDongKho
-
-' Package layout: one landscape row
-P_HOSO -[hidden]right-> P_DANGKY
-P_DANGKY -[hidden]right-> P_LAMSANG
-P_LAMSANG -[hidden]right-> P_DANHMUC
-
-' Cross-package anchor row for landscape A4
+' Layout rows for A4 landscape
 KhachHang -[hidden]right-> DangKyDichVu
-DangKyDichVu -[hidden]right-> PhieuKhamSangLoc
-PhieuKhamSangLoc -[hidden]right-> VacXin
+DangKyDichVu -[hidden]right-> LichHenTiem
+LichHenTiem -[hidden]right-> PhieuKhamSangLoc
+PhieuKhamSangLoc -[hidden]right-> ChiDinhTiem
+ChiDinhTiem -[hidden]right-> MuiTiem
+MuiTiem -[hidden]right-> TheoDoiSauTiem
 
+NguoiDuocTiem -[hidden]right-> ChiTietVacXinLe
+ChiTietVacXinLe -[hidden]right-> ThanhToan
+ThanhToan -[hidden]right-> VacXin
+VacXin -[hidden]right-> LoVacXin
+LoVacXin -[hidden]right-> InventoryReceipt
+
+NhanVien -[hidden]right-> KhuyenMai
+KhuyenMai -[hidden]right-> ChiTietGoiVacXin
+ChiTietGoiVacXin -[hidden]right-> GoiVacXin
+GoiVacXin -[hidden]right-> VaccineRegimen
+VaccineRegimen -[hidden]right-> VaccineRegimenDose
+VaccineRegimenDose -[hidden]right-> BienDongKho
+
+Benh -[hidden]right-> CongNgheVacXin
+CongNgheVacXin -[hidden]right-> NhacLich
 @enduml
