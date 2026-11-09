@@ -212,6 +212,47 @@ test('financial writes do not refresh/replay on 401 and an old response cannot l
   assert.deepEqual(calls, Array(2).fill(['/api/v1/registrations/7/payment/online', 'POST']))
 })
 
+test('PayOS create 401 is never replayed; subsequent GET may refresh and retry safely', async () => {
+  let createPosts = 0
+  let statusGets = 0
+  let refreshes = 0
+  const client = createIdentityClient('http://localhost', async (url, options) => {
+    const path = new URL(url).pathname
+    if (path.endsWith('/login')) return Response.json({ accessToken: 'old', refreshToken: 'refresh' })
+    if (path.endsWith('/me')) return Response.json({ accountType: 'customer', accountId: 1 })
+    if (path.endsWith('/refresh')) {
+      refreshes++
+      return Response.json({ accessToken: 'new', refreshToken: 'rotated' })
+    }
+    if (path === '/api/v1/registrations/7/payment/payos' && options.method === 'POST') {
+      createPosts++
+      assert.equal(options.headers.Authorization, 'Bearer old')
+      return Response.json({ code: 'invalidSession' }, { status: 401 })
+    }
+    if (path === '/api/v1/registrations/7/payment/payos' && options.method === 'GET') {
+      statusGets++
+      if (options.headers.Authorization === 'Bearer old')
+        return Response.json({ code: 'invalidSession' }, { status: 401 })
+      assert.equal(options.headers.Authorization, 'Bearer new')
+      return Response.json({ registrationId: 7, amount: 550000, currency: 'VND', state: 'Pending',
+        checkoutUrl: 'https://pay.payos.vn/web/test', qrCode: '000201...', canReconcile: true })
+    }
+    throw new Error(`Unexpected request: ${options.method} ${path}`)
+  })
+
+  await client.login('customer@example.invalid', 'synthetic-password')
+  await assert.rejects(client.createPayOsPayment(7, { payer: { fullName: 'Khách hàng' }, termsAccepted: true }),
+    error => error.status === 401)
+  assert.equal(createPosts, 1)
+  assert.equal(refreshes, 0)
+
+  const status = await client.getPayOsPayment(7)
+  assert.equal(status.state, 'Pending')
+  assert.equal(createPosts, 1)
+  assert.equal(statusGets, 2)
+  assert.equal(refreshes, 1)
+})
+
 test('PayOS API client routes POST create, GET status and POST reconcile without sending amount', async () => {
   const calls = []
   const client = createIdentityClient('http://localhost', async (url, options) => {

@@ -47,7 +47,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
       }).finally(() => { refreshing = null })
     return refreshing
   }
-  async function profiles(path, method = 'GET', body, registration = false, paymentStatus) {
+  async function profiles(path, method = 'GET', body, registration = false, paymentStatus, noRetryOn401 = false) {
     if (!tokens) throw Object.assign(new Error(messages.invalidSession), { status: 401 })
     const version = sessionVersion
     const send = () => request(`${baseUrl}/api/v1/${path}`, {
@@ -57,7 +57,7 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     const session = tokens
     let response = await send()
     if (version !== sessionVersion) throw new Error(messages.invalidSession)
-    if (response.status === 401 && !paymentStatus) {
+    if (response.status === 401 && !paymentStatus && !noRetryOn401) {
       if (tokens === session) await refresh(session)
       if (version !== sessionVersion) throw new Error(messages.invalidSession)
       if (!tokens) throw new Error(messages.invalidSession)
@@ -141,9 +141,9 @@ export function createIdentityClient(baseUrl, request = globalThis.fetch) {
     getPaymentSettings: () => profiles('payment/settings'),
     recordOnlinePayment: (id, body) => writePayment(id, 'online', body),
     selectCenterPayment: id => writePayment(id, 'channel', { channel: 'TaiTrungTam' }),
-    createPayOsPayment: (id, body) => profiles(`registrations/${id}/payment/payos`, 'POST', body),
+    createPayOsPayment: (id, body) => profiles(`registrations/${id}/payment/payos`, 'POST', body, false, undefined, true),
     getPayOsPayment: id => profiles(`registrations/${id}/payment/payos`),
-    reconcilePayOsPayment: id => profiles(`registrations/${id}/payment/payos/reconcile`, 'POST'),
+    reconcilePayOsPayment: id => profiles(`registrations/${id}/payment/payos/reconcile`, 'POST', undefined, false, undefined, true),
     paymentWriteState: id => paymentWrites.get(id)?.status,
     acknowledgePaymentRetry(id) {
       if (paymentWrites.get(id)?.status === 'unconfirmed') paymentWrites.delete(id)
