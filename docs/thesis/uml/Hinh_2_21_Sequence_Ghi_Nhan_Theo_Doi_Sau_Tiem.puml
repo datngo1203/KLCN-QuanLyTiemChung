@@ -1,0 +1,58 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Điều dưỡng" as Nurse
+boundary "AftercareView" as View
+control "AftercareViewModel" as VM
+participant "AftercareApiService" as Service
+
+Nurse -> View : moTheoDoiSauTiem()
+activate View
+View -> VM : taiMuiTiemChoTheoDoi(tuKhoa)
+activate VM
+VM -> Service : taiDanhSachChoTheoDoi(tuKhoa)
+activate Service
+Service --> VM : danhSachMuiTiem, mocQuanSat
+deactivate Service
+VM --> View : capNhatDanhSach()
+deactivate VM
+
+Nurse -> View : chonMuiTiem(id)
+View -> VM : taiChiTietTheoDoi(id)
+activate VM
+VM -> Service : taiChiTietVaMocQuanSat(id)
+activate Service
+Service --> VM : chiTiet, observationUntil
+deactivate Service
+VM --> View : hienThiChiTiet()
+deactivate VM
+
+alt Chưa đủ 30 phút hoặc nguồn không hợp lệ
+  View --> Nurse : thongBaoChuaTheHoanTat()
+else Đủ điều kiện ghi nhận
+  Nurse -> View : nhapTheoDoi(tinhTrang, mucDo, xuTri)
+  View -> VM : luuTheoDoi(duLieu)
+  activate VM
+  VM -> Service : ghiNhanTheoDoi(id, duLieu)
+  activate Service
+  alt Đã có bản ghi hoặc trạng thái thay đổi
+    Service --> VM : loiNghiepVu
+    VM --> View : hienThiLoi(loiNghiepVu)
+  else Lưu thành công
+    Service --> VM : theoDoiDaLuu
+    VM --> View : hienThiKetQua(theoDoiDaLuu)
+  end
+  deactivate Service
+  deactivate VM
+end
+
+View --> Nurse : hienThiTrangThai()
+deactivate View
+@enduml
