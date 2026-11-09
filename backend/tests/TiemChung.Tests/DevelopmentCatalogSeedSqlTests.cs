@@ -88,7 +88,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Equal("database", web.Source); Assert.Equal(15, web.Items.Count);
             Assert.All(web.Items, v => { Assert.NotNull(v.SourceUrl); Assert.NotNull(v.InformationUpdatedAt); Assert.NotEmpty(v.Diseases); Assert.NotEmpty(v.Regimens); });
             Assert.Contains(web.Items, v => v.Code == "VX-GARDASIL-9" && v.Diseases.Any(d => d.Code == "BENH-HPV"));
-            Assert.Contains(web.Items, v => v.Code == "VX-INFANRIX-HEXA" && v.Diseases.Count == 6);
+            Assert.Contains(web.Items, v => v.Code == "VX-INFANRIX-HEXA" && v.Diseases.Length == 6);
             Assert.Contains(windows, v => v.Code == "VX-QDENGA");
 
             avaxim.Gia = 123456; avaxim.TenVacXin = "Avaxim đã chỉnh sửa"; avaxim.TrangThai = "Inactive";
