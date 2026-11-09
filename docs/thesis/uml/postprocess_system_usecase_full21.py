@@ -84,7 +84,7 @@ ACTOR_POS = {
     'User': (820, 110),
     'Customer': (105, 1100),
     'Admin': (1530, 820),
-    'Reception': (1530, 1700),
+    'Reception': (1530, 1370),
     'Cashier': (1530, 1700),
     'Doctor': (1530, 1850),
     'Nurse': (1530, 2250),
