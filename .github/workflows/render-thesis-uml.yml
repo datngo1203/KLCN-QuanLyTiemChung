@@ -8,6 +8,7 @@ on:
       - 'docs/thesis/uml/**.puml'
       - 'docs/thesis/uml/postprocess_activity.py'
       - 'docs/thesis/uml/postprocess_system_usecase.py'
+      - 'docs/thesis/uml/postprocess_system_usecase_full21.py'
       - '.github/workflows/render-thesis-uml.yml'
   workflow_dispatch:
 
@@ -52,6 +53,12 @@ jobs:
         run: |
           set -euo pipefail
           python docs/thesis/uml/postprocess_system_usecase.py
+
+      - name: Postprocess full 21 System Use Case diagram
+        shell: bash
+        run: |
+          set -euo pipefail
+          python docs/thesis/uml/postprocess_system_usecase_full21.py
 
       - name: Collect rendered UML
         shell: bash
