@@ -1833,3 +1833,20 @@ Các nguồn detector/hướng dẫn chỉ là **diagnostic input**, không ph�
 
 **PARKED:** detector-score-only rewrites; semantic changes ngoài evidence; redraw Hình 2.9.
 
+### THESIS-R1 — Sequence placement FINAL per supervisor — 09/11/2026
+
+**USER CONFIRMED GVHD INSTRUCTION / OVERRIDES TEMPLATE DEFAULT PLACEMENT.**
+
+- Mỗi **Sequence Diagram hệ thống** phải đặt **ngay sau bảng đặc tả System Use Case tương ứng**, tương tự quy tắc đã dùng cho phần nghiệp vụ: **bảng đặc tả → sơ đồ tương ứng → UC tiếp theo**.
+- Không gom 14 Sequence Diagram thành một cụm riêng ở Chương 3.2.
+- Đây là **bố cục theo chỉ đạo GVHD**, được ưu tiên hơn vị trí mặc định trong mẫu Khoa.
+- Sequence vẫn giữ **mức phân tích/logical interaction** khi đi cùng 2.2.2: Actor + object logic + message theo luồng Use Case; **không vẽ endpoint/service/repository/database** như implementation diagram.
+- Chương 3 vẫn dành cho các nội dung thiết kế khác theo cấu trúc báo cáo; không lặp lại cùng Sequence Diagram lần thứ hai chỉ để khớp mẫu.
+- Thứ tự các cặp System UC giữ đúng **14-UC final semantic scope** và dependency spine đã khóa.
+
+**ACTIVE:** UC1 — Sequence Diagram cho `Quản lý danh mục tiêm chủng`, đặt ngay sau Bảng 2.8.
+
+**NEXT:** sau khi UC1 visual/semantic PASS, nhân quy cách cho UC2–UC14 theo từng slice hoặc batch nhỏ.
+
+**Scope stop:** không chuyển Sequence sang Chương 3.2, không vẽ implementation-level participants, không đổi semantic 14 UC.
+
