@@ -759,6 +759,7 @@ public sealed partial class PaymentSqlTests
                 ALTER TABLE dbo.DangKyDichVu ADD TenKhuyenMaiSnapshot nvarchar(150) NULL, MucGiamSnapshot decimal(18,0) NULL;
                 ALTER TABLE dbo.DangKyDichVu ADD CoGioDuKien bit NOT NULL DEFAULT 0;
                 """);
+            await HistoricalCatalogFixture.ConfigurePayOsPaymentColumnsAsync(f.Db);
             var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
             Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
             Assert.Null(legacy.TransactionCode); Assert.Null(legacy.Payer);
