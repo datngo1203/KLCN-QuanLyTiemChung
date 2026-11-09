@@ -1931,3 +1931,27 @@ Nguồn khóa: `Bai giang TH PTTK HT_14DHTH.pdf`, phần Sơ đồ tuần tự v
 
 **Scope stop:** không tiếp tục từ run #64 như final; không dùng generic participant boxes cho mọi lifeline; không dùng câu kể làm call-message label.
 
+### THESIS-R1 — Sequence naming traceability FINAL — 09/11/2026
+
+**USER APPROVED / APPLIES TO ALL SYSTEM SEQUENCE DIAGRAMS.**
+
+- Participant và call-message trong System Sequence phải **ưu tiên tên class/view/service/method thật trong code hiện hành** khi tên đó ổn định và phù hợp với mức mô hình.
+- Ví dụ UC1 đã audit tại `main`:
+  - Boundary: `CatalogView`
+  - Control/interaction coordinator: `CatalogViewModel`
+  - Catalog service object: `CatalogApiService`
+  - operations có thật: `InitializeAsync()`, `SelectResourceAsync(tab)`, `Load(...)`, `Save()`, `Delete()`, `ListAsync<T>(...)`, `SaveAsync<T>(...)`, `DeleteAsync(...)`.
+  - UI commands có thật: `LoadCommand`, `SaveCommand`, `DeleteCommand`, `NewCommand`, `SelectTabCommand`.
+  - permission gates có thật ở desktop: `CanWrite`, `CanEdit`; server-side enforcement tồn tại qua `RequireWrite(...)` / `IdentityActor.RequirePermission(...)`.
+- Không tự đặt tên logical như `DieuKhienDanhMuc` hoặc `QuyenHan` nếu code đã có concept/class phù hợp hơn.
+- Nếu code không có một class tương ứng nhưng sơ đồ cần abstraction để giữ readability, phải dùng tên domain canonical và coi đó là **analysis abstraction**, không giả thành tên code.
+- Không kéo endpoint/repository/database vào sơ đồ chỉ để tăng traceability nếu không cần cho logic của Use Case; ưu tiên class interaction gần với UI/application flow.
+- Return message có thể dùng tên dữ liệu/kết quả ngắn; không bắt buộc khớp một method vì nó không phải call operation.
+- Mỗi Sequence trước khi FINAL phải có **naming audit**: actor/domain terminology ↔ Word UC ↔ code class/method ↔ diagram label.
+
+**UC1 impact:** candidate run #66 đúng stereotype nhưng participant naming vẫn còn logical; phải code-align naming trước khi FINAL/integrate Word.
+
+**ACTIVE:** chỉnh UC1 Sequence naming theo code evidence.
+
+**Scope stop:** không đổi semantic UC chỉ để khớp tên code; không dùng tên implementation làm người đọc mất nghĩa nghiệp vụ.
+
