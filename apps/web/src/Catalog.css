@@ -70,11 +70,28 @@
 .catalog-package-doses, .catalog-components { margin: 12px 0 0; color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
 .catalog-package-doses strong { color: var(--primary); }
 .catalog-package-price { margin-top: 16px; color: var(--primary); font-size: 20px; font-weight: 700; }
+.catalog-package-link { display: inline-flex; margin-top: 16px; }
+.package-detail { padding-top: 28px; }
+.package-detail .page-intro { padding-top: 24px; }
+.package-detail h1 { overflow-wrap: anywhere; }
+.package-detail-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 40px; align-items: start; margin-top: 24px; }
+.package-detail-summary, .package-detail-items { min-width: 0; }
+.package-detail-items { padding: clamp(18px, 3vw, 28px); border: 1px solid var(--line); border-radius: 16px; background: white; }
+.package-detail-items h2 { margin: 0 0 16px; }
+.package-detail-items ul { list-style: none; margin: 0; padding: 0; }
+.package-detail-items li { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); line-height: 1.6; }
+.package-detail-items li span { min-width: 0; overflow-wrap: anywhere; }
+.package-detail-items li strong { flex: none; color: var(--primary); white-space: nowrap; }
+.package-description, .package-audience { margin-top: 36px; }
+.package-description p, .package-audience p { line-height: 1.8; overflow-wrap: anywhere; white-space: pre-line; }
+.package-detail-summary > .button { min-height: 48px; }
+.package-detail-summary > .button:disabled { cursor: not-allowed; opacity: .58; }
 @media (max-width: 700px) {
   .catalog-table-hint { display: block; margin-top: 8px; }
   .catalog-table { min-width: 760px; }
   .catalog-table th, .catalog-table td { padding: 14px 16px; }
   .catalog-filters, .catalog-grid { grid-template-columns: minmax(0, 1fr); }
+  .catalog-package-link { width: 100%; justify-content: center; min-height: 48px; }
   .catalog-page .search-box { display: grid; grid-template-columns: 24px minmax(0, 1fr); height: auto; }
   .catalog-page .search-box .button { grid-column: 1 / -1; width: 100%; }
   .filter-tab { min-height: 44px; }
@@ -82,6 +99,11 @@
   .vaccine-detail-layout > .product-placeholder { min-height: 170px; }
   .vaccine-facts > div { grid-template-columns: 1fr; gap: 8px; }
   .vaccine-detail-info > .button { width: 100%; min-height: 48px; }
+  .package-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .package-detail-summary > .button { width: 100%; min-height: 48px; }
+  .package-detail-items { padding: 18px; }
+  .package-detail-items li { gap: 10px; }
+  .package-description, .package-audience { margin-top: 28px; }
   .vaccine-description, .vaccine-details, .vaccine-regimens { margin-top: 28px; }
   .vaccine-provenance { padding: 16px; }
 }

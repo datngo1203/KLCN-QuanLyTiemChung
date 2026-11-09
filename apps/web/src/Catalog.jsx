@@ -71,7 +71,8 @@ export default function Catalog({ query, setQuery }) {
         {diseaseNames(item) && <p className="catalog-diseases">Phòng bệnh: {diseaseNames(item)}</p>}
         {item.totalDoses != null && <p className="catalog-package-doses">Tổng số mũi: <strong>{item.totalDoses}</strong></p>}
         {componentSummary(item) && <p className="catalog-components">Thành phần: {componentSummary(item)}</p>}
-        <div className="catalog-package-price">{money(item.price)}</div></div>
+        <div className="catalog-package-price">{money(item.price)}</div>
+        <a className="button outline catalog-package-link" href={`#catalog/packages/${item.id}`} aria-label={`Xem chi tiết gói ${customerDisplayName(item.name)}`}>Xem chi tiết</a></div>
       </article>)}</div></section>}
       {count === 0 && <div className="empty-state" role="status">Không có mục phù hợp.</div>}</>}
   </section>

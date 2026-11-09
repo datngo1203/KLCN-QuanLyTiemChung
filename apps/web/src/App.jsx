@@ -4,6 +4,7 @@ import './App.css'
 import Account from './Account'
 import Catalog from './Catalog'
 import VaccineDetail from './VaccineDetail'
+import PackageDetail from './PackageDetail'
 import Registrations from './Registrations'
 import { getValidPromotions } from './api/client'
 import { money } from './registrationForm'
@@ -19,10 +20,16 @@ const pages = [
   ['vaccinations', 'Tiêm chủng của tôi'],
 ]
 
+const packageDetailPath = path => {
+  const match = /^catalog\/packages\/([1-9]\d*)$/.exec(path)
+  return match && Number.isSafeInteger(Number(match[1]))
+}
+
 const pageFromHash = () => {
   const raw = window.location.hash.slice(1)
   const path = ({ payment: 'vaccinations', schedule: 'vaccinations', history: 'vaccinations/history' })[raw] ?? raw
   if (path === 'vaccinations/history' || /^vaccinations\/[1-9]\d{0,9}$/.test(path)) return path
+  if (packageDetailPath(path)) return path
   return pages.some(([id]) => id === path) || (path.startsWith('catalog/vaccines/') || path.startsWith('register/recipient/')) ? path : 'home'
 }
 
@@ -90,6 +97,7 @@ function App() {
         {page === 'home' && <Home go={go} setQuery={setQuery} />}
         {page === 'catalog' && <Catalog query={query} setQuery={setQuery} />}
         {page.startsWith('catalog/vaccines/') && <VaccineDetail key={page} id={page.slice('catalog/vaccines/'.length)} go={go} />}
+        {packageDetailPath(page) && <PackageDetail key={page} id={page.slice('catalog/packages/'.length)} go={go} />}
         {page === 'promotions' && <Offers go={go} notify={notify} />}
         {(account || page.startsWith('register')) && <div hidden={!page.startsWith('register')}><Registrations key={account?.accountId || 'guest'} account={account} active={page.startsWith('register')} navigationRef={registrationNavigation} recipientLink={page.startsWith('register/recipient/') ? page.slice('register/recipient/'.length) : null} go={go} onSavingChange={setRegistrationBusy} /></div>}
         {(page === 'vaccinations' || page.startsWith('vaccinations/')) && <VaccinationJourneys key={`${account?.accountId || 'guest'}:${page}`} account={account} sessionBusy={sessionBusy} page={page} go={go} />}

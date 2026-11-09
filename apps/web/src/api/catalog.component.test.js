@@ -118,7 +118,7 @@ test('catalog loads Active-only results and lookup-driven discovery filters', as
   assert.match(host.querySelector('.catalog-card').textContent, /PK-31.*Gói B.*Bệnh A.*Tổng số mũi: 3.*VX-21 — Vắc xin A × 3/s)
   assert.match(host.querySelector('.catalog-card').textContent, /300\.000/)
   assert.doesNotMatch(host.textContent, /\bActive\b/)
-  assert.equal([...host.querySelectorAll('a')].some(link => link.getAttribute('href')?.startsWith('#catalog/packages/')), false)
+  assert.equal(host.querySelector('a[aria-label="Xem chi tiết gói Gói B"]').getAttribute('href'), '#catalog/packages/31')
 
   const initialCallCount = calls.length
   for (const [label, expectedVaccine, expectedPackage] of [
