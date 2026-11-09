@@ -1591,3 +1591,55 @@ Không tự mở:
 
 **Scope stop:** không tự mở Chương 3.2, không đổi semantic 2.1/Hình 2.9 và không thêm top-level System UC nếu người dùng chưa xác nhận.
 
+### THESIS-R1 — Academic writing profile: natural, source-grounded, quality-first — 09/11/2026
+
+**USER APPROVED WRITING RULES.** Áp dụng cho các vòng viết/review văn xuôi còn lại của báo cáo. Các quan sát từ AI detector chỉ dùng để nhận diện vùng văn phong cần đọc lại; **không dùng detector như bằng chứng tác giả và không tối ưu văn bản bằng cách làm giảm chất lượng học thuật**.
+
+#### Ưu tiên
+1. **Độ chính xác nội dung và khả năng bảo vệ trước giảng viên > điểm AI detector.**
+2. Giữ claim đúng nguồn, đúng implementation và đúng thuật ngữ canonical; không thay từ máy móc chỉ để làm câu “khác”.
+3. Không cố tình thêm lỗi chính tả, câu vụng, khẩu ngữ, từ đồng nghĩa lạ hoặc chi tiết không có căn cứ để tạo “dấu vết con người”.
+4. Không dùng paraphraser/humanizer làm nguồn biên tập cuối nếu nó làm lệch nghĩa, ví dụ các lỗi kiểu `nhập vắc xin → nhập khẩu vắc xin`, `đánh giá → định giá`, `nghiệp vụ → sản xuất`.
+
+#### Phân lớp lập luận
+- **Nguồn công bố gì → ghi đúng claim đó và gắn citation phù hợp.**
+- **Đề tài suy ra/quyết định gì → nói rõ đó là cách mô hình hóa hoặc quyết định thiết kế của đề tài.**
+- **Implementation hiện hành làm gì → chỉ khẳng định khi có code/test/contract evidence.**
+- Không trộn ba lớp trên thành một câu tổng quát khiến nguồn ngoài có vẻ chứng minh trực tiếp cho thiết kế hoặc implementation.
+
+#### Văn phong ưu tiên
+- Ưu tiên câu có **chủ thể cụ thể + hành động cụ thể + dữ liệu/đối tượng cụ thể**.
+- Khi phù hợp với đoạn nghiệp vụ, ưu tiên nhịp: **sự việc cụ thể → dữ liệu cần ghi nhận → xử lý của hệ thống → lý do**; không biến đây thành công thức bắt buộc.
+- Câu factual có nguồn và thuật ngữ đúng thường giữ nguyên nếu đã rõ; vòng language-review tập trung nhiều hơn vào **câu chuyển ý, câu kết luận khái quát và các câu quá cân đối**.
+- Một câu dài có nhiều nhiệm vụ có thể tách thành 2 câu nếu giúp mỗi câu đảm nhận một ý rõ hơn.
+- Đưa **quyết định của chính đề tài** vào văn bản khi có căn cứ, thay vì thêm câu tổng kết chung chung chỉ để nối đoạn.
+
+#### Mẫu câu cần tránh lặp quá mức
+Các mẫu dưới đây **không bị cấm**, nhưng phải tránh dùng liên tiếp hoặc dùng khi không tạo thêm lập luận:
+- `không chỉ ... mà còn ...`
+- `Vì vậy, ...`
+- `Chẳng hạn, ...`
+- `Điều này cho thấy ...`
+- `Những chi tiết này cho thấy ...`
+- `Có thể thấy rằng ...`
+- `Từ đó có thể thấy ...`
+- `Chúng ảnh hưởng đến cách A..., cách B..., cách C...`
+- `Sau khi hoàn tất ..., tác nhân ...`
+
+Đặc biệt chú ý các câu có cấu trúc quá tròn theo mẫu **mở ý → giải thích đầy đủ → liệt kê cân đối → ví dụ → disclaimer → kết luận**, nhất là khi mẫu này lặp nhiều lần trong cùng mục.
+
+#### Những điều không làm
+- Không “humanize” bằng synonym substitution ngẫu nhiên.
+- Không đổi terminology canonical của luận văn để tăng lexical variation.
+- Không làm claim mạnh hơn nguồn chỉ để câu tự nhiên hơn.
+- Không biến thuật ngữ chuyên môn thành cách nói đời thường nếu làm giảm độ chính xác.
+- Không sửa hàng loạt văn phong trong lúc semantic/content của chương còn đang thay đổi.
+
+#### Workflow language-review
+- Trong khi viết feature/chương: ưu tiên **semantic correctness, source traceability, implementation truth**.
+- Sau khi nội dung một phần đã ổn định: chạy **language-review riêng**, tìm các câu chuyển ý/tổng kết lặp khuôn, câu quá cân đối, từ nối dư và translationese.
+- Detector có thể được dùng như **diagnostic map** để chọn vùng cần đọc lại; mọi thay đổi vẫn phải PASS kiểm tra nghĩa, citation, terminology và consistency của toàn luận văn.
+- Nếu detector và chất lượng học thuật xung đột, **giữ phương án học thuật chính xác hơn**.
+
+**Scope stop:** writing profile này không tự kích hoạt việc rewrite toàn bộ Word hiện hành. Chỉ áp dụng cho phần viết tiếp theo hoặc vòng language-review riêng khi người dùng mở task đó.
+
