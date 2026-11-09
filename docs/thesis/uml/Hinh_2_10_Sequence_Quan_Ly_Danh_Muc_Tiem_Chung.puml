@@ -31,66 +31,45 @@ participant "Danh mục tiêm chủng" as CatalogData
 
 Admin -> UI : Mở chức năng quản lý danh mục
 activate UI
-UI -> CatalogLogic : Yêu cầu dữ liệu theo nhóm/trạng thái
+UI -> CatalogLogic : Tải dữ liệu theo nhóm và trạng thái
 activate CatalogLogic
 CatalogLogic -> CatalogData : Tra cứu danh mục
 activate CatalogData
-CatalogData --> CatalogLogic : Dữ liệu hiện có
+CatalogData --> CatalogLogic : Danh sách hiện có
 deactivate CatalogData
-CatalogLogic --> UI : Danh sách danh mục
+CatalogLogic --> UI : Dữ liệu danh mục
 deactivate CatalogLogic
-UI --> Admin : Hiển thị dữ liệu hiện có
+UI --> Admin : Hiển thị danh sách
 
-Admin -> UI : Chọn nhóm và thao tác
+Admin -> UI : Chọn thêm mới, cập nhật hoặc xóa
+UI --> Admin : Hiển thị biểu mẫu hoặc yêu cầu xác nhận
+Admin -> UI : Nhập, chỉnh sửa hoặc xác nhận thông tin
+UI -> CatalogLogic : Yêu cầu thực hiện thao tác
+activate CatalogLogic
+CatalogLogic -> Permission : Kiểm tra quyền
+activate Permission
+Permission --> CatalogLogic : Kết quả quyền
+deactivate Permission
 
-alt Tra cứu / xem chi tiết
-  UI -> CatalogLogic : Yêu cầu tìm kiếm hoặc xem chi tiết
-  activate CatalogLogic
-  CatalogLogic -> CatalogData : Lấy dữ liệu phù hợp
-  activate CatalogData
-  CatalogData --> CatalogLogic : Kết quả tra cứu
-  deactivate CatalogData
-  CatalogLogic --> UI : Dữ liệu phù hợp
+alt Không đủ quyền
+  CatalogLogic --> UI : Từ chối thao tác
   deactivate CatalogLogic
-  UI --> Admin : Hiển thị kết quả
-else Thêm mới / cập nhật / xóa
-  UI --> Admin : Hiển thị biểu mẫu hoặc yêu cầu xác nhận
-  Admin -> UI : Nhập, chỉnh sửa hoặc xác nhận thông tin
-  UI -> CatalogLogic : Yêu cầu thực hiện thao tác
-  activate CatalogLogic
-  CatalogLogic -> Permission : Kiểm tra quyền thao tác
-  activate Permission
-  Permission --> CatalogLogic : Kết quả quyền
-  deactivate Permission
-
-  alt Không đủ quyền
-    CatalogLogic --> UI : Từ chối thao tác
+  UI --> Admin : Thông báo không đủ quyền
+else Được phép
+  CatalogLogic -> CatalogData : Kiểm tra dữ liệu, ràng buộc và thực hiện thao tác
+  activate CatalogData
+  alt Không hợp lệ hoặc vi phạm ràng buộc
+    CatalogData --> CatalogLogic : Lỗi nghiệp vụ
+    deactivate CatalogData
+    CatalogLogic --> UI : Thông báo lỗi
     deactivate CatalogLogic
-    UI --> Admin : Thông báo không đủ quyền
-  else Được phép
-    CatalogLogic -> CatalogData : Kiểm tra dữ liệu, ràng buộc và thực hiện thao tác
-    activate CatalogData
-    alt Dữ liệu không hợp lệ / vi phạm ràng buộc
-      CatalogData --> CatalogLogic : Lỗi nghiệp vụ
-      deactivate CatalogData
-      CatalogLogic --> UI : Thông báo lỗi
-      deactivate CatalogLogic
-      UI --> Admin : Yêu cầu điều chỉnh hoặc giữ nguyên dữ liệu
-    else Hợp lệ
-      CatalogData --> CatalogLogic : Dữ liệu sau thay đổi
-      deactivate CatalogData
-      CatalogLogic --> UI : Kết quả thao tác
-      deactivate CatalogLogic
-      UI -> CatalogLogic : Tải lại danh sách
-      activate CatalogLogic
-      CatalogLogic -> CatalogData : Tra cứu dữ liệu mới nhất
-      activate CatalogData
-      CatalogData --> CatalogLogic : Danh sách cập nhật
-      deactivate CatalogData
-      CatalogLogic --> UI : Dữ liệu cập nhật
-      deactivate CatalogLogic
-      UI --> Admin : Hiển thị kết quả và dữ liệu mới nhất
-    end
+    UI --> Admin : Yêu cầu điều chỉnh hoặc giữ nguyên dữ liệu
+  else Hợp lệ
+    CatalogData --> CatalogLogic : Dữ liệu sau thay đổi
+    deactivate CatalogData
+    CatalogLogic --> UI : Kết quả và dữ liệu cập nhật
+    deactivate CatalogLogic
+    UI --> Admin : Hiển thị kết quả mới nhất
   end
 end
 
