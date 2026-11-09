@@ -3,6 +3,9 @@
 $tokens=$null; $parseErrors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile("$PSScriptRoot/VAC.ps1",[ref]$tokens,[ref]$parseErrors)
 if ($parseErrors.Count) { throw 'PowerShell parse failed' }
+$finalTokens=$null; $finalParseErrors=$null
+$null=[Management.Automation.Language.Parser]::ParseFile("$PSScriptRoot/VAC-Finalize.ps1",[ref]$finalTokens,[ref]$finalParseErrors)
+if ($finalParseErrors.Count) { throw 'VAC-Finalize PowerShell parse failed' }
 foreach ($f in $ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$false)) {
     . ([scriptblock]::Create($f.Extent.Text))
 }
