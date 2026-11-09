@@ -2329,3 +2329,28 @@ Canonical academic sources for Hình 3.1:
 
 **ACTIVE:** none — user explicitly paused this slice.
 **NEXT:** future chat may redraw Hình 3.1 from this checkpoint.
+
+
+### THESIS-R1 — Hình 3.1 PlantUML semantic-correct candidate — 09/11/2026
+
+- User requested redraw with **PlantUML class syntax** (not embedded DOT).
+- Source: `docs/thesis/uml/Hinh_3_1_So_Do_Lop_Muc_Thiet_Ke.puml`.
+- Source commit: `69dce11eaac7f50e5b6f2eeadbd48b00c6fd355f`.
+- GitHub Actions: **run #104**, run id `42626408828`, success.
+- Artifact id: `13678781898`.
+- PNG dimensions: **1362×943**.
+- PNG SHA-256: `a96a12e5c114e8f3cfccc90ed3198de6ce9e50caa94fe481cf068acd33f9758e`.
+
+**Semantic corrections locked in this candidate:**
+- Attributes use `-` visibility per HUIT design-class notation.
+- `ChiTietGoiVacXin`, `ChiTietVacXinLe`, `GoiVacXin_VacXin` are modeled as refined association classes (`<<association>>`).
+- `DangKyDichVu 1 — 0..1 ThanhToan` from required+unique `ThanhToan.MaDangKy`.
+- `DangKyDichVu 0..1 — 0..* LichHenTiem` because `LichHenTiem.MaDangKy` is nullable.
+- `LichHenTiem 0..1 — 0..1 PhieuKhamSangLoc` because `MaLichHen` is nullable and unique when present.
+- `ChiDinhTiem 0..1 — 0..1 MuiTiem` because `MaChiDinh` is nullable and unique when present.
+- `MuiTiem 1 — 0..1 TheoDoiSauTiem` because `TheoDoiSauTiem.MaMuiTiem` is required and unique.
+- Direct mandatory design relations restored: `DangKyDichVu–PhieuKhamSangLoc`, `NguoiDuocTiem–PhieuKhamSangLoc`, plus package composition through `GoiVacXin_VacXin`.
+- Core clinical relations retained: `NhanVien–PhieuKhamSangLoc`, `VacXin–ChiDinhTiem`, `NguoiDuocTiem/LoVacXin/NhanVien–MuiTiem`, `NhanVien–TheoDoiSauTiem`.
+- Secondary provenance FKs (e.g. employee attribution on registration/payment/reminder) remain intentionally deferred to 3.1.2 to avoid turning Hình 3.1 into a physical ERD.
+
+**STATUS:** semantic candidate PASS; layout still REVIEW because it is wider than the preferred portrait arrangement. Not integrated into Word.
