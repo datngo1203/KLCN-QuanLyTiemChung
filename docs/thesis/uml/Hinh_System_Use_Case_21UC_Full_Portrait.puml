@@ -1,0 +1,156 @@
+@startuml
+' THESIS-R1 — full 21 System Use Case portrait prototype
+' Semantic baseline: reconciliation v4, 21 UC / 27 direct associations / 8 actor generalizations.
+' Visual contract: A4 portrait, actor-centric fan-out, orthogonal routing, no include/extend.
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 14
+skinparam ArrowColor black
+skinparam ActorBorderColor black
+skinparam UsecaseBorderColor black
+skinparam RectangleBorderColor black
+skinparam linetype ortho
+skinparam nodesep 28
+skinparam ranksep 34
+skinparam dpi 180
+skinparam packageStyle rectangle
+
+top to bottom direction
+
+actor "Người dùng" as User
+actor "Nhân viên" as Employee
+actor "Khách hàng" as Customer
+actor "Quản trị viên" as Admin
+actor "Lễ tân" as Reception
+actor "Bác sĩ" as Doctor
+actor "Thu ngân" as Cashier
+actor "Điều dưỡng" as Nurse
+actor "Nhân viên kho" as Warehouse
+actor "Thời gian" as Time
+actor "Dịch vụ thư điện tử" as Email
+
+rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
+  usecase "UC02\nĐăng nhập hệ thống" as UC02
+  usecase "UC03\nĐổi mật khẩu" as UC03
+  usecase "UC04\nĐăng xuất hệ thống" as UC04
+
+  usecase "UC01\nĐăng ký tài khoản\nkhách hàng" as UC01
+  usecase "UC09\nQuản lý hồ sơ khách hàng/\nngười được tiêm" as UC09
+  usecase "UC05\nThay đổi chức danh\ntài khoản nhân viên" as UC05
+
+  usecase "UC10\nTra cứu dịch vụ\ntiêm chủng" as UC10
+  usecase "UC11\nĐăng ký dịch vụ\ntiêm chủng" as UC11
+  usecase "UC06\nQuản lý danh mục\ntiêm chủng" as UC06
+
+  usecase "UC19\nTheo dõi hành trình\ntiêm chủng" as UC19
+  usecase "UC12\nQuản lý lịch hẹn" as UC12
+  usecase "UC07\nQuản lý ưu đãi" as UC07
+
+  usecase "UC20\nTra cứu lịch sử\ntiêm chủng" as UC20
+  usecase "UC16\nThanh toán dịch vụ" as UC16
+  usecase "UC21\nBáo cáo hoạt động" as UC21
+
+  usecase "UC13\nGửi nhắc lịch" as UC13
+  usecase "UC15\nGhi nhận khám sàng lọc\nvà chỉ định" as UC15
+
+  usecase "UC14\nTự động gửi nhắc lịch" as UC14
+  usecase "UC17\nGhi nhận mũi tiêm" as UC17
+
+  usecase "UC18\nGhi nhận theo dõi\nsau tiêm" as UC18
+  usecase "UC08\nQuản lý lô và tồn kho\nvắc xin" as UC08
+
+  ' Layout helpers only; no semantic meaning.
+  UC02 -[hidden]right- UC03
+  UC03 -[hidden]right- UC04
+
+  UC01 -[hidden]right- UC09
+  UC09 -[hidden]right- UC05
+  UC10 -[hidden]right- UC11
+  UC11 -[hidden]right- UC06
+  UC19 -[hidden]right- UC12
+  UC12 -[hidden]right- UC07
+  UC20 -[hidden]right- UC16
+  UC16 -[hidden]right- UC21
+  UC13 -[hidden]right- UC15
+  UC14 -[hidden]right- UC17
+  UC18 -[hidden]right- UC08
+
+  UC02 -[hidden]down- UC01
+  UC01 -[hidden]down- UC10
+  UC10 -[hidden]down- UC19
+  UC19 -[hidden]down- UC20
+  UC20 -[hidden]down- UC13
+  UC13 -[hidden]down- UC14
+  UC14 -[hidden]down- UC18
+
+  UC03 -[hidden]down- UC09
+  UC09 -[hidden]down- UC11
+  UC11 -[hidden]down- UC12
+  UC12 -[hidden]down- UC16
+
+  UC04 -[hidden]down- UC05
+  UC05 -[hidden]down- UC06
+  UC06 -[hidden]down- UC07
+  UC07 -[hidden]down- UC21
+  UC21 -[hidden]down- UC15
+  UC15 -[hidden]down- UC17
+  UC17 -[hidden]down- UC08
+}
+
+' Actor generalization. Keep hierarchy outside the main UC corridors.
+Customer -up-|> User
+Employee -left-|> User
+Admin -up-|> Employee
+Reception -up-|> Employee
+Doctor -up-|> Employee
+Cashier -up-|> Employee
+Nurse -up-|> Employee
+Warehouse -up-|> Employee
+
+' Actor ordering helpers only.
+User -[hidden]right- Employee
+Admin -[hidden]down- Reception
+Reception -[hidden]down- Doctor
+Doctor -[hidden]down- Cashier
+Cashier -[hidden]down- Nurse
+Nurse -[hidden]down- Warehouse
+Time -[hidden]right- Email
+
+' 27 direct actor–UC associations.
+User -- UC02
+User -- UC03
+User -- UC04
+
+Customer -right- UC01
+Customer -right- UC10
+Customer -right- UC19
+Customer -right- UC20
+Customer -right- UC09
+Customer -right- UC11
+Customer -right- UC12
+Customer -right- UC16
+
+UC09 -right- Reception
+UC11 -right- Reception
+UC12 -right- Reception
+UC13 -right- Reception
+
+UC05 -right- Admin
+UC06 -right- Admin
+UC07 -right- Admin
+UC21 -right- Admin
+
+UC15 -right- Doctor
+UC16 -right- Cashier
+UC17 -right- Nurse
+UC18 -right- Nurse
+UC08 -right- Warehouse
+
+Time -- UC14
+UC13 -- Email
+UC14 -- Email
+
+@enduml
