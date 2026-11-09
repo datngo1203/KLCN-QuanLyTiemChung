@@ -2384,3 +2384,25 @@ Canonical academic sources for Hình 3.1:
 - Remaining work is visual only: shorten a few long cross-links / reduce crossings if needed. Do not reopen semantic multiplicities without new implementation evidence.
 
 **STATUS:** semantic PASS; multiplicity-routing root cause PASS; portrait layout REVIEW CANDIDATE; Word not modified.
+
+### THESIS-R1 — Class-diagram routing guardrail: no artificial jumps or micro-zigzags — 10/11/2026
+
+**User-approved, mandatory for Hình 2.24 and subsequent design-class diagrams.** This supersedes prior graph-routing policy that treated *all* connector crossings as unacceptable.
+
+**Root cause from V5/V5.1/V5.2:**
+- V5 enabled Draw.io `jumpStyle=arc; jumpSize=10` broadly, producing visually misleading small break/jump symbols. Do not turn on Line Jumps globally as a substitute for good routing.
+- More importantly, the generator introduced unnecessary ±4 px waypoint offsets around bends/terminals. This caused micro-zigzags shaped like `Z` even on otherwise straight lines, **without any crossing**. Removing `jumpStyle` alone did not fix it.
+- At association-class junctions, over-optimizing for zero intersections pulled a normal solid association into a multi-fold diamond-like loop. This is wrong: a dashed association-class connector should attach to a point **on the existing, reasonably straight solid association**; the solid association should never be distorted to accommodate the dashed line.
+
+**Strict layout/route rules:**
+1. First lock HUIT UML meaning: class boxes have correct compartments; solid association and end multiplicities; association class uses a short **dashed line attached to the exact association**. Do not invent diamonds, arrows, inheritance, or composition as decoration.
+2. Route primary solid associations directly, using zero or as few orthogonal bends as needed. Prefer one clean straight segment when classes align. Generate dashed association-class ties **after** the solid association is fixed. An invisible junction must lie geometrically on its solid parent association; it must not pull that association into a detour.
+3. For each route, remove redundant/near-duplicate points, zero-length segments, and tiny staircase/zigzag segments. **No artificial ±4 px (or other small) kink near a terminal or turn.** Verify every consecutive path segment is horizontal or vertical when orthogonal routing is chosen.
+4. **Single-point line crossings are ALLOWED** when visually clear; zero crossings is NOT a hard requirement. **Forbidden:** line segments overlapping/coincident for nonshared associations; lines through unrelated class boxes; multiplicity–multiplicity, multiplicity–class, or multiplicity–line collisions; ambiguous association-class attachments.
+5. Do not apply `jumpStyle`/`jumpSize` by default. Only use a jump intentionally on a specific verified unavoidable crossing, after review, and only if it does not resemble an erroneous UML glyph; the default is plain solid/orthogonal lines.
+6. At each endpoint, choose a sensible class port (left/right/top/bottom), keep multiplicity near its own class without covering lines or boxes. Size/position classes by content, then optimize spacing after clear routes are achieved.
+7. **Mandatory two-stage QA:** (a) parse Draw.io XML and check bounding boxes, per-edge waypoints, 1-to-1 multiplicity binding and modeled line/label collisions; (b) **export SVG using the native Draw.io renderer and inspect it visually**, at intended Word/A4 scale. A Matplotlib/planned-position preview alone is not native render QA. If native SVG cannot be produced, mark the candidate **NOT FINAL** and state what remains unverified.
+8. Do not report "0 overlap" from class-only checks as a full-diagram PASS. Distinguish box, edge-vs-box, coincident edge segments, single-point crossings, label-vs-label, label-vs-edge and label-vs-class results.
+9. The user prefers **one compact overall analysis-class diagram** if it stays readable; splitting into panels is a fallback, not a requirement. With the new allowance for clean single-point crossings, reattempt a more compact one-page layout before deciding to split.
+
+**Acceptance gate:** all forbidden collisions must be zero on **actual rendered output**, readable at final print scale. One-point crossings may remain if unambiguous. Keep this guardrail active when transitioning from Hình 2.24 to Hình 3.1.
