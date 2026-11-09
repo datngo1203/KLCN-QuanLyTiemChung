@@ -2406,3 +2406,20 @@ Canonical academic sources for Hình 3.1:
 9. The user prefers **one compact overall analysis-class diagram** if it stays readable; splitting into panels is a fallback, not a requirement. With the new allowance for clean single-point crossings, reattempt a more compact one-page layout before deciding to split.
 
 **Acceptance gate:** all forbidden collisions must be zero on **actual rendered output**, readable at final print scale. One-point crossings may remain if unambiguous. Keep this guardrail active when transitioning from Hình 2.24 to Hình 3.1.
+
+### THESIS-R1 — Hình 2.24 analysis-class V5.3 USER APPROVED — 10/11/2026
+
+**USER APPROVED:** `Hinh_2_24_V5_3_AssociationClass_StraightClean.drawio` as the selected visual/semantic baseline for **Hình 2.24 — Sơ đồ lớp mức phân tích**. This supersedes V1–V5.2 and the multi-panel V4 trial; do not reopen those layouts unless user requests.
+
+- SHA-256 of exact local Draw.io file: `ff14d382acf378dcb5c3df2caa431c7062b9aba2bd31098b022351d5eeb4a56f`.
+- One page; 19 analysis class/association-class boxes, 17 semantic associations represented by 23 connector cells, 34 endpoint multiplicity labels.
+- Three association-class dashed connectors attach to their **solid association**, not a deformed multi-fold path; no global Line Jumps or artificial ±4 px micro-zigzags.
+- Planned XML geometry QA: 0 class overlaps, 0 edges through unrelated classes, 0 coincident edge segments, 0 non-orthogonal/micro segments, 34/34 placed multiplicities. 9 counted node-junction intersections are intentional, not unrelated crossings.
+- **Gate distinction:** the user accepted the *candidate design*. Native Draw.io SVG export at Word insertion scale and final Word integration are **not yet verified/completed**. Do not claim the Word artifact was updated or the print-size QA passed.
+- The exact Draw.io file currently exists as a generated conversation artifact. It has **not yet been added to the GitHub branch**; before final Word integration, archive/commit the actual source bytes on the thesis branch if the artifact workflow permits. The SHA above anchors artifact identity.
+- Keep the no-Line-Jump/no-micro-zigzag and relaxed clear-single-point-crossing guardrail from `SCOPE.md` active for subsequent Hình 3.1.
+
+**DONE:** analysis-class Hình 2.24 V5.3 approved and semantic/layout selection closed.
+**ACTIVE:** none (do not auto-open next slice).
+**NEXT:** Hình 3.1 — refine design class diagram from the approved Hình 2.24 baseline, only after user confirms starting it.
+**PARKED:** Hình 3.2 relational/CSDL diagram; prior V10 class design and V4 multi-panel candidates.
