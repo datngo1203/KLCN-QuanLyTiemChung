@@ -1850,3 +1850,41 @@ Các nguồn detector/hướng dẫn chỉ là **diagnostic input**, không ph�
 
 **Scope stop:** không chuyển Sequence sang Chương 3.2, không vẽ implementation-level participants, không đổi semantic 14 UC.
 
+### THESIS-R1 — UC1 Sequence Diagram pilot PASS — 09/11/2026
+
+**SEMANTIC + VISUAL + WORD PLACEMENT PASS.**
+
+- GVHD placement rule remains authoritative: each System Sequence Diagram is placed **immediately after its corresponding System UC specification table**; do not regroup them in Chapter 3.2.
+- Pilot UC: **Quản lý danh mục tiêm chủng (UC06)**, immediately after **Bảng 2.8**.
+- Sequence level: **analysis/logical interaction**, not implementation architecture. Participants: `Quản trị viên` → `Ứng dụng Windows` → `Quản lý danh mục` → `Quyền hạn` → `Danh mục tiêm chủng`.
+- Primary-write-path rule confirmed for CRUD-grouped UC: Sequence does **not** duplicate every CRUD/read branch from the specification. It keeps the common load/write flow plus meaningful `alt` branches for authorization and business-validation failure.
+- No endpoint/service/repository/database participants.
+- HUIT practical source re-audited at **pp. 22–24**: actor/object/lifeline/execution/message/return/self/destruction semantics and analysis/design role of Sequence Diagram.
+- Implementation evidence rechecked at exact **main HEAD `a8ad9a1e97cd59e3c7c66600fd0e7843e51543b0`** against Catalog API/contracts/Windows flow.
+
+#### PlantUML / CI identity
+- Source: `docs/thesis/uml/Hinh_2_10_Sequence_Quan_Ly_Danh_Muc_Tiem_Chung.puml`
+- Final pilot source commit: `152015b683394d60a084d89b1bea47bce1a6a8ad`
+- GitHub Actions: **run #64**, run id `42575175016`, conclusion `success`
+- Artifact id: `13654921387`
+- Artifact digest: `sha256:4189896bb711eda512313b3f5227d624ec9916e803cd2bc5fe26a0d3ae4f3fba`
+- Rendered PNG SHA-256: `5404b0a42535ac28147c61f4bc6c04bf0ea21fdc74222304f926a75e0d4d4200`
+
+#### Word review artifact
+- `CNTT_KLCN090_THESIS-R1_UC1_Sequence_Review_Final.docx`
+- SHA-256: `365ef2d0295bd90be1caca3a2fb586f3c35530bbc9754808a54b3e61b38ff169`
+- Render: **85 pages**
+- UC1 Sequence appears on printed page **38**, immediately after Bảng 2.8 and before UC2.
+- Navigation/list page numbers synchronized to the review render.
+- Embedded Hình 2.9 hash remains exactly `8dc1b0f5cf1116f1098cd8216ddb9cd4afb66cee4b2661de1e79ae2d0b064f73`.
+- 14/14 System UC tables remain structurally intact with 10 HUIT fields.
+- In this one-sequence review artifact only, the existing Class Analysis figure is temporarily renumbered **Hình 2.11**. Final figure numbering will be synchronized once the approved Sequence set is integrated; do not treat this temporary number as the final 14-Sequence numbering baseline.
+
+**DONE:** UC1 Sequence pilot + Word placement + render/navigation regression.
+
+**ACTIVE:** none.
+
+**NEXT:** UC2 — `Quản lý ưu đãi` Sequence, only after user confirms continuation.
+
+**PARKED:** UC3–UC14 Sequence; final batch figure renumbering; semantic changes to Hình 2.9/14 UC.
+
