@@ -1,9 +1,9 @@
 @startuml
 !pragma layout elk
 ' THESIS-R1 — full 21 System Use Case portrait prototype
-' Semantic baseline: reconciliation v4, 21 UC / 27 direct associations.
-' Presentation policy: full-21 overview intentionally omits actor-generalization hierarchy;
-' the 8 actor generalizations remain in the semantic model and are shown/audited in detail views.
+' Semantic baseline: reconciliation v4, 21 UC / 27 direct associations / 8 actor generalizations.
+' Presentation policy: show the full actor hierarchy; UC aliases remain for audit/traceability,
+' while visible ellipse labels omit UC01..UC21 codes for thesis readability.
 ' Visual contract: A4 portrait, actor-centric fan-out, STRAIGHT-FIRST routing, no include/extend.
 
 skinparam monochrome true
@@ -24,6 +24,7 @@ skinparam packageStyle rectangle
 top to bottom direction
 
 actor "Người dùng" as User
+actor "Nhân viên" as Employee
 actor "Khách hàng" as Customer
 actor "Quản trị viên" as Admin
 actor "Lễ tân" as Reception
@@ -101,7 +102,18 @@ rectangle "HỆ THỐNG QUẢN LÝ TIÊM CHỦNG" as SystemBoundary {
   UC15 -[hidden]down- UC17
   UC17 -[hidden]down- UC08
 }
+' Actor generalization — full semantic hierarchy.
+Customer -up-|> User
+Employee -left-|> User
+Admin -up-|> Employee
+Reception -up-|> Employee
+Doctor -up-|> Employee
+Cashier -up-|> Employee
+Nurse -up-|> Employee
+Warehouse -up-|> Employee
+
 ' Actor ordering helpers only.
+User -[hidden]right- Employee
 Admin -[hidden]down- Reception
 Reception -[hidden]down- Doctor
 Doctor -[hidden]down- Cashier
