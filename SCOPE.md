@@ -2119,3 +2119,33 @@ UC1 là template pilot về bố cục/notation; **không phải ngoại lệ v�
 
 **PARKED:** semantic redesign of already-approved System UC/Sequence profile.
 
+
+
+### THESIS-R1 — Sequence UC1–UC14 FINAL Word integration — 09/11/2026
+
+**ALL 14 SYSTEM SEQUENCE DIAGRAMS INTEGRATED / FULL-DOCUMENT QA PASS.**
+
+- Final Word artifact: `CNTT_KLCN090_THESIS-R1_Sequence_UC1-UC14_Integrated_Final.docx`.
+- Word SHA-256: `3f22c1a24bcc585c185861106918f36486892e51e01d31505442bdef00914bf6`.
+- Render: **95 pages**; main-body page numbering still starts at logical page 1 after front matter.
+- Placement: Hình 2.12–2.23 inserted immediately after Bảng 2.10–2.21 respectively; adjacency audit **12/12 PASS**.
+- Existing analysis class diagram renumbered to **Hình 2.24**, logical page **64**.
+- Sequence logical pages after integration:
+  - Hình 2.10: 38; Hình 2.11: 40;
+  - Hình 2.12: 42; 2.13: 44; 2.14: 46; 2.15: 48; 2.16: 50; 2.17: 52;
+  - 2.18: 54; 2.19: 56; 2.20: 58; 2.21: 60; 2.22: 62; 2.23: 63.
+- Chapter 3 begins at logical page **65**.
+- Static navigation audit: **140 page-number entries checked, 0 mismatch** across Mục lục / Danh mục hình / Danh mục bảng.
+- Danh mục hình normalized with real tab leaders; the long Hình 2.13 entry wraps cleanly with the page number preserved on the continuation line.
+- 14/14 System UC specification tables remain present.
+- Embedded image identity: all 12 UC3–UC14 PNG hashes match the FINAL run #82 image set exactly; UC1/UC2 remain unchanged from their locked artifacts.
+- Full-document visual QA: all 95 rendered pages reviewed; no clipping, overlap, broken tables, or caption/image separation defects found.
+- Canonical render produced a complete 95-page PDF; PNG raster QA was completed from that PDF because the helper timed out while rasterizing the full 95 pages in one pass.
+
+**DONE:** System Sequence UC1–UC14 source/render/Word integration + navigation sync + full-document QA.
+
+**ACTIVE:** none.
+
+**NEXT:** continue only after user selects the next thesis slice; do not redesign approved System UC/Sequence semantics unless explicitly reopened.
+
+**PARKED:** semantic redesign of 14 System UC / locked Sequence profile.
