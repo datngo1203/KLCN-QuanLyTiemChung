@@ -1,0 +1,98 @@
+@startuml
+' THESIS-R1 - HUIT Sequence Diagram profile
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+skinparam sequence {
+  ArrowColor black
+  LifeLineBorderColor black
+  LifeLineBackgroundColor white
+  ParticipantBorderColor black
+  ParticipantBackgroundColor white
+  ActorBorderColor black
+  ActorFontColor black
+  ParticipantFontColor black
+  GroupBorderColor black
+  GroupBackgroundColor white
+  GroupFontColor black
+  MessageAlign center
+}
+hide footbox
+autonumber
+
+actor "Quản trị viên" as Admin
+participant "Ứng dụng Windows" as UI
+participant "Quản lý danh mục" as CatalogLogic
+participant "Quyền hạn" as Permission
+participant "Danh mục tiêm chủng" as CatalogData
+
+Admin -> UI : Mở chức năng quản lý danh mục
+activate UI
+UI -> CatalogLogic : Yêu cầu dữ liệu theo nhóm/trạng thái
+activate CatalogLogic
+CatalogLogic -> CatalogData : Tra cứu danh mục
+activate CatalogData
+CatalogData --> CatalogLogic : Dữ liệu hiện có
+deactivate CatalogData
+CatalogLogic --> UI : Danh sách danh mục
+deactivate CatalogLogic
+UI --> Admin : Hiển thị dữ liệu hiện có
+
+Admin -> UI : Chọn nhóm và thao tác
+
+alt Tra cứu / xem chi tiết
+  UI -> CatalogLogic : Yêu cầu tìm kiếm hoặc xem chi tiết
+  activate CatalogLogic
+  CatalogLogic -> CatalogData : Lấy dữ liệu phù hợp
+  activate CatalogData
+  CatalogData --> CatalogLogic : Kết quả tra cứu
+  deactivate CatalogData
+  CatalogLogic --> UI : Dữ liệu phù hợp
+  deactivate CatalogLogic
+  UI --> Admin : Hiển thị kết quả
+else Thêm mới / cập nhật / xóa
+  UI --> Admin : Hiển thị biểu mẫu hoặc yêu cầu xác nhận
+  Admin -> UI : Nhập, chỉnh sửa hoặc xác nhận thông tin
+  UI -> CatalogLogic : Yêu cầu thực hiện thao tác
+  activate CatalogLogic
+  CatalogLogic -> Permission : Kiểm tra quyền thao tác
+  activate Permission
+  Permission --> CatalogLogic : Kết quả quyền
+  deactivate Permission
+
+  alt Không đủ quyền
+    CatalogLogic --> UI : Từ chối thao tác
+    deactivate CatalogLogic
+    UI --> Admin : Thông báo không đủ quyền
+  else Được phép
+    CatalogLogic -> CatalogData : Kiểm tra dữ liệu, ràng buộc và thực hiện thao tác
+    activate CatalogData
+    alt Dữ liệu không hợp lệ / vi phạm ràng buộc
+      CatalogData --> CatalogLogic : Lỗi nghiệp vụ
+      deactivate CatalogData
+      CatalogLogic --> UI : Thông báo lỗi
+      deactivate CatalogLogic
+      UI --> Admin : Yêu cầu điều chỉnh hoặc giữ nguyên dữ liệu
+    else Hợp lệ
+      CatalogData --> CatalogLogic : Dữ liệu sau thay đổi
+      deactivate CatalogData
+      CatalogLogic --> UI : Kết quả thao tác
+      deactivate CatalogLogic
+      UI -> CatalogLogic : Tải lại danh sách
+      activate CatalogLogic
+      CatalogLogic -> CatalogData : Tra cứu dữ liệu mới nhất
+      activate CatalogData
+      CatalogData --> CatalogLogic : Danh sách cập nhật
+      deactivate CatalogData
+      CatalogLogic --> UI : Dữ liệu cập nhật
+      deactivate CatalogLogic
+      UI --> Admin : Hiển thị kết quả và dữ liệu mới nhất
+    end
+  end
+end
+
+deactivate UI
+@enduml
