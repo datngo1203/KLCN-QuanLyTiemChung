@@ -1976,7 +1976,23 @@ Nguồn khóa: `Bai giang TH PTTK HT_14DHTH.pdf`, phần Sơ đồ tuần tự v
 
 **ACTIVE:** redraw UC1 theo logical-operation + code-traceability profile.
 
-**NEXT:** chỉ khóa profile cho UC2–UC14 sau khi UC1 redraw PASS.
+**GLOBAL RULE:** profile này được khóa cho toàn bộ System Sequence UC1–UC14. UC1 dùng làm visual/template pilot; các UC sau kế thừa cùng nguyên tắc naming/traceability, chỉ thay participant/operation theo implementation thực tế.
 
 **Scope stop:** không dùng code-literal message labels cho Sequence ở 2.2.2; không kéo endpoint/database xuống hình nếu không cần.
+
+### THESIS-R1 — Sequence profile GLOBAL lock for UC1–UC14 — 09/11/2026
+
+**USER FINAL CONFIRMATION.**
+
+Áp dụng thống nhất cho **toàn bộ 14 System Sequence Diagram**:
+- notation HUIT/Rational Rose: Actor / Boundary / Control / domain-data object phù hợp;
+- participant ưu tiên tên class/view/service thật khi phù hợp và dễ hiểu;
+- call message dùng **logical operation** dạng `dongTu(...)`, không copy máy móc framework/API/ORM details;
+- mỗi logical operation phải có code traceability đến method/command/guard thực tế;
+- return message là dữ liệu/kết quả ngắn;
+- không thêm endpoint/database lifeline nếu không cần cho mức thiết kế System UC;
+- mỗi hình đặt ngay sau bảng đặc tả UC tương ứng;
+- acceptance: semantic UC PASS + HUIT notation PASS + code traceability PASS + A4 readability PASS.
+
+UC1 là template pilot về bố cục/notation; **không phải ngoại lệ về phương pháp**. UC2–UC14 dùng cùng profile và audit naming riêng theo code của từng module.
 
