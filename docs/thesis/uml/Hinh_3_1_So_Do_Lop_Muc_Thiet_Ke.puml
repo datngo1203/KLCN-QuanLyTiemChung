@@ -265,8 +265,13 @@ GoiVacXin -[hidden]down- LoVacXin
 LoVacXin -[hidden]down- BienDongKho
 
 ' Package layout: one landscape row
-P_HOSO -[hidden]right- P_DANGKY
-P_DANGKY -[hidden]right- P_LAMSANG
-P_LAMSANG -[hidden]right- P_DANHMUC
+P_HOSO -[hidden]right-> P_DANGKY
+P_DANGKY -[hidden]right-> P_LAMSANG
+P_LAMSANG -[hidden]right-> P_DANHMUC
+
+' Cross-package anchor row for landscape A4
+KhachHang -[hidden]right-> DangKyDichVu
+DangKyDichVu -[hidden]right-> PhieuKhamSangLoc
+PhieuKhamSangLoc -[hidden]right-> VacXin
 
 @enduml
