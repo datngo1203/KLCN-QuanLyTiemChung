@@ -1955,3 +1955,28 @@ Nguồn khóa: `Bai giang TH PTTK HT_14DHTH.pdf`, phần Sơ đồ tuần tự v
 
 **Scope stop:** không đổi semantic UC chỉ để khớp tên code; không dùng tên implementation làm người đọc mất nghĩa nghiệp vụ.
 
+### THESIS-R1 — Sequence naming profile FINAL: logical operations + code traceability — 09/11/2026
+
+**USER APPROVED / SUPERSEDES CODE-LITERAL MESSAGE RULE.**
+
+- **Participant naming:** ưu tiên tên class/view/service thật trong code khi tên đó ổn định, dễ hiểu và phù hợp mức mô hình. Ví dụ UC1: `CatalogView`, `CatalogViewModel`, `CatalogApiService`.
+- **Message naming:** dùng **logical operation name** ở mức thiết kế hệ thống, dạng `dongTu(...)`, sao cho người đọc hiểu nghiệp vụ mà không cần biết framework.
+- Mỗi logical operation phải **trace được** về một hoặc nhiều method/command/guard thật trong code.
+- Không copy máy móc các chi tiết implementation như `RelayCommand.Execute()`, generic `<T>`, HTTP endpoint, EF Core call, repository/database operation vào Sequence đặt cạnh System UC.
+- Ví dụ mapping UC1:
+  - `moQuanLyDanhMuc()` ↔ `CatalogView.LoadCatalog()` + `CatalogViewModel.InitializeAsync()`
+  - `taiDanhSach(nhom, trangThai)` ↔ `CatalogViewModel.Load(...)` + `CatalogApiService.ListAsync<T>(...)`
+  - `chonNhomDanhMuc(tab)` ↔ `CatalogViewModel.SelectResourceAsync(tab)`
+  - `luuDanhMuc(duLieu)` ↔ `CatalogViewModel.Save()` + `CatalogApiService.SaveAsync<T>(...)`
+  - `xoaDanhMuc(id)` ↔ `CatalogViewModel.Delete()` + `CatalogApiService.DeleteAsync(...)`
+  - guard quyền ↔ desktop `CanWrite/CanEdit` + backend `RequireWrite(...)/RequirePermission(...)`.
+- Return message dùng tên dữ liệu/kết quả ngắn, không cần `()`.
+- Nếu code không có class phù hợp, cho phép domain abstraction canonical nhưng phải ghi rõ trong audit/checkpoint là abstraction.
+- Acceptance mỗi Sequence: **UML/HUIT notation PASS + semantic UC PASS + code-traceability PASS + A4 readability PASS**.
+
+**ACTIVE:** redraw UC1 theo logical-operation + code-traceability profile.
+
+**NEXT:** chỉ khóa profile cho UC2–UC14 sau khi UC1 redraw PASS.
+
+**Scope stop:** không dùng code-literal message labels cho Sequence ở 2.2.2; không kéo endpoint/database xuống hình nếu không cần.
+
