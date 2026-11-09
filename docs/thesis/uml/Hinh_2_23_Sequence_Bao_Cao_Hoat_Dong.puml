@@ -1,0 +1,54 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Quản trị viên" as Admin
+boundary "ReportView" as View
+control "ReportViewModel" as VM
+participant "ReportApiService" as Service
+
+Admin -> View : moBaoCaoHoatDong()
+activate View
+View -> VM : khoiTaoBaoCao()
+activate VM
+VM --> View : hienThiLoaiBaoCao()
+deactivate VM
+
+Admin -> View : chonLoaiVaKhoangThoiGian(loai, tuNgay, denNgay)
+View -> VM : taoBaoCao(loai, tuNgay, denNgay)
+activate VM
+
+alt Khoảng thời gian hoặc quyền không hợp lệ
+  VM --> View : hienThiLoi(validation)
+else Hợp lệ
+  alt Doanh thu
+    VM -> Service : tongHopDoanhThu(tuNgay, denNgay)
+    activate Service
+    Service --> VM : baoCaoDoanhThu
+    deactivate Service
+    VM --> View : hienThiDoanhThu(baoCaoDoanhThu)
+  else Số liều vắc xin
+    VM -> Service : tongHopSoLieuTiem(tuNgay, denNgay)
+    activate Service
+    Service --> VM : baoCaoSoLieuTiem
+    deactivate Service
+    VM --> View : hienThiSoLieuTiem(baoCaoSoLieuTiem)
+  else Trạng thái đăng ký
+    VM -> Service : tongHopTrangThaiDangKy(tuNgay, denNgay)
+    activate Service
+    Service --> VM : baoCaoTrangThai
+    deactivate Service
+    VM --> View : hienThiTrangThaiDangKy(baoCaoTrangThai)
+  end
+end
+
+deactivate VM
+View --> Admin : hienThiKetQua()
+deactivate View
+@enduml
