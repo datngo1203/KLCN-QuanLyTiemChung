@@ -2235,3 +2235,20 @@ Source of truth:
 **NEXT:** 3.1.2 — Mô hình quan hệ, only after user confirms.
 
 **PARKED:** redesign of approved Hình 3.1 / Sequence / System UC semantics.
+
+
+### THESIS-R1 — Hình 3.1 portrait candidate with relationship audit — 09/11/2026
+
+- User requested moving the catalog/inventory cluster above the registration/clinical cluster so Hình 3.1 can fit portrait Word.
+- Relationship audit performed against current Domain entities + EF Core mappings.
+- Important implementation relations confirmed; however Hình 3.1 intentionally shows **core design associations**, while composite/secondary FK detail is deferred to 3.1.2 to avoid turning the class diagram into a physical ERD.
+- Current portrait source: `docs/thesis/uml/Hinh_3_1_So_Do_Lop_Muc_Thiet_Ke.puml`.
+- Source commit: `a1e57be1ce1fa6c8e06989342a6b860f386d5009`.
+- GitHub Actions: run #101, run id `42616001961`, success.
+- Artifact id: `13672077890`.
+- PNG: `910x1157`, SHA-256 `470c8e613b1cf3a45cb311d8429a233160a5a7423cdc2e9ebc8d203579c7557a`.
+- Layout: catalog/service classes above; profile/registration/appointment/clinical classes below; orthogonal connectors; lower connector ports separated to reduce overlap.
+- Status: **REVIEW CANDIDATE**, not yet integrated into Word.
+
+**ACTIVE:** user review Hình 3.1 portrait candidate.
+**NEXT:** if approved, integrate into portrait Word page and update navigation; then open 3.1.2 relational model.
