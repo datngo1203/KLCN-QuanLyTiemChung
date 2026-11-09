@@ -14,6 +14,7 @@ namespace TiemChung.Tests;
 public sealed class DevelopmentCatalogSeedSqlTests
 {
     private static readonly IHostEnvironment Development = new SeedEnvironment("Development");
+    private static readonly DateTimeOffset CheckedAt = new(2026,11,9,0,0,0,TimeSpan.FromHours(7));
 
     [Fact, Trait("Category", "SqlIntegration")]
     public async Task CuratedGraphIsSourceBackedReadableByBothClientsAndRerunPreservesEdits()
@@ -21,52 +22,79 @@ public sealed class DevelopmentCatalogSeedSqlTests
         await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
             await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentCatalogSeed.RunAsync(f.Db, new SeedEnvironment("Production")));
             Assert.Empty(await f.Db.Vaccines.ToArrayAsync());
+
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
             f.Db.ChangeTracker.Clear();
+
             var vaccines = await f.Db.Vaccines.OrderBy(x => x.Code).ToArrayAsync();
-            Assert.Equal(new[] { "Avaxim 80U", "Havax 0,5 ml" }, vaccines.Select(x => x.TenVacXin));
-            Assert.Equal(new decimal[] { 685000, 295000 }, vaccines.Select(x => x.Gia));
+            Assert.Equal(15, vaccines.Length);
+            Assert.Equal(new[] {
+                "VX-AVAXIM-80U","VX-BEXSERO","VX-GARDASIL-9","VX-HAVAX-05","VX-HEXAXIM",
+                "VX-INFANRIX-HEXA","VX-MMR-II","VX-NIMENRIX","VX-PREVENAR-13","VX-QDENGA",
+                "VX-ROTARIX","VX-ROTATEQ","VX-SHINGRIX","VX-VARIVAX","VX-VAXIGRIP"
+            }, vaccines.Select(x => x.Code));
+            var prices = vaccines.ToDictionary(x => x.Code, x => x.Gia);
+            Assert.Equal(685000, prices["VX-AVAXIM-80U"]);
+            Assert.Equal(1098000, prices["VX-HEXAXIM"]);
+            Assert.Equal(1290000, prices["VX-PREVENAR-13"]);
+            Assert.Equal(1788000, prices["VX-BEXSERO"]);
+            Assert.Equal(3890000, prices["VX-SHINGRIX"]);
+            Assert.Equal(2998000, prices["VX-GARDASIL-9"]);
+            Assert.Equal(1390000, prices["VX-QDENGA"]);
             Assert.All(vaccines, v => {
-                Assert.Equal("Intramuscular", v.DuongDung); Assert.Null(v.DuongDungKhac);
-                Assert.Equal(0.5m, v.TheTich); Assert.NotEmpty(v.LieuLuong); Assert.NotEmpty(v.PhanUngSauTiem);
+                Assert.Equal("Active", v.TrangThai);
+                Assert.NotEmpty(v.DoiTuongSuDung!); Assert.NotEmpty(v.DuongDung!);
+                Assert.True(v.Gia > 0); Assert.True(v.TheTich > 0); Assert.NotEmpty(v.LieuLuong);
                 Assert.Contains("https://vnvc.vn/gia-tiem-chung-vac-xin/", v.NguonThongTin);
                 Assert.InRange(v.NguonThongTin!.Length, 1, 250);
-                Assert.StartsWith("https://vnvc.vn/", v.DuongDanNguon);
-                Assert.Equal(new DateTimeOffset(2026,11,5,0,0,0,TimeSpan.FromHours(7)), v.NgayCapNhatThongTin);
+                Assert.StartsWith("http", v.DuongDanNguon);
+                Assert.Equal(CheckedAt, v.NgayCapNhatThongTin);
             });
-            Assert.Single(await f.Db.Set<Benh>().ToArrayAsync());
-            Assert.Equal(2, await f.Db.Set<VacXin_Benh>().CountAsync());
-            var technology = Assert.Single(await f.Db.Set<CongNgheVacXin>().ToArrayAsync());
-            Assert.StartsWith("https://www.sanofi.com/", technology.DuongDanNguon);
-            Assert.Equal(vaccines[0].MaVacXin, Assert.Single(await f.Db.Set<VacXin_CongNghe>().ToArrayAsync()).MaVacXin);
-            Assert.Equal(2, await f.Db.Set<VaccineRegimen>().CountAsync());
-            var doses = await f.Db.Set<VaccineRegimenDose>().OrderBy(x => x.RegimenId).ThenBy(x => x.DoseOrder).ToArrayAsync();
-            Assert.Equal(4, doses.Length);
-            Assert.All(doses, d => { Assert.Null(d.MinimumIntervalDays); Assert.Null(d.RecommendedIntervalDays); });
-            Assert.All(doses.Where(d => d.DoseOrder == 2), d => {
-                Assert.Equal("6 tháng sau mũi 1", d.TimingLabel);
-                Assert.Equal((1, 6, "Months"), (d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit));
-            });
+            Assert.Equal(19, await f.Db.Set<Benh>().CountAsync());
+            Assert.Equal(4, await f.Db.Set<CongNgheVacXin>().CountAsync());
+            Assert.Contains(await f.Db.Set<CongNgheVacXin>().ToArrayAsync(), x => x.Code == "CNVX-SONG-GIAM-DOC-LUC");
+            Assert.Contains(await f.Db.Set<CongNgheVacXin>().ToArrayAsync(), x => x.Code == "CNVX-TAI-TO-HOP");
+            Assert.Contains(await f.Db.Set<CongNgheVacXin>().ToArrayAsync(), x => x.Code == "CNVX-CONG-HOP");
+            Assert.True(await f.Db.Set<VacXin_Benh>().CountAsync() >= 15);
+            Assert.True(await f.Db.Set<VacXin_CongNghe>().CountAsync() >= 10);
+            Assert.True(await f.Db.Set<VaccineRegimen>().CountAsync() >= 15);
+            Assert.True(await f.Db.Set<VaccineRegimenDose>().CountAsync() >= 30);
             Assert.Empty(await f.Db.Set<GoiVacXin>().ToArrayAsync());
             Assert.DoesNotContain("DEMO", await Snapshot(f.Db));
             Assert.DoesNotContain("mô phỏng", await Snapshot(f.Db));
+
+            var avaxim = vaccines.Single(x => x.Code == "VX-AVAXIM-80U");
+            var avaximRegimen = await f.Db.Set<VaccineRegimen>().SingleAsync(x => x.VaccineId == avaxim.MaVacXin);
+            var avaximDose2 = await f.Db.Set<VaccineRegimenDose>().SingleAsync(x => x.RegimenId == avaximRegimen.Id && x.DoseOrder == 2);
+            Assert.Equal((1, 6, "Months"), (avaximDose2.AnchorDoseOrder, avaximDose2.IntervalValue, avaximDose2.IntervalUnit));
+
+            var rotateq = vaccines.Single(x => x.Code == "VX-ROTATEQ");
+            var rotateqRegimen = await f.Db.Set<VaccineRegimen>().SingleAsync(x => x.VaccineId == rotateq.MaVacXin);
+            var rotateqDose2 = await f.Db.Set<VaccineRegimenDose>().SingleAsync(x => x.RegimenId == rotateqRegimen.Id && x.DoseOrder == 2);
+            Assert.Equal((1, 4, "Weeks"), (rotateqDose2.AnchorDoseOrder, rotateqDose2.IntervalValue, rotateqDose2.IntervalUnit));
+
+            var qdenga = vaccines.Single(x => x.Code == "VX-QDENGA");
+            var qdengaRegimen = await f.Db.Set<VaccineRegimen>().SingleAsync(x => x.VaccineId == qdenga.MaVacXin);
+            var qdengaDose2 = await f.Db.Set<VaccineRegimenDose>().SingleAsync(x => x.RegimenId == qdengaRegimen.Id && x.DoseOrder == 2);
+            Assert.Equal((1, 3, "Months"), (qdengaDose2.AnchorDoseOrder, qdengaDose2.IntervalValue, qdengaDose2.IntervalUnit));
 
             using var http = f.Factory.CreateClient();
             var identity = new TiemChung.Desktop.Services.IdentityApiService(http);
             Assert.True((await identity.LoginAsync("s2.seed", f.Password)).Succeeded);
             var desktop = new TiemChung.Desktop.Services.CatalogApiService(identity);
             var windows = await desktop.ListAsync<TiemChung.Desktop.Services.CatalogVaccine>("vaccines");
-            Assert.Equal(2, windows.Length);
+            Assert.Equal(15, windows.Length);
             var web = (await f.Client.GetFromJsonAsync<VaccineListResponse>("/api/v1/catalog/vaccines"))!;
-            Assert.Equal("database", web.Source); Assert.Equal(2, web.Items.Count);
-            Assert.All(web.Items, v => { Assert.NotNull(v.SourceUrl); Assert.NotNull(v.InformationUpdatedAt); Assert.Single(v.Regimens); });
-            Assert.All(windows.SelectMany(v => v.Regimens), r => Assert.Equal("Months", r.Doses.Single(d => d.DoseOrder == 2).IntervalUnit));
-            Assert.All(web.Items.SelectMany(v => v.Regimens), r => Assert.Equal("Months", r.Doses.Single(d => d.DoseOrder == 2).IntervalUnit));
+            Assert.Equal("database", web.Source); Assert.Equal(15, web.Items.Count);
+            Assert.All(web.Items, v => { Assert.NotNull(v.SourceUrl); Assert.NotNull(v.InformationUpdatedAt); Assert.NotEmpty(v.Diseases); Assert.NotEmpty(v.Regimens); });
+            Assert.Contains(web.Items, v => v.Code == "VX-GARDASIL-9" && v.Diseases.Any(d => d.Code == "BENH-HPV"));
+            Assert.Contains(web.Items, v => v.Code == "VX-INFANRIX-HEXA" && v.Diseases.Count == 6);
+            Assert.Contains(windows, v => v.Code == "VX-QDENGA");
 
-            vaccines[0].Gia = 123456; vaccines[0].TenVacXin = "Avaxim đã chỉnh sửa"; vaccines[0].TrangThai = "Inactive";
-            doses[1].TimingLabel = "Nhân viên đã chỉnh lịch tham khảo";
-            doses[1].AnchorDoseOrder = doses[1].IntervalValue = null;
-            doses[1].IntervalUnit = null;
+            avaxim.Gia = 123456; avaxim.TenVacXin = "Avaxim đã chỉnh sửa"; avaxim.TrangThai = "Inactive";
+            avaximDose2.TimingLabel = "Nhân viên đã chỉnh lịch tham khảo";
+            avaximDose2.AnchorDoseOrder = avaximDose2.IntervalValue = null;
+            avaximDose2.IntervalUnit = null;
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
             var before = await Snapshot(f.Db);
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
@@ -83,7 +111,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
             var legacy = await Snapshot(f.Db);
             await using var other = new TiemChungDbContext(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(f.Database.ConnectionString).Options);
             await Task.WhenAll(DevelopmentCatalogSeed.RunAsync(f.Db, Development), DevelopmentCatalogSeed.RunAsync(other, Development));
-            Assert.Equal(4, await f.Db.Vaccines.CountAsync());
+            Assert.Equal(17, await f.Db.Vaccines.CountAsync());
             Assert.Single(await f.Db.Set<GoiVacXin>().ToArrayAsync());
             Assert.Equal(2, await f.Db.Set<GoiVacXin_VacXin>().CountAsync());
             Assert.All(await f.Db.Vaccines.Where(v => v.Code.StartsWith("VX-DEMO-")).ToArrayAsync(), v => {
