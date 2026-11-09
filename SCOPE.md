@@ -2170,3 +2170,19 @@ Source of truth:
 - A4 readability PASS.
 
 **Scope stop:** chưa sửa Hình 3.2 / mô hình quan hệ trong slice này.
+
+
+### THESIS-R1 — 3.1.1 design class split candidate — 09/11/2026
+
+- Single-diagram pilot `Hinh_3_1_So_Do_Lop_Muc_Thiet_Ke.puml` rendered successfully in run #83 but is **visually rejected as too dense** for A4.
+- Following HUIT Chapter 7 design principle of reducing complexity/coupling, the candidate is split:
+  - `Hinh_3_1a_Lop_Thiet_Ke_Nghiep_Vu_Tiem_Chung.puml`
+  - `Hinh_3_1b_Lop_Thiet_Ke_Danh_Muc_Va_Kho.puml`
+- Latest render: run #85, source head `8aa5d190865d18539642fe66ae92cb150aecb9b0`, success.
+- 3.1a covers hồ sơ → đăng ký → lịch hẹn → khám sàng lọc → chỉ định → mũi tiêm → theo dõi, with reference classes for vaccine/package/lot.
+- 3.1b covers vaccine catalog, disease/technology association classes, package composition, regimen/doses, lot, inventory movement and receipt.
+- Attributes/types are sourced from current domain model; no fake entity methods are added because behavior is implemented outside the entity classes.
+- **Status: REVIEW CANDIDATE; not integrated into Word.**
+
+**ACTIVE:** user review of 3.1a/3.1b design-class notation/layout.
+**NEXT:** if approved, finalize hashes/captions and replace stale Hình 3.1 in Word; then open 3.1.2 relational model.
