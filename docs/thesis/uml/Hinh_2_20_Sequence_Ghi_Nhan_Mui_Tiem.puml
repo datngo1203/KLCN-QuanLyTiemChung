@@ -1,0 +1,57 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Điều dưỡng" as Nurse
+boundary "VaccinationView" as View
+control "VaccinationViewModel" as VM
+participant "VaccinationApiService" as Service
+
+Nurse -> View : moGhiNhanMuiTiem()
+activate View
+View -> VM : taiChiDinhCoTheThucHien(tuKhoa)
+activate VM
+VM -> Service : taiChiDinhHopLe(tuKhoa)
+activate Service
+Service --> VM : danhSachChiDinh
+deactivate Service
+VM --> View : capNhatDanhSach(danhSachChiDinh)
+deactivate VM
+
+Nurse -> View : chonChiDinh(id)
+View -> VM : taiChiTietChiDinh(id)
+activate VM
+VM -> Service : doiChieuNguonVaTaiLo(id)
+activate Service
+Service --> VM : chiTiet, danhSachLo
+deactivate Service
+VM --> View : hienThiChiTietVaLo()
+deactivate VM
+
+Nurse -> View : chonLoVaNhapViTri(soLo, viTri)
+View -> VM : ghiNhanMuiTiem(soLo, viTri)
+activate VM
+alt Không đủ điều kiện hoặc lô không hợp lệ
+  VM --> View : hienThiLoi(validation)
+else Hợp lệ
+  VM -> Service : ghiNhanMuiTiem(chiDinh, soLo, viTri)
+  activate Service
+  alt Nguồn/thanh toán/tồn kho thay đổi
+    Service --> VM : loiNghiepVu
+    VM --> View : hienThiLoi(loiNghiepVu)
+  else Ghi nhận thành công
+    Service --> VM : muiTiemDaGhiNhan
+    VM --> View : hienThiKetQua(muiTiemDaGhiNhan)
+  end
+  deactivate Service
+end
+deactivate VM
+View --> Nurse : thongBaoKetQua()
+deactivate View
+@enduml
