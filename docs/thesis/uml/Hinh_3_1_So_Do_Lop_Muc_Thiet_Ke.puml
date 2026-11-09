@@ -129,34 +129,35 @@ class TheoDoiSauTiem <<entity>> {
 
 ' ---------------------------------------------------------------------------
 ' Layout strategy
-' - Catalog/package/inventory above.
-' - Registration in the middle.
-' - Appointment -> screening -> indication -> vaccination -> aftercare downward.
-' - Directional association links are used as layout hints; semantic remains
-'   the multiplicities at both ends.
+' Compact portrait topology: central business spine, support classes on sides.
 ' ---------------------------------------------------------------------------
 
-' Catalog top row.
+' Catalog top.
 GoiVacXin -[hidden]right- GoiVacXin_VacXin
 GoiVacXin_VacXin -[hidden]right- VacXin
 VacXin -[hidden]right- LoVacXin
 
-' Registration row.
-ChiTietGoiVacXin -[hidden]right- KhachHang
-KhachHang -[hidden]right- KhuyenMai
-KhuyenMai -[hidden]right- DangKyDichVu
-DangKyDichVu -[hidden]right- ThanhToan
-ThanhToan -[hidden]right- ChiTietVacXinLe
+' Local vertical alignment for service details.
+GoiVacXin -[hidden]down- ChiTietGoiVacXin
+VacXin -[hidden]down- ChiTietVacXinLe
 
-' Main vertical flow and local side classes.
+' Registration neighborhood.
+KhachHang -[hidden]down- NguoiDuocTiem
+NguoiDuocTiem -[hidden]right- DangKyDichVu
+KhuyenMai -[hidden]left- DangKyDichVu
+DangKyDichVu -[hidden]right- ThanhToan
+
+' Central clinical spine.
 DangKyDichVu -[hidden]down- LichHenTiem
 LichHenTiem -[hidden]right- NhacLich
 LichHenTiem -[hidden]down- PhieuKhamSangLoc
-NhanVien -[hidden]right- PhieuKhamSangLoc
+NhanVien -[hidden]left- PhieuKhamSangLoc
 PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
-ChiDinhTiem -[hidden]left- MuiTiem
+ChiDinhTiem -[hidden]down- MuiTiem
 MuiTiem -[hidden]down- TheoDoiSauTiem
-KhachHang -[hidden]down- NguoiDuocTiem
+
+' Keep inventory close to administration.
+LoVacXin -[hidden]down- MuiTiem
 
 ' ---------------------------------------------------------------------------
 ' Catalog / package / inventory
@@ -214,7 +215,7 @@ VacXin "1" -down- "0..*" ChiDinhTiem
 ' ---------------------------------------------------------------------------
 
 ' MaChiDinh is nullable and unique when present.
-ChiDinhTiem "0..1" -left- "0..1" MuiTiem
+ChiDinhTiem "0..1" -down- "0..1" MuiTiem
 
 NguoiDuocTiem "1" -down- "0..*" MuiTiem
 LoVacXin "1" -down- "0..*" MuiTiem
