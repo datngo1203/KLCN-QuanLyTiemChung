@@ -16,8 +16,8 @@ skinparam classBorderColor black
 skinparam classFontColor black
 skinparam arrowColor black
 skinparam linetype polyline
-skinparam nodesep 46
-skinparam ranksep 54
+skinparam nodesep 40
+skinparam ranksep 46
 hide circle
 hide empty methods
 top to bottom direction
@@ -129,26 +129,39 @@ class TheoDoiSauTiem <<entity>> {
 
 ' ---------------------------------------------------------------------------
 ' Layout strategy
-' Portrait A4: minimal constraints.
-' Keep only the catalog header and central clinical spine fixed; let Graphviz
-' compact support classes around their real associations.
+' Portrait A4 three-column scaffold.
+' Left  : package/profile/staff.
+' Center: registration -> appointment -> screening -> indication -> injection -> aftercare.
+' Right : vaccine/service/payment/reminder/inventory support.
+' Hidden links affect layout only; they carry no UML semantics.
 ' ---------------------------------------------------------------------------
 
-' Catalog header.
-GoiVacXin -[hidden]right- GoiVacXin_VacXin
-GoiVacXin_VacXin -[hidden]right- VacXin
+' LEFT COLUMN
+GoiVacXin -[hidden]down- ChiTietGoiVacXin
+ChiTietGoiVacXin -[hidden]down- KhachHang
+KhachHang -[hidden]down- NguoiDuocTiem
+NguoiDuocTiem -[hidden]down- NhanVien
 
-' Main business / clinical spine.
+' CENTER COLUMN
+GoiVacXin_VacXin -[hidden]down- DangKyDichVu
 DangKyDichVu -[hidden]down- LichHenTiem
 LichHenTiem -[hidden]down- PhieuKhamSangLoc
 PhieuKhamSangLoc -[hidden]down- ChiDinhTiem
 ChiDinhTiem -[hidden]down- MuiTiem
 MuiTiem -[hidden]down- TheoDoiSauTiem
 
-' Keep common side companions close without forcing whole rows.
-GoiVacXin -[hidden]down- ChiTietGoiVacXin
+' RIGHT COLUMN
 VacXin -[hidden]down- ChiTietVacXinLe
-KhachHang -[hidden]down- NguoiDuocTiem
+ChiTietVacXinLe -[hidden]down- KhuyenMai
+KhuyenMai -[hidden]down- ThanhToan
+ThanhToan -[hidden]down- NhacLich
+NhacLich -[hidden]down- LoVacXin
+
+' Top row and short local rows.
+GoiVacXin -[hidden]right- GoiVacXin_VacXin
+GoiVacXin_VacXin -[hidden]right- VacXin
+ChiTietGoiVacXin -[hidden]right- DangKyDichVu
+DangKyDichVu -[hidden]right- ChiTietVacXinLe
 LichHenTiem -[hidden]right- NhacLich
 NhanVien -[hidden]right- PhieuKhamSangLoc
 MuiTiem -[hidden]right- LoVacXin
@@ -172,14 +185,14 @@ VacXin "1" -- "0..*" LoVacXin
 ' Profile / registration / payment
 ' ---------------------------------------------------------------------------
 
-KhachHang "1" -down- "0..*" NguoiDuocTiem
-NguoiDuocTiem "1" -right- "0..*" DangKyDichVu
+KhachHang "1" -- "0..*" NguoiDuocTiem
+NguoiDuocTiem "1" -- "0..*" DangKyDichVu
 KhachHang "1" -- "0..*" DangKyDichVu
 
-DangKyDichVu "0..*" -right- "0..1" KhuyenMai
+DangKyDichVu "0..*" -- "0..1" KhuyenMai
 
 ' ThanhToan.MaDangKy is required and unique.
-DangKyDichVu "1" -right- "0..1" ThanhToan
+DangKyDichVu "1" -- "0..1" ThanhToan
 
 ' ---------------------------------------------------------------------------
 ' Appointment / reminder
@@ -200,7 +213,7 @@ LichHenTiem "0..1" -down- "0..1" PhieuKhamSangLoc
 ' Required semantic ownership of a screening record.
 DangKyDichVu "1" -- "0..*" PhieuKhamSangLoc
 NguoiDuocTiem "1" -- "0..*" PhieuKhamSangLoc
-NhanVien "1" -right- "0..*" PhieuKhamSangLoc
+NhanVien "1" -- "0..*" PhieuKhamSangLoc
 
 PhieuKhamSangLoc "1" -down- "0..*" ChiDinhTiem
 VacXin "1" -- "0..*" ChiDinhTiem
@@ -213,7 +226,7 @@ VacXin "1" -- "0..*" ChiDinhTiem
 ChiDinhTiem "0..1" -down- "0..1" MuiTiem
 
 NguoiDuocTiem "1" -- "0..*" MuiTiem
-MuiTiem "0..*" -right- "1" LoVacXin
+MuiTiem "0..*" -- "1" LoVacXin
 NhanVien "1" -- "0..*" MuiTiem
 
 ' TheoDoiSauTiem.MaMuiTiem is required and unique.
