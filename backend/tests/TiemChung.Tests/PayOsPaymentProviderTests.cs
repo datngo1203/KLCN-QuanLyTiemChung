@@ -62,7 +62,7 @@ public sealed class PayOsPaymentProviderTests
         Assert.Equal(123, created.OrderCode);
         Assert.Equal(created.PaymentLinkId, (await provider.ReadAsync(123, CancellationToken.None))!.PaymentLinkId);
 
-        var verified = provider.VerifyWebhook(Webhook("00", "valid-signature"));
+        var verified = await provider.VerifyWebhookAsync(Webhook("00", "valid-signature"), CancellationToken.None);
         Assert.NotNull(verified);
         Assert.Equal(123, verified.OrderCode);
         Assert.Equal(500_000, verified.Amount);
@@ -82,12 +82,12 @@ public sealed class PayOsPaymentProviderTests
     }
 
     [Fact]
-    public void InvalidSignatureIsRejectedAndSignedUnsuccessfulEventStaysUnsuccessful()
+    public async Task InvalidSignatureIsRejectedAndSignedUnsuccessfulEventStaysUnsuccessful()
     {
         IPayOsPaymentProvider provider = new FakePayOsPaymentProvider();
 
-        Assert.Null(provider.VerifyWebhook(Webhook("00", "invalid-signature")));
-        var unsuccessful = provider.VerifyWebhook(Webhook("21", "valid-signature"));
+        Assert.Null(await provider.VerifyWebhookAsync(Webhook("00", "invalid-signature"), CancellationToken.None));
+        var unsuccessful = await provider.VerifyWebhookAsync(Webhook("21", "valid-signature"), CancellationToken.None);
         Assert.NotNull(unsuccessful);
         Assert.False(unsuccessful.IsSuccessful);
         Assert.Equal("21", unsuccessful.ProviderCode);
@@ -96,7 +96,7 @@ public sealed class PayOsPaymentProviderTests
     private sealed class FakePayOsPaymentProvider : IPayOsPaymentProvider
     {
         private readonly PayOsCreatePaymentResult _result =
-            new(123, "link-123", "PENDING", "https://example.invalid/checkout", "qr-data");
+            new(123, 500_000, "link-123", "PENDING", "https://example.invalid/checkout", "qr-data");
 
         public bool IsReady => true;
 
@@ -108,20 +108,20 @@ public sealed class PayOsPaymentProviderTests
                 ? new(_result.OrderCode, 500_000, _result.PaymentLinkId, _result.Status, "REF-123")
                 : null);
 
-        public PayOsVerifiedWebhook? VerifyWebhook(PayOsWebhookEnvelope envelope)
+        public Task<PayOsVerifiedWebhook?> VerifyWebhookAsync(PayOsWebhookEnvelope envelope, CancellationToken cancellationToken)
         {
             using var json = JsonDocument.Parse(envelope.RawJson);
             var root = json.RootElement;
-            if (root.GetProperty("signature").GetString() != "valid-signature") return null;
+            if (root.GetProperty("signature").GetString() != "valid-signature") return Task.FromResult<PayOsVerifiedWebhook?>(null);
             var data = root.GetProperty("data");
             var code = data.GetProperty("code").GetString()!;
-            return new(
+            return Task.FromResult<PayOsVerifiedWebhook?>(new(
                 data.GetProperty("orderCode").GetInt64(),
                 data.GetProperty("amount").GetInt64(),
                 data.GetProperty("paymentLinkId").GetString()!,
                 data.GetProperty("reference").GetString(),
                 code == "00",
-                code);
+                code));
         }
     }
 

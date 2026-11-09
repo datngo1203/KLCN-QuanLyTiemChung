@@ -25,6 +25,7 @@ builder.Services.AddScoped<AppointmentNotifications>();
 builder.Services.AddHostedService<ReminderEmailDispatcher>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<PayOsPaymentOptions>(builder.Configuration.GetSection("Payment:PayOS"));
+builder.Services.AddSingleton<IPayOsPaymentProvider, PayOsPaymentProvider>();
 builder.Services.AddScoped<ReminderScheduler>();
 builder.Services.AddHostedService<ReminderSchedulerWorker>();
 builder.Services.AddDbContext<TiemChungDbContext>((services, options) =>
@@ -133,6 +134,7 @@ app.MapEmployeeAccessEndpoints();
 app.MapRegistrationEndpoints();
 app.MapPromotionEndpoints();
 app.MapPaymentEndpoints();
+app.MapPayOsPaymentEndpoints();
 app.MapAppointmentEndpoints();
 app.MapReminderEndpoints();
 app.MapClinicalEndpoints();

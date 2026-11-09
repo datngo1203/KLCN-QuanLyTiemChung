@@ -192,7 +192,7 @@ public static class PaymentEndpoints
         }).WithName("ConfirmRegistrationPayment").Produces<RegistrationPaymentDto>();
     }
 
-    private static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct,
+    internal static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct,
         bool customer = false) =>
         // All collectors lock the same registration after Identity account/session locks.
         await db.Registrations.FromSqlInterpolated(
@@ -200,7 +200,7 @@ public static class PaymentEndpoints
             .SingleOrDefaultAsync(ct) ?? throw (customer
                 ? new IdentityFailure(403, "permissionDenied") : new IdentityFailure(404, "resourceNotFound"));
 
-    private static async Task<DangKyDichVu> LockOwnedRegistration(TiemChungDbContext db, IdentityActor actor, int id,
+    internal static async Task<DangKyDichVu> LockOwnedRegistration(TiemChungDbContext db, IdentityActor actor, int id,
         CancellationToken ct)
     {
         if (id <= 0) throw new IdentityFailure(400, "validation");
@@ -218,7 +218,7 @@ public static class PaymentEndpoints
         return actor;
     }
 
-    private static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
+    internal static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
     {
         var audit = IdentityTransactions.Audit(db, action, context.TraceIdentifier,
             actor.Account.MaTaiKhoan, session: actor.Session.Id);
@@ -338,8 +338,8 @@ public static class PaymentEndpoints
         };
     }
 
-    private static bool SecurePayOsUrl(string value) =>
-        value.Length <= 2048 && Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+    internal static bool SecurePayOsUrl(string? value) =>
+        value is { Length: <= 2048 } && Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
         uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo);
 
     internal static async Task<RegistrationPaymentDto> Detail(TiemChungDbContext db, DangKyDichVu row, IdentityActor actor, CancellationToken ct)
