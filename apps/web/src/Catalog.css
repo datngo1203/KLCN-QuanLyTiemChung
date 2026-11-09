@@ -20,13 +20,23 @@
 .vaccine-detail-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
 .vaccine-detail-layout > .product-placeholder { min-height: 300px; border: 1px solid var(--line); border-radius: 18px; }
 .vaccine-detail-info { min-width: 0; }
-.vaccine-detail-info > .vac-reference:first-child { margin-top: 0; }
+.vaccine-availability { display: inline-flex; align-items: center; min-height: 36px; margin-bottom: 12px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.vaccine-availability.available { background: #e8f5ed; color: #17653a; }
+.vaccine-availability.unavailable { background: #fff3e7; color: #8a4510; }
 .vaccine-facts { margin: 0 0 28px; }
 .vaccine-facts > div { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; padding-block: 18px; border-bottom: 1px solid var(--line); }
 .vaccine-facts dt { color: var(--muted); font-size: 13px; }
 .vaccine-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .vaccine-price { color: var(--primary); font-size: 22px; }
-.catalog-clinical-note { overflow-wrap: anywhere; padding: 22px; margin-top: 32px; background: var(--blue-soft); border-radius: 14px; color: var(--ink); line-height: 1.8; font-size: 14px; }
+.vaccine-description, .vaccine-details { margin-top: 36px; }
+.vaccine-description h2, .vaccine-details h2 { margin-bottom: 14px; }
+.vaccine-description p { line-height: 1.8; overflow-wrap: anywhere; white-space: pre-line; }
+.vaccine-details > .vaccine-facts { margin-bottom: 0; }
+.vaccine-provenance { margin-top: 24px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; overflow-wrap: anywhere; }
+.vaccine-provenance h3 { margin: 0 0 8px; font-size: 16px; }
+.vaccine-provenance p { margin: 6px 0 0; line-height: 1.6; }
+.vaccine-provenance a { overflow-wrap: anywhere; }
+.vaccine-detail-info > .button:disabled { cursor: not-allowed; opacity: .58; }
 .vaccine-regimens { margin-top: 32px; overflow-wrap: anywhere; }
 .regimen-reference { margin-top: 16px; padding: clamp(16px, 3vw, 24px); border: 1px solid var(--line); border-radius: 16px; background: white; }
 .regimen-reference h3 { margin: 0; }
@@ -71,5 +81,7 @@
   .vaccine-detail-layout { grid-template-columns: 1fr; gap: 24px; }
   .vaccine-detail-layout > .product-placeholder { min-height: 170px; }
   .vaccine-facts > div { grid-template-columns: 1fr; gap: 8px; }
-  .vaccine-detail-info > .button { width: 100%; }
+  .vaccine-detail-info > .button { width: 100%; min-height: 48px; }
+  .vaccine-description, .vaccine-details, .vaccine-regimens { margin-top: 28px; }
+  .vaccine-provenance { padding: 16px; }
 }
