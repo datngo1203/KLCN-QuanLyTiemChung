@@ -6,6 +6,56 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — System Use Case FINAL semantic scope: 14 core UC — 09/11/2026
+
+**USER APPROVED / FINAL SEMANTIC SCOPE.** The thesis System Use Case model is finalized at **14 top-level core UC**. This checkpoint overrides both the earlier 21-UC semantic master for thesis artifact generation and the later 10-core candidate.
+
+#### Final 14 System Use Cases
+1. **Quản lý danh mục tiêm chủng**
+2. **Quản lý ưu đãi**
+3. **Quản lý lô và tồn kho vắc xin**
+4. **Quản lý hồ sơ khách hàng/người được tiêm**
+5. **Tra cứu dịch vụ tiêm chủng**
+6. **Đăng ký dịch vụ tiêm chủng**
+7. **Quản lý lịch hẹn**
+8. **Gửi nhắc lịch**
+9. **Ghi nhận khám sàng lọc và chỉ định**
+10. **Thanh toán dịch vụ**
+11. **Ghi nhận mũi tiêm**
+12. **Ghi nhận theo dõi sau tiêm**
+13. **Theo dõi hành trình tiêm chủng**
+14. **Báo cáo hoạt động**
+
+#### Supporting capabilities — implemented but not separate top-level thesis UC
+- Đăng ký tài khoản khách hàng.
+- Đăng nhập hệ thống.
+- Đổi mật khẩu.
+- Đăng xuất hệ thống.
+- Thay đổi chức danh tài khoản nhân viên / phân quyền theo phạm vi hiện hành.
+- Tự động gửi nhắc lịch.
+- Tra cứu lịch sử tiêm chủng.
+
+These supporting capabilities remain traceable in functional requirements, implementation/interface/testing, security/session mechanisms, or supporting/alternative flows where appropriate; they do **not** generate separate 2.2.2 specification tables or 3.2 Sequence Diagrams under this final thesis abstraction.
+
+#### Proposal coverage rationale
+- `Quản lý danh mục tiêm chủng` covers the proposal's management of vaccination categories/types, vaccine types/vaccines and related catalog content.
+- `Quản lý ưu đãi` covers the explicit promotion/benefit requirement.
+- `Báo cáo hoạt động` covers the explicit statistics/reporting requirement.
+- `Quản lý hồ sơ khách hàng/người được tiêm`, `Đăng ký dịch vụ tiêm chủng`, `Thanh toán dịch vụ`, `Quản lý lịch hẹn`, `Gửi nhắc lịch`, `Theo dõi hành trình tiêm chủng`, and `Tra cứu dịch vụ tiêm chủng` preserve direct traceability to the Website/Windows requirements in the approved proposal.
+- `Quản lý lô và tồn kho vắc xin`, `Ghi nhận khám sàng lọc và chỉ định`, `Ghi nhận mũi tiêm`, `Ghi nhận theo dõi sau tiêm` preserve the thesis's core vaccination-center operational flow and current implemented scope.
+- Basic auth/access capabilities remain mandatory implementation evidence but are modeled as supporting concerns rather than separate top-level thesis UC.
+
+#### Artifact consequence
+- **2.2.1:** redraw Hình 2.9 using exactly these 14 UC.
+- **2.2.2:** prepare **14 System UC specification tables**.
+- **3.2:** prepare **14 Sequence Diagrams**.
+- The previously approved 18-UC run #58 image and the 10-core candidate are **STALE/HISTORICAL** for final report use.
+- 7 Business Use Cases/processes in 2.1 remain unchanged.
+- Canonical terminology follows the `Terminology canonicalization` checkpoint immediately above.
+
+**Scope stop:** next task is redraw/render/visual-QA Hình 2.9 for this exact 14-UC set before drafting 2.2.2.
+
+
 ### THESIS-R1 — Terminology canonicalization + core-UC coverage reopen — 09/11/2026
 
 **IMPORTANT:** the immediately preceding `10 core UC` reset is now **CANDIDATE / REOPENED**, not final. Direct audit of the approved thesis proposal shows explicit required/scored capability groups for basic auth/authorization, catalog/vaccine management, promotion/benefit, statistics/reporting, appointment/reminder, customer Website search/selection/registration/payment/follow-up. Therefore the final System UC subset must preserve clear traceability to those proposal requirements; do not renumber/rewrite 2.2.2/3.2 from the 10-core candidate until coverage is reconciled.
