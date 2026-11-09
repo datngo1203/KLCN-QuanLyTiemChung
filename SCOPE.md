@@ -2186,3 +2186,23 @@ Source of truth:
 
 **ACTIVE:** user review of 3.1a/3.1b design-class notation/layout.
 **NEXT:** if approved, finalize hashes/captions and replace stale Hình 3.1 in Word; then open 3.1.2 relational model.
+
+
+### THESIS-R1 — 3.1.1 Design Class Diagram LANDSCAPE FINAL DIRECTION — 09/11/2026
+
+**SUPERVISOR GUIDANCE CONFIRMED BY USER.**
+
+- Hình 3.1 phải **ưu tiên một sơ đồ tổng hợp duy nhất**, không tách 3.1a/3.1b nếu vẫn có thể đọc được.
+- Cho phép trình bày **A4 ngang (landscape)** riêng cho trang chứa Hình 3.1.
+- Mục tiêu: giữ được cấu trúc lớp thiết kế tổng thể nhưng không biến hình thành schema dump.
+- Chỉ hiển thị các thuộc tính định danh/trạng thái/khóa ngoại hoặc thuộc tính nghiệp vụ cần để hiểu quan hệ; chi tiết cột/index/check constraint dành cho 3.1.2.
+- Giữ kiểu dữ liệu, visibility, multiplicity và quan hệ chính theo HUIT Chương 7 + domain/EF hiện hành.
+- Không bịa entity methods; behavior vẫn thuộc ViewModel/service trong implementation hiện hành.
+- Layout ưu tiên left-to-right, orthogonal routing, package/grouping và hidden layout hints để giảm crossing.
+- Candidate 3.1a/3.1b được giữ làm reference nhưng **không phải hướng final**.
+
+**ACTIVE:** redraw Hình 3.1 single landscape.
+
+**Acceptance:** 1 hình; A4 landscape readable; no clipping; multiplicity/relations legible; implementation-truth PASS.
+
+**Scope stop:** chưa sửa Hình 3.2 trong slice này.
