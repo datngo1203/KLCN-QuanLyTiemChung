@@ -2354,3 +2354,33 @@ Canonical academic sources for Hình 3.1:
 - Secondary provenance FKs (e.g. employee attribution on registration/payment/reminder) remain intentionally deferred to 3.1.2 to avoid turning Hình 3.1 into a physical ERD.
 
 **STATUS:** semantic candidate PASS; layout still REVIEW because it is wider than the preferred portrait arrangement. Not integrated into Word.
+
+
+### THESIS-R1 — Hình 3.1 multiplicity-overlap root cause + portrait scaffold — 09/11/2026
+
+**ROOT CAUSE CONFIRMED:**
+- The earlier multiplicity overlap was not caused by wrong multiplicity values.
+- It was primarily caused by `skinparam linetype ortho` / Graphviz orthogonal routing.
+- PlantUML documents that orthogonal layout has incorrect label positioning; Graphviz documents that `splines=ortho` does not properly handle ports/edge labels.
+- In class diagrams, multiplicities are endpoint labels on associations; when several associations share the same side/routing corridor of a class, ortho routing pushes those labels into the same area.
+
+**LOCKED FIX:**
+- Use `skinparam linetype polyline` for Hình 3.1.
+- Do not manually nudge multiplicity text.
+- Reduce label competition structurally by distributing neighboring classes around the target class and by using a 3-column portrait scaffold.
+- Keep semantic multiplicities from the Domain/EF audit unchanged unless implementation evidence changes.
+
+**PORTRAIT CANDIDATE:**
+- Source commit: `5d80547ecf8167e5886c8d1928e7527399400faa`
+- GitHub Actions run: **#107**, run id `42633233904`, success.
+- Artifact id: `13682127342`.
+- PNG: **959×1268** (portrait).
+- PNG SHA-256: `d1eec1b6d4d5d6ca48f6290bce27bf7ab6c2df650dc4d25e69979c0bd3e7c012`.
+- Layout scaffold:
+  - left: package/profile/staff;
+  - center: registration → appointment → screening → indication → injection → aftercare;
+  - right: vaccine/service/payment/reminder/inventory support.
+- Multiplicity readability is materially better than the ortho candidates.
+- Remaining work is visual only: shorten a few long cross-links / reduce crossings if needed. Do not reopen semantic multiplicities without new implementation evidence.
+
+**STATUS:** semantic PASS; multiplicity-routing root cause PASS; portrait layout REVIEW CANDIDATE; Word not modified.
