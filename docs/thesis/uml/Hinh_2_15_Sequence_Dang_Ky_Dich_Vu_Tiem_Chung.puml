@@ -1,0 +1,78 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Khách hàng" as Customer
+actor "Lễ tân" as Reception
+boundary "Registrations" as Web
+boundary "RegistrationView" as Win
+control "RegistrationViewModel" as VM
+participant "RegistrationApiService" as Service
+
+alt Khách hàng
+  Customer -> Web : moDangKyDichVu()
+  activate Web
+  Web -> Service : taiHoSoVaDanhMuc()
+  activate Service
+  Service --> Web : hoSo, danhMuc, cauHinh, uuDai
+  deactivate Service
+  Web --> Customer : hienThiBuocDangKy()
+else Lễ tân
+  Reception -> Win : moDangKyDichVu()
+  activate Win
+  Win -> VM : khoiTaoDangKy()
+  activate VM
+  VM -> Service : taiHoSoVaDanhMuc()
+  activate Service
+  Service --> VM : hoSo, danhMuc, cauHinh, uuDai
+  deactivate Service
+  VM --> Win : duLieuDangKy
+  deactivate VM
+  Win --> Reception : hienThiBuocDangKy()
+end
+
+alt Khách hàng
+  Customer -> Web : chonNguoiDuocTiemVaDichVu(duLieu)
+  Web -> Web : kiemTraBanNhap()
+  Web -> Service : taoDangKy(duLieu)
+  activate Service
+  alt Giá/thành phần hoặc ưu đãi đã thay đổi
+    Service --> Web : yeuCauXacNhanLai
+    Web -> Service : taiLaiDanhMucVaUuDai()
+    Service --> Web : duLieuMoi
+    Web --> Customer : hienThiThayDoiCanXacNhan()
+  else Tạo thành công
+    Service --> Web : maDangKy
+    Web --> Customer : hienThiDangKy(maDangKy)
+  end
+  deactivate Service
+else Lễ tân
+  Reception -> Win : chonNguoiDuocTiemVaDichVu(duLieu)
+  Win -> VM : taoDangKy(duLieu)
+  activate VM
+  VM -> VM : kiemTraBanNhap()
+  VM -> Service : taoDangKy(duLieu)
+  activate Service
+  alt Giá/thành phần hoặc ưu đãi đã thay đổi
+    Service --> VM : yeuCauXacNhanLai
+    VM -> Service : taiLaiDanhMucVaUuDai()
+    Service --> VM : duLieuMoi
+    VM --> Win : hienThiThayDoiCanXacNhan()
+  else Tạo thành công
+    Service --> VM : maDangKy
+    VM --> Win : hienThiDangKy(maDangKy)
+  end
+  deactivate Service
+  deactivate VM
+  Win --> Reception : hienThiKetQua()
+end
+
+deactivate Web
+deactivate Win
+@enduml
