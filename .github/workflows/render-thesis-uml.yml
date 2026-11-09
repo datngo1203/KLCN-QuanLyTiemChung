@@ -47,7 +47,7 @@ jobs:
           python -m pip install --quiet pillow opencv-python-headless
           python docs/thesis/uml/postprocess_activity.py
 
-      - name: Validate System Use Case diagram
+      - name: Postprocess System Use Case diagram
         shell: bash
         run: |
           set -euo pipefail
