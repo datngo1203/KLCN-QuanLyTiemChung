@@ -2252,3 +2252,80 @@ Source of truth:
 
 **ACTIVE:** user review Hình 3.1 portrait candidate.
 **NEXT:** if approved, integrate into portrait Word page and update navigation; then open 3.1.2 relational model.
+
+
+### THESIS-R1 — Hình 3.1 design-class semantics & notation LOCKED for handoff — 09/11/2026
+
+**USER CONFIRMED / PAUSE IMPLEMENTATION AFTER THIS CHECKPOINT.**
+
+Canonical academic sources for Hình 3.1:
+- HUIT Chương 6 — Sơ đồ lớp: class, association, multiplicity, association class, aggregation/composition, generalization.
+- HUIT Chương 7 — Thiết kế lớp: strong mapping từ phân tích sang thiết kế; tinh chế thuộc tính, mối kết hợp và hành vi; visibility và kiểu dữ liệu.
+- Current `main` Domain entities + EF Core mappings are implementation evidence, not a replacement for HUIT notation.
+
+**UML SHAPE / NOTATION RULES — LOCKED:**
+- Class is a rectangular UML class box, normally 3 compartments:
+  1) stereotype + class name,
+  2) attributes,
+  3) methods/operations only when academically and implementation-wise justified.
+- Domain/data classes use stereotype `<<entity>>` when appropriate.
+- Attribute syntax follows HUIT: `<visibility> <name> : <type>`.
+- IMPORTANT correction for next redraw: do **not** default all attributes to `+`. HUIT states default attribute visibility is local/private; use `-` unless there is specific design evidence for another visibility.
+- Association = solid line; multiplicity is shown at the appropriate ends (`1`, `0..1`, `0..*`, `1..*`, etc.).
+- Association class = class attached to an association when the relationship itself owns attributes/behavior; when refined to implementation, it may become an explicit class/entity with two associations.
+- Aggregation = hollow diamond at the whole side.
+- Composition = filled diamond at the whole side.
+- Generalization/inheritance = solid line with hollow triangle pointing to the general class.
+- Do not use aggregation/composition/generalization merely for decoration; only when semantics and implementation evidence support it.
+- Connector profile: prefer straight/orthogonal connectors; no spline/curved edges; minimize crossings and avoid lines passing through class boxes.
+- Layout is flexible: optimize topology/readability, do not force a rigid single-row or fixed-lane geometry.
+
+**DESIGN-CLASS SEMANTIC RULES — LOCKED:**
+- Hình 3.1 is a **design class diagram**, not a physical ERD.
+- Preserve strong mapping from the analysis class model, then refine using current implementation evidence.
+- Show core design associations and meaningful multiplicities; do not dump every composite/secondary FK.
+- Full FK/index/check-constraint/physical relation detail belongs in 3.1.2.
+- Association classes / bridge classes must be audited individually (e.g. service-detail / package-detail structures); do not blindly label everything as a plain entity.
+- Do not invent entity methods. If operations are shown, they must be justified by the analysis/design model and implementation; service/ViewModel methods are not automatically entity methods.
+- Prefer a small set of meaningful attributes per class so the figure remains readable.
+- Candidate layout direction: catalog/inventory may sit above or near the clinical/business cluster; portrait is preferred if readability remains good, but landscape is allowed by supervisor if necessary.
+
+**CURRENT CANDIDATE CLASS SET (not final semantic lock):**
+- Catalog/service/inventory: `VacXin`, `GoiVacXin`, `LoVacXin`, `ChiTietVacXinLe`, `ChiTietGoiVacXin`.
+- Profile/registration: `KhachHang`, `NguoiDuocTiem`, `KhuyenMai`, `DangKyDichVu`, `ThanhToan`, `NhanVien`.
+- Appointment/clinical: `LichHenTiem`, `NhacLich`, `PhieuKhamSangLoc`, `ChiDinhTiem`, `MuiTiem`, `TheoDoiSauTiem`.
+- Additional catalog/association/regimen classes seen in implementation may be reintroduced only if they improve semantic completeness without destroying readability: `Benh`, `CongNgheVacXin`, `VacXin_Benh`, `VacXin_CongNghe`, `GoiVacXin_VacXin`, `VaccineRegimen`, `VaccineRegimenDose`, inventory receipt/movement classes.
+
+**CURRENT CORE ASSOCIATIONS TO PRESERVE/RE-AUDIT:**
+- `KhachHang 1 — 0..* NguoiDuocTiem`
+- `KhachHang 1 — 0..* DangKyDichVu`
+- `NguoiDuocTiem 1 — 0..* DangKyDichVu`
+- `KhuyenMai 0..1 — 0..* DangKyDichVu`
+- `DangKyDichVu 1 — 0..* ChiTietVacXinLe`
+- `DangKyDichVu 1 — 0..* ChiTietGoiVacXin`
+- `DangKyDichVu 1 — 0..1 ThanhToan`
+- `DangKyDichVu 0..1/1 — 0..* LichHenTiem` must be rechecked against exact EF/domain semantics before final label.
+- `NguoiDuocTiem 1 — 0..* LichHenTiem`
+- `LichHenTiem 1 — 0..* NhacLich`
+- `LichHenTiem 0..1 — 0..1 PhieuKhamSangLoc`
+- `NhanVien 1 — 0..* PhieuKhamSangLoc`
+- `PhieuKhamSangLoc 1 — 0..* ChiDinhTiem`
+- `VacXin 1 — 0..* ChiDinhTiem`
+- `ChiDinhTiem 0..1 — 0..1 MuiTiem`
+- `NguoiDuocTiem 1 — 0..* MuiTiem`
+- `LoVacXin 1 — 0..* MuiTiem`
+- `NhanVien 1 — 0..* MuiTiem`
+- `MuiTiem 1 — 0..1 TheoDoiSauTiem`
+- `NhanVien 0..1 — 0..* TheoDoiSauTiem`
+- `VacXin 1 — 0..* ChiTietVacXinLe`
+- `GoiVacXin 1 — 0..* ChiTietGoiVacXin`
+- `VacXin 1 — 0..* LoVacXin`
+- Additional package/vaccine/disease/technology/regimen/inventory relations belong to the next semantic audit before finalizing the figure.
+
+**STATUS:**
+- Hình 3.1 remains **REVIEW CANDIDATE**, not final.
+- Do not integrate/replace Word Hình 3.1 until a new candidate passes notation + semantic + layout review.
+- 3.1.2 remains PARKED until 3.1.1 is accepted.
+
+**ACTIVE:** none — user explicitly paused this slice.
+**NEXT:** future chat may redraw Hình 3.1 from this checkpoint.
