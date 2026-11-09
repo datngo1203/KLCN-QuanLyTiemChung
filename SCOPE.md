@@ -1692,3 +1692,21 @@ Các mẫu dưới đây **không bị cấm**, nhưng phải tránh dùng liên
 
 **Scope stop:** không đổi semantic Hình 2.9/14 UC và không mở Sequence Diagram trong patch layout này.
 
+### THESIS-R1 — Whole-document language-review ACTIVE — 09/11/2026
+
+**USER CONFIRMED.**
+
+- Input artifact: `CNTT_KLCN090_THESIS-R1_14UC_LayoutFix_Final.docx`.
+- Review scope: toàn bộ **văn xuôi học thuật** của báo cáo; không rewrite máy móc mọi câu.
+- Writing profile áp dụng: quality-first, source-grounded, sentence-rhythm variation, tránh câu chuyển ý/kết luận quá tròn hoặc lặp khuôn; giữ nguyên citation, terminology canonical và implementation truth.
+- Ưu tiên sửa các đoạn có nhịp câu quá đều, nhiều cấu trúc đối xứng, scaffolding tổng quát, translationese hoặc câu dài làm nhiều nhiệm vụ.
+- Các bảng đặc tả, caption, heading, danh mục và dữ liệu cấu trúc chỉ sửa khi phát hiện lỗi ngôn ngữ/format rõ ràng; không đổi semantic 14 UC/Hình 2.9.
+- Bất kỳ implementation claim nào phát hiện stale trong quá trình review phải được đối chiếu source of truth trước khi sửa.
+- Sau edit phải render QA toàn tài liệu, kiểm TOC/danh mục/pagination và checkpoint artifact mới.
+
+**ACTIVE:** whole-document language-review.
+
+**PARKED:** Sequence Diagram 3.2; semantic changes ngoài lỗi factual/stale được xác minh.
+
+**Scope stop:** không tối ưu bằng cách làm giảm chất lượng chỉ để hạ AI-detector score.
+
