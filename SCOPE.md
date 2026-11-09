@@ -6,6 +6,38 @@ Cập nhật: **09/11/2026**. Hạn nộp theo kế hoạch R01: **08/11/2026**.
 
 ## Current State
 
+### THESIS-R1 — Hình 2.9 FINAL visual PASS — 14 UC / run #61 — 09/11/2026
+
+**USER-REQUESTED RENDER + VISUAL QA COMPLETE.** This checkpoint is the canonical final Hình 2.9 for the 14-UC thesis semantic scope and supersedes the historical 18-UC run #58 image.
+
+- Branch: `docs/thesis-r1-current-state`.
+- Semantic source commit: `dc9b0901a703822693aa5912ef0543098f86bcd9`.
+- Deterministic renderer/geometry commit: `c5996872ba2b2fafb2efae1ddcddec98d3068181`.
+- GitHub Actions: **run #61**, run id `42562326287`, conclusion `success`.
+- Artifact: `thesis-uml-rendered`, artifact id `13649906428`.
+- Artifact digest: `sha256:eb53b3e215fd9c1fcb25a0d097f6ac11082a1d62f5284beb918b3348d37afaa2`.
+- Final PNG: `Hinh_2_9_System_Use_Case_Tong_Quan.png`, **1620 × 2380 px**.
+- Final PNG SHA-256: `b3fb31705ad04578957c620c7da08fad25eaf0ff661f122c2202bf61f4e156bf`.
+- Semantic/render counts: **14 visible UC / 8 visible actors / 19 direct associations / 0 include / 0 extend / 0 UC generalization**.
+- Visible actors: Khách hàng, Quản trị viên, Lễ tân, Thu ngân, Bác sĩ, Điều dưỡng, Nhân viên kho, Dịch vụ thư điện tử.
+- Supporting capabilities intentionally not top-level in this view: registration/auth/password/logout, employee role/access change, automatic reminder, vaccination-history lookup.
+- `Thời gian` is not visible because automatic reminder is supporting rather than top-level in the finalized thesis System UC model.
+
+#### Automated geometry QA
+- `connector-through-ellipse = 0`.
+- `crossings = 1`, exactly the previously user-accepted pair `Lễ tân → Gửi nhắc lịch` × `Thu ngân → Thanh toán dịch vụ`.
+- No text clipping, ellipse-label collision, actor-label collision, missing actor, missing UC or missing/extra association found in final artifact.
+
+#### Human visual QA
+- Portrait composition remains consistent with the previously approved Hình 2.9 style.
+- UC labels and actor labels are readable; no UC codes are exposed.
+- Removed elements do not leave misleading connectors or orphan actors.
+- Remaining fan-out is traceable at report scale; the single accepted crossing remains unambiguous.
+- **VISUAL PASS.**
+
+**Scope stop:** Hình 2.9 is DONE. Next thesis work may proceed to 2.2.2 using the finalized 14-UC set.
+
+
 ### THESIS-R1 — System Use Case FINAL semantic scope: 14 core UC — 09/11/2026
 
 **USER APPROVED / FINAL SEMANTIC SCOPE.** The thesis System Use Case model is finalized at **14 top-level core UC**. This checkpoint overrides both the earlier 21-UC semantic master for thesis artifact generation and the later 10-core candidate.
