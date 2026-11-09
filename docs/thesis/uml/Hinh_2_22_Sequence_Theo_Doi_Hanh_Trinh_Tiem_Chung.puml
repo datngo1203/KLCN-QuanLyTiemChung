@@ -1,0 +1,51 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "VaccinationJourneys" as Journey
+boundary "VaccinationHistory" as History
+participant "api/identity" as Api
+
+Customer -> Journey : moHanhTrinhTiemChung()
+activate Journey
+Journey -> Api : taiDanhSachHanhTrinh()
+activate Api
+Api --> Journey : danhSachDangKyVaTrangThai
+deactivate Api
+Journey --> Customer : hienThiTongQuan()
+
+Customer -> Journey : chonHanhTrinh(idDangKy)
+Journey -> Api : taiChiTietHanhTrinh(idDangKy)
+activate Api
+Api --> Journey : dangKy, thanhToan, lichHen, muiTiem, tienDo
+deactivate Api
+Journey --> Customer : hienThiHanhTrinh()
+
+alt Có dữ liệu tiến độ liều
+  Journey -> Journey : hienThiTienDoLieu(tienDo)
+else Chưa xác định đủ số liều
+  Journey --> Customer : thongBaoChuaDuDuLieuTienDo()
+end
+
+alt Khách hàng mở lịch sử tiêm
+  Customer -> History : moLichSuTiem()
+  activate History
+  History -> Api : taiLichSuMuiTiem()
+  activate Api
+  Api --> History : danhSachMuiTiem
+  deactivate Api
+  History --> Customer : hienThiLichSu()
+  Customer -> History : chonMuiTiem(id)
+  History --> Customer : hienThiChiTietMuiTiem()
+  deactivate History
+end
+
+deactivate Journey
+@enduml
