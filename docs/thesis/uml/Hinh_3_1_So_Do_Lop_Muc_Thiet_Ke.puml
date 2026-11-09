@@ -69,8 +69,8 @@ digraph G {
       <TR><TD ALIGN="LEFT">+MaChiTietGoi : int<BR ALIGN="LEFT"/>+SoLuongGoi : int</TD></TR>
     </TABLE>>];
 
-    kh -> ndt [label="1 / 0..*", weight=8];
-    ndt -> dk [label="1 / 0..*", weight=8];
+    kh -> ndt [taillabel="1", headlabel="0..*", weight=8];
+    ndt -> dk [taillabel="1", headlabel="0..*", weight=8];
     km -> dk [constraint=false];
     tt -> dk [constraint=false];
     ctv -> dk [constraint=false];
@@ -119,10 +119,10 @@ digraph G {
       <TR><TD ALIGN="LEFT">+MaTheoDoi : int<BR ALIGN="LEFT"/>+TinhTrang : string</TD></TR>
     </TABLE>>];
 
-    lh -> pk [label="0..1 / 0..1", weight=8];
-    pk -> cd [label="1 / 0..*", weight=8];
-    cd -> mt [label="0..1 / 0..1", weight=8];
-    mt -> td [label="1 / 0..1", weight=8];
+    lh -> pk [taillabel="0..1", headlabel="0..1", weight=8];
+    pk -> cd [taillabel="1", headlabel="0..*", weight=8];
+    cd -> mt [taillabel="0..1", headlabel="0..1", weight=8];
+    mt -> td [taillabel="1", headlabel="0..1", weight=8];
 
     nl -> lh [constraint=false];
     nv -> pk [constraint=false];
@@ -150,11 +150,11 @@ digraph G {
       <TR><TD ALIGN="LEFT">+SoLo : string<BR ALIGN="LEFT"/>+HanSuDung : DateOnly<BR ALIGN="LEFT"/>+SoLuongTon : int</TD></TR>
     </TABLE>>];
 
-    vx -> lo [label="1 / 0..*", weight=8];
+    vx -> lo [taillabel="1", headlabel="0..*", weight=8];
   }
 
   // ---------- CROSS-ZONE CORE LINKS ----------
-  dk -> lh [label="1 / 0..*", weight=12];
+  dk -> lh [taillabel="1", headlabel="0..*", weight=12];
   vx -> cd [constraint=false];
   lo -> mt [constraint=false];
   vx -> ctv [constraint=false];
