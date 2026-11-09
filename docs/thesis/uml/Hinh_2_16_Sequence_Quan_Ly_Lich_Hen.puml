@@ -1,0 +1,76 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam dpi 180
+hide footbox
+autonumber
+
+actor "Lễ tân" as Reception
+actor "Khách hàng" as Customer
+boundary "AppointmentView" as Win
+boundary "Schedule" as Web
+control "AppointmentViewModel" as VM
+participant "AppointmentApiService" as Service
+
+Reception -> Win : moQuanLyLichHen()
+activate Win
+Win -> VM : khoiTaoLichHen()
+activate VM
+VM -> Service : taiNguonDangKy()
+activate Service
+Service --> VM : danhSachNguon
+deactivate Service
+VM --> Win : hienThiNguonDangKy()
+deactivate VM
+
+Reception -> Win : chonDangKyVaThoiGian(duLieu)
+Win -> VM : taoLichHen(duLieu)
+activate VM
+VM -> Service : taoLichHen(duLieu)
+activate Service
+alt Nguồn đăng ký/thanh toán/thời gian không hợp lệ
+  Service --> VM : loiNghiepVu
+  VM --> Win : hienThiLoi(loiNghiepVu)
+else Tạo thành công
+  Service --> VM : lichHen
+  VM --> Win : capNhatLichHen(lichHen)
+end
+deactivate Service
+deactivate VM
+Win --> Reception : hienThiKetQua()
+
+alt Đổi thời gian
+  Reception -> Win : nhapThoiGianMoi()
+  Win -> VM : doiLichHen(id, thoiGianMoi)
+  activate VM
+  VM -> Service : doiLichHen(id, thoiGianMoi)
+  activate Service
+  Service --> VM : lichHenDaCapNhat
+  deactivate Service
+  VM --> Win : capNhatLichHen(lichHenDaCapNhat)
+  deactivate VM
+else Hủy lịch
+  Reception -> Win : xacNhanHuy()
+  Win -> VM : huyLichHen(id)
+  activate VM
+  VM -> Service : huyLichHen(id)
+  activate Service
+  Service --> VM : lichHenDaHuy
+  deactivate Service
+  VM --> Win : capNhatLichHen(lichHenDaHuy)
+  deactivate VM
+end
+
+Customer -> Web : moLichHenCuaToi()
+activate Web
+Web -> Service : taiLichHenTrongPhamVi()
+activate Service
+Service --> Web : danhSachLichHen
+deactivate Service
+Web --> Customer : hienThiLichHen()
+deactivate Web
+deactivate Win
+@enduml
