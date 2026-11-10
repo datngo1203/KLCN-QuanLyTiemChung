@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using TiemChung.Api;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
+using TiemChung.Infrastructure.Data;
 using Xunit;
 
 namespace TiemChung.Tests;
