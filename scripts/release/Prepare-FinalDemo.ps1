@@ -45,13 +45,13 @@ function ShouldLaunch {
   return ((Read-Host 'Type OPEN to launch Web and Windows, otherwise skip').Trim() -ceq 'OPEN')
 }
 
-function Check-Audit([string]$raw) {
+function Check-Audit([string]$raw,[switch]$AllowCandidates) {
   $begin = $raw.IndexOf('{'); $end = $raw.LastIndexOf('}')
   if ($begin -lt 0 -or $end -le $begin) { throw 'No audit JSON found.' }
   $json = $raw.Substring($begin,$end-$begin+1)
   try { $audit = $json | ConvertFrom-Json } catch { throw 'Invalid audit JSON.' }
   if ($null -eq $audit.candidateCount -or $audit.candidateCount -isnot [int]) { throw 'Missing or invalid candidateCount.' }
-  if ($audit.candidateCount -ne 0) { throw 'Synthetic Catalog candidates found; no backup.' }
+  if (-not $AllowCandidates -and $audit.candidateCount -ne 0) { throw 'Synthetic Catalog candidates found; no backup.' }
   return $json
 }
 function Check-CatalogSql([string]$output) {
@@ -149,11 +149,12 @@ Check-FreshProject $compose $ComposeProject
 Call ($compose + @('up','-d','--build')) 'Build SQL/migrations/API'
 Call ($compose + @('run','--rm','-T','api','--seed-catalog')) 'Seed 15 source-backed vaccines'
 $raw = Capture ($compose + @('run','--rm','-T','api','--audit-catalog')) 'Audit catalog read-only'
-$json = Check-Audit $raw
+$json = Check-Audit $raw -AllowCandidates
 $out = Join-Path $env:LOCALAPPDATA ("VAC-Demo/Submission/" + (Get-Date -Format yyyyMMdd-HHmmss) + '-' + [guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $out -Force | Out-Null
 $report = Join-Path $out 'catalog-audit.json'
 [IO.File]::WriteAllText($report,$json,(New-Object Text.UTF8Encoding($false)))
+$null = Check-Audit $raw
 Write-Host "Audit: $report" -ForegroundColor Green
 $container = (Capture ($compose + @('ps','-q','sqlserver')) 'Find SQL container').Trim()
 if ($container -notmatch '^[0-9a-f]{12,64}$') { throw 'SQL container ID missing or invalid.' }
