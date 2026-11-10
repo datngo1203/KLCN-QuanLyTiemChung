@@ -10,7 +10,7 @@ $tokens = $null; $errors = $null
 $null = [Management.Automation.Language.Parser]::ParseFile($finish,[ref]$tokens,[ref]$errors)
 if ($errors.Count -gt 0) { throw "Finish script parser errors: $($errors -join '; ')" }
 $finishScript = [IO.File]::ReadAllText($finish)
-foreach ($role in @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse')) {
+foreach ($role in @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse','demo.customer@example.invalid')) {
   if (-not $finishScript.Contains("'$role'")) { throw "Missing fixed demo account: $role" }
 }
 if ($finishScript.Contains('down -v') -or $finishScript.Contains('volume rm')) { throw 'Unsafe Docker cleanup in final script.' }
@@ -128,16 +128,16 @@ if ($errors.Count -gt 0) { throw "Local account reader parser errors: $($errors 
 $testDir = Join-Path ([IO.Path]::GetTempPath()) ('vac-demo-account-test-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testDir | Out-Null
 $configFile = Join-Path $testDir 'demo-accounts.local.json'
-$keys = @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse')
+$keys = @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse','demo.customer@example.invalid')
 $fixture = @{}
 foreach ($key in $keys) { $fixture[$key] = 'TEST-ONLY-' + $key + '-2026' }
 try {
   [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
   $loaded = Get-FinalDemoAccountPasswords $configFile
-  if ($loaded.Count -ne 6) { throw 'Six demo credentials expected.' }
+  if ($loaded.Count -ne 7) { throw 'Seven demo credentials expected.' }
   foreach ($key in $keys) { if ($loaded[$key] -cne $fixture[$key]) { throw 'Local password mismatch.' } }
   $loaded.Clear()
-  Pass 'Local config loads exactly six role passwords'
+  Pass 'Local config loads seven unique role/customer passwords'
 
   $fixture['demo.admin'] = 'short'
   [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
@@ -147,7 +147,7 @@ try {
   Reject { Get-FinalDemoAccountPasswords $configFile } 'unique'
   $fixture.Remove('demo.admin')
   [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
-  Reject { Get-FinalDemoAccountPasswords $configFile } 'exactly six'
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'exactly seven'
   $fixture['unknown.account'] = 'TEST-ONLY-UNEXPECTED-2026'
   [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
   Reject { Get-FinalDemoAccountPasswords $configFile } 'Missing fixed username'
