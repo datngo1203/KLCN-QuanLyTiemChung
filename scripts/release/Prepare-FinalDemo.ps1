@@ -87,7 +87,7 @@ function Create-Admin([string[]]$compose) {
 function CatalogQuery {
   return @'
 SET NOCOUNT ON;
-DECLARE @expected TABLE(Code nvarchar(50) PRIMARY KEY);
+DECLARE @expected TABLE(Code nvarchar(50) COLLATE Latin1_General_100_CI_AS PRIMARY KEY);
 INSERT INTO @expected(Code) VALUES
 (N'VX-AVAXIM-80U'),(N'VX-BEXSERO'),(N'VX-GARDASIL-9'),(N'VX-HAVAX-05'),(N'VX-HEXAXIM'),
 (N'VX-INFANRIX-HEXA'),(N'VX-MMR-II'),(N'VX-NIMENRIX'),(N'VX-PREVENAR-13'),(N'VX-QDENGA'),
