@@ -54,6 +54,19 @@ function Check-Audit([string]$raw,[switch]$AllowCandidates) {
   if (-not $AllowCandidates -and $audit.candidateCount -ne 0) { throw 'Synthetic Catalog candidates found; no backup.' }
   return $json
 }
+function SqlInput([string[]]$compose, [string]$query, [string]$label) {
+  Write-Host "[STEP] $label" -ForegroundColor Cyan
+  $command = '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -d TiemChung -U sa -P "$MSSQL_SA_PASSWORD" -b'
+  $arguments = $compose + @('exec','-T','sqlserver','sh','-c',$command)
+  $prev = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    $lines = @((($query.TrimEnd() + "`nGO`n") | & docker @arguments 2>&1))
+    $code = $LASTEXITCODE
+  } finally { $ErrorActionPreference = $prev }
+  if ($code -ne 0) { throw "$label failed. Review SQL errors privately; do not share credentials." }
+  return ($lines | Out-String)
+}
 function Check-CatalogSql([string]$output) {
   if (-not (@($output -split '[\r\n]+' | Where-Object { $_.Trim() -ceq 'FINAL_CATALOG_OK' }).Count)) {
     throw 'SQL Catalog validation failed; no backup.'
@@ -158,17 +171,16 @@ $null = Check-Audit $raw
 Write-Host "Audit: $report" -ForegroundColor Green
 $container = (Capture ($compose + @('ps','-q','sqlserver')) 'Find SQL container').Trim()
 if ($container -notmatch '^[0-9a-f]{12,64}$') { throw 'SQL container ID missing or invalid.' }
-$query = (CatalogQuery) -replace '[\r\n]+', ' '
-$sqlValidation = '/opt/mssql-tools18/bin/sqlcmd -C -S localhost -d TiemChung -U sa -P "$MSSQL_SA_PASSWORD" -b -Q "' + $query.Trim() + '"'
-$validation = Capture @('exec',$container,'sh','-c',$sqlValidation) 'Validate 15 vaccine SQL records'
+$validation = SqlInput $compose (CatalogQuery) 'Validate 15 vaccine SQL records'
 Check-CatalogSql $validation
 $adminReady = Create-Admin $compose
 if (-not $adminReady) { Write-Host 'Authenticated Windows Catalog smoke: UNVERIFIED (no Admin created).' }
 if (-not $SkipBackup) {
   # Password expands within SQL container, never in local PowerShell.
   $remoteBak = '/var/opt/mssql/backup/FinalDemo-' + [guid]::NewGuid().ToString('N') + '.bak'
-  $sql = 'mkdir -p /var/opt/mssql/backup && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -b -Q "BACKUP DATABASE [TiemChung] TO DISK = N''' + $remoteBak + ''' WITH CHECKSUM; RESTORE VERIFYONLY FROM DISK = N''' + $remoteBak + ''' WITH CHECKSUM;"'
-  $null = Capture @('exec',$container,'sh','-c',$sql) 'BACKUP and RESTORE VERIFYONLY'
+  Call @('exec',$container,'sh','-c','mkdir -p /var/opt/mssql/backup') 'Prepare SQL backup directory'
+  $sql = "BACKUP DATABASE [TiemChung] TO DISK = N'$remoteBak' WITH CHECKSUM;`nGO`nRESTORE VERIFYONLY FROM DISK = N'$remoteBak' WITH CHECKSUM;"
+  $null = SqlInput $compose $sql 'BACKUP and RESTORE VERIFYONLY'
   $bak = Join-Path $out 'FinalDemo.bak'
   $dockerPath = $container + ':' + $remoteBak
   Call @('cp',$dockerPath,$bak) 'Copy verified DB backup outside Git'
