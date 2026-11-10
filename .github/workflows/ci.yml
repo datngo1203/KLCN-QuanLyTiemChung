@@ -93,6 +93,11 @@ jobs:
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/devtools/VAC.SelfTest.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Final demo preparation self-test (Windows PowerShell 5.1, no Docker)
+        shell: pwsh
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/release/Prepare-FinalDemo.SelfTest.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: dotnet build apps/windows/TiemChung.Desktop.csproj --configuration Release
       - name: WPF interaction and rendering regressions
         run: dotnet test apps/windows.ui.tests/TiemChung.Windows.Ui.Tests.csproj --configuration Release
