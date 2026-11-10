@@ -5,6 +5,16 @@ $target = Join-Path $PSScriptRoot 'Prepare-FinalDemo.ps1'
 $tokens = $null; $errors = $null
 $null = [Management.Automation.Language.Parser]::ParseFile($target,[ref]$tokens,[ref]$errors)
 if ($errors.Count -gt 0) { throw "Script parser errors: $($errors -join '; ')" }
+$finish = Join-Path $PSScriptRoot 'Finish-FinalDemo.ps1'
+$tokens = $null; $errors = $null
+$null = [Management.Automation.Language.Parser]::ParseFile($finish,[ref]$tokens,[ref]$errors)
+if ($errors.Count -gt 0) { throw "Finish script parser errors: $($errors -join '; ')" }
+$finishScript = [IO.File]::ReadAllText($finish)
+foreach ($role in @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse')) {
+  if (-not $finishScript.Contains("'$role'")) { throw "Missing fixed demo account: $role" }
+}
+if ($finishScript.Contains('down -v') -or $finishScript.Contains('volume rm')) { throw 'Unsafe Docker cleanup in final script.' }
+
 . $target -SkipAdmin -SkipLaunch
 
 $script:passes = 0
