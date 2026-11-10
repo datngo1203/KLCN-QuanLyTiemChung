@@ -119,4 +119,44 @@ if (Create-Admin $compose) { throw 'SkipAdmin must not create accounts.' }
 if (ShouldLaunch) { throw 'SkipLaunch must not start UI.' }
 if ($script:dockerWrites -ne 2) { throw 'Unexpected Docker write attempted.' }
 Pass 'Admin and UI can be skipped'
+
+$accountReader = Join-Path $PSScriptRoot 'Read-FinalDemoAccounts.ps1'
+$tokens = $null; $errors = $null
+$null = [Management.Automation.Language.Parser]::ParseFile($accountReader,[ref]$tokens,[ref]$errors)
+if ($errors.Count -gt 0) { throw "Local account reader parser errors: $($errors -join '; ')" }
+. $accountReader
+$testDir = Join-Path ([IO.Path]::GetTempPath()) ('vac-demo-account-test-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $testDir | Out-Null
+$configFile = Join-Path $testDir 'demo-accounts.local.json'
+$keys = @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse')
+$fixture = @{}
+foreach ($key in $keys) { $fixture[$key] = 'TEST-ONLY-' + $key + '-2026' }
+try {
+  [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
+  $loaded = Get-FinalDemoAccountPasswords $configFile
+  if ($loaded.Count -ne 6) { throw 'Six demo credentials expected.' }
+  foreach ($key in $keys) { if ($loaded[$key] -cne $fixture[$key]) { throw 'Local password mismatch.' } }
+  $loaded.Clear()
+  Pass 'Local config loads exactly six role passwords'
+
+  $fixture['demo.admin'] = 'short'
+  [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
+  Reject { Get-FinalDemoAccountPasswords $configFile } '12-128'
+  $fixture['demo.admin'] = $fixture['demo.nurse']
+  [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'unique'
+  $fixture.Remove('demo.admin')
+  [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'exactly six'
+  $fixture['unknown.account'] = 'TEST-ONLY-UNEXPECTED-2026'
+  [IO.File]::WriteAllText($configFile,($fixture | ConvertTo-Json))
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'Missing fixed username'
+  [IO.File]::WriteAllText($configFile,'not json')
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'Invalid local'
+  Remove-Item -LiteralPath $configFile
+  Reject { Get-FinalDemoAccountPasswords $configFile } 'Missing local'
+  Pass 'Invalid, missing, duplicate or short local secrets rejected'
+} finally {
+  Remove-Item -LiteralPath $testDir -Recurse -Force -ErrorAction SilentlyContinue
+}
 Write-Host "Release helper self-test: $script:passes PASS, no real Docker or SQL used."

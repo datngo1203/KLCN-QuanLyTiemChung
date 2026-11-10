@@ -2,32 +2,25 @@
 [CmdletBinding()]
 param(
   [ValidatePattern('^[a-z0-9][a-z0-9_-]*$')][string]$ComposeProject = 'vac-final',
-  [switch]$SkipBackup
+  [switch]$SkipBackup,
+  [string]$CredentialsFile = (Join-Path $env:LOCALAPPDATA 'VAC-Demo/demo-accounts.local.json')
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Prepare-FinalDemo.ps1') -ComposeProject $ComposeProject -SkipAdmin -SkipLaunch
+. (Join-Path $PSScriptRoot 'Read-FinalDemoAccounts.ps1')
 
-function Seed-DemoAccount([string[]]$compose, [string]$username, [string]$role, [string]$command) {
+function Seed-DemoAccount([string[]]$compose, [string]$username, [string]$role,
+    [string]$command, [string]$password) {
   Write-Host "Prepare $username ($role)" -ForegroundColor Yellow
-  $secure = Read-Host "Password for $username (12-128 chars)" -AsSecureString
-  $ptr = [IntPtr]::Zero
+  $env:DevelopmentSeed__Username = $username
+  $env:DevelopmentSeed__Password = $password
+  $env:DevelopmentSeed__Role = $role
   try {
-    $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-    $password = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-    if ($password.Length -lt 12 -or $password.Length -gt 128) {
-      throw "Invalid password length for $username; account not changed."
-    }
-    $env:DevelopmentSeed__Username = $username
-    $env:DevelopmentSeed__Password = $password
-    $env:DevelopmentSeed__Role = $role
     Call ($compose + @('run','--rm','-T','-e','DevelopmentSeed__Username',
       '-e','DevelopmentSeed__Password','-e','DevelopmentSeed__Role','api',$command)) "Seed $username"
   } finally {
     Remove-Item Env:DevelopmentSeed__Username, Env:DevelopmentSeed__Password, Env:DevelopmentSeed__Role -ErrorAction SilentlyContinue
-    if ($ptr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
-    $password = $null
-    $secure = $null
   }
 }
 function Check-DemoAccounts([string[]]$compose) {
@@ -67,6 +60,11 @@ if ($LASTEXITCODE -ne 0 -or $branch -ne 'main' -or $head -ne $origin) {
 }
 $dirty = @(& git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Worktree must be clean.' }
+$localPath = [IO.Path]::GetFullPath($CredentialsFile)
+if ($localPath.StartsWith(($root + [IO.Path]::DirectorySeparatorChar), [StringComparison]::OrdinalIgnoreCase)) {
+  throw 'Demo passwords file must be outside the Git repository.'
+}
+$passwords = Get-FinalDemoAccountPasswords $localPath
 $compose = @('compose','--env-file','infra/.env','-p',$ComposeProject,'-f','infra/compose.yaml')
 $container = (Capture ($compose + @('ps','-q','sqlserver')) 'Find existing SQL container').Trim()
 if ($container -notmatch '^[0-9a-f]{12,64}$') { throw 'Existing SQL container required. No new database will be created.' }
@@ -85,7 +83,11 @@ $accounts = @(
   @('demo.cashier','ThuNgan','--seed-demo-employee'),
   @('demo.warehouse','ThuKho','--seed-demo-employee')
 )
-foreach ($item in $accounts) { Seed-DemoAccount $compose $item[0] $item[1] $item[2] }
+try {
+  foreach ($item in $accounts) { Seed-DemoAccount $compose $item[0] $item[1] $item[2] $passwords[$item[0]] }
+} finally {
+  $passwords.Clear()
+}
 Check-DemoAccounts $compose
 Check-CatalogSql (SqlInput $compose (CatalogQuery) 'Recheck curated Catalog after account seed')
 
