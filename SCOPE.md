@@ -2423,3 +2423,16 @@ Canonical academic sources for Hình 3.1:
 **ACTIVE:** none (do not auto-open next slice).
 **NEXT:** Hình 3.1 — refine design class diagram from the approved Hình 2.24 baseline, only after user confirms starting it.
 **PARKED:** Hình 3.2 relational/CSDL diagram; prior V10 class design and V4 multi-panel candidates.
+
+### THESIS-R1 — Hình 3.1 / 3.2 user-approved content; Word layout optimization — 10/11/2026
+
+**USER APPROVED:** latest full-content Hình 3.1 and Hình 3.2 diagrams from `CNTT_KLCN090_THESIS-R1_Chuong3_DayDuKhongBangDanhMuc_Review.docx` on 10/11/2026. Design and relational content, entity attributes, mapped columns, cardinality, diagram grouping are **LOCKED**; do not reopen semantic/layout routes without newly demonstrated error. Hình 2.24 V5.3 remains approved unchanged.
+
+**Scoped Word adjustment requested afterward:** optimize image placement only because too many forced single-figure pages look wasteful. No changes to diagram content, no removed figures, no appendices/catalog tables. Preserve all A4 portrait pages, captions and 14 sequence diagrams.
+
+**Result REVIEW candidate:** `CNTT_KLCN090_THESIS-R1_Chuong3_HinhGon_BotTrangTrong_Review.docx`, SHA-256 `1306d3321563505b940fb4c08400d0eed646f4406961eaf6cb61ef55334f8e8b`. Removed 18 forced per-figure page breaks; selectively reduced several image display sizes (avoid uniform reduction of dense diagrams). Three pairs share a single page: Hình 3.1c+d, 3.1e+f, 3.2b+c. Rendered **108 A4-portrait pages**, down from 111. Captions remain with figures, source 78 media parts byte-identical, 19/19 diagram captions retained, other document paragraphs unchanged except 60 index-page-number updates. Word edition remains review until user checks actual printed reading size.
+
+**DONE:** diagram content approved; print-layout optimization and render QA candidate complete.
+**ACTIVE:** Word layout user review.
+**NEXT:** resolve any actual print/readability feedback, then move Chương 4/5.
+**PARKED:** redesign of already-approved UML/ERD contents.
