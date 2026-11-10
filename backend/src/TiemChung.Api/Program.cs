@@ -38,7 +38,7 @@ if (string.IsNullOrWhiteSpace(app.Configuration.GetConnectionString("TiemChung")
     throw new InvalidOperationException("Cần cấu hình ConnectionStrings:TiemChung; Catalog chỉ đọc SQL.");
 if (args.Contains("--seed-inventory"))
 {
-    if (args.Any(x => x is "--seed-admin" or "--seed-reception" or "--seed-demo-employee" or "--seed-catalog" or "--migrate"))
+    if (args.Any(x => x is "--seed-admin" or "--seed-reception" or "--seed-demo-employee" or "--seed-demo-customer" or "--seed-catalog" or "--migrate"))
         throw new InvalidOperationException("Run --seed-inventory separately from other database commands.");
     using var scope = app.Services.CreateScope();
     var added = await DevelopmentInventorySeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment);
@@ -61,6 +61,14 @@ if (args.Contains("--seed-demo-employee"))
 {
     using var scope = app.Services.CreateScope();
     await DevelopmentDemoEmployeeSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment, app.Configuration);
+    return;
+}
+if (args.Contains("--seed-demo-customer"))
+{
+    if (args.Any(x => x is "--seed-admin" or "--seed-reception" or "--seed-demo-employee" or "--seed-catalog" or "--migrate"))
+        throw new InvalidOperationException("Run demo Customer seed separately from other database commands.");
+    using var scope = app.Services.CreateScope();
+    await DevelopmentDemoCustomerSeed.RunAsync(scope.ServiceProvider.GetRequiredService<TiemChungDbContext>(), app.Environment, app.Configuration);
     return;
 }
 if (args.Contains("--migrate"))
