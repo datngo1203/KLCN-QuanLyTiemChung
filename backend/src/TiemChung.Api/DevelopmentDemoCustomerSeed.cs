@@ -30,6 +30,8 @@ public static class DevelopmentDemoCustomerSeed
             // An existing account is never silently adopted or assigned a different password.
             if (existing.AccountType != "Customer" || existing.MaNhanVien is not null ||
                 existing.TrangThai != "Active" || existing.LoginEmail != Email ||
+                existing.AdministrativeDuty != "None" ||
+                await db.Set<TaiKhoan_QuyenHan>().AnyAsync(g => g.MaTaiKhoan == existing.MaTaiKhoan, ct) ||
                 hasher.VerifyHashedPassword(existing, existing.MatKhauHash, password) == PasswordVerificationResult.Failed)
                 throw new InvalidOperationException("Conflicting demo Customer exists; no account changed.");
 
