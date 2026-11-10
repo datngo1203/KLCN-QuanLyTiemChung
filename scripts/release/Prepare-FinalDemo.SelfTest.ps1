@@ -22,6 +22,18 @@ $script:dockerWrites = 0
 function docker {
   $cmd = $args -join ' '
   $global:LASTEXITCODE = 0
+  if ($cmd -like '* exec -T sqlserver sh -c *') {
+    if ($cmd -match ' -Q ') { throw 'sqlcmd must read SQL from stdin, not -Q.' }
+    $statement = ($input | Out-String)
+    if ($statement -notmatch 'PRINT .FINAL_CATALOG_OK.') { throw 'SQL text was not piped to docker.' }
+    if ($script:dockerMode -eq 'sql-fail') {
+      $global:LASTEXITCODE = 9
+      'Private mock SQL error'
+      return
+    }
+    'FINAL_CATALOG_OK'
+    return
+  }
   if ($cmd -like 'volume ls *') {
     if ($script:dockerMode -eq 'volume') { 'vac-final_sqlserver-data' }
     return
@@ -64,6 +76,13 @@ Reject { Check-Audit 'no json' } 'No audit'
 Reject { Check-Audit '{"candidateCount":"0"}' } 'invalid'
 Pass 'audit fail-closed'
 Check-CatalogSql 'FINAL_CATALOG_OK'
+$script:dockerMode = 'sql-pass'
+$valid = SqlInput $compose (CatalogQuery) 'Validate'
+Check-CatalogSql $valid
+$script:dockerMode = 'sql-fail'
+Reject { SqlInput $compose (CatalogQuery) 'Validate' } 'Validate failed'
+$script:dockerMode = 'clean'
+Pass 'SQL stdin execution and failure handling'
 Reject { Check-CatalogSql 'SQL failed' } 'validation failed'
 $codes = @([regex]::Matches((CatalogQuery),"N'VX-[A-Z0-9-]+'") | ForEach-Object { $_.Value })
 if ($codes.Count -ne 15 -or @($codes | Sort-Object -Unique).Count -ne 15) { throw 'SQL Catalog expectation must include 15 distinct codes.' }
