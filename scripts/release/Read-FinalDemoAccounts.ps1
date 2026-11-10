@@ -14,10 +14,10 @@ function Get-FinalDemoAccountPasswords([string]$file) {
   if ($null -eq $config -or $config -isnot [pscustomobject]) {
     throw 'Local demo credentials must be a JSON object.'
   }
-  $expected = @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse')
+  $expected = @('demo.admin','demo.reception','demo.doctor','demo.nurse','demo.cashier','demo.warehouse','demo.customer@example.invalid')
   $actual = @($config.PSObject.Properties | ForEach-Object { $_.Name })
   if ($actual.Count -ne $expected.Count) {
-    throw 'Local demo credentials must contain exactly six fixed usernames.'
+    throw 'Local demo credentials must contain exactly seven fixed demo usernames.'
   }
   $passwords = @{}
   $distinct = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)

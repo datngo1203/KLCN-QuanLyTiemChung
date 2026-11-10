@@ -41,10 +41,23 @@ IF EXISTS (
   )
 ) THROW 51011, 'Missing or mismatched demo role', 1;
 PRINT 'DEMO_ACCOUNTS_OK';
+IF NOT EXISTS (
+  SELECT 1 FROM dbo.TaiKhoan c
+  WHERE c.NormalizedEmail=N'DEMO.CUSTOMER@EXAMPLE.INVALID'
+    AND c.LoginEmail=N'demo.customer@example.invalid'
+    AND c.AccountType=N'Customer' AND c.TrangThai=N'Active'
+    AND c.EmailVerifiedAt IS NOT NULL AND c.MaNhanVien IS NULL
+    AND c.AdministrativeDuty=N'None'
+    AND NOT EXISTS (SELECT 1 FROM dbo.TaiKhoan_QuyenHan q WHERE q.MaTaiKhoan=c.MaTaiKhoan)
+) THROW 51012, 'Missing or invalid demo Customer', 1;
+PRINT 'DEMO_CUSTOMER_OK';
 '@
   $result = SqlInput $compose $sql 'Verify six role-bound accounts'
   if (-not (@($result -split '[\r\n]+' | Where-Object { $_.Trim() -ceq 'DEMO_ACCOUNTS_OK' }).Count)) {
-    throw 'Demo accounts verification failed.'
+    throw 'Demo employee accounts verification failed.'
+  }
+  if (-not (@($result -split '[\r\n]+' | Where-Object { $_.Trim() -ceq 'DEMO_CUSTOMER_OK' }).Count)) {
+    throw 'Demo Customer verification failed.'
   }
 }
 
@@ -72,7 +85,7 @@ Check-CatalogSql (SqlInput $compose (CatalogQuery) 'Verify existing curated Cata
 $rawAudit = Capture ($compose + @('run','--rm','-T','api','--audit-catalog')) 'Audit existing Catalog'
 $null = Check-Audit $rawAudit
 Write-Host 'Curated Catalog verified; existing database will be preserved.' -ForegroundColor Green
-if ((Read-Host 'Type DEMO to seed only six fixed-role accounts').Trim() -cne 'DEMO') { throw 'Cancelled; no accounts changed.' }
+if ((Read-Host 'Type DEMO to seed six employees and one Development-verified Customer').Trim() -cne 'DEMO') { throw 'Cancelled; no accounts changed.' }
 
 Call ($compose + @('build','api')) 'Build API containing role-aware seed'
 $accounts = @(
@@ -81,7 +94,8 @@ $accounts = @(
   @('demo.doctor','BacSi','--seed-demo-employee'),
   @('demo.nurse','DieuDuong','--seed-demo-employee'),
   @('demo.cashier','ThuNgan','--seed-demo-employee'),
-  @('demo.warehouse','ThuKho','--seed-demo-employee')
+  @('demo.warehouse','ThuKho','--seed-demo-employee'),
+  @('demo.customer@example.invalid','Customer','--seed-demo-customer')
 )
 try {
   foreach ($item in $accounts) { Seed-DemoAccount $compose $item[0] $item[1] $item[2] $passwords[$item[0]] }
@@ -111,5 +125,5 @@ if (-not $SkipBackup) {
   Write-Host 'Backup SKIPPED; submission DB backup UNVERIFIED.' -ForegroundColor Yellow
 }
 Write-Host "Finished in $out" -ForegroundColor Green
-Write-Host 'Manual: confirm six Windows logins/capabilities and Web Catalog; Customer Web account requires registration/email verification.'
+Write-Host 'Manual: confirm six Windows employee logins/capabilities, Web Customer login, and Web Catalog. Demo Customer is Development-verified only; no email was sent.'
 Write-Host 'Disposable restore and final packaging still UNVERIFIED; do not submit infra/.env or private credentials.'
