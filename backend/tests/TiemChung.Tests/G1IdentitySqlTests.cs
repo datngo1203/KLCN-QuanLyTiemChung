@@ -167,6 +167,79 @@ public sealed class G1IdentitySqlTests
         });
     }
 
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task DemoCustomerSeedIsDevOnlyVerifiedAndIdempotentWithoutGrants()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
+            var env = new SeedEnvironment("Development");
+            var email = DevelopmentDemoCustomerSeed.Email;
+            var password = Guid.NewGuid().ToString("N");
+            f.Config["DevelopmentSeed:Username"] = email;
+            f.Config["DevelopmentSeed:Role"] = "Customer";
+            f.Config["DevelopmentSeed:Password"] = password;
+
+            foreach (var otherEnvironment in new[] { "Test", "Production" })
+                await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    DevelopmentDemoCustomerSeed.RunAsync(f.Db, new SeedEnvironment(otherEnvironment), f.Config));
+
+            f.Config["DevelopmentSeed:Username"] = "other.customer@example.invalid";
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config));
+            f.Config["DevelopmentSeed:Username"] = email;
+            f.Config["DevelopmentSeed:Role"] = "Employee";
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config));
+            f.Config["DevelopmentSeed:Role"] = "Customer";
+
+            await DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config);
+            f.Db.ChangeTracker.Clear();
+            var account = await f.Db.Set<TaiKhoan>().SingleAsync(a => a.NormalizedEmail == IdentityRegistration.Normalize(email));
+            Assert.Equal("Customer", account.AccountType);
+            Assert.Equal(email, account.LoginEmail);
+            Assert.Null(account.MaNhanVien);
+            Assert.NotNull(account.EmailVerifiedAt);
+            Assert.Equal("Active", account.TrangThai);
+            Assert.Equal("None", account.AdministrativeDuty);
+            Assert.Empty(await f.Db.Set<TaiKhoan_QuyenHan>().Where(p => p.MaTaiKhoan == account.MaTaiKhoan).ToListAsync());
+            Assert.Empty(await f.Db.Set<AccountProfileLink>().Where(p => p.AccountId == account.MaTaiKhoan).ToListAsync());
+            Assert.NotEqual(PasswordVerificationResult.Failed,
+                new PasswordHasher<TaiKhoan>().VerifyHashedPassword(account, account.MatKhauHash, password));
+
+            using var client = f.Factory.CreateClient();
+            using var login = await client.PostAsJsonAsync("/api/v1/auth/login",
+                new { identifier = email, password, clientType = "web" });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            var loginBody = await login.Content.ReadFromJsonAsync<JsonElement>();
+            client.DefaultRequestHeaders.Authorization = new("Bearer", loginBody.GetProperty("accessToken").GetString());
+            var me = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
+            Assert.Equal("customer", me.GetProperty("accountType").GetString());
+            Assert.True(me.GetProperty("emailVerified").GetBoolean());
+            Assert.Empty(me.GetProperty("permissions").EnumerateArray().ToArray());
+
+            var hash = account.MatKhauHash;
+            f.Config["DevelopmentSeed:Password"] = Guid.NewGuid().ToString("N");
+            await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config));
+            f.Db.ChangeTracker.Clear();
+            Assert.Equal(hash, (await f.Db.Set<TaiKhoan>().SingleAsync(a => a.MaTaiKhoan == account.MaTaiKhoan)).MatKhauHash);
+
+            f.Config["DevelopmentSeed:Password"] = password;
+            await DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config);
+            Assert.Single(await f.Db.Set<TaiKhoan>().Where(a => a.NormalizedEmail == IdentityRegistration.Normalize(email)).ToListAsync());
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "developmentDemoCustomerSeeded"));
+
+            // An exact synthetic registration that is still pending verification can be
+            // Development-verified only after the supplied password matches its hash.
+            await f.Db.Set<TaiKhoan>().Where(a => a.MaTaiKhoan == account.MaTaiKhoan)
+                .ExecuteUpdateAsync(u => u.SetProperty(a => a.EmailVerifiedAt, (DateTimeOffset?)null));
+            f.Db.ChangeTracker.Clear();
+            await DevelopmentDemoCustomerSeed.RunAsync(f.Db, env, f.Config);
+            f.Db.ChangeTracker.Clear();
+            Assert.NotNull((await f.Db.Set<TaiKhoan>().SingleAsync(a => a.MaTaiKhoan == account.MaTaiKhoan)).EmailVerifiedAt);
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "developmentDemoCustomerVerified"));
+            Assert.Equal(1, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "developmentDemoCustomerSeeded"));
+        });
+    }
+
     private static async Task<JsonElement> Login(HttpClient client, string identifier, string password)
     {
         using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { identifier, password, clientType = "native" });
