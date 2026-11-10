@@ -104,6 +104,68 @@ public sealed class G1IdentitySqlTests
         });
     }
 
+
+    [Fact, Trait("Category", "SqlIntegration")]
+    public async Task DemoEmployeeSeedCreatesFourFixedRolesWithRuntimePermissionsAndSafeRerun()
+    {
+        await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
+            var env = new SeedEnvironment("Development");
+            var password = Guid.NewGuid().ToString("N");
+            f.Config["DevelopmentSeed:Password"] = password;
+            f.Config["DevelopmentSeed:Username"] = "demo.doctor";
+            f.Config["DevelopmentSeed:Role"] = "BacSi";
+            foreach (var otherEnvironment in new[] { "Test", "Production" })
+                await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    DevelopmentDemoEmployeeSeed.RunAsync(f.Db, new SeedEnvironment(otherEnvironment), f.Config));
+            f.Config["DevelopmentSeed:Role"] = "Admin";
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                DevelopmentDemoEmployeeSeed.RunAsync(f.Db, env, f.Config));
+
+            var rows = new[] {
+                (Username: "demo.doctor", Role: "BacSi"),
+                (Username: "demo.nurse", Role: "DieuDuong"),
+                (Username: "demo.cashier", Role: "ThuNgan"),
+                (Username: "demo.warehouse", Role: "ThuKho")
+            };
+            using var client = f.Factory.CreateClient();
+            foreach (var row in rows) {
+                f.Config["DevelopmentSeed:Username"] = row.Username;
+                f.Config["DevelopmentSeed:Role"] = row.Role;
+                await DevelopmentDemoEmployeeSeed.RunAsync(f.Db, env, f.Config);
+                f.Db.ChangeTracker.Clear();
+                var account = await f.Db.Set<TaiKhoan>().SingleAsync(a => a.TenDangNhap == row.Username);
+                var employee = await f.Db.Set<NhanVien>().SingleAsync(e => e.MaNhanVien == account.MaNhanVien);
+                Assert.Equal(row.Role, employee.ChucDanh);
+                Assert.Equal("Active", account.TrangThai);
+                Assert.Empty(await f.Db.Set<TaiKhoan_QuyenHan>().Where(x => x.MaTaiKhoan == account.MaTaiKhoan).ToListAsync());
+                Assert.NotEqual(PasswordVerificationResult.Failed,
+                    new PasswordHasher<TaiKhoan>().VerifyHashedPassword(account, account.MatKhauHash, password));
+                var token = await Login(client, row.Username, password);
+                client.DefaultRequestHeaders.Authorization = new("Bearer", token.GetProperty("accessToken").GetString());
+                var me = await client.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
+                var permissions = me.GetProperty("permissions").EnumerateArray().Select(x => x.GetString()).ToArray();
+                Assert.Equal(EmployeeAuthorization.PermissionsFor(row.Role).Order(), permissions.Order());
+                Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/logout", new {
+                    clientType = "native", refreshToken = token.GetProperty("refreshToken").GetString()
+                })).StatusCode);
+
+                var priorHash = account.MatKhauHash;
+                var nextPassword = Guid.NewGuid().ToString("N");
+                f.Config["DevelopmentSeed:Password"] = nextPassword;
+                await DevelopmentDemoEmployeeSeed.RunAsync(f.Db, env, f.Config);
+                f.Db.ChangeTracker.Clear();
+                Assert.Equal(priorHash, (await f.Db.Set<TaiKhoan>().SingleAsync(a => a.TenDangNhap == row.Username)).MatKhauHash);
+                f.Config["DevelopmentSeed:Password"] = password;
+            }
+
+            Assert.Equal(4, await f.Db.Set<SecurityAudit>().CountAsync(a => a.Action == "developmentDemoEmployeeSeeded"));
+            f.Config["DevelopmentSeed:Username"] = "demo.doctor";
+            f.Config["DevelopmentSeed:Role"] = "ThuKho";
+            await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentDemoEmployeeSeed.RunAsync(f.Db, env, f.Config));
+            Assert.Equal(4, await f.Db.Set<TaiKhoan>().CountAsync(a => a.TenDangNhap.StartsWith("demo.")));
+        });
+    }
+
     private static async Task<JsonElement> Login(HttpClient client, string identifier, string password)
     {
         using var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { identifier, password, clientType = "native" });
