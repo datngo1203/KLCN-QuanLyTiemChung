@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TiemChung.Api;
+using TiemChung.Api.Payments;
 using TiemChung.Contracts;
 using TiemChung.Domain.Entities;
 using TiemChung.Infrastructure.Data;
@@ -538,6 +539,12 @@ public sealed partial class PaymentSqlTests
         Assert.Equal(new[] { "post" }, online.EnumerateObject().Select(x => x.Name));
         Assert.Equal(new[] { "put" }, paths.GetProperty("/api/v1/registrations/{id}/payment/channel").EnumerateObject().Select(x => x.Name));
         Assert.Equal(new[] { "get" }, paths.GetProperty("/api/v1/payment/settings").EnumerateObject().Select(x => x.Name));
+        var payOs = paths.GetProperty("/api/v1/registrations/{id}/payment/payos");
+        Assert.Equal(new[] { "get", "post" }, payOs.EnumerateObject().Select(x => x.Name).Order());
+        Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/registrations/{id}/payment/payos/reconcile")
+            .EnumerateObject().Select(x => x.Name));
+        Assert.Equal(new[] { "post" }, paths.GetProperty("/api/v1/payment/payos/webhook")
+            .EnumerateObject().Select(x => x.Name));
         Assert.DoesNotContain(paths.EnumerateObject(), p => p.Name.StartsWith("/api/v1/payments"));
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
         var request = schemas.GetProperty("RecordPaymentRequest");
@@ -548,6 +555,14 @@ public sealed partial class PaymentSqlTests
         Assert.Equal(new[] { "domestic", "internationalCard", "method", "payer", "termsAccepted", "transfer" },
             onlineRequest.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
         Assert.False(onlineRequest.GetProperty("additionalProperties").GetBoolean());
+        var payOsRequest = schemas.GetProperty("PayOsPaymentRequest");
+        Assert.Equal(new[] { "payer", "termsAccepted" },
+            payOsRequest.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order());
+        Assert.False(payOsRequest.GetProperty("additionalProperties").GetBoolean());
+        var payOsStatus = schemas.GetProperty("PayOsPaymentStatusDto").GetProperty("properties");
+        Assert.Equal(new[] { "amount", "canReconcile", "checkoutUrl", "currency", "qrCode", "registrationId", "state" },
+            payOsStatus.EnumerateObject().Select(p => p.Name).Order());
+        Assert.DoesNotContain("orderCode", payOsStatus.EnumerateObject().Select(p => p.Name));
         var props = schemas.GetProperty("RegistrationPaymentDto").GetProperty("properties");
         foreach (var field in new[] { "registrationId", "registrationStatus", "customer", "recipient", "items", "subtotal", "totalDue", "paidAmount", "remainingAmount", "requiresPayment", "canRecordPayment", "isSimulation", "payment", "paymentState", "expectedChannel", "canConfirmPendingPayment" })
             Assert.True(props.TryGetProperty(field, out _), field);
@@ -759,6 +774,7 @@ public sealed partial class PaymentSqlTests
                 ALTER TABLE dbo.DangKyDichVu ADD TenKhuyenMaiSnapshot nvarchar(150) NULL, MucGiamSnapshot decimal(18,0) NULL;
                 ALTER TABLE dbo.DangKyDichVu ADD CoGioDuKien bit NOT NULL DEFAULT 0;
                 """);
+            await HistoricalCatalogFixture.ConfigurePayOsPaymentColumnsAsync(f.Db);
             var legacy = (await f.Cashier.Client.GetFromJsonAsync<RegistrationPaymentDto>(Path(first.Id)))!.Payment!;
             Assert.Equal("MoPhong", legacy.Method); Assert.Equal(first.TotalBeforeDiscount, legacy.Amount);
             Assert.Null(legacy.TransactionCode); Assert.Null(legacy.Payer);
@@ -858,6 +874,12 @@ public sealed partial class PaymentSqlTests
         private WebApplicationFactory<Program>? _factory;
         private readonly List<HttpClient> _clients = [];
         public TiemChungDbContext NewDb() => new(new DbContextOptionsBuilder<TiemChungDbContext>().UseSqlServer(Db.Database.GetConnectionString()).Options);
+        public HttpClient AnonymousClient()
+        {
+            var client = (_factory ?? Base.Factory).CreateClient();
+            _clients.Add(client);
+            return client;
+        }
         public ThanhToan Payment(RegistrationDto registration) => new() {
             MaDangKy = registration.Id, MaNhanVien = Cashier.Employee!.MaNhanVien, SoTien = registration.Subtotal,
             PhuongThuc = "MoPhong", LoaiThanhToan = "ToanBo", TrangThai = "ThanhCong", ThoiDiem = DateTime.UtcNow
@@ -902,7 +924,8 @@ public sealed partial class PaymentSqlTests
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await response.Content.ReadFromJsonAsync<RegistrationDto>())!;
         }
-        public static async Task<Fixture> Create(PaymentGate? gate = null, bool historicalCatalog = false, string? consultationFee = null)
+        public static async Task<Fixture> Create(PaymentGate? gate = null, bool historicalCatalog = false,
+            string? consultationFee = null, IPayOsPaymentProvider? payOsProvider = null)
         {
             var b = await CatalogSqlTests.Fixture.Create(historicalCatalog: historicalCatalog);
             Fixture? partial = null;
@@ -916,14 +939,32 @@ public sealed partial class PaymentSqlTests
             b.Db.Add(recipient); await b.Db.SaveChangesAsync();
             var f = new Fixture { Base = b, CustomerProfile = customer, Recipient = recipient };
             partial = f;
-            if (gate is not null) f._factory = b.Factory.WithWebHostBuilder(builder => builder.ConfigureServices(services => {
-                services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();
-                services.AddDbContext<TiemChungDbContext>(o => o.UseSqlServer(b.Db.Database.GetConnectionString()).AddInterceptors(gate));
-            }));
-            if (consultationFee is not null) {
-                f._factory = b.Factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, config) =>
-                    config.AddInMemoryCollection(new Dictionary<string, string?> { ["Registration:ConsultationFeeVnd"] = consultationFee })));
-            }
+            if (gate is not null || consultationFee is not null || payOsProvider is not null)
+                f._factory = b.Factory.WithWebHostBuilder(builder => {
+                    if (gate is not null) builder.ConfigureServices(services => {
+                        services.RemoveAll<DbContextOptions<TiemChungDbContext>>(); services.RemoveAll<TiemChungDbContext>();
+                        services.AddDbContext<TiemChungDbContext>(o =>
+                            o.UseSqlServer(b.Db.Database.GetConnectionString()).AddInterceptors(gate));
+                    });
+                    var config = new Dictionary<string, string?>();
+                    if (consultationFee is not null) config["Registration:ConsultationFeeVnd"] = consultationFee;
+                    if (payOsProvider is not null) {
+                        config["Payment:PayOS:Enabled"] = "true";
+                        config["Payment:PayOS:Mode"] = "Live";
+                        config["Payment:PayOS:ClientId"] = "synthetic-client";
+                        config["Payment:PayOS:ApiKey"] = "synthetic-api-key";
+                        config["Payment:PayOS:ChecksumKey"] = "synthetic-checksum-key";
+                        config["Payment:PayOS:ReturnUrl"] = "https://example.invalid/return";
+                        config["Payment:PayOS:CancelUrl"] = "https://example.invalid/cancel";
+                        config["Payment:PayOS:WebhookUrl"] = "https://example.invalid/webhook";
+                        builder.ConfigureServices(services => {
+                            services.RemoveAll<IPayOsPaymentProvider>();
+                            services.AddSingleton(payOsProvider);
+                        });
+                    }
+                    if (config.Count > 0) builder.ConfigureAppConfiguration((_, configuration) =>
+                        configuration.AddInMemoryCollection(config));
+                });
             f.Customer = await f.Actor(null); f.Cashier = await f.Actor("ThuNgan", "XemThanhToan", "GhiThanhToan");
             b.Db.AddRange(new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, CustomerId = customer.MaKhachHang },
                 new AccountProfileLink { AccountId = f.Customer.Account.MaTaiKhoan, RecipientId = recipient.MaNguoiDuocTiem });

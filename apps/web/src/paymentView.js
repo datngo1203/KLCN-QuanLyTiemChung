@@ -6,7 +6,8 @@ export const paymentMethodLabel = method => ({
   TienMat: 'Tiền mặt',
   TheTaiQuay: 'Thẻ tại quầy',
   ChuyenKhoanQR: 'Chuyển khoản / QR',
-  ChuyenKhoanOnline: 'Chuyển khoản trực tuyến',
+  ChuyenKhoanOnline: 'Chuyển khoản thủ công',
+  PayOsQr: 'QR ngân hàng',
   TheQuocTe: 'Thẻ VISA / MASTER / JCB',
   TheNoiDia: 'Thẻ / tài khoản nội địa (ATM)',
 })[method] ?? 'Giao dịch trước đây'

@@ -382,6 +382,31 @@ Lỗi có `{ type, title, status, code, traceId, errors? }`: 400 `validation` ch
 
 A08 đọc biên nhận bằng GET sau khi nhận 201 (thu tại quầy), 200 (xác nhận) hoặc gặp 409 nghiệp vụ. Nếu mất phản hồi, timeout hoặc lỗi 5xx, A08 khóa gửi lại. Nếu GET chưa thấy kết quả thành công, người dùng phải xác nhận đã đối chiếu trước khi mở lại thao tác.
 
+### PAY-R1 P1 — PayOS provider boundary và persistence
+
+P1 bổ sung nullable PayOS metadata vào `ThanhToan` hiện hành, không tạo payment aggregate mới và giữ nguyên unique `IX_ThanhToan_MaDangKy`. `PayOsQr` là phương thức riêng; trạng thái vòng đời `Creating`, `CreateOutcomeUnknown`, `Pending`, `Paid` được lưu cùng giao dịch. Pending/Paid không gán nhân viên, không thể xác nhận thủ công tại quầy; chỉ giao dịch `Paid` hợp lệ mới được tính vào `paidAmount`. Dữ liệu provider chỉ được phép trên `PayOsQr`; order code và payment-link ID có unique filtered index.
+
+`Payment:PayOS` chứa `Enabled`, `Mode`, `ClientId`, `ApiKey`, `ChecksumKey`, `ReturnUrl`, `CancelUrl`, `WebhookUrl`. Provider chỉ sẵn sàng khi bật, mode là `Live`, đủ credentials và callback URLs là HTTPS hợp lệ không chứa user info. Thiếu cấu hình không làm API startup thất bại; P1 không gọi PayOS, không tạo checkout/webhook route và không chứa secret trong provider result contracts.
+
+Migration `20261109011825_PAYR1PayOsPaymentPersistence` là additive; dữ liệu legacy giữ nguyên với PayOS columns null. Down từ chối nếu có `PayOsQr` history vì các cột đó không thể bị xóa an toàn.
+
+### PAY-R1 P2A — Checkout, trạng thái cục bộ và reconcile
+
+- `POST /api/v1/registrations/{id}/payment/payos` và hai route cùng gốc `GET .../payment/payos`, `POST .../payment/payos/reconcile` yêu cầu Customer đã xác minh email, phiên hợp lệ và ownership của cả khách hàng/người được tiêm. Request POST chỉ nhận `{ payer, termsAccepted }`, `termsAccepted=true`; trường lạ bị từ chối. Không nhận amount, order code, link ID hoặc trạng thái từ client.
+- API lấy số tiền từ payment summary đã kiểm tra, tạo order code ngẫu nhiên và ghi một reservation `PayOsQr`/`Creating` cùng audit trước khi gọi provider ngoài transaction. Một registration chỉ có một payment. POST lặp lại trả trạng thái reservation hiện hành, không gọi lại create; không tự retry lệnh tạo.
+- POST trả `PayOsPaymentStatusDto = { registrationId, amount, currency:"VND", state, checkoutUrl, qrCode, canReconcile }`. `state` chỉ là `Preparing`, `OutcomeUnknown`, `Pending` hoặc `Paid`; provider identifiers, order code, reference, credentials và payload webhook không nằm trong response này. Chỉ `Pending` trả checkout URL/QR; `Paid` không còn cho reconcile.
+- `GET` chỉ đọc trạng thái đã lưu, không gọi PayOS. Reconcile chụp payment identity rồi kết thúc transaction trước khi gọi provider GET; kết quả chỉ được ghi sau khi khóa lại registration và khớp payment ID/order code/amount/payment-link ID. `PENDING`/`PROCESSING` không được hiểu là đã thanh toán. `PAID` cần reference hợp lệ mới chuyển sang `ThanhCong`/`Paid`, cùng audit; chỉ trạng thái này được tính vào paid amount. Reconcile lặp lại với giao dịch Paid chỉ trả local state.
+- Nếu create timeout/lỗi không xác định, reservation chuyển `CreateOutcomeUnknown`; không POST lại khi khách thử lại. Provider GET `not found` không chứng minh create chưa được chấp nhận: giữ nguyên `orderCode` và lifecycle (`Preparing` nếu `Creating`, `OutcomeUnknown` nếu `CreateOutcomeUnknown`); không xóa hoặc tạo lại tự động. GET not-found của `Pending` trả 409 `paymentProviderConflict`; không downgrade local payment. Reconcile lại vẫn là thao tác rõ ràng của khách.
+- Provider GET được phép tối đa một retry; create không retry. Thiếu cấu hình hoặc provider lỗi trả lỗi dependency/provider an toàn, không trả nội dung provider/credential. `409 paymentProviderConflict` hoặc `paymentProviderStateUnsupported` không cập nhật payment. Không có public webhook route ở P2A.
+- Không tạo migration mới: dùng persistence `ThanhToan` của P1. Tất cả mutation payment tiếp tục tuần tự hóa theo registration và ghi audit cùng transaction.
+
+### PAY-R1 P2B — Webhook xác minh và ghi nhận thanh toán
+
+- `POST /api/v1/payment/payos/webhook` là public provider callback, không yêu cầu Customer/Employee session. Chỉ nhận `application/json`, đọc raw envelope có giới hạn 65.536 byte và xác minh bằng provider adapter trước khi tra cứu/mutate payment; không log hoặc lưu payload/signature.
+- Request không phải `application/json` trả 415 `UnsupportedMediaType`; body sai định dạng, quá giới hạn hoặc signature không xác minh được trả 400 `paymentWebhookInvalid`; provider chưa sẵn sàng trả 503 `paymentProviderUnavailable`. Các trường hợp này không gọi xác minh provider và không tạo/thay đổi payment. Webhook đã xác minh nhưng unsuccessful hoặc có `orderCode` không thuộc intent PayOS hiện hành được ACK 200, không downgrade/trộn payment.
+- Successful event chỉ hoàn tất intent được tìm theo persisted unique `PayOsOrderCode`, sau khi khớp exact amount, payment-link ID đã lưu (nếu có) và reference hợp lệ. `Creating`, `CreateOutcomeUnknown` và `Pending` có thể chuyển thành `Paid`; evidence trùng với payment đã `Paid` là idempotent ACK, còn evidence mâu thuẫn fail closed.
+- Webhook và reconcile dùng cùng registration lock và cùng quy tắc ghi `ThanhToan.TrangThai = ThanhCong`; chỉ trạng thái này làm căn cứ paid amount, S5 readiness và S7 revenue. Webhook không gọi provider GET/create; `returnUrl`/`cancelUrl` không có authority thanh toán. Mutation provider đầu tiên ghi audit system-driven, duplicate không ghi audit success lần nữa.
+
 ### Migration và ranh giới
 
 `20261029000847_G3SinglePayment` chỉ đổi index `ThanhToan.MaDangKy` thành unique; giữ FK, CHECK SoTien>0 và toàn bộ dữ liệu. Preflight trước DDL từ chối nhiều thanh toán cùng đăng ký hoặc thanh toán cũ sai contract/số tiền/đăng ký snapshot. Không tự xóa/gộp/đổi trạng thái/backfill; lỗi yêu cầu review dữ liệu trước triển khai. Down chỉ trả index thường. Kiểm Up/Down/Up và lặp migration trên DB test riêng; không tự áp DB demo.

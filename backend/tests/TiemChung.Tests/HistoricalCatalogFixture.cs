@@ -9,7 +9,9 @@ internal static class HistoricalCatalogFixture
 {
     internal const string Latest = "20261103192651_RF02AActivePackagePreflight";
 
-    internal static Task ConfigureAsync(TiemChungDbContext db) => db.Database.ExecuteSqlRawAsync("""
+    internal static async Task ConfigureAsync(TiemChungDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
         -- Historical suites keep the catalog migration pinned but write customers with the current EF model.
         ALTER TABLE NguoiDuocTiem ADD MaHoSo varchar(16) NOT NULL;
         ALTER TABLE KhachHang ADD DanhXung nvarchar(10) NULL, NgaySinh date NULL;
@@ -40,6 +42,23 @@ internal static class HistoricalCatalogFixture
         DECLARE @type int=SCOPE_IDENTITY();
         EXEC('ALTER TABLE VacXin ADD CONSTRAINT DF_HistoryInjection DEFAULT '+@injection+' FOR MaLoaiTiemChung');
         EXEC('ALTER TABLE VacXin ADD CONSTRAINT DF_HistoryType DEFAULT '+@type+' FOR MaLoaiVacXin');
+        """);
+        await ConfigurePayOsPaymentColumnsAsync(db);
+    }
+
+    internal static Task ConfigurePayOsPaymentColumnsAsync(TiemChungDbContext db) => db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsOrderCode') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsOrderCode bigint NULL;
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsPaymentLinkId') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsPaymentLinkId nvarchar(50) NULL;
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsLifecycleState') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsLifecycleState nvarchar(30) NULL;
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsCheckoutUrl') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsCheckoutUrl nvarchar(2048) NULL;
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsQrCode') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsQrCode nvarchar(2048) NULL;
+        IF COL_LENGTH(N'dbo.ThanhToan', N'PayOsReference') IS NULL
+            ALTER TABLE dbo.ThanhToan ADD PayOsReference nvarchar(100) NULL;
         """);
 
     internal static async Task SeedAsync(TiemChungDbContext db)

@@ -14,6 +14,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"><PrivateAssets>all</PrivateAssets></PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageReference Include="payOS" Version="2.1.0" />
     <ProjectReference Include="../../src/TiemChung.Api/TiemChung.Api.csproj" />
     <ProjectReference Include="../../tools/TiemChung.IdentityOperator/TiemChung.IdentityOperator.csproj" />
   </ItemGroup>

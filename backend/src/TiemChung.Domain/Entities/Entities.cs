@@ -132,6 +132,12 @@ public sealed class ThanhToan
     public string? ThamChieuThanhToan { get; set; }
     public decimal? SoTienKhachDua { get; set; }
     public DateTimeOffset? DongYDieuKhoanLuc { get; set; }
+    public long? PayOsOrderCode { get; set; }
+    public string? PayOsPaymentLinkId { get; set; }
+    public string? PayOsLifecycleState { get; set; }
+    public string? PayOsCheckoutUrl { get; set; }
+    public string? PayOsQrCode { get; set; }
+    public string? PayOsReference { get; set; }
 }
 
 public sealed class KhuyenMai

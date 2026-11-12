@@ -192,7 +192,7 @@ public static class PaymentEndpoints
         }).WithName("ConfirmRegistrationPayment").Produces<RegistrationPaymentDto>();
     }
 
-    private static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct,
+    internal static async Task<DangKyDichVu> LockRegistration(TiemChungDbContext db, int id, CancellationToken ct,
         bool customer = false) =>
         // All collectors lock the same registration after Identity account/session locks.
         await db.Registrations.FromSqlInterpolated(
@@ -200,7 +200,7 @@ public static class PaymentEndpoints
             .SingleOrDefaultAsync(ct) ?? throw (customer
                 ? new IdentityFailure(403, "permissionDenied") : new IdentityFailure(404, "resourceNotFound"));
 
-    private static async Task<DangKyDichVu> LockOwnedRegistration(TiemChungDbContext db, IdentityActor actor, int id,
+    internal static async Task<DangKyDichVu> LockOwnedRegistration(TiemChungDbContext db, IdentityActor actor, int id,
         CancellationToken ct)
     {
         if (id <= 0) throw new IdentityFailure(400, "validation");
@@ -218,7 +218,7 @@ public static class PaymentEndpoints
         return actor;
     }
 
-    private static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
+    internal static void Audit(TiemChungDbContext db, HttpContext context, IdentityActor actor, ThanhToan payment, string action)
     {
         var audit = IdentityTransactions.Audit(db, action, context.TraceIdentifier,
             actor.Account.MaTaiKhoan, session: actor.Session.Id);
@@ -284,6 +284,7 @@ public static class PaymentEndpoints
         var success = payment.TrangThai == "ThanhCong" && payment.MaNhanVien is > 0;
         if (payment.PhuongThuc == "MoPhong") return success;
         if (!CounterPaymentRules.Text(payment.MaGiaoDich, 50) || CounterPaymentRules.NormalizePayer(Payer(payment)) is null) return false;
+        if (payment.PhuongThuc == "PayOsQr") return ValidPayOsPayment(payment);
         if (payment.PhuongThuc == "TienMat")
             return success && CounterPaymentRules.IsCash(payment.SoTienKhachDua, total) &&
                 payment.NhaCungCapThanhToan is null && payment.TenChuTaiKhoanThe is null &&
@@ -310,6 +311,37 @@ public static class PaymentEndpoints
         };
     }
 
+    private static bool ValidPayOsPayment(ThanhToan payment)
+    {
+        if (payment.MaNhanVien is not null || payment.DongYDieuKhoanLuc is null ||
+            payment.PayOsOrderCode is not > 0 || payment.SoTienKhachDua is not null ||
+            payment.NhaCungCapThanhToan is not null || payment.TenChuTaiKhoanThe is not null ||
+            payment.SoDinhDanhMasked is not null || payment.ThamChieuThanhToan is not null)
+            return false;
+
+        var linkIdValid = CounterPaymentRules.Text(payment.PayOsPaymentLinkId, 50);
+        var linkIdOptionalAndValid = payment.PayOsPaymentLinkId is null || linkIdValid;
+        var checkoutUrlValid = payment.PayOsCheckoutUrl is null || SecurePayOsUrl(payment.PayOsCheckoutUrl);
+        var qrCodeValid = payment.PayOsQrCode is null || payment.PayOsQrCode.Length is > 0 and <= 2048;
+        var referenceValid = payment.PayOsReference is null || CounterPaymentRules.Text(payment.PayOsReference, 100);
+        if (!linkIdOptionalAndValid || !checkoutUrlValid || !qrCodeValid || !referenceValid ||
+            payment.PayOsLifecycleState is not ("Creating" or "CreateOutcomeUnknown" or "Pending" or "Paid"))
+            return false;
+
+        return payment.PayOsLifecycleState switch {
+            "Creating" or "CreateOutcomeUnknown" => payment.TrangThai == "ChoXacNhan",
+            "Pending" => payment.TrangThai == "ChoXacNhan" && linkIdValid &&
+                payment.PayOsCheckoutUrl is not null && payment.PayOsQrCode is not null,
+            "Paid" => payment.TrangThai == "ThanhCong" && linkIdValid &&
+                CounterPaymentRules.Text(payment.PayOsReference, 100),
+            _ => false
+        };
+    }
+
+    internal static bool SecurePayOsUrl(string? value) =>
+        value is { Length: <= 2048 } && Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(uri.UserInfo);
+
     internal static async Task<RegistrationPaymentDto> Detail(TiemChungDbContext db, DangKyDichVu row, IdentityActor actor, CancellationToken ct)
     {
         var payments = await db.Payments.AsNoTracking().Where(p => p.MaDangKy == row.MaDangKy).ToArrayAsync(ct);
@@ -319,17 +351,19 @@ public static class PaymentEndpoints
         var requiresPayment = summary.RemainingAmount > 0;
         var canWrite = actor.HasPermission("GhiThanhToan");
         var pending = summary.PaymentState == "ChoXacNhan";
+        var canConfirm = canWrite && pending && payment?.PhuongThuc == "ChuyenKhoanOnline";
         return new(row.MaDangKy, row.TrangThai, summary.Customer, summary.Recipient, registration.Items,
             summary.Subtotal, summary.TotalDue, summary.PaidAmount, summary.RemainingAmount, "VND", requiresPayment,
-            canWrite && requiresPayment && payment is null, true,
-            pending ? "Đang chờ Thu ngân xác nhận chuyển khoản."
+            canWrite && requiresPayment && payment is null, payment?.PhuongThuc != "PayOsQr",
+            pending ? (payment?.PhuongThuc == "PayOsQr" ? "Đang chờ xác nhận thanh toán."
+                : "Đang chờ Thu ngân xác nhận chuyển khoản.")
                 : payment is not null ? "Đã ghi nhận thanh toán toàn bộ."
                 : summary.TotalDue == 0 ? "Không phát sinh khoản thu." : "Chưa ghi nhận thanh toán.",
             payment is null ? null : new(payment.MaThanhToan, payment.MaDangKy, payment.SoTien, payment.MaNhanVien,
-                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, true,
+                Utc(payment.ThoiDiem), payment.LoaiThanhToan, payment.PhuongThuc, payment.TrangThai, payment.PhuongThuc != "PayOsQr",
                 payment.MaGiaoDich, payment.PhuongThuc == "MoPhong" ? null : Payer(payment), payment.NhaCungCapThanhToan,
                 payment.TenChuTaiKhoanThe, payment.SoDinhDanhMasked, payment.ThamChieuThanhToan,
                 payment.SoTienKhachDua, payment.SoTienKhachDua - payment.SoTien), summary.ConsultationFee,
-            summary.PaymentState, summary.ExpectedChannel, canWrite && pending, registration.Contact, summary.DiscountAmount);
+            summary.PaymentState, summary.ExpectedChannel, canConfirm, registration.Contact, summary.DiscountAmount);
     }
 }

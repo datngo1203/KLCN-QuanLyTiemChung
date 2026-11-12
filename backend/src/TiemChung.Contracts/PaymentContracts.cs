@@ -23,6 +23,12 @@ public sealed record OnlinePaymentRequest(PaymentPayer? Payer, string? Method, b
     InternationalCard? InternationalCard = null, DomesticPayment? Domestic = null, CounterTransfer? Transfer = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record PayOsPaymentRequest(PaymentPayer? Payer, bool TermsAccepted);
+
+public sealed record PayOsPaymentStatusDto(int RegistrationId, decimal Amount, string Currency, string State,
+    string? CheckoutUrl, string? QrCode, bool CanReconcile);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record InternationalCard(string? CardBrand, string? CardholderName, string? CardNumber,
     int? ExpiryMonth, int? ExpiryYear, string? Cvv);
 
