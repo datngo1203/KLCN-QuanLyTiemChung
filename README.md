@@ -34,6 +34,7 @@ Sau khi thiết lập lần đầu ở mục 2 để có `infra/.env` và các i
 - **VAC-Start.cmd**: kiểm tra/mở Docker Desktop, khởi động SQL/API bằng image có sẵn, chờ API, mở Web tại port 5173 và Windows WPF. Start lặp lại dùng lại tiến trình do launcher quản lý; không tự seed hoặc chạy full test.
 - **VAC-Check.cmd**: chạy smoke **chỉ đọc** (trạng thái SQL/API/Web/WPF và GET danh mục SQL), rồi hiện menu **F** full test, **A** mở sổ tài khoản, **R** rebuild API, **S** status. Chỉ rebuild khi backend/Dockerfile đổi hoặc chưa có image; Stop trước khi rebuild. Nếu cần xóa container API/migrate đã dừng, launcher liệt kê ID/phạm vi quản lý và yêu cầu nhập **REBUILD** để xác nhận; không xóa container SQL hoặc volume.
 - **VAC-Stop.cmd**: chỉ dừng tiến trình/container launcher đã quản lý, dùng Compose `stop` để giữ database/volume; giữ nguyên thành phần chạy từ trước. Nếu port bị chương trình khác chiếm, launcher báo lỗi và giữ nguyên chương trình đó.
+- **VAC-Finalize.cmd**: tạo một môi trường `vac-final-<timestamp>` mới độc lập, build SQL/API, seed Catalog curated, tùy chọn seed inventory, chạy audit Catalog read-only, mở Web + Windows để người dùng smoke thủ công rồi chỉ khi xác nhận PASS mới tạo `dist/final-demo/Database/FinalDemo.bak`; backup dùng `COPY_ONLY + CHECKSUM` và phải qua `RESTORE VERIFYONLY`. Script không reset DB cũ, không đưa `infra/.env`/secret vào output.
 
 Tạo shortcut Desktop: chuột phải từng `.cmd` → **Show more options → Send to → Desktop (create shortcut)**; giữ file gốc trong repository. Launcher tự tìm thư mục gốc, không cần sửa đường dẫn máy.
 
