@@ -14,6 +14,8 @@ public sealed record VaccineDto(int Id, string Name, string Manufacturer, string
     public decimal Volume { get; init; }
     public string? SourceName { get; init; }
     public string? SourceUrl { get; init; }
+    public string? PriceSourceName { get; init; }
+    public string? PriceSourceUrl { get; init; }
     public DateTimeOffset? InformationUpdatedAt { get; init; }
     public VaccineRegimenDto[] Regimens { get; init; } = [];
 }

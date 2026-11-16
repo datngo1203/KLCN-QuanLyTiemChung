@@ -52,7 +52,7 @@ export default function Catalog({ query, setQuery }) {
     {!loading && !error && <><p className="muted" role="status">Danh mục dịch vụ · {count} kết quả</p>
       {vaccines.length > 0 && <div className="catalog-table-scroll" role="region" aria-label="Bảng vắc xin, cuộn ngang để xem thêm" tabIndex={0}>
         <table className="catalog-table">
-          <caption>Vắc xin lẻ · Giá niêm yết (VND)<span className="catalog-table-hint">Cuộn ngang để xem đầy đủ các cột.</span></caption>
+          <caption>Vắc xin lẻ · Giá tham khảo tại thời điểm kiểm tra nguồn (VND)<span className="catalog-table-hint">Cuộn ngang để xem đầy đủ các cột.</span></caption>
           <thead><tr><th scope="col">Vắc xin / phòng bệnh</th><th scope="col">Nhà sản xuất</th><th scope="col">Nước sản xuất / xuất xứ</th><th scope="col" className="catalog-price">Giá</th><th scope="col">Chi tiết</th></tr></thead>
           <tbody>{vaccines.map(vaccine => <tr key={vaccine.id}>
             <th scope="row"><div className="catalog-item">

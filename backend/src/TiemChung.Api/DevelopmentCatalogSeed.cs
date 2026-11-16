@@ -31,7 +31,7 @@ public static class DevelopmentCatalogSeed
     private sealed record RegimenSeed(string Name, string TargetAudience, string Summary, string SourceUrl, DoseSeed[] Doses);
     private sealed record VaccineSeed(
         string Code, string Name, string Manufacturer, string Origin, string Description, string TargetAudience,
-        string Route, string Dosage, decimal Volume, string Reaction, decimal Price, string SourceUrl,
+        string Route, string Dosage, decimal Volume, string Reaction, decimal Price, string SourceName, string SourceUrl,
         string[] DiseaseCodes, string[] TechnologyCodes, RegimenSeed[] Regimens);
 
     private static readonly DiseaseSeed[] DiseaseSeeds = [
@@ -69,91 +69,91 @@ public static class DevelopmentCatalogSeed
 
     private static readonly VaccineSeed[] VaccineSeeds = [
         new("VX-AVAXIM-80U", "Avaxim 80U", "Sanofi Pasteur", "Pháp",
-            "Vắc xin phòng viêm gan A.", "Trẻ từ 12 tháng đến dưới 16 tuổi.",
+            "Vắc xin bất hoạt dùng để phòng viêm gan A ở trẻ em.", "Trẻ từ 12 tháng đến dưới 16 tuổi.",
             "Intramuscular", "80 U / 0,5 ml mỗi liều.", 0.5m,
             "Có thể đau, đỏ, sưng tại chỗ tiêm; sốt nhẹ, đau đầu, đau cơ, mệt mỏi.",
-            685000, AvaximSource, ["BENH-VIEM-GAN-A"], ["CNVX-BAT-HOAT"],
+            685000, "VNVC — thông tin sản phẩm", AvaximSource, ["BENH-VIEM-GAN-A"], ["CNVX-BAT-HOAT"],
             [new("Lịch tiêm tham khảo 2 mũi", "Trẻ từ 12 tháng đến dưới 16 tuổi.",
-                "Lịch Catalog tham khảo; lịch cá nhân cần nhân viên y tế xác nhận.", AvaximSource,
+                "Lịch tiêm trong danh mục chỉ để tham khảo; lịch cá nhân cần được nhân viên y tế xác nhận.", AvaximSource,
                 [new(1, "Lần tiêm đầu tiên"), new(2, "6 tháng sau mũi 1", 1, 6, "Months")])]),
         new("VX-HAVAX-05", "Havax 0,5 ml", "VABIOTECH", "Việt Nam",
-            "Vắc xin phòng viêm gan A.", "Trẻ từ 24 tháng đến dưới 18 tuổi.",
+            "Vắc xin viêm gan A bất hoạt, tinh chế dùng cho trẻ em và thanh thiếu niên.", "Trẻ từ 24 tháng đến dưới 18 tuổi.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m,
             "Có thể đau, sưng, đỏ tại chỗ tiêm; ít gặp sốt, đau đầu, buồn nôn, mệt mỏi, chóng mặt.",
-            295000, HavaxSource, ["BENH-VIEM-GAN-A"], [],
+            295000, "VNVC — thông tin sản phẩm", HavaxSource, ["BENH-VIEM-GAN-A"], [],
             [new("Lịch tiêm tham khảo 2 mũi", "Trẻ từ 24 tháng đến dưới 18 tuổi.",
-                "Lịch Catalog tham khảo; lịch cá nhân cần nhân viên y tế xác nhận.", HavaxSource,
+                "Lịch tiêm trong danh mục chỉ để tham khảo; lịch cá nhân cần được nhân viên y tế xác nhận.", HavaxSource,
                 [new(1, "Lần tiêm đầu tiên"), new(2, "6 tháng sau mũi 1", 1, 6, "Months")])]),
-        new("VX-INFANRIX-HEXA", "Infanrix Hexa (6in1)", "GlaxoSmithKline Biologicals", "Bỉ",
-            "Vắc xin phối hợp phòng bạch hầu, uốn ván, ho gà, viêm gan B, bại liệt và bệnh do Hib.",
+        new("VX-INFANRIX-HEXA", "Infanrix Hexa (6 trong 1)", "GlaxoSmithKline Biologicals", "Bỉ",
+            "Vắc xin phối hợp 6 trong 1 giúp phòng bạch hầu, uốn ván, ho gà, viêm gan B, bại liệt và bệnh do Hib.",
             "Trẻ từ 6 tuần tuổi và trẻ nhỏ theo khuyến cáo chính thức.",
             "Intramuscular", "0,5 ml mỗi liều sau hoàn nguyên.", 0.5m, "",
-            1098000, InfanrixHexaSource,
+            1098000, "EMA — thông tin sản phẩm", InfanrixHexaSource,
             ["BENH-BACH-HAU","BENH-HO-GA","BENH-UON-VAN","BENH-VIEM-GAN-B","BENH-BAI-LIET","BENH-HIB"], [],
             [new("Phác đồ cơ bản 3 mũi + nhắc tham khảo", "Trẻ từ 6 tuần tuổi và trẻ nhỏ.",
                 "Một phác đồ tham khảo phù hợp nguồn EMA; không tự động dùng để chỉ định cá nhân.", InfanrixHexaSource,
                 [new(1,"Mũi cơ bản 1"),new(2,"Ít nhất 1 tháng sau mũi 1",1,1,"Months"),
                  new(3,"Ít nhất 1 tháng sau mũi 2",2,1,"Months"),new(4,"Mũi nhắc ít nhất 6 tháng sau mũi 3",3,6,"Months")])]),
-        new("VX-HEXAXIM", "Hexaxim (6in1)", "Sanofi Pasteur", "Pháp",
-            "Vắc xin phối hợp phòng bạch hầu, uốn ván, ho gà, viêm gan B, bại liệt và bệnh do Hib.",
+        new("VX-HEXAXIM", "Hexaxim (6 trong 1)", "Sanofi Pasteur", "Pháp",
+            "Vắc xin phối hợp 6 trong 1 giúp phòng bạch hầu, uốn ván, ho gà, viêm gan B, bại liệt và bệnh do Hib.",
             "Trẻ từ 6 tuần đến 24 tháng tuổi theo thông tin sản phẩm.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m, "",
-            995000, HexaximSource,
+            995000, "WHO — hồ sơ tiền thẩm định", HexaximSource,
             ["BENH-BACH-HAU","BENH-HO-GA","BENH-UON-VAN","BENH-VIEM-GAN-B","BENH-BAI-LIET","BENH-HIB"], [],
             [new("Phác đồ cơ bản 3 mũi + nhắc tham khảo", "Trẻ từ 6 tuần đến 24 tháng tuổi.",
                 "Ba mũi cơ bản cách nhau ít nhất 4 tuần; mũi nhắc ít nhất 6 tháng sau mũi cơ bản cuối.", HexaximSource,
                 [new(1,"Mũi cơ bản 1"),new(2,"Ít nhất 4 tuần sau mũi 1",1,4,"Weeks"),
                  new(3,"Ít nhất 4 tuần sau mũi 2",2,4,"Weeks"),new(4,"Mũi nhắc ít nhất 6 tháng sau mũi 3",3,6,"Months")])]),
         new("VX-ROTATEQ", "Rotateq", "Merck Sharp & Dohme (MSD)", "Mỹ",
-            "Vắc xin sống giảm độc lực ngũ giá phòng viêm dạ dày - ruột do Rotavirus.",
+            "Vắc xin sống giảm độc lực, ngũ giá, dùng qua đường uống để phòng viêm dạ dày ruột do Rotavirus.",
             "Trẻ từ 6 tuần tuổi; hoàn thành liệu trình trước 32 tuần tuổi.",
             "Oral", "2 ml mỗi liều uống.", 2.0m, "",
-            665000, RotateqSource, ["BENH-ROTAVIRUS"], ["CNVX-SONG-GIAM-DOC-LUC"],
+            665000, "VNVC — thông tin sản phẩm", RotateqSource, ["BENH-ROTAVIRUS"], ["CNVX-SONG-GIAM-DOC-LUC"],
             [new("Lịch uống tham khảo 3 liều", "Trẻ từ 6 tuần tuổi.",
                 "Ba liều uống, mỗi liều cách liều trước ít nhất 4 tuần; hoàn thành trước 32 tuần tuổi.", RotateqSource,
                 [new(1,"Liều 1"),new(2,"Ít nhất 4 tuần sau liều 1",1,4,"Weeks"),new(3,"Ít nhất 4 tuần sau liều 2",2,4,"Weeks")])]),
         new("VX-ROTARIX", "Rotarix", "GlaxoSmithKline Biologicals", "Bỉ",
-            "Vắc xin sống giảm độc lực đường uống phòng viêm dạ dày - ruột do Rotavirus.",
+            "Vắc xin sống giảm độc lực dùng qua đường uống để phòng viêm dạ dày ruột do Rotavirus.",
             "Trẻ từ 6 tuần tuổi; hoàn thành liệu trình đến 24 tuần tuổi.",
             "Oral", "1,5 ml mỗi liều uống.", 1.5m, "",
-            928000, RotarixSource, ["BENH-ROTAVIRUS"], ["CNVX-SONG-GIAM-DOC-LUC"],
+            928000, "VNVC — thông tin sản phẩm", RotarixSource, ["BENH-ROTAVIRUS"], ["CNVX-SONG-GIAM-DOC-LUC"],
             [new("Lịch uống tham khảo 2 liều", "Trẻ từ 6 tuần tuổi.",
                 "Hai liều uống cách nhau ít nhất 4 tuần; hoàn thành đến 24 tuần tuổi.", RotarixSource,
                 [new(1,"Liều 1"),new(2,"Ít nhất 4 tuần sau liều 1",1,4,"Weeks")])]),
         new("VX-PREVENAR-13", "Prevenar 13", "Pfizer", "Bỉ",
-            "Vắc xin phế cầu cộng hợp 13 giá.", "Trẻ từ 6 tuần tuổi và người lớn; lịch tiêm phụ thuộc độ tuổi.",
+            "Vắc xin phế cầu cộng hợp 13 giá giúp phòng các bệnh do phế cầu khuẩn.", "Trẻ từ 6 tuần tuổi và người lớn; lịch tiêm phụ thuộc độ tuổi.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m, "",
-            1190000, Prevenar13Source, ["BENH-PHE-CAU"], ["CNVX-CONG-HOP"],
+            1190000, "EMA — thông tin sản phẩm", Prevenar13Source, ["BENH-PHE-CAU"], ["CNVX-CONG-HOP"],
             [new("Phác đồ tham khảo từ 2 tuổi trở lên", "Người từ 2 tuổi trở lên.",
                 "Nguồn EMA mô tả một liều ở nhóm từ 2 tuổi trở lên; nhóm nhỏ hơn có lịch theo tuổi.", Prevenar13Source,
                 [new(1,"Một liều theo khuyến cáo cho nhóm tuổi này")])]),
         new("VX-BEXSERO", "Bexsero", "GlaxoSmithKline (GSK)", "Ý",
-            "Vắc xin đa thành phần tái tổ hợp, hấp phụ phòng bệnh não mô cầu xâm lấn nhóm B.",
+            "Vắc xin đa thành phần tái tổ hợp, có hấp phụ, giúp phòng bệnh não mô cầu xâm lấn nhóm B.",
             "Trẻ em và người lớn từ 2 tháng tuổi đến 50 tuổi theo VNVC.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m, "",
-            1820000, BexseroSource, ["BENH-NAO-MO-CAU-B"], ["CNVX-TAI-TO-HOP"],
+            1820000, "VNVC — thông tin sản phẩm", BexseroSource, ["BENH-NAO-MO-CAU-B"], ["CNVX-TAI-TO-HOP"],
             [new("Phác đồ tham khảo từ 2 tuổi đến 50 tuổi", "Người từ 2 tuổi đến 50 tuổi.",
                 "Hai mũi cơ bản; mũi 2 cách mũi 1 ít nhất 1 tháng theo VNVC.", BexseroSource,
                 [new(1,"Mũi 1"),new(2,"Ít nhất 1 tháng sau mũi 1",1,1,"Months")])]),
         new("VX-NIMENRIX", "Nimenrix", "Pfizer", "Bỉ",
-            "Vắc xin polysaccharide cộng hợp phòng bệnh não mô cầu xâm lấn nhóm A, C, Y, W-135.",
+            "Vắc xin polysaccharide cộng hợp giúp phòng bệnh não mô cầu xâm lấn do các nhóm A, C, Y và W-135.",
             "Trẻ từ 6 tuần tuổi trở lên và người lớn, không giới hạn trên theo VNVC.",
             "Intramuscular", "0,5 ml mỗi liều sau hoàn nguyên.", 0.5m, "",
-            1750000, NimenrixSource, ["BENH-NAO-MO-CAU-ACWY"], ["CNVX-CONG-HOP"],
+            1750000, "VNVC — thông tin sản phẩm", NimenrixSource, ["BENH-NAO-MO-CAU-ACWY"], ["CNVX-CONG-HOP"],
             [new("Phác đồ tham khảo từ 1 tuổi trở lên", "Người từ 1 tuổi trở lên.",
                 "Một mũi cơ bản; nhóm tuổi nhỏ hơn có lịch riêng theo nguồn.", NimenrixSource,
                 [new(1,"Một mũi cơ bản")])]),
-        new("VX-MMR-II", "MMR II (3 in 1)", "Merck Sharp & Dohme (MSD)", "Mỹ",
-            "Vắc xin sống phòng sởi, quai bị và rubella.", "Người từ 12 tháng tuổi trở lên.",
+        new("VX-MMR-II", "M-M-R II", "Merck Sharp & Dohme (MSD)", "Mỹ",
+            "Vắc xin phối hợp sống giảm độc lực giúp phòng sởi, quai bị và rubella.", "Người từ 12 tháng tuổi trở lên.",
             "Subcutaneous", "Khoảng 0,5 ml mỗi liều sau hoàn nguyên.", 0.5m, "",
-            495000, MmrSource, ["BENH-SOI","BENH-QUAI-BI","BENH-RUBELLA"], ["CNVX-SONG-GIAM-DOC-LUC"],
+            495000, "FDA — thông tin sản phẩm", MmrSource, ["BENH-SOI","BENH-QUAI-BI","BENH-RUBELLA"], ["CNVX-SONG-GIAM-DOC-LUC"],
             [new("Lịch tham khảo trẻ em", "Trẻ từ 12 tháng tuổi.",
                 "Nguồn chính thức khuyến nghị liều đầu 12–15 tháng và liều thứ hai 4–6 tuổi.", MmrSource,
                 [new(1,"Liều 1: 12–15 tháng tuổi"),new(2,"Liều 2: 4–6 tuổi")])]),
         new("VX-VARIVAX", "Varivax", "Merck Sharp & Dohme (MSD)", "Mỹ",
-            "Vắc xin sống phòng thủy đậu.", "Người từ 12 tháng tuổi trở lên.",
+            "Vắc xin sống giảm độc lực giúp phòng bệnh thủy đậu.", "Người từ 12 tháng tuổi trở lên.",
             "Subcutaneous", "Khoảng 0,5 ml mỗi liều sau hoàn nguyên.", 0.5m, "",
-            1118000, VarivaxSource, ["BENH-THUY-DAU"], ["CNVX-SONG-GIAM-DOC-LUC"],
+            1118000, "FDA — thông tin sản phẩm", VarivaxSource, ["BENH-THUY-DAU"], ["CNVX-SONG-GIAM-DOC-LUC"],
             [new("Phác đồ tham khảo 12 tháng đến 12 tuổi", "Trẻ 12 tháng đến 12 tuổi.",
                 "Hai liều; khoảng cách tối thiểu 3 tháng theo thông tin sản phẩm.", VarivaxSource,
                 [new(1,"Mũi 1"),new(2,"Ít nhất 3 tháng sau mũi 1",1,3,"Months")]),
@@ -161,9 +161,9 @@ public static class DevelopmentCatalogSeed
                 "Hai liều, cách nhau tối thiểu 4 tuần.", VarivaxSource,
                 [new(1,"Mũi 1"),new(2,"Ít nhất 4 tuần sau mũi 1",1,4,"Weeks")])]),
         new("VX-SHINGRIX", "Shingrix", "GlaxoSmithKline (GSK)", "Bỉ",
-            "Vắc xin zona tái tổ hợp có tá dược.", "Người từ 50 tuổi trở lên; hoặc từ 18 tuổi có nguy cơ cao theo nguồn.",
+            "Vắc xin tái tổ hợp có tá dược giúp phòng bệnh zona thần kinh.", "Người từ 50 tuổi trở lên; hoặc từ 18 tuổi có nguy cơ cao theo nguồn.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m, "",
-            3680000, ShingrixSource, ["BENH-ZONA"], ["CNVX-TAI-TO-HOP"],
+            3680000, "VNVC — thông tin sản phẩm", ShingrixSource, ["BENH-ZONA"], ["CNVX-TAI-TO-HOP"],
             [new("Phác đồ tham khảo từ 50 tuổi", "Người từ 50 tuổi trở lên.",
                 "Hai mũi; mũi 2 sau mũi 1 khoảng 2 tháng.", ShingrixSource,
                 [new(1,"Mũi 1"),new(2,"2 tháng sau mũi 1",1,2,"Months")]),
@@ -171,9 +171,9 @@ public static class DevelopmentCatalogSeed
                 "Hai mũi; VNVC mô tả mũi 2 sau mũi 1 khoảng 1 tháng cho nhóm này.", ShingrixSource,
                 [new(1,"Mũi 1"),new(2,"1 tháng sau mũi 1",1,1,"Months")])]),
         new("VX-VAXIGRIP", "Vaxigrip", "Sanofi Pasteur", "Pháp",
-            "Vắc xin cúm tam giá bất hoạt dạng mảnh.", "Người từ 6 tháng tuổi trở lên theo thông tin sản phẩm.",
+            "Vắc xin cúm mùa tam giá, bất hoạt dạng mảnh.", "Người từ 6 tháng tuổi trở lên theo thông tin sản phẩm.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m, "",
-            356000, VaxigripSource, ["BENH-CUM"], ["CNVX-BAT-HOAT"],
+            356000, "VNVC — thông tin sản phẩm", VaxigripSource, ["BENH-CUM"], ["CNVX-BAT-HOAT"],
             [new("Phác đồ tham khảo trẻ dưới 9 tuổi chưa từng tiêm cúm", "Trẻ từ 6 tháng đến dưới 9 tuổi chưa từng tiêm cúm.",
                 "Hai mũi, cách nhau ít nhất 4 tuần; sau đó tiêm nhắc hằng năm theo nguồn.", VaxigripSource,
                 [new(1,"Mũi 1"),new(2,"Ít nhất 4 tuần sau mũi 1",1,4,"Weeks")]),
@@ -181,10 +181,10 @@ public static class DevelopmentCatalogSeed
                 "Một liều mỗi mùa/năm theo khuyến cáo cập nhật.", VaxigripSource,
                 [new(1,"Một liều theo mùa/năm")])]),
         new("VX-GARDASIL-9", "Gardasil 9 0,5 ml", "Merck Sharp & Dohme (MSD)", "Mỹ",
-            "Vắc xin tái tổ hợp phòng các bệnh liên quan 9 tuýp HPV.", "Nam và nữ từ 9 đến 45 tuổi.",
+            "Vắc xin tái tổ hợp 9 giá giúp phòng các bệnh do 9 tuýp HPV có trong vắc xin.", "Nam và nữ từ 9 đến 45 tuổi.",
             "Intramuscular", "0,5 ml mỗi liều.", 0.5m,
             "Có thể đau, sưng, đỏ tại chỗ tiêm; sốt nhẹ, đau đầu, mệt mỏi, chóng mặt hoặc buồn nôn.",
-            2948000, Gardasil9Source, ["BENH-HPV"], ["CNVX-TAI-TO-HOP"],
+            2948000, "VNVC — thông tin sản phẩm", Gardasil9Source, ["BENH-HPV"], ["CNVX-TAI-TO-HOP"],
             [new("Phác đồ tham khảo 2 mũi", "Người từ 9 đến dưới 15 tuổi.",
                 "Mũi 2 cách mũi 1 từ 6–12 tháng; không ép range này thành số tháng cố định.", Gardasil9Source,
                 [new(1,"Mũi 1"),new(2,"Mũi 2: 6–12 tháng sau mũi 1")]),
@@ -192,9 +192,9 @@ public static class DevelopmentCatalogSeed
                 "Ba mũi theo mốc 0, 2 và 6 tháng.", Gardasil9Source,
                 [new(1,"Mũi 1"),new(2,"2 tháng sau mũi 1",1,2,"Months"),new(3,"6 tháng sau mũi 1",1,6,"Months")])]),
         new("VX-QDENGA", "Qdenga", "Takeda", "Đức",
-            "Vắc xin sốt xuất huyết tứ giá sống giảm độc lực.", "Người từ 4 tuổi trở lên theo nguồn Việt Nam/EMA.",
+            "Vắc xin sống giảm độc lực, tứ giá, giúp phòng sốt xuất huyết do virus Dengue.", "Người từ 4 tuổi trở lên theo nguồn Việt Nam/EMA.",
             "Subcutaneous", "0,5 ml mỗi liều sau hoàn nguyên.", 0.5m, "",
-            1290000, QdengaSource, ["BENH-SOT-XUAT-HUYET"], ["CNVX-SONG-GIAM-DOC-LUC"],
+            1290000, "VNVC — thông tin sản phẩm", QdengaSource, ["BENH-SOT-XUAT-HUYET"], ["CNVX-SONG-GIAM-DOC-LUC"],
             [new("Lịch tiêm tham khảo 2 mũi", "Người từ 4 tuổi trở lên.",
                 "Hai mũi theo mốc 0 và 3 tháng.", QdengaSource,
                 [new(1,"Mũi 1"),new(2,"3 tháng sau mũi 1",1,3,"Months")])])
@@ -222,47 +222,80 @@ public static class DevelopmentCatalogSeed
 
         foreach (var seed in VaccineSeeds)
         {
-            if (await db.Vaccines.AnyAsync(x => x.Code == seed.Code || x.TenVacXin == seed.Name)) continue;
-
-            var vaccine = new VacXin {
-                Code = seed.Code, TenVacXin = seed.Name, NhaSanXuat = seed.Manufacturer, XuatXu = seed.Origin,
-                MoTa = seed.Description, DoiTuongSuDung = seed.TargetAudience, DuongDung = seed.Route,
-                LieuLuong = seed.Dosage, TheTich = seed.Volume, PhanUngSauTiem = seed.Reaction,
-                Gia = seed.Price, TrangThai = "Active", DuongDanNguon = seed.SourceUrl,
-                NguonThongTin = $"Nguồn sản phẩm: {seed.SourceUrl}; giá ưu đãi tiêm lẻ: {PriceSource}; kiểm tra 09/11/2026.",
-                NgayCapNhatThongTin = CheckedAt
-            };
-            db.Add(vaccine);
-            await db.SaveChangesAsync();
+            var vaccine = await EnsureVaccineAsync(db, seed);
 
             foreach (var code in seed.DiseaseCodes)
-                db.Add(new VacXin_Benh { MaVacXin = vaccine.MaVacXin, MaBenh = diseases[code].MaBenh });
+                if (!await db.Set<VacXin_Benh>().AnyAsync(x => x.MaVacXin == vaccine.MaVacXin && x.MaBenh == diseases[code].MaBenh))
+                    db.Add(new VacXin_Benh { MaVacXin = vaccine.MaVacXin, MaBenh = diseases[code].MaBenh });
 
             foreach (var code in seed.TechnologyCodes)
-                db.Add(new VacXin_CongNghe { MaVacXin = vaccine.MaVacXin, MaCongNghe = technologies[code].MaCongNghe });
+                if (!await db.Set<VacXin_CongNghe>().AnyAsync(x => x.MaVacXin == vaccine.MaVacXin && x.MaCongNghe == technologies[code].MaCongNghe))
+                    db.Add(new VacXin_CongNghe { MaVacXin = vaccine.MaVacXin, MaCongNghe = technologies[code].MaCongNghe });
 
-            foreach (var regimenSeed in seed.Regimens)
-            {
-                var regimen = new VaccineRegimen {
-                    VaccineId = vaccine.MaVacXin, Name = regimenSeed.Name, TargetAudience = regimenSeed.TargetAudience,
-                    Summary = regimenSeed.Summary, SourceName = "Nguồn công khai — kiểm tra 09/11/2026",
-                    SourceUrl = regimenSeed.SourceUrl
-                };
-                db.Add(regimen);
-                await db.SaveChangesAsync();
-
-                foreach (var doseSeed in regimenSeed.Doses)
-                    db.Add(new VaccineRegimenDose {
-                        RegimenId = regimen.Id, DoseOrder = doseSeed.Order, TimingLabel = doseSeed.Label,
-                        AnchorDoseOrder = doseSeed.AnchorOrder, IntervalValue = doseSeed.IntervalValue,
-                        IntervalUnit = doseSeed.IntervalUnit
-                    });
-            }
+            await EnsureRegimensAsync(db, vaccine, seed);
             await db.SaveChangesAsync();
         }
 
         // Final curated demo does not invent packages without a public composition + price source.
         await tx.CommitAsync();
+    }
+
+    private static async Task<VacXin> EnsureVaccineAsync(TiemChungDbContext db, VaccineSeed seed)
+    {
+        var provenance = $"{seed.SourceName} | VNVC — giá ưu đãi tiêm lẻ (VNĐ/liều) | {PriceSource}";
+        var legacyProvenance = $"Nguồn sản phẩm: {seed.SourceUrl}; giá ưu đãi tiêm lẻ: {PriceSource}; kiểm tra 09/11/2026.";
+        var row = await db.Vaccines.SingleOrDefaultAsync(x => x.Code == seed.Code);
+        if (row is null)
+        {
+            if (await db.Vaccines.AnyAsync(x => x.TenVacXin == seed.Name))
+                throw new InvalidOperationException($"Catalog seed conflict: name '{seed.Name}' already belongs to another vaccine.");
+            row = new VacXin { Code = seed.Code, TrangThai = "Active" };
+            db.Add(row);
+        }
+        else if (row.NguonThongTin != legacyProvenance && row.NguonThongTin != provenance)
+        {
+            throw new InvalidOperationException($"Catalog seed conflict: {seed.Code} is not owned by the curated DATA-R2 seed.");
+        }
+
+        if (await db.Vaccines.AnyAsync(x => x.MaVacXin != row.MaVacXin && x.TenVacXin == seed.Name))
+            throw new InvalidOperationException($"Catalog seed conflict: name '{seed.Name}' already belongs to another vaccine.");
+
+        row.TenVacXin = seed.Name; row.NhaSanXuat = seed.Manufacturer; row.XuatXu = seed.Origin;
+        row.MoTa = seed.Description; row.DoiTuongSuDung = seed.TargetAudience; row.DuongDung = seed.Route;
+        row.LieuLuong = seed.Dosage; row.TheTich = seed.Volume; row.Gia = seed.Price;
+        if (!string.IsNullOrEmpty(seed.Reaction)) row.PhanUngSauTiem = seed.Reaction;
+        row.NguonThongTin = provenance; row.DuongDanNguon = seed.SourceUrl; row.NgayCapNhatThongTin = CheckedAt;
+        await db.SaveChangesAsync();
+        return row;
+    }
+
+    private static async Task EnsureRegimensAsync(TiemChungDbContext db, VacXin vaccine, VaccineSeed seed)
+    {
+        var existing = await db.Set<VaccineRegimen>().Where(x => x.VaccineId == vaccine.MaVacXin).OrderBy(x => x.Id).ToArrayAsync();
+        if (existing.Length != 0 && existing.Length != seed.Regimens.Length)
+            throw new InvalidOperationException($"Catalog seed conflict: {seed.Code} has a customized regimen graph.");
+
+        for (var index = 0; index < seed.Regimens.Length; index++)
+        {
+            var regimenSeed = seed.Regimens[index];
+            var regimen = existing.Length == 0 ? new VaccineRegimen { VaccineId = vaccine.MaVacXin } : existing[index];
+            regimen.Name = regimenSeed.Name; regimen.TargetAudience = regimenSeed.TargetAudience;
+            regimen.Summary = regimenSeed.Summary; regimen.SourceName = seed.SourceName; regimen.SourceUrl = regimenSeed.SourceUrl;
+            if (existing.Length == 0) db.Add(regimen);
+            await db.SaveChangesAsync();
+
+            var doses = await db.Set<VaccineRegimenDose>().Where(x => x.RegimenId == regimen.Id).OrderBy(x => x.DoseOrder).ToArrayAsync();
+            if (doses.Length != 0 && !doses.Select(x => x.DoseOrder).SequenceEqual(regimenSeed.Doses.Select(x => x.Order)))
+                throw new InvalidOperationException($"Catalog seed conflict: regimen '{regimen.Name}' has customized dose steps.");
+
+            foreach (var doseSeed in regimenSeed.Doses)
+            {
+                var dose = doses.SingleOrDefault(x => x.DoseOrder == doseSeed.Order) ?? new VaccineRegimenDose { RegimenId = regimen.Id, DoseOrder = doseSeed.Order };
+                dose.TimingLabel = doseSeed.Label; dose.AnchorDoseOrder = doseSeed.AnchorOrder;
+                dose.IntervalValue = doseSeed.IntervalValue; dose.IntervalUnit = doseSeed.IntervalUnit;
+                if (dose.Id == 0) db.Add(dose);
+            }
+        }
     }
 
     private static async Task<Benh> EnsureDiseaseAsync(TiemChungDbContext db, DiseaseSeed seed)
