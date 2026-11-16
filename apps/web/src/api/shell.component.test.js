@@ -128,7 +128,7 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   const source = home.querySelector('.vaccine-provenance a')
   assert.equal(source.getAttribute('href'), 'https://example.invalid/vaccine')
   assert.equal(source.getAttribute('rel'), 'noreferrer')
-  assert.match(home.querySelector('.vaccine-provenance').textContent, /Ngày cập nhật thông tin: 5\/11\/2026/)
+  assert.match(home.querySelector('.vaccine-provenance').textContent, /Kiểm tra nguồn ngày: 5\/11\/2026/)
   assert.match(home.textContent, /Nguồn tham khảo kiểm thử/)
   assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/vaccines/42'))
   assert.doesNotMatch(home.textContent, /Danh mục từ cơ sở dữ liệu/)
