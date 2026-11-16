@@ -34,6 +34,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
                 "VX-ROTARIX","VX-ROTATEQ","VX-SHINGRIX","VX-VARIVAX","VX-VAXIGRIP"
             }, vaccines.Select(x => x.Code));
             var prices = vaccines.ToDictionary(x => x.Code, x => x.Gia);
+            var descriptions = vaccines.ToDictionary(x => x.Code, x => x.MoTa);
             Assert.Equal(685000, prices["VX-AVAXIM-80U"]);
             Assert.Equal(995000, prices["VX-HEXAXIM"]);
             Assert.Equal(1190000, prices["VX-PREVENAR-13"]);
@@ -43,6 +44,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Equal(1290000, prices["VX-QDENGA"]);
             Assert.All(vaccines, v => {
                 Assert.Equal("Active", v.TrangThai);
+                Assert.InRange(v.MoTa!.Length, 250, 600);
                 Assert.NotEmpty(v.DoiTuongSuDung!); Assert.NotEmpty(v.DuongDung!);
                 Assert.True(v.Gia > 0); Assert.True(v.TheTich > 0); Assert.NotEmpty(v.LieuLuong);
                 Assert.Contains("VNVC — giá ưu đãi tiêm lẻ (VNĐ/liều)", v.NguonThongTin);
@@ -88,6 +90,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
             var web = (await f.Client.GetFromJsonAsync<VaccineListResponse>("/api/v1/catalog/vaccines"))!;
             Assert.Equal("database", web.Source); Assert.Equal(15, web.Items.Count);
             Assert.All(web.Items, v => {
+                Assert.Equal(descriptions[v.Code], v.Description);
                 Assert.NotNull(v.SourceUrl); Assert.DoesNotContain("http", v.SourceName);
                 Assert.Equal("VNVC — giá ưu đãi tiêm lẻ (VNĐ/liều)", v.PriceSourceName);
                 Assert.Equal("https://vnvc.vn/gia-tiem-chung-vac-xin/", v.PriceSourceUrl);
@@ -98,6 +101,8 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Contains(windows, v => v.Code == "VX-QDENGA");
 
             var avaximId = avaxim.MaVacXin;
+            var avaximDetail = await f.Client.GetFromJsonAsync<VaccineDto>($"/api/v1/catalog/vaccines/{avaximId}");
+            Assert.Equal(descriptions[avaxim.Code], avaximDetail!.Description);
             var avaximRegimenId = avaximRegimen.Id;
             var avaximDoseId = avaximDose2.Id;
             avaxim.MoTa = "Vắc xin phòng viêm gan A.";
@@ -116,7 +121,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Equal(avaximDoseId, avaximDose2.Id);
             Assert.Equal("Inactive", avaxim.TrangThai);
             Assert.Equal(685000, avaxim.Gia);
-            Assert.Equal("Vắc xin bất hoạt dùng để phòng viêm gan A ở trẻ em.", avaxim.MoTa);
+            Assert.Equal(descriptions[avaxim.Code], avaxim.MoTa);
             Assert.DoesNotContain("Catalog", avaximRegimen.Summary);
             var before = await Snapshot(f.Db);
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
