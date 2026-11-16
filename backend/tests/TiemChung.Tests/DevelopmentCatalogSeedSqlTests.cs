@@ -17,7 +17,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
     private static readonly DateTimeOffset CheckedAt = new(2026,11,9,0,0,0,TimeSpan.FromHours(7));
 
     [Fact, Trait("Category", "SqlIntegration")]
-    public async Task CuratedGraphIsSourceBackedReadableByBothClientsAndRerunPreservesEdits()
+    public async Task CuratedGraphIsSourceBackedAndRerunUpgradesOwnedContentWithoutChangingIdentity()
     {
         await SqlFixtureLifecycle.RunAsync(() => CatalogSqlTests.Fixture.Create(), async f => {
             await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentCatalogSeed.RunAsync(f.Db, new SeedEnvironment("Production")));
@@ -34,6 +34,7 @@ public sealed class DevelopmentCatalogSeedSqlTests
                 "VX-ROTARIX","VX-ROTATEQ","VX-SHINGRIX","VX-VARIVAX","VX-VAXIGRIP"
             }, vaccines.Select(x => x.Code));
             var prices = vaccines.ToDictionary(x => x.Code, x => x.Gia);
+            var descriptions = vaccines.ToDictionary(x => x.Code, x => x.MoTa);
             Assert.Equal(685000, prices["VX-AVAXIM-80U"]);
             Assert.Equal(995000, prices["VX-HEXAXIM"]);
             Assert.Equal(1190000, prices["VX-PREVENAR-13"]);
@@ -43,8 +44,10 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Equal(1290000, prices["VX-QDENGA"]);
             Assert.All(vaccines, v => {
                 Assert.Equal("Active", v.TrangThai);
+                Assert.InRange(v.MoTa!.Length, 250, 600);
                 Assert.NotEmpty(v.DoiTuongSuDung!); Assert.NotEmpty(v.DuongDung!);
                 Assert.True(v.Gia > 0); Assert.True(v.TheTich > 0); Assert.NotEmpty(v.LieuLuong);
+                Assert.Contains("VNVC — giá ưu đãi tiêm lẻ (VNĐ/liều)", v.NguonThongTin);
                 Assert.Contains("https://vnvc.vn/gia-tiem-chung-vac-xin/", v.NguonThongTin);
                 Assert.InRange(v.NguonThongTin!.Length, 1, 250);
                 Assert.StartsWith("http", v.DuongDanNguon);
@@ -86,19 +89,49 @@ public sealed class DevelopmentCatalogSeedSqlTests
             Assert.Equal(15, windows.Length);
             var web = (await f.Client.GetFromJsonAsync<VaccineListResponse>("/api/v1/catalog/vaccines"))!;
             Assert.Equal("database", web.Source); Assert.Equal(15, web.Items.Count);
-            Assert.All(web.Items, v => { Assert.NotNull(v.SourceUrl); Assert.NotNull(v.InformationUpdatedAt); Assert.NotEmpty(v.Diseases); Assert.NotEmpty(v.Regimens); });
+            Assert.All(web.Items, v => {
+                Assert.Equal(descriptions[v.Code], v.Description);
+                Assert.NotNull(v.SourceUrl); Assert.DoesNotContain("http", v.SourceName);
+                Assert.Equal("VNVC — giá ưu đãi tiêm lẻ (VNĐ/liều)", v.PriceSourceName);
+                Assert.Equal("https://vnvc.vn/gia-tiem-chung-vac-xin/", v.PriceSourceUrl);
+                Assert.NotNull(v.InformationUpdatedAt); Assert.NotEmpty(v.Diseases); Assert.NotEmpty(v.Regimens);
+            });
             Assert.Contains(web.Items, v => v.Code == "VX-GARDASIL-9" && v.Diseases.Any(d => d.Code == "BENH-HPV"));
             Assert.Contains(web.Items, v => v.Code == "VX-INFANRIX-HEXA" && v.Diseases.Length == 6);
             Assert.Contains(windows, v => v.Code == "VX-QDENGA");
 
-            avaxim.Gia = 123456; avaxim.TenVacXin = "Avaxim đã chỉnh sửa"; avaxim.TrangThai = "Inactive";
-            avaximDose2.TimingLabel = "Nhân viên đã chỉnh lịch tham khảo";
-            avaximDose2.AnchorDoseOrder = avaximDose2.IntervalValue = null;
-            avaximDose2.IntervalUnit = null;
+            var avaximId = avaxim.MaVacXin;
+            var avaximDetail = await f.Client.GetFromJsonAsync<VaccineDto>($"/api/v1/catalog/vaccines/{avaximId}");
+            Assert.Equal(descriptions[avaxim.Code], avaximDetail!.Description);
+            var avaximRegimenId = avaximRegimen.Id;
+            var avaximDoseId = avaximDose2.Id;
+            avaxim.MoTa = "Vắc xin phòng viêm gan A.";
+            avaxim.Gia = 123456;
+            avaxim.TrangThai = "Inactive";
+            avaxim.NguonThongTin = $"Nguồn sản phẩm: {avaxim.DuongDanNguon}; giá ưu đãi tiêm lẻ: https://vnvc.vn/gia-tiem-chung-vac-xin/; kiểm tra 09/11/2026.";
+            avaximRegimen.Summary = "Lịch Catalog tham khảo; lịch cá nhân cần nhân viên y tế xác nhận.";
             await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
+            await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
+            f.Db.ChangeTracker.Clear();
+            avaxim = await f.Db.Vaccines.SingleAsync(x => x.Code == "VX-AVAXIM-80U");
+            avaximRegimen = await f.Db.Set<VaccineRegimen>().SingleAsync(x => x.VaccineId == avaxim.MaVacXin);
+            avaximDose2 = await f.Db.Set<VaccineRegimenDose>().SingleAsync(x => x.RegimenId == avaximRegimen.Id && x.DoseOrder == 2);
+            Assert.Equal(avaximId, avaxim.MaVacXin);
+            Assert.Equal(avaximRegimenId, avaximRegimen.Id);
+            Assert.Equal(avaximDoseId, avaximDose2.Id);
+            Assert.Equal("Inactive", avaxim.TrangThai);
+            Assert.Equal(685000, avaxim.Gia);
+            Assert.Equal(descriptions[avaxim.Code], avaxim.MoTa);
+            Assert.DoesNotContain("Catalog", avaximRegimen.Summary);
             var before = await Snapshot(f.Db);
             await DevelopmentCatalogSeed.RunAsync(f.Db, Development);
             Assert.Equal(before, await Snapshot(f.Db));
+
+            avaxim.NguonThongTin = "Nguồn do nhân viên quản lý";
+            await f.Db.SaveChangesAsync(); f.Db.ChangeTracker.Clear();
+            var beforeConflict = await Snapshot(f.Db);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => DevelopmentCatalogSeed.RunAsync(f.Db, Development));
+            Assert.Equal(beforeConflict, await Snapshot(f.Db));
             await identity.LogoutAsync();
         });
     }

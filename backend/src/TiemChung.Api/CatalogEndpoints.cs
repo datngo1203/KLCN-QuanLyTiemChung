@@ -225,16 +225,28 @@ public static class CatalogEndpoints
         var regimens = await db.Set<VaccineRegimen>().AsNoTracking().Where(x => ids.Contains(x.VaccineId)).OrderBy(x => x.Id).ToArrayAsync(ct);
         var regimenIds = regimens.Select(x => x.Id).ToArray();
         var doses = await db.Set<VaccineRegimenDose>().AsNoTracking().Where(x => regimenIds.Contains(x.RegimenId)).OrderBy(x => x.DoseOrder).ToArrayAsync(ct);
-        return rows.Select(v => new VaccineDto(v.MaVacXin, v.TenVacXin, v.NhaSanXuat, v.XuatXu, v.Gia) {
-            Code = v.Code, Status = v.TrangThai,
-            Technologies = technologies.Where(t => t.MaVacXin == v.MaVacXin).Select(t => t.Technology).ToArray(),
-            Diseases = diseases.Where(d => d.MaVacXin == v.MaVacXin).Select(d => d.Disease).ToArray(), Description = v.MoTa,
-            TargetAudience = v.DoiTuongSuDung, AdministrationRoute = v.DuongDung, AdministrationRouteNote = v.DuongDungKhac,
-            Dosage = v.LieuLuong, Volume = v.TheTich, SourceName = v.NguonThongTin, SourceUrl = v.DuongDanNguon, InformationUpdatedAt = v.NgayCapNhatThongTin,
-            Regimens = regimens.Where(r => r.VaccineId == v.MaVacXin).Select(r => new VaccineRegimenDto(r.Id, r.Name, r.TargetAudience, r.Summary, r.SourceName, r.SourceUrl,
-                doses.Where(d => d.RegimenId == r.Id).Select(d => new VaccineRegimenDoseDto(d.Id, d.DoseOrder, d.TimingLabel,
-                    d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note, d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit)).ToArray())).ToArray()
+        return rows.Select(v => {
+            var provenance = ParseProvenance(v.NguonThongTin);
+            return new VaccineDto(v.MaVacXin, v.TenVacXin, v.NhaSanXuat, v.XuatXu, v.Gia) {
+                Code = v.Code, Status = v.TrangThai,
+                Technologies = technologies.Where(t => t.MaVacXin == v.MaVacXin).Select(t => t.Technology).ToArray(),
+                Diseases = diseases.Where(d => d.MaVacXin == v.MaVacXin).Select(d => d.Disease).ToArray(), Description = v.MoTa,
+                TargetAudience = v.DoiTuongSuDung, AdministrationRoute = v.DuongDung, AdministrationRouteNote = v.DuongDungKhac,
+                Dosage = v.LieuLuong, Volume = v.TheTich, SourceName = provenance.ProductName, SourceUrl = v.DuongDanNguon,
+                PriceSourceName = provenance.PriceName, PriceSourceUrl = provenance.PriceUrl, InformationUpdatedAt = v.NgayCapNhatThongTin,
+                Regimens = regimens.Where(r => r.VaccineId == v.MaVacXin).Select(r => new VaccineRegimenDto(r.Id, r.Name, r.TargetAudience, r.Summary, r.SourceName, r.SourceUrl,
+                    doses.Where(d => d.RegimenId == r.Id).Select(d => new VaccineRegimenDoseDto(d.Id, d.DoseOrder, d.TimingLabel,
+                        d.MinimumIntervalDays, d.RecommendedIntervalDays, d.Note, d.AnchorDoseOrder, d.IntervalValue, d.IntervalUnit)).ToArray())).ToArray()
+            };
         }).ToArray();
+    }
+
+    private static (string? ProductName, string? PriceName, string? PriceUrl) ParseProvenance(string? value)
+    {
+        var parts = value?.Split(" | ", 3, StringSplitOptions.TrimEntries);
+        return parts is { Length: 3 } && Uri.TryCreate(parts[2], UriKind.Absolute, out var url) && url.Scheme is "http" or "https"
+            ? (parts[0], parts[1], parts[2])
+            : (value, null, null);
     }
     private static async Task<PackageDto> PackageDetail(TiemChungDbContext db, int id, CancellationToken ct) =>
         (await Packages(db, [await db.Set<GoiVacXin>().AsNoTracking().SingleOrDefaultAsync(x => x.MaGoi == id, ct) ?? throw new IdentityFailure(404, "resourceNotFound")], ct)).Single();

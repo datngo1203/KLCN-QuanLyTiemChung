@@ -47,6 +47,8 @@ const activeVaccine = {
   volume: 0.5,
   sourceName: 'Nguồn tham khảo sản phẩm',
   sourceUrl: 'https://example.invalid/vaccine',
+  priceSourceName: 'Bảng giá tham khảo',
+  priceSourceUrl: 'https://example.invalid/prices',
   informationUpdatedAt: '2026-11-05T00:30:00Z',
   regimens: [],
 }
@@ -62,18 +64,33 @@ test('active vaccine detail presents API fields, mapped route, provenance and ac
   assert.doesNotMatch(host.textContent, /\bActive\b|\bInactive\b/)
   for (const value of ['Nhà sản xuất thử', 'Xuất xứ thử', '250.000 đ', 'Mô tả nguyên nghĩa từ API.',
     'Bệnh thử', 'Công nghệ thử', 'Đối tượng tham khảo thử', 'Tiêm bắp',
-    'Nội dung liều lượng tham khảo', '0,5 mL', 'Nguồn tham khảo sản phẩm', '5/11/2026']) {
+    'Nội dung liều lượng tham khảo', '0,5 mL', 'Nguồn tham khảo sản phẩm', 'Bảng giá tham khảo', '5/11/2026']) {
     assert.ok(host.textContent.includes(value), `Missing vaccine detail: ${value}`)
   }
   assert.match(host.querySelector('#vaccine-description-heading').parentElement.textContent, /Dòng thứ hai\./)
-  assert.equal(host.querySelector('.vaccine-provenance a').href, activeVaccine.sourceUrl)
-  assert.equal(host.querySelector('.vaccine-provenance a').rel, 'noreferrer')
+  const sourceLinks = host.querySelectorAll('.vaccine-provenance a')
+  assert.equal(host.querySelector('details.vaccine-provenance').open, false)
+  assert.deepEqual([...sourceLinks].map(link => link.href), [activeVaccine.sourceUrl, activeVaccine.priceSourceUrl])
+  assert.ok([...sourceLinks].every(link => link.rel === 'noreferrer'))
+  assert.match(host.querySelector('.vaccine-provenance').textContent, /Kiểm tra nguồn ngày: 5\/11\/2026/)
+  assert.doesNotMatch(host.querySelector('.vaccine-provenance').textContent, /https?:\/\//)
   assert.match(host.querySelector('[aria-labelledby="regimen-heading"]').textContent,
     /Phác đồ chỉ mang tính tham khảo.*không xác nhận đủ điều kiện tiêm.*quy trình chuyên môn/)
   const register = [...host.querySelectorAll('button')].find(button => button.textContent.includes('Đăng ký dịch vụ'))
   assert.equal(register.disabled, false)
   await act(async () => register.click())
   assert.deepEqual(destinations, ['register'])
+})
+
+test('vaccine image follows the code and falls back after a load failure', async t => {
+  globalThis.fetch = async () => detail({ ...activeVaccine, code: 'VX-GARDASIL-9' })
+  const host = await mount(t)
+  const image = host.querySelector('.vaccine-image')
+  assert.match(image.getAttribute('src'), /gardasil-9\.jpg/)
+  assert.equal(image.alt, 'Hộp vắc xin Vắc xin thử')
+  await act(async () => image.dispatchEvent(new window.Event('error')))
+  assert.equal(host.querySelector('.vaccine-image'), null)
+  assert.equal(host.querySelector('.product-placeholder').textContent, 'Chưa có ảnh sản phẩm')
 })
 
 test('inactive direct-link remains readable and cannot continue to registration', async t => {
@@ -120,7 +137,7 @@ test('legacy missing fields render neutral values without raw enums or invented 
   assert.match(host.textContent, /Nước sản xuất \/ xuất xứ.*Chưa có thông tin/)
   assert.match(host.textContent, /Đường dùng.*Chưa có thông tin/)
   assert.match(host.textContent, /Thể tích.*Chưa có thông tin/)
-  assert.match(host.textContent, /Giá niêm yết.*Chưa có thông tin/)
+  assert.match(host.textContent, /Giá tham khảo tại ngày kiểm tra nguồn.*Chưa có thông tin/)
   assert.match(host.textContent, /Chưa có thông tin mô tả/)
   assert.doesNotMatch(host.textContent, /undefined|null|\bActive\b|\bInactive\b|0 mL/)
   assert.equal(host.querySelector('.vaccine-provenance'), null)
@@ -131,6 +148,7 @@ test('unsafe product source is not linked but its source name and valid update d
   for (const sourceUrl of ['javascript:alert(1)', 'https://user:password@example.invalid/source']) {
     globalThis.fetch = async () => detail({
       ...activeVaccine, sourceName: 'Nguồn tên thử', sourceUrl,
+      priceSourceName: null, priceSourceUrl: null,
       informationUpdatedAt: '2026-11-05T00:30:00Z',
     })
     const host = await mount(t)
@@ -160,6 +178,7 @@ test('vaccine detail renders ordered regimen, calendar intervals, provenance and
   const rows = [...section.querySelectorAll('li')].map(row => row.textContent)
   assert.deepEqual(rows, ['Mũi 1Mốc văn bản', 'Mũi 2Tối thiểu 3 ngày · Khuyến nghị 7 ngày', 'Mũi 36 tháng sau mũi 1'])
   const links = section.querySelectorAll('a')
+  assert.ok([...section.querySelectorAll('details.regimen-source')].every(source => !source.open))
   assert.equal(links.length, 1)
   assert.equal(links[0].href, regimen.sourceUrl)
   assert.equal(links[0].rel, 'noreferrer')
