@@ -12,13 +12,17 @@
 .catalog-name { color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
 .catalog-name:hover { color: var(--blue-dark); }
 .catalog-packages-title { margin-top: 36px; font-size: 24px; }
-.product-placeholder { width: 100%; min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; background: var(--surface); color: var(--muted); font-size: 13px; line-height: 1.7; text-align: center; }
-.product-placeholder .lucide { width: 32px; height: 32px; }
+.vaccine-image { display: block; width: 100%; height: clamp(160px, 18vw, 210px); object-fit: contain; background: white; }
+.vac-service-preview > .vaccine-image { height: clamp(105px, 18vw, 210px); object-fit: contain; }
+.product-placeholder { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: var(--surface); color: var(--muted); font-size: 13px; }
+.product-placeholder .lucide { width: 18px; height: 18px; }
+.vac-discover .service-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .vaccine-detail { padding-top: 28px; }
 .vaccine-detail .page-intro { padding-top: 24px; }
 .vaccine-detail h1 { overflow-wrap: anywhere; }
 .vaccine-detail-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
-.vaccine-detail-layout > .product-placeholder { min-height: 300px; border: 1px solid var(--line); border-radius: 18px; }
+.vaccine-detail-layout > :is(.vaccine-image, .product-placeholder) { border: 1px solid var(--line); border-radius: 18px; }
+.vaccine-detail-layout > .vaccine-image { height: clamp(180px, 28vw, 330px); }
 .vaccine-detail-info { min-width: 0; }
 .vaccine-availability { display: inline-flex; align-items: center; min-height: 36px; margin-bottom: 12px; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
 .vaccine-availability.available { background: #e8f5ed; color: #17653a; }
@@ -33,7 +37,9 @@
 .vaccine-description p { line-height: 1.8; overflow-wrap: anywhere; white-space: pre-line; }
 .vaccine-details > .vaccine-facts { margin-bottom: 0; }
 .vaccine-provenance { margin-top: 24px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: white; overflow-wrap: anywhere; }
-.vaccine-provenance h3 { margin: 0 0 8px; font-size: 16px; }
+.vaccine-provenance summary, .regimen-source summary { cursor: pointer; color: var(--primary); font-weight: 700; }
+.vaccine-provenance[open] summary { margin-bottom: 12px; }
+.regimen-source { font-size: 14px; }
 .vaccine-provenance p { margin: 6px 0 0; line-height: 1.6; }
 .vaccine-provenance a { overflow-wrap: anywhere; }
 .vaccine-detail-info > .button:disabled { cursor: not-allowed; opacity: .58; }
@@ -96,7 +102,10 @@
   .catalog-page .search-box .button { grid-column: 1 / -1; width: 100%; }
   .filter-tab { min-height: 44px; }
   .vaccine-detail-layout { grid-template-columns: 1fr; gap: 24px; }
-  .vaccine-detail-layout > .product-placeholder { min-height: 170px; }
+  .vac-discover .service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .vac-service-preview .service-card-body { padding: 14px; gap: 10px; }
+  .vac-service-preview h3 { font-size: 16px; line-height: 1.4; }
+  .vac-service-preview .button { padding-inline: 10px; gap: 6px; white-space: nowrap; }
   .vaccine-facts > div { grid-template-columns: 1fr; gap: 8px; }
   .vaccine-detail-info > .button { width: 100%; min-height: 48px; }
   .package-detail-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }

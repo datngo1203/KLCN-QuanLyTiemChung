@@ -16,6 +16,7 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window)
   const originalFetch = globalThis.fetch
   const catalogRequests = []
+  const featured = ['VX-AVAXIM-80U', 'VX-HAVAX-05', 'VX-GARDASIL-9', 'VX-INFANRIX-HEXA', 'VX-HEXAXIM', 'VX-PREVENAR-13']
   globalThis.fetch = async url => {
     const request = new URL(url)
     const path = request.pathname
@@ -29,7 +30,8 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
         totalDoses: 1, items: [{ vaccineCode: 'VX-43', vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] })
     }
     const items = path.endsWith('/vaccines')
-      ? [{ id: 42, name: '[DEMO] Vắc xin kiểm thử API', price: 150000, sourceName: 'Nguồn tham khảo kiểm thử, kiểm tra 05/11/2026', sourceUrl: 'https://example.invalid/vaccine', informationUpdatedAt: '2026-11-05T00:00:00+07:00' }]
+      ? [{ id: 92, name: 'Vắc xin ngoài danh sách nổi bật', code: 'VX-OTHER', price: 150000 },
+        ...featured.map((code, index) => ({ id: 42 + index, code, name: index === 0 ? '[DEMO] Vắc xin kiểm thử API' : code, price: 150000 })).reverse()]
       : [{ id: 43, name: '[DEMO] Gói tiêm kiểm thử API', price: 300000, items: [{ vaccineName: '[DEMO] Thành phần kiểm thử', quantity: 1 }] }]
     return Response.json({ source: 'database', items })
   }
@@ -84,6 +86,9 @@ test('VNVC shell preserves the profile and auth routes without a second profile 
   assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/vaccines'))
   assert.ok(catalogRequests.some(url => url.pathname === '/api/v1/catalog/packages'))
   assert.match(home.textContent, /Vắc xin kiểm thử API/)
+  const previews = [...home.querySelectorAll('.vac-service-preview h3 a')]
+  assert.deepEqual(previews.map(link => link.getAttribute('href')), featured.map((_, index) => `#catalog/vaccines/${42 + index}`))
+  assert.match(previews[2].closest('article').querySelector('img').getAttribute('src'), /gardasil-9\.jpg/)
   assert.match(home.textContent, /Gói tiêm kiểm thử API/)
   assert.match(home.textContent, /Thành phần kiểm thử × 1/)
   assert.doesNotMatch(home.textContent, /\[DEMO\]|Các mục có nhãn/)

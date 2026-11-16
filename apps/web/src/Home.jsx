@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Armchair, ArrowUpRight, Baby, Clock3, MapPin, Phone, Stethoscope, Syringe } from 'lucide-react'
 import { getVaccines, getPackages } from './api/client'
-import { ProductPlaceholder } from './VaccineDetail'
+import VaccineImage from './VaccineImage'
 import { money } from './registrationForm'
 import { customerDisplayName } from './customerDisplayName'
 
@@ -12,6 +12,11 @@ export const centerDays = 'Thứ Hai – Chủ nhật · Xuyên trưa'
 export const centerHotline = '028 7102 6595'
 export const centerTel = 'tel:02871026595'
 export const centerMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(centerAddress)}`
+
+const featuredVaccineCodes = [
+  'VX-AVAXIM-80U', 'VX-HAVAX-05', 'VX-GARDASIL-9',
+  'VX-INFANRIX-HEXA', 'VX-HEXAXIM', 'VX-PREVENAR-13',
+]
 
 const facilities = [
   [Armchair, 'Sảnh chờ', 'Có chỗ ngồi, nước uống và Wi-Fi trong thời gian chờ.'],
@@ -116,17 +121,19 @@ function HomeCatalog({ go, setQuery }) {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [reload])
+  const featured = featuredVaccineCodes.map(code => data.vaccines.find(item => item.code === code)).filter(Boolean)
+  const vaccines = [...featured, ...data.vaccines.filter(item => !featuredVaccineCodes.includes(item.code))].slice(0, 6)
   const items = [
-    ...data.vaccines.slice(0, 2).map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', href: `#catalog/vaccines/${item.id}`, description: [item.manufacturer, item.origin].map(customerDisplayName).filter(Boolean).join(' · ') })),
+    ...vaccines.map(item => ({ ...item, key: `v-${item.id}`, kind: 'Vắc xin lẻ', href: `#catalog/vaccines/${item.id}`, description: [item.manufacturer, item.origin].map(customerDisplayName).filter(Boolean).join(' · ') })),
     ...data.packages.slice(0, 1).map(item => ({ ...item, key: `p-${item.id}`, kind: 'Gói vắc xin', description: item.items?.map(vaccine => `${customerDisplayName(vaccine.vaccineName)} × ${vaccine.quantity}`).join(', ') })),
   ]
   return <section className="vac-discover section" aria-labelledby="home-catalog-title"><div className="wrap">
-    <div className="section-heading"><div><div className="eyebrow">DỊCH VỤ TIÊM CHỦNG</div><h2 id="home-catalog-title">Danh mục vắc xin và gói tiêm</h2><p>Tham khảo thông tin và giá dịch vụ để chuẩn bị cho lần đến trung tâm.</p></div><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
+    <div className="section-heading"><h2 id="home-catalog-title">{data.packages.length ? 'Vắc xin nổi bật và gói tiêm' : 'Vắc xin nổi bật'}</h2><button className="button outline" onClick={() => { setQuery(''); go('catalog') }}>Xem toàn bộ danh mục <ArrowUpRight aria-hidden="true" /></button></div>
     {loading && <div className="vac-catalog-state" role="status">Đang tải danh mục dịch vụ…</div>}
     {error && <div className="vac-catalog-state" role="alert"><p>{error}</p><button className="button outline" onClick={() => { setLoading(true); setError(''); setReload(value => value + 1) }}>Thử lại</button></div>}
     {!loading && !error && <>
       <div className="service-grid">{items.map(item => <article className="service-card vac-service-preview" key={item.key}>
-        <ProductPlaceholder />
+        {item.href && <VaccineImage code={item.code} name={customerDisplayName(item.name)} />}
         <div className="service-card-body"><div className="card-kicker">{item.kind}</div><h3>{item.href ? <a className="catalog-name" href={item.href}>{customerDisplayName(item.name)}</a> : customerDisplayName(item.name)}</h3><p>{item.description || 'Xem thông tin trong danh mục dịch vụ.'}</p><strong>{money(item.price)}</strong>{item.href ? <a className="button outline" href={item.href} aria-label={`Xem chi tiết ${customerDisplayName(item.name)}`}>Xem chi tiết <ArrowUpRight aria-hidden="true" /></a> : <button className="button outline" onClick={() => { setQuery(item.name); go('catalog') }}>Xem trong danh mục <ArrowUpRight aria-hidden="true" /></button>}</div>
       </article>)}</div>
       {items.length === 0 && <div className="vac-catalog-state">Danh mục dịch vụ đang được cập nhật. Bạn có thể quay lại sau.</div>}

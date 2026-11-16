@@ -69,6 +69,7 @@ test('active vaccine detail presents API fields, mapped route, provenance and ac
   }
   assert.match(host.querySelector('#vaccine-description-heading').parentElement.textContent, /Dòng thứ hai\./)
   const sourceLinks = host.querySelectorAll('.vaccine-provenance a')
+  assert.equal(host.querySelector('details.vaccine-provenance').open, false)
   assert.deepEqual([...sourceLinks].map(link => link.href), [activeVaccine.sourceUrl, activeVaccine.priceSourceUrl])
   assert.ok([...sourceLinks].every(link => link.rel === 'noreferrer'))
   assert.match(host.querySelector('.vaccine-provenance').textContent, /Kiểm tra nguồn ngày: 5\/11\/2026/)
@@ -79,6 +80,17 @@ test('active vaccine detail presents API fields, mapped route, provenance and ac
   assert.equal(register.disabled, false)
   await act(async () => register.click())
   assert.deepEqual(destinations, ['register'])
+})
+
+test('vaccine image follows the code and falls back after a load failure', async t => {
+  globalThis.fetch = async () => detail({ ...activeVaccine, code: 'VX-GARDASIL-9' })
+  const host = await mount(t)
+  const image = host.querySelector('.vaccine-image')
+  assert.match(image.getAttribute('src'), /gardasil-9\.jpg/)
+  assert.equal(image.alt, 'Hộp vắc xin Vắc xin thử')
+  await act(async () => image.dispatchEvent(new window.Event('error')))
+  assert.equal(host.querySelector('.vaccine-image'), null)
+  assert.equal(host.querySelector('.product-placeholder').textContent, 'Chưa có ảnh sản phẩm')
 })
 
 test('inactive direct-link remains readable and cannot continue to registration', async t => {
@@ -166,6 +178,7 @@ test('vaccine detail renders ordered regimen, calendar intervals, provenance and
   const rows = [...section.querySelectorAll('li')].map(row => row.textContent)
   assert.deepEqual(rows, ['Mũi 1Mốc văn bản', 'Mũi 2Tối thiểu 3 ngày · Khuyến nghị 7 ngày', 'Mũi 36 tháng sau mũi 1'])
   const links = section.querySelectorAll('a')
+  assert.ok([...section.querySelectorAll('details.regimen-source')].every(source => !source.open))
   assert.equal(links.length, 1)
   assert.equal(links[0].href, regimen.sourceUrl)
   assert.equal(links[0].rel, 'noreferrer')
