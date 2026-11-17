@@ -69,7 +69,7 @@ async function main() {
   let wpfWorker, wpfExit;
   try {
     const context = await browser.newContext({ viewport: null, serviceWorkers: 'block', acceptDownloads: false });
-    let permitRecipient = false, permitRegistration = false, registrationAttempted = false, savedDemoId;
+    let permitRecipient = false, registrationWrite, registrationAttempted = false, savedDemoId;
     let deniedWrites = 0;
     await context.route('**/*', async route => {
       const request = route.request();
@@ -80,11 +80,14 @@ async function main() {
         permitRecipient = false;
         return route.continue();
       }
-      if (permitRegistration && request.method() === 'POST' && url.pathname === '/api/v1/registrations') {
+      if (registrationWrite && !registrationWrite.sent && !registrationAttempted && request.method() === 'POST' &&
+          url.pathname === '/api/v1/registrations' && request.frame() === page.mainFrame()) {
         const payload = request.postDataJSON();
         if (payload.customerId === 1 && payload.recipientId === 2 && payload.items?.length === 1 &&
           payload.items[0].kind === 'vaccine' && payload.items[0].quantity === 1) {
-          permitRegistration = false;
+          registrationWrite.sent = true;
+          registrationWrite.authorization = request.headers().authorization;
+          registrationAttempted = true;
           return route.continue();
         }
       }
@@ -110,7 +113,7 @@ async function main() {
     const stages = ['Trang chủ', 'Danh mục Avaxim', 'Hồ sơ phụ huynh và bé', 'Chọn dịch vụ', 'Liên hệ và thời gian', 'Xem lại', 'Windows WPF'];
     async function status(message) {
       await page.evaluate(({ phase, message }) => {
-        window.klcnRunning = ['RUNNING', 'PAUSED'].includes(phase);
+        window.klcnRunning = ['RUNNING', 'PAUSED', 'WRITING'].includes(phase);
         window.klcnControlled = ['READY', 'RUNNING', 'PAUSED', 'NATIVE'].includes(phase);
         const controls = window.klcnControls;
         if (controls && controls.querySelector('[data-action="write"]') && phase !== 'DONE' && phase !== 'READY') {
@@ -277,8 +280,7 @@ async function main() {
         assert.equal(amount(await total.innerText()), runtimePrice + amount(await feeLabel.innerText()),
           'Tổng thanh toán không khớp giá và phí trên UI');
         await btn('Xác nhận đăng ký').waitFor();
-        // Preserve manual review while preventing accidental confirmation in the demo window.
-        await btn('Xác nhận đăng ký').evaluate(button => { button.disabled = true; });
+
         await total.scrollIntoViewIfNeeded();
       },
       async () => {
@@ -453,6 +455,7 @@ async function main() {
     }
     const originalOnKey = onKey;
     async function runKey(key) {
+      if (key === 'Escape' && phase === 'WRITING') { await menuAction('stop'); return; }
       if (key === 'Escape' && phase === 'NATIVE') { await returnToMenu('Đã dừng WPF'); return; }
       if (returning || (activeStage && key === 'F8')) return;
       if (key === 'F8' && unified && index === 6 && phase === 'READY') {
@@ -463,42 +466,84 @@ async function main() {
       if (key === 'F8') activeStage = task;
       try { await task; } finally { if (activeStage === task) activeStage = null; }
     }
+
+    let confirmingRegistration = false;
     async function submitDemoRegistration() {
-      if (registrationAttempted || index !== 6 || !['READY', 'DONE'].includes(phase)) return;
+      if (confirmingRegistration) return;
+      if (registrationAttempted || index !== 6 || !['READY', 'DONE'].includes(phase)) {
+        await status(registrationAttempted
+          ? 'Đã gửi yêu cầu trong phiên này · kiểm tra danh sách đăng ký'
+          : 'Chạy tới bước Xem lại trước khi gửi');
+        return;
+      }
+      confirmingRegistration = true;
+      const generation = runGeneration;
       const confirm = btn('Xác nhận đăng ký');
-      if (!await confirm.isVisible()) return;
-      const approved = await page.evaluate(() => window.confirm('Ghi thật một đăng ký mới cho người được tiêm demo vào TiemChung? Có thể khôi phục bằng shortcut RESET riêng.'));
-      if (!approved || registrationAttempted || !['READY', 'DONE'].includes(phase)) return;
-      registrationAttempted = true;
-      const previousPhase = phase;
-      phase = 'WRITING';
-      await status('WRITE · Đang gửi đăng ký người được tiêm demo');
       try {
-        const posted = page.waitForResponse(response => new URL(response.url()).origin === api.origin &&
-          new URL(response.url()).pathname === '/api/v1/registrations' && response.request().method() === 'POST',
-          { timeout: 12000 });
-        permitRegistration = true;
-        await confirm.evaluate(button => { button.disabled = false; });
-        const [response] = await Promise.all([posted, confirm.click()]);
-        assert.equal(response.status(), 201, 'API không xác nhận tạo đăng ký');
-        const saved = await response.json();
-        assert(Number.isSafeInteger(saved.id) && saved.id > 1 && saved.recipient?.id === 2);
-        savedDemoId = saved.id;
-        await page.getByText(new RegExp('Đã tạo đăng ký DK-' + String(saved.id).padStart(4, '0'))).first().waitFor();
-        phase = previousPhase;
-        await status('WRITE PASS · đăng ký người được tiêm demo #' + savedDemoId + ' · #1 là hồ sơ đã hoàn thành');
-        log('PASS WRITE đăng ký người được tiêm demo #' + savedDemoId);
-      } catch (error) {
-        phase = 'BLOCKED';
-        await status('Kiểm tra danh sách trước khi tiếp tục · kết quả ghi chưa xác nhận');
-        log('BLOCKED WRITE · kiểm tra danh sách, không gửi lại tự động');
+        if (!await confirm.isVisible() || !await confirm.isEnabled()) return;
+        const approved = await page.evaluate(() => window.confirm('Ghi một đăng ký thật cho người được tiêm demo? Dùng shortcut RESET để quay về baseline.'));
+        if (!approved || generation !== runGeneration || !['READY', 'DONE'].includes(phase)) return;
+        const previousPhase = phase;
+        const write = { sent: false };
+        registrationWrite = write;
+        phase = 'WRITING';
+        await status('WRITE · Đang gửi đăng ký');
+        if (registrationWrite !== write) return;
+        try {
+          const posted = page.waitForResponse(response => new URL(response.url()).origin === api.origin &&
+            new URL(response.url()).pathname === '/api/v1/registrations' && response.request().method() === 'POST',
+            { timeout: 12000 });
+          const [response] = await Promise.all([posted, confirm.evaluate(button => {
+            window.klcnApprovedSubmit = button.form;
+            try { button.form.requestSubmit(button); }
+            finally { window.klcnApprovedSubmit = null; }
+          })]);
+          assert(write.sent && response.status() === 201, 'API không xác nhận tạo đăng ký');
+          const saved = await response.json();
+          assert(Number.isSafeInteger(saved.id) && saved.id > 1 && saved.recipient?.id === 2);
+          savedDemoId = saved.id;
+          await page.getByText(new RegExp('Đã tạo đăng ký DK-' + String(saved.id).padStart(4, '0'))).first().waitFor();
+          phase = previousPhase;
+          await status('WRITE PASS · đăng ký mới #' + savedDemoId + ' · #1 là hồ sơ đã hoàn thành');
+          log('PASS WRITE đăng ký mới #' + savedDemoId);
+        } catch {
+          if (generation !== runGeneration) return;
+          phase = write.sent ? 'BLOCKED' : previousPhase;
+          if (write.sent) {
+            let found = '';
+            if (write.authorization) {
+              try {
+                const list = await fetch(new URL('/api/v1/registrations?page=1&pageSize=100', api), {
+                  headers: { authorization: write.authorization }, signal: AbortSignal.timeout(5000),
+                });
+                if (list.ok) {
+                  const ids = (await list.json()).items.filter(row => row.recipient?.id === 2).map(row => row.id);
+                  found = ids.length ? ' · GET thấy đăng ký người tiêm #2: ' + ids.join(', ') : ' · GET chưa thấy đăng ký người tiêm #2';
+                }
+              } catch { /* Manual reconciliation remains available in the application. */ }
+            }
+            await status('Kết quả ghi chưa xác nhận · kiểm tra danh sách trước khi RESET' + found);
+            log('BLOCKED WRITE · khóa gửi lại trong phiên' + found);
+          } else {
+            await status('Chưa gửi POST · kiểm tra lại bản nháp');
+          }
+        } finally {
+          if (registrationWrite === write) registrationWrite = null;
+        }
       } finally {
-        permitRegistration = false;
-        if (await confirm.isVisible()) await confirm.evaluate(button => { button.disabled = true; });
+        confirmingRegistration = false;
       }
     }
+
     async function menuAction(action) {
-      if (phase === 'WRITING') return;
+      if (phase === 'WRITING') {
+        if (!['menu', 'stop'].includes(action)) return;
+        if (registrationWrite?.sent) {
+          await status('Đã gửi POST · chờ kết quả hoặc đối chiếu danh sách');
+          return;
+        }
+        registrationWrite = null;
+      }
       if (action === 'write') { await submitDemoRegistration(); return; }
       if (action === 'pause') { await runKey('F9'); return; }
       if (action === 'stop' || action === 'menu') { await returnToMenu('Đã dừng · chọn cảnh'); return; }
@@ -541,6 +586,20 @@ async function main() {
     }
     await page.exposeFunction('klcnKey', runKey);
     await page.exposeFunction('klcnMenuAction', menuAction);
+    await page.addInitScript(() => {
+      document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.querySelector('.registration-form-actions') ||
+            !form.closest('.registration-page') || !form.querySelector('button[type="submit"]')?.textContent.includes('Xác nhận đăng ký')) return;
+        if (window.klcnApprovedSubmit === form) {
+          window.klcnApprovedSubmit = null;
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.klcnMenuAction('write').catch(() => {});
+      }, true);
+    });
     await page.addInitScript(keyboard);
     await page.goto(web.origin + '/#account');
     const password = fs.readFileSync(path.resolve(runtime.repository, auth.credentialsSourceRelativePath), 'utf8')
