@@ -12,6 +12,9 @@ using System.Windows.Forms;
 
 public static class DemoWpf {
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, StringBuilder title, int capacity);
+    [DllImport("user32.dll")] static extern bool IsWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern bool PostMessage(IntPtr hwnd, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out int pid);
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool ShowWindowAsync(IntPtr h, int mode);
@@ -66,6 +69,7 @@ public static class DemoWpf {
         readonly string username, password, customer, child;
         readonly bool rehearse, escapeTest;
         readonly string scene;
+        readonly bool story;
         readonly int registrationId;
         readonly string lotNumber, receptionUsername;
         readonly string[] sceneSteps;
@@ -81,10 +85,10 @@ public static class DemoWpf {
         string status = "F8 #7 · Đang chuyển sang WPF";
         Task task;
         Task nativeTest;
-        long lastF8;
+        long lastF8, sceneReadyAt;
         volatile bool failed, finished;
         public Session(Process wpf, Process owner, string username, string password, string customer, string child,
-                       int minDelay, int maxDelay, bool rehearse, bool escapeTest, string scene, int registrationId, string lotNumber, string receptionUsername) {
+                       int minDelay, int maxDelay, bool rehearse, bool escapeTest, string scene, int registrationId, bool story, string lotNumber, string receptionUsername) {
             this.wpf = wpf;
             this.owner = owner;
             this.username = username;
@@ -96,6 +100,7 @@ public static class DemoWpf {
             this.rehearse = rehearse;
             this.escapeTest = escapeTest;
             this.scene = scene;
+            this.story = story;
             this.registrationId = registrationId;
             this.lotNumber = lotNumber;
             this.receptionUsername = receptionUsername;
@@ -130,7 +135,7 @@ public static class DemoWpf {
             if (!foreground) { if (banner.Visible) banner.Hide(); return; }
             var area = Screen.FromHandle(Window()).WorkingArea;
             banner.SetDesktopLocation(area.Right - banner.Width - 16, area.Bottom - banner.Height - 16);
-            banner.TextLabel.Text = status;
+            banner.TextLabel.Text = (story ? Chapter() + "/10 · " : "") + status;
             if (!banner.Visible) banner.Show();
         }
         public int Run() {
@@ -152,7 +157,7 @@ public static class DemoWpf {
                     }
                     task = null;
                 }
-                if (nativeTest != null && nativeTest.IsFaulted) {
+                if (!stopping && nativeTest != null && nativeTest.IsFaulted) {
                     failed = true;
                     stopping = true;
                     Print("BLOCKED native test — " + nativeTest.Exception.InnerException.Message);
@@ -175,8 +180,10 @@ public static class DemoWpf {
                 }
                 if (foreground && next == 7 && task == null && !paused) {
                     Start();
-                    if (rehearse && nativeTest == null) nativeTest = Task.Run((Action)Rehearse);
+                    if (rehearse && sceneSteps == null && nativeTest == null) nativeTest = Task.Run((Action)Rehearse);
                 }
+                if (rehearse && sceneSteps != null && foreground && next >= 8 && !busy && !paused &&
+                    DateTime.UtcNow.Ticks - sceneReadyAt > TimeSpan.FromSeconds(3).Ticks) Start();
                 for (int i = 0; i < keys.Length; i++) {
                     bool down = Down(keys[i]);
                     bool edge = down && !held[i];
@@ -224,6 +231,7 @@ public static class DemoWpf {
                         stopping = true;
                         return;
                     }
+                    sceneReadyAt = DateTime.UtcNow.Ticks;
                     status = next - 7 < sceneSteps.Length ? "READ · F8 màn tiếp theo" : "READ · F8 hoàn tất cảnh";
                     return;
                 }
@@ -234,7 +242,7 @@ public static class DemoWpf {
                     case 10: RequireForeground(); break;
                 }
                 Gate();
-                Print("PASS F8 #" + stage + " — WPF " + new[] { "Lễ tân", "người được tiêm lịch sử", "người được tiêm demo", "kết thúc" }[stage - 7]);
+                Print("PASS F8 #" + stage + " — WPF " + new[] { "Lễ tân", "người được tiêm lịch sử", "người được tiêm mới", "kết thúc" }[stage - 7]);
                 next = stage + 1;
                 status = "READY · F8 #" + next + " · F9 tạm dừng · Esc thao tác tay";
                 if (stage == 10) finished = true;
@@ -249,7 +257,7 @@ public static class DemoWpf {
             if (!Foreground()) throw new InvalidOperationException("WPF đã mất focus");
         }
         AutomationElement Root() {
-            var handle = Window();
+            var handle = Foreground() ? GetForegroundWindow() : Window();
             if (handle == IntPtr.Zero) return null;
             return AutomationElement.FromHandle(handle);
         }
@@ -319,24 +327,36 @@ public static class DemoWpf {
             var account = Find(Root(), "Mở menu tài khoản", ControlType.Button);
             if (account == null || Find(account, username, ControlType.Text) != null) return false;
             Invoke(account);
-            if (Find(Root(), username, ControlType.Text) != null) {
-                Invoke(Element("Đóng menu tài khoản", ControlType.Button));
-                return false;
-            }
+
             Invoke(Element("Đăng xuất", ControlType.Button));
             Print("SWITCH WPF");
             return true;
         }
 
+        string Chapter() {
+            switch (scene) {
+                case "catalog": return "01";
+                case "warehouse": return "02";
+                case "promotion": return "03";
+                case "profiles": return "05";
+                case "payment": return "06";
+                case "appointment": return "07";
+                case "clinical": return "08";
+                case "nurse": return "09";
+                case "reports": return "10";
+                default: return "";
+            }
+        }
         string[] SceneSteps() {
             switch (scene) {
-                case "profiles": return registrationId > 1 ? new[] {"customer", "recipient", "registration", "newregistration"} : new[] {"customer", "recipient", "registration"};
+                case "profiles": if (story) return new[] {"customer", "registration-preview", "registration"}; return registrationId > 1 ? new[] {"customer", "recipient", "registration", "newregistration"} : new[] {"customer", "recipient", "registration"};
                 case "payment": return new[] {"payment"};
                 case "appointment": return new[] {"appointment", "reminders"};
                 case "clinical": return new[] {"clinical"};
                 case "nurse": return new[] {"vaccination", "aftercare"};
-                case "warehouse": return new[] {"stock", "receipt", "receiving"};
-                case "catalog": return new[] {"catalog", "promotion"};
+                case "warehouse": return new[] {"warehouse"};
+                case "catalog": return new[] {"catalog", "catalog-preview"};
+                case "promotion": return new[] {"promotion"};
                 case "reports": return new[] {"revenue", "doses", "statuses"};
                 case "accounts": return new[] {"accounts"};
                 default: throw new InvalidOperationException("Cảnh WPF không hợp lệ");
@@ -363,7 +383,7 @@ public static class DemoWpf {
             }, label, 7000);
         }
         void Row(string list, string key) {
-            var root = Element(list);
+            var root = list == null ? Root() : Await(() => Find(Root(), list, ControlType.DataGrid) ?? Find(Root(), list, ControlType.List), list);
             var item = Visible(key, root);
             while (item != null && !item.Equals(root)) {
                 object pattern;
@@ -389,12 +409,16 @@ public static class DemoWpf {
         }
         void CloseInventoryDialog() {
             RequireForeground();
-            var modal = AutomationElement.FromHandle(GetForegroundWindow());
-            string title = modal.Current.Name;
+            var handle = GetForegroundWindow();
+            var buffer = new StringBuilder(260); GetWindowText(handle, buffer, buffer.Capacity);
+            string title = buffer.ToString();
             if (title.StartsWith("Lịch sử tiếp nhận", StringComparison.OrdinalIgnoreCase) ||
                 title.StartsWith("Nhập lô vắc xin", StringComparison.OrdinalIgnoreCase)) {
-                ((WindowPattern)modal.GetCurrentPattern(WindowPattern.Pattern)).Close();
-                Element("Mở menu tài khoản");
+                if (!PostMessage(handle, 0x0010, IntPtr.Zero, IntPtr.Zero)) throw new InvalidOperationException("Không đóng được cửa sổ kho");
+                var end = DateTime.UtcNow.AddSeconds(6);
+                while (IsWindow(handle) && DateTime.UtcNow < end) { Gate(); Thread.Sleep(80); }
+                if (IsWindow(handle)) throw new InvalidOperationException("Hộp thoại kho vẫn đang mở");
+                Activate();
             }
         }
         void OpenInventoryDialog(string button, string marker) {
@@ -406,11 +430,22 @@ public static class DemoWpf {
                 return window.Current.Name.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0 ? window : null;
             }, marker);
         }
+        void ShowInventoryDialog(string button, string title, string record) {
+            OpenInventoryDialog(button, title);
+            if (record != null) Visible(record, AutomationElement.FromHandle(GetForegroundWindow()));
+            for (int i = 0; i < 40; i++) { Gate(); Thread.Sleep(100); }
+            CloseInventoryDialog();
+        }
         void RunScene(string step) {
             string lot = lotNumber;
+            Print("WPF step " + step);
             switch (step) {
                 case "customer": Profiles(false); break;
                 case "recipient": Profiles(true); break;
+                case "registration-preview":
+                    Navigate("Tiếp nhận", "Đăng ký dịch vụ", "Tạo đăng ký / Tạo tiếp");
+                    Invoke(Element("Tạo đăng ký / Tạo tiếp", ControlType.Button));
+                    Visible("Người được tiêm thuộc khách hàng"); break;
                 case "registration":
                     Navigate("Tiếp nhận", "Đăng ký dịch vụ", "Danh sách / Tra cứu");
                     Invoke(Element("Danh sách / Tra cứu", ControlType.Button));
@@ -419,7 +454,9 @@ public static class DemoWpf {
                     Navigate("Tiếp nhận", "Thanh toán", "Danh sách đăng ký thanh toán");
                     Row("Danh sách đăng ký thanh toán", "DK-0001"); Visible("Biên nhận thanh toán"); break;
                 case "appointment":
-                    Navigate("Quản trị", "Lịch hẹn & lịch sử", "Danh sách lịch hẹn");
+                    Navigate("Quản trị", "Lịch hẹn & lịch sử", "Tải lại lịch");
+                    Select(Element("Lịch hẹn", ControlType.TabItem));
+                    Invoke(Element("Tải lại lịch", ControlType.Button));
                     Row("Danh sách lịch hẹn", "LH-0001"); Visible("Chi tiết lịch hẹn"); break;
                 case "reminders": Select(Element("Nhắc lịch", ControlType.TabItem)); Visible("Nội dung nhắc lịch"); break;
                 case "clinical":
@@ -431,20 +468,36 @@ public static class DemoWpf {
                 case "aftercare":
                     Navigate("Chuyên môn", "Theo dõi sau tiêm", "Mã mũi đọc theo dõi");
                     ReadCode("Mã mũi đọc theo dõi", "MT-0001", "Đọc kết quả theo dõi", "Prevenar 13"); break;
+                case "warehouse":
+                    RunScene("receiving");
+                    RunScene("stock");
+                    for (int i = 0; i < 30; i++) { Gate(); Thread.Sleep(100); }
+                    RunScene("receipt");
+                    break;
                 case "stock":
+                    CloseInventoryDialog();
                     Navigate("Danh mục", "Kho vắc xin", "Lô vắc xin SQL");
                     Row("Lô vắc xin SQL", lot); Invoke(Element("Xem / Thử lại biến động", ControlType.Button));
                     Visible("XuatDoTiem"); break;
-                case "receipt": OpenInventoryDialog("Lịch sử tiếp nhận", "Lịch sử tiếp nhận"); Visible(lot, AutomationElement.FromHandle(GetForegroundWindow())); break;
-                case "receiving": OpenInventoryDialog("Nhập lô vắc xin", "Nhập lô"); break;
-                case "catalog": Navigate("Danh mục", "Danh mục", "Avaxim 80U"); break;
-                case "promotion": Navigate("Danh mục", "Ưu đãi", "Ưu đãi chăm sóc sức khỏe gia đình"); break;
+                case "receipt": ShowInventoryDialog("Lịch sử tiếp nhận", "Lịch sử tiếp nhận", lot); break;
+                case "receiving": Navigate("Danh mục", "Kho vắc xin", "Lô vắc xin SQL"); ShowInventoryDialog("Nhập lô vắc xin", "Nhập lô", null); break;
+                case "catalog":
+                    Navigate("Danh mục", "Danh mục", "Tìm theo mã hoặc tên");
+                    Select(Element("Vắc xin", ControlType.ListItem));
+                    Await(() => { var search = Find(Root(), "Tìm theo mã hoặc tên", ControlType.Edit); return search != null && search.Current.HelpText.Contains("bệnh phòng") ? search : null; }, "tab Vắc xin");
+                    TypeVisible(Element("Tìm theo mã hoặc tên", ControlType.Edit), "Prevenar 13");
+                    RequireForeground(); Key(0x0D, false); Key(0x0D, true);
+                    Row("Danh sách danh mục", "Prevenar 13"); Visible("Đã lưu · VX-PREVENAR-13"); break;
+                case "catalog-preview":
+                    Invoke(Element("Thêm mới", ControlType.Button));
+                    Visible("Thêm vắc xin"); Element("Mã vắc xin", ControlType.Edit).SetFocus(); break;
+                case "promotion": Navigate("Danh mục", "Ưu đãi", "Ưu đãi chăm sóc sức khỏe gia đình"); Row(null, "Ưu đãi chăm sóc sức khỏe gia đình"); Visible("Thông tin chương trình"); Visible("Mức ưu đãi"); break;
                 case "revenue": Report("Doanh thu theo tháng", "1.190.000"); break;
                 case "doses": Report("Số mũi theo vắc xin", "Prevenar 13"); break;
                 case "statuses": Report("Đăng ký theo trạng thái", "Đã đăng ký"); break;
                 case "accounts": Navigate("Quản trị", "Nhân viên & tài khoản", receptionUsername); break;
             }
-            Print("PASS WPF READ/PREVIEW — " + step);
+            Print("PASS WPF " + (story ? Chapter() + "/10 " : "") + "READ/PREVIEW — " + step);
         }
 
         void Login() {
@@ -456,15 +509,8 @@ public static class DemoWpf {
                 TypeSecret(Element("Mật khẩu", ControlType.Edit));
                 Invoke(Element("Đăng nhập", ControlType.Button));
             }
-            var account = Element("Mở menu tài khoản", ControlType.Button);
-            var current = Find(account, username, ControlType.Text);
-            if (current == null) {
-                Invoke(account);
-                var identity = Find(Root(), username, ControlType.Text);
-                var close = Element("Đóng menu tài khoản", ControlType.Button);
-                Invoke(close);
-                if (identity == null) throw new InvalidOperationException("Phiên WPF không phải " + username);
-            }
+            Await(() => Find(Find(Root(), "Mở menu tài khoản", ControlType.Button), username, ControlType.Text),
+                "phiên có đúng vai trò yêu cầu");
         }
         void Profiles(bool recipient) {
             if (Find(Root(), "Tìm hồ sơ", ControlType.Edit) == null) {
@@ -548,12 +594,12 @@ public static class DemoWpf {
     }
 
     public static int Run(int ownerPid, string executable, string username, string password, string customer, string child,
-                          int minDelay, int maxDelay, bool rehearse, bool escapeTest, string scene, int registrationId, string lotNumber, string receptionUsername) {
+                          int minDelay, int maxDelay, bool rehearse, bool escapeTest, string scene, int registrationId, bool story, string lotNumber, string receptionUsername) {
         var existing = Process.GetProcessesByName("TiemChung.Desktop")
             .Where(process => process.MainWindowHandle != IntPtr.Zero &&
                 process.MainModule.FileName.StartsWith(executable, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (existing.Length != 1) { Console.WriteLine("BLOCKED WPF — cần đúng một cửa sổ WPF của repo"); return 1; }
         return new Session(existing[0], ownerPid == 0 ? null : Process.GetProcessById(ownerPid), username, password,
-            customer, child, minDelay, maxDelay, rehearse, escapeTest, scene, registrationId, lotNumber, receptionUsername).Run();
+            customer, child, minDelay, maxDelay, rehearse, escapeTest, scene, registrationId, story, lotNumber, receptionUsername).Run();
     }
 }

@@ -98,5 +98,17 @@
   },
   "wpf": {
     "lotNumber": "REPLACE_TEST_LOT_NUMBER"
+  },
+  "mainCase": {
+    "registrationId": 1,
+    "recipientId": 1,
+    "relationship": "Bản thân",
+    "serviceId": 7,
+    "service": {
+      "quantity": 1,
+      "kind": "vaccine",
+      "name": "Prevenar 13",
+      "code": "VX-PREVENAR-13"
+    }
   }
 }

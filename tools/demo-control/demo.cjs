@@ -6,7 +6,8 @@ const { createInterface } = require('node:readline');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const spec = require('./01_DATA_DEMO.json');
-const { runtime, auth, personas, service, interaction, draftRegistration: draft } = spec;
+const { runtime, auth, personas, service: writeService, mainCase, interaction, draftRegistration: draft } = spec;
+const storyQa = process.argv.includes('--rehearse-story');
 const prepare = process.argv.includes('--prepare');
 const rehearse = process.argv.includes('--rehearse');
 const rehearseWpf = rehearse && process.argv.includes('--rehearse-wpf');
@@ -62,7 +63,7 @@ function keyboard() {
 }
 
 async function main() {
-  assert(draft.submit === false && service.quantity === 1 && spec.guards.neverSubmitRegistration);
+  assert(draft.submit === false && writeService.quantity === 1 && mainCase.service.quantity === 1 && spec.guards.neverSubmitRegistration);
   await checkRuntime();
   // A temporary profile gives a fresh Customer session and keeps credentials out of browser storage.
   const browser = await chromium.launch({ channel: 'msedge', headless: false, args: ['--start-maximized', '--disable-save-password-bubble'] });
@@ -84,7 +85,8 @@ async function main() {
           url.pathname === '/api/v1/registrations' && request.frame() === page.mainFrame()) {
         const payload = request.postDataJSON();
         if (payload.customerId === 1 && payload.recipientId === 2 && payload.items?.length === 1 &&
-          payload.items[0].kind === 'vaccine' && payload.items[0].quantity === 1) {
+          writeScene && !unified && payload.items[0].kind === 'vaccine' &&
+          payload.items[0].serviceId === catalogItemId && payload.items[0].quantity === 1) {
           registrationWrite.sent = true;
           registrationWrite.authorization = request.headers().authorization;
           registrationAttempted = true;
@@ -110,7 +112,7 @@ async function main() {
     page.on('response', response => {
       if (response.ok() && response.request().method() === 'GET' && new URL(response.url()).pathname === '/api/v1/registrations') latestRegistrationRead = response;
     });
-    const stages = ['Trang chủ', 'Danh mục Avaxim', 'Hồ sơ phụ huynh và bé', 'Chọn dịch vụ', 'Liên hệ và thời gian', 'Xem lại', 'Windows WPF'];
+    const stages = ['Trang chủ', 'Tra cứu danh mục', 'Hồ sơ người được tiêm', 'Chọn dịch vụ', 'Liên hệ và thời gian', 'Xem lại', 'Windows WPF'];
     async function status(message) {
       await page.evaluate(({ phase, message }) => {
         window.klcnRunning = ['RUNNING', 'PAUSED', 'WRITING'].includes(phase);
@@ -136,7 +138,9 @@ async function main() {
         panel.textContent = phase + ' · ' + message;
       }, { phase, message });
     }
-    let runGeneration = 0, webOnly = false, catalogOnly = false;
+    let runGeneration = 0, webOnly = false, catalogOnly = false, writeScene = false;
+    let service = writeService;
+    let catalogItemId;
     async function gate() {
       while (phase === 'PAUSED') await wait(50);
       if (phase === 'MANUAL' || phase === 'MENU') throw new Error('Đã dừng');
@@ -209,7 +213,9 @@ async function main() {
         const item = catalog.items?.find(item => item.code === service.code && item.name === service.name);
         assert(response.ok && catalog.source === 'database' && item && Number.isSafeInteger(item.price) && item.price > 0,
           'Không xác nhận được mã/giá vaccine từ danh mục SQL');
+        assert(!unified || item.id === mainCase.serviceId, 'Vắc xin không khớp DK-0001');
         runtimePrice = item.price;
+        catalogItemId = item.id;
         const row = page.getByRole('row').filter({ hasText: service.code });
         await click(row.getByRole('link', { name: 'Xem chi tiết ' + service.name, exact: true }));
         await heading(service.name).waitFor();
@@ -217,6 +223,7 @@ async function main() {
       },
       async () => {
         await openProfiles();
+        if (unified) return;
         await verifyChild();
         await click(btn('Xem ' + child.fullName, card));
         await page.getByRole('dialog').getByText(child.gender, { exact: true }).waitFor();
@@ -238,8 +245,11 @@ async function main() {
         }
         await click(btn('Tạo đăng ký'));
         const select = page.getByRole('combobox', { name: /^Người được tiêm/ });
-        const childOption = child.fullName + ' · ' + birth + ' · ' + child.relationshipToCustomer;
-        await select.selectOption({ label: childOption });
+        const person = unified ? personas.customer : child;
+        const relationship = unified ? mainCase.relationship : child.relationshipToCustomer;
+        const option = person.fullName + ' · ' + person.dateOfBirth.split('-').reverse().join('/') + ' · ' + relationship;
+        const selected = await select.selectOption({ label: option });
+        assert.equal(selected[0], String(unified ? mainCase.recipientId : 2));
         await pace(interaction.afterClickMs);
         await click(btn('Chọn dịch vụ'));
         await type(field('Tìm dịch vụ'), service.name.split(' ')[0]);
@@ -267,7 +277,7 @@ async function main() {
         await click(btn('Xem lại'));
         await heading('Kiểm tra trước khi xác nhận').waitFor();
         const review = page.locator('.registration-panel').filter({ has: heading('Kiểm tra trước khi xác nhận') });
-        for (const value of [...Object.values(draft.contact), child.fullName, service.name, 'Số lượng: ' + service.quantity]) {
+        for (const value of [...Object.values(draft.contact), (unified ? personas.customer : child).fullName, service.name, 'Số lượng: ' + service.quantity]) {
           await review.getByText(value, { exact: true }).first().waitFor();
         }
         for (const value of [draft.preferredDate.split('-').reverse().join('/'), draft.preferredTime]) {
@@ -332,7 +342,7 @@ async function main() {
       apiFailure = false;
       phase = 'RUNNING';
       const generation = runGeneration;
-      await status((index + 1) + '/10 ' + stages[index]);
+      await status(unified ? '04/10 · Web · Prevenar 13 · PREVIEW · ' + stages[index] : (index + 1) + '/10 ' + stages[index]);
       try {
         try { await checkApi(); } catch { throw new Error('API vac-final không phản hồi hoặc sai health'); }
         await gate();
@@ -343,8 +353,8 @@ async function main() {
         if (index < 6) log('PASS F8 #' + (index + 1) + ' — ' + stages[index]);
         index++;
         phase = index < (catalogOnly ? 2 : webOnly ? 6 : stages.length) ? 'READY' : 'DONE';
-        await status(catalogOnly ? 'READ · Danh mục Avaxim' : webOnly && index === 6 ? 'PREVIEW · Xem lại đăng ký người được tiêm demo' : index < stages.length ? 'F8 · ' + (index + 1) + '/10 ' + stages[index] : 'WPF · tiếp tục F8 #8–#10 trong cửa sổ WPF');
-        if (index === 6 && !registrationAttempted) {
+        await status(unified && index === 6 ? '04/10 · người được tiêm lịch sử – Prevenar 13 · PREVIEW' + (webOnly ? '' : ' · F8 mở DK-0001 trong WPF') : catalogOnly ? 'READ · Danh mục Avaxim' : webOnly && index === 6 ? 'PREVIEW · Xem lại đăng ký người được tiêm mới' : index < stages.length ? 'F8 · ' + (index + 1) + '/10 ' + stages[index] : 'WPF · tiếp tục F8 #8–#10 trong cửa sổ WPF');
+        if (index === 6 && writeScene && !unified && !registrationAttempted) {
           await page.evaluate(() => { window.klcnControls.querySelector('[data-action="write"]').hidden = false; });
         }
         if (rehearse && index === 6) await page.screenshot({ path: path.join(__dirname, '06-xem-lai.png'), fullPage: true });
@@ -366,17 +376,21 @@ async function main() {
       clinical: 'Khám sàng lọc và chỉ định đã lưu',
       nurse: 'Mũi tiêm và theo dõi đã lưu',
       warehouse: 'Kho vắc xin và nhập kho',
-      catalog: 'Danh mục và khuyến mãi',
+      catalog: 'Danh mục Prevenar 13',
+      promotion: 'Ưu đãi hiện hành',
       reports: 'Báo cáo',
       accounts: 'Tài khoản và phân quyền',
     };
+    const chapters = {catalog:'01', warehouse:'02', promotion:'03', profiles:'05', payment:'06', appointment:'07', clinical:'08', nurse:'09', reports:'10'};
     let unified = false;
     let nativeScene = null;
     let returning = false;
     async function runNativeScene(scene, generation) {
       const args = ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File',
         path.join(__dirname, 'WpfDemo.ps1'), '-OwnerPid', String(process.pid), '-Scene', scene];
-      if (scene === 'profiles' && savedDemoId) args.push('-RegistrationId', String(savedDemoId));
+      if (storyQa) args.push('-Rehearse');
+      if (scene === 'profiles' && savedDemoId && !unified) args.push('-RegistrationId', String(savedDemoId));
+      if (unified) args.push('-Story');
       let switched = false;
       while (generation === runGeneration) {
         const worker = spawn('powershell.exe', args, { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
@@ -433,7 +447,8 @@ async function main() {
         await checkApi();
         for (const scene of scenes) {
           if (generation !== runGeneration) return;
-          await status('WPF · ' + sceneLabels[scene]);
+          await status((unified ? chapters[scene] + '/10 · ' : '') + 'WPF · ' + sceneLabels[scene]);
+          if (unified) log('CHAPTER ' + chapters[scene] + '/10 · ' + sceneLabels[scene]);
           if (await runNativeScene(scene, generation) !== 'next') return;
         }
         completed = true;
@@ -450,7 +465,8 @@ async function main() {
         await page.bringToFront();
         phase = 'READY';
         await route('home');
-        await status(completed ? 'F8 · 1/10 Trang chủ' : 'WPF chưa sẵn sàng · F8 bắt đầu phần Web');
+        log('CHAPTER 04/10 · Web · Prevenar 13 · PREVIEW');
+        await status(completed ? '04/10 · Web Prevenar 13 · F8' : '04/10 · WPF bị chặn · F8 mở PREVIEW Web');
       } else await returnToMenu(message);
     }
     const originalOnKey = onKey;
@@ -458,8 +474,8 @@ async function main() {
       if (key === 'Escape' && phase === 'WRITING') { await menuAction('stop'); return; }
       if (key === 'Escape' && phase === 'NATIVE') { await returnToMenu('Đã dừng WPF'); return; }
       if (returning || (activeStage && key === 'F8')) return;
-      if (key === 'F8' && unified && index === 6 && phase === 'READY') {
-        await openNativeScenes(['profiles', 'payment', 'appointment', 'clinical', 'nurse', 'reports', 'accounts']);
+      if (key === 'F8' && unified && !webOnly && index === 6 && phase === 'READY') {
+        await openNativeScenes(['profiles', 'payment', 'appointment', 'clinical', 'nurse', 'reports']);
         return;
       }
       const task = originalOnKey(key);
@@ -470,6 +486,7 @@ async function main() {
     let confirmingRegistration = false;
     async function submitDemoRegistration() {
       if (confirmingRegistration) return;
+      if (unified || !writeScene) { await status('PREVIEW · Chọn cảnh Đăng ký mới để ghi'); return; }
       if (registrationAttempted || index !== 6 || !['READY', 'DONE'].includes(phase)) {
         await status(registrationAttempted
           ? 'Đã gửi yêu cầu trong phiên này · kiểm tra danh sách đăng ký'
@@ -552,16 +569,18 @@ async function main() {
         await openNativeScenes([action.slice(4)]);
         return;
       }
-      if (action === 'full' || action === 'web') {
-        unified = action === 'full';
-        webOnly = action === 'web';
+      if (action === 'full' || action === 'web' || action === 'web-main') {
+        unified = action !== 'web';
+        webOnly = action !== 'full';
+        writeScene = action === 'web';
+        service = unified ? mainCase.service : writeService;
         catalogOnly = false;
         runGeneration++;
         phase = 'READY';
         index = 0;
         lastF8 = 0;
         await showMenu(false);
-        if (unified) { await openNativeScenes(['catalog', 'warehouse'], true); return; }
+        if (action === 'full') { await openNativeScenes(['catalog', 'warehouse', 'promotion'], true); return; }
         await route('home');
         await status('F8 · 1/10 Trang chủ');
         return;
@@ -570,6 +589,8 @@ async function main() {
         unified = false;
         webOnly = false;
         catalogOnly = true;
+        writeScene = false;
+        service = writeService;
         runGeneration++;
         phase = 'READY';
         index = 1;
@@ -668,13 +689,14 @@ async function main() {
         <button type="button" data-action="menu">Quay về menu</button>
         <button type="button" data-action="pause">Pause / Resume</button>
         <button type="button" data-action="stop">Stop</button>
-        <button type="button" data-action="write" hidden>Ghi đăng ký người được tiêm demo…</button>
+        <button type="button" data-action="write" hidden>Ghi đăng ký người được tiêm mới…</button>
         <div id="klcn-menu" hidden>
           <h2>KLCN DEMO</h2><p>F8 từng bước · F9 tạm dừng · Esc thao tác tay</p>
           <button data-action="full">Chạy toàn bộ · Web → WPF</button>
           <button data-action="catalog">Web · Danh mục Avaxim (chỉ xem)</button>
           <p>WPF · mở cửa sổ trước khi trình diễn</p>
-          <button data-action="web">Web · Đăng ký người được tiêm demo (PREVIEW)</button>
+          <button data-action="web-main">04 · Web người được tiêm lịch sử – Prevenar 13 (PREVIEW)</button>
+          <button data-action="web">Đăng ký mới người được tiêm mới (WRITE có xác nhận)</button>
           <p>WPF đọc hồ sơ đã lưu. Đăng ký #1 là người được tiêm lịch sử.</p>
         </div>`;
       container.addEventListener('click', event => {
@@ -695,8 +717,12 @@ async function main() {
       }).observe(document.body, { childList: true, subtree: true });
     }, sceneLabels);
     await status('F8 · 1/10 Trang chủ · F9 tạm dừng · Esc thao tác tay');
-    log('READY — Edge / vac-final / hồ sơ người được tiêm demo đã kiểm tra');
-    if (!rehearse) await showMenu(true);
+    log('READY — Edge / vac-final / hồ sơ người được tiêm mới đã kiểm tra');
+    if (!rehearse) {
+      phase = 'MENU';
+      await status('Chọn Chạy toàn bộ hoặc một cảnh');
+      await showMenu(true);
+    }
     if (rehearse) {
       await page.keyboard.press('F9');
       await page.waitForFunction(() => document.getElementById('klcn-demo-state')?.textContent.startsWith('PAUSED'));
