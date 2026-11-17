@@ -1,0 +1,102 @@
+{
+  "specVersion": "1.0",
+  "runtime": {
+    "repository": "REPLACE_WITH_ABSOLUTE_REPO_PATH",
+    "expectedBranch": "codex/data-r2-catalog-quality",
+    "expectedHeadPrefix": "a92af63",
+    "composeProject": "vac-final",
+    "database": "TiemChung",
+    "webUrl": "http://127.0.0.1:5173",
+    "apiHealthUrl": "http://127.0.0.1:5080/health",
+    "launcherRelativePath": "scripts/devtools/VAC.ps1"
+  },
+  "auth": {
+    "customerUsername": "REPLACE_CUSTOMER_USERNAME",
+    "credentialsSourceRelativePath": "REPLACE_WITH_PATH_TO_PRIVATE_ACCOUNT_FILE",
+    "passwordIncludedInThisFile": false,
+    "employeeOnlyForWpfReadOnly": "REPLACE_RECEPTION_USERNAME",
+    "employeeUsernames": {
+      "reception": "REPLACE_RECEPTION_USERNAME",
+      "cashier": "REPLACE_CASHIER_USERNAME",
+      "doctor": "REPLACE_DOCTOR_USERNAME",
+      "nurse": "REPLACE_NURSE_USERNAME",
+      "warehouse": "REPLACE_WAREHOUSE_USERNAME",
+      "admin": "REPLACE_ADMIN_USERNAME"
+    }
+  },
+  "personas": {
+    "customer": {
+      "fullName": "REPLACE_FULLNAME",
+      "dateOfBirth": "REPLACE_DATEOFBIRTH",
+      "salutation": "REPLACE_SALUTATION",
+      "phoneNumber": "REPLACE_PHONENUMBER",
+      "email": "REPLACE_EMAIL",
+      "identityNumber": null
+    },
+    "recipient": {
+      "fullName": "REPLACE_FULLNAME",
+      "dateOfBirth": "REPLACE_DATEOFBIRTH",
+      "gender": "REPLACE_GENDER",
+      "relationshipToCustomer": "REPLACE_RELATIONSHIPTOCUSTOMER",
+      "identityNumber": null
+    }
+  },
+  "service": {
+    "kind": "vaccine",
+    "code": "VX-AVAXIM-80U",
+    "name": "Avaxim 80U",
+    "manufacturer": "Sanofi Pasteur",
+    "origin": "Pháp",
+    "quantity": 1,
+    "referencePriceVnd": 685000,
+    "pricePolicy": "MUST_READ_RUNTIME_API__reference_only",
+    "medicalPolicy": "Danh mục tham khảo; KHÔNG kết luận đủ điều kiện tiêm"
+  },
+  "draftRegistration": {
+    "contact": {
+      "fullName": "REPLACE_FULLNAME",
+      "phoneNumber": "REPLACE_PHONENUMBER",
+      "email": "REPLACE_EMAIL",
+      "provinceCity": "REPLACE_PROVINCECITY",
+      "wardCommune": "REPLACE_WARDCOMMUNE",
+      "addressLine": "REPLACE_ADDRESSLINE"
+    },
+    "preferredDate": "YYYY-MM-DD",
+    "preferredTime": "HH:mm",
+    "preferredDatePolicy": "Đây là NGÀY/GIỜ MONG MUỐN, chưa phải lịch hẹn đã xác nhận; ngày phải >= hôm nay theo giờ Việt Nam",
+    "promotion": "Không áp dụng ưu đãi",
+    "submit": false
+  },
+  "interaction": {
+    "mode": "KEY_ADVANCED__NOT_TIMER_ADVANCED",
+    "nextHotkey": "F8",
+    "pauseResumeHotkey": "F9",
+    "exitHotkey": "Esc",
+    "rightArrowOptional": "Chỉ gán phím mũi tên khi chắc chắn không chiếm thao tác trong ô nhập liệu",
+    "typeIntervalMs": {
+      "min": 120,
+      "max": 160
+    },
+    "afterFieldMs": 650,
+    "afterClickMs": 900,
+    "afterStep": "wait_forever_for_next_key",
+    "doubleKeyGuard": true,
+    "waitCondition": "DOM/ARIA/backend state rather than fixed sleep",
+    "typingPolicy": "Type visibly into actual Web fields, not instant fill; date/time via native control"
+  },
+  "guards": {
+    "businessWritesDuringLive": false,
+    "prepareRecipientOnceBeforeLive": true,
+    "neverSubmitRegistration": true,
+    "neverCreateAppointmentOrClinicalDecision": true,
+    "neverPaymentOrVaccinationOrInventory": true,
+    "noSeedOrResetOrMigrationOrRebuild": true,
+    "neverNewComposeProjectOrDatabase": true,
+    "noHardCodedTotal": true,
+    "onUncertainMutation": "STOP and GET reconcile, never blind retry",
+    "onStepFailure": "STOP, show clear error, allow manual takeover"
+  },
+  "wpf": {
+    "lotNumber": "REPLACE_TEST_LOT_NUMBER"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "klcn-demo-control-review",
+  "private": true,
+  "dependencies": { "playwright": "1.66.0-alpha-1794252756000" }
+}
